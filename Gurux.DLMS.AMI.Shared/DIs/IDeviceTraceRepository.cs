@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This public interface is used with device hex traces.
     /// </summary>
+    [System.ComponentModel.Description("This public interface is used with device hex traces.")]
     public interface IDeviceTraceRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("Lists device communication traces.")]
         Task<IEnumerable<GXDeviceTrace>> ListAsync(
             ListDeviceTrace? request = null,
             ListDeviceTraceResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Reads a device communication trace by identifier.")]
         Task<GXDeviceTrace> ReadAsync(Guid id, Expression<Func<GXDeviceTrace, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
@@ -70,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Device trace type.</param>
         /// <param name="deviceTraces">Added device traces.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Add device traces.")]
         Task AddAsync(string type, IEnumerable<GXDeviceTrace> deviceTraces, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -77,6 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="devices">List of device Ids whoes activities are cleared.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Clear all device activitys.")]
         Task ClearAsync(IEnumerable<Guid>? devices, CancellationToken cancellationToken);
     }
 }

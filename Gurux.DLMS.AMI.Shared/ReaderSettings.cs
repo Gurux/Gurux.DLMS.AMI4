@@ -36,15 +36,18 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// Settings for the agent that reads meters and retrieves tasks from the server.
     /// </summary>
+    [System.ComponentModel.Description("Settings for the agent that reads meters and retrieves tasks from the server.")]
     public class ReaderSettings
     {
         /// <summary>
         /// Whether the meter reader is enabled. The default is true.
         /// </summary>
+        [System.ComponentModel.Description("Whether the meter reader is enabled. The default is true.")]
         public bool Enabled { get; set; } = true;
         /// <summary>
         /// Number of meter reading threads. The default is 10.
         /// </summary>
+        [System.ComponentModel.Description("Number of meter reading threads. The default is 10.")]
         public int Threads { get; set; } = 10;
         /// <summary>
         /// Time in seconds to wait for a new task before retrying.
@@ -53,15 +56,16 @@ namespace Gurux.DLMS.AMI.Shared
         /// Limits the wait when the server restarts so the reader does not have to
         /// wait for the session to time out.
         /// </remarks>
+        [System.ComponentModel.Description("Time in seconds to wait for a new task before retrying.")]
         public int TaskWaitTime { get; set; } = 100000;
         /// <summary>
         /// How often reader sends alive message to the server in minutes.
         /// If value is zero only start message is sent and no alive messages are sent.
         /// </summary>
+        [System.ComponentModel.Description("How often reader sends alive message to the server in minutes. If value is zero only start message is sent and no alive messages are sent.")]
         public int AliveTime { get; set; } = 2;
-        /// <summary>
-        /// Used trace level.
-        /// </summary>
+        /// <summary>Trace level used for communication diagnostics.</summary>
+        [System.ComponentModel.Description("Trace level used for communication diagnostics.")]
         public TraceLevel TraceLevel { get; set; }
 
         /// <inheritdoc/>

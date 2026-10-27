@@ -35,16 +35,22 @@ namespace Gurux.DLMS.AMI.Shared.Enums;
 /// <summary>
 /// The layout region hosting a shared menu.
 /// </summary>
+[System.ComponentModel.Description("The layout region hosting a shared menu.")]
 public enum MenuLocation
 {
     /// <summary>The top menu area.</summary>
+    [System.ComponentModel.Description("The top menu area.")]
     Top,
     /// <summary>The left menu area.</summary>
+    [System.ComponentModel.Description("The left menu area.")]
     Left,
     /// <summary>The right menu area.</summary>
+    [System.ComponentModel.Description("The right menu area.")]
     Right,
     /// <summary>The bottom menu area.</summary>
+    [System.ComponentModel.Description("The bottom menu area.")]
     Bottom,
     /// <summary>The footer menu area.</summary>
+    [System.ComponentModel.Description("The footer menu area.")]
     Footer,
 }

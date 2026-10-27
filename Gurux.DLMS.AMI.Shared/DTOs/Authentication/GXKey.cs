@@ -37,12 +37,12 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A persisted authentication key.</summary>
+    [System.ComponentModel.Description("A persisted authentication key.")]
     [DataContract(Name = "GXKey"), Serializable]
     public partial class GXKey : IUnique<string>
     {
-        /// <summary>
-        /// Identifier.
-        /// </summary>
+        /// <summary>Unique identifier of the key.</summary>
+        [System.ComponentModel.Description("Unique identifier of the key.")]
         [StringLength(450)]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
@@ -54,18 +54,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Key version.
         /// </summary>
+        [System.ComponentModel.Description("Key version.")]
         [DataMember]
         public int Version { get; set; }
 
         /// <summary>
         /// When key is created.
         /// </summary>
+        [System.ComponentModel.Description("When key is created.")]
         [DataMember]
         public DateTime Created { get; set; }
 
         /// <summary>
         /// Key use.
         /// </summary>
+        [System.ComponentModel.Description("Key use.")]
         [Index(Unique = false)]
         [DataMember]
         [StringLength(450)]
@@ -74,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Key algorithm.
         /// </summary>
+        [System.ComponentModel.Description("Key algorithm.")]
         [DataMember]
         [StringLength(100)]
         public string? Algorithm { get; set; }
@@ -81,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Is Key X509 certificate.
         /// </summary>
+        [System.ComponentModel.Description("Is Key X509 certificate.")]
         [DataMember]
         [IsRequired]
         public bool IsX509Certificate { get; set; }
@@ -88,6 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Is key data protected.
         /// </summary>
+        [System.ComponentModel.Description("Is key data protected.")]
         [DataMember]
         [IsRequired]
         public bool DataProtected { get; set; }
@@ -95,6 +101,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Key data.
         /// </summary>
+        [System.ComponentModel.Description("Key data.")]
         [DataMember]
         public string? Data { get; set; }
     }

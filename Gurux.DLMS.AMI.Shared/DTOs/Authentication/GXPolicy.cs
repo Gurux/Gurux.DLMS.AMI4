@@ -41,12 +41,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     /// <summary>
     /// A named rule that controls access to a resource or operation.
     /// </summary>
+    [Description("A named rule that controls access to a resource or operation.")]
     [DataContract(Name = "GXPolicy"), Serializable]
     public partial class GXPolicy : IUnique<Guid>, IValidatableObject
     {
         /// <summary>
         /// Policy identifier.
         /// </summary>
+        [Description("Policy identifier.")]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
@@ -58,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Stable application identifier of the policy. It cannot be renamed after creation.
         /// </summary>
+        [Description("Stable application identifier of the policy. It cannot be renamed after creation.")]
         [DataMember]
         [Index(Unique = true)]
         [Required]
@@ -77,6 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Culture-independent lookup key that makes identifier uniqueness consistent across databases.
         /// </summary>
+        [Description("Culture-independent lookup key that makes identifier uniqueness consistent across databases.")]
         [DataMember]
         [StringLength(128)]
         [Index(Unique = true)]
@@ -86,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// User-editable display name. Name remains the authorization identifier.
         /// </summary>
+        [Description("User-editable display name. Name remains the authorization identifier.")]
         [DataMember]
         [StringLength(128)]
         public string? DisplayName { get; set; }
@@ -93,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Whether this policy is maintained by the application rather than public editing APIs.
         /// </summary>
+        [Description("Whether this policy is maintained by the application rather than public editing APIs.")]
         [DataMember]
         [DefaultValue(false)]
         public bool SystemDefined { get; set; }
@@ -100,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Require authentication independently of the permission requirement operator.
         /// </summary>
+        [Description("Require authentication independently of the permission requirement operator.")]
         [DataMember]
         [DefaultValue(true)]
         public bool RequireAuthenticatedUser { get; set; } = true;
@@ -107,12 +114,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Policy description.
         /// </summary>
+        [Description("Policy description.")]
         [DataMember]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// When was the policy last updated.
-        /// </summary>
+        /// <summary>Time when the policy was last updated.</summary>
+        [Description("Time when the policy was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -124,6 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <remarks>
         /// In filter if the removed time is set it will return values that are not null.
         /// </remarks>
+        [Description("Time when policy was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -134,6 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [MaxLength(36)]
@@ -143,6 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the logical operator used to combine policy requirements.
         /// </summary>
+        [Description("Gets or sets the logical operator used to combine policy requirements.")]
         [DataMember]
         [DefaultValue(PolicyRequirementOperator.Or)]
         public PolicyRequirementOperator RequirementOperator { get; set; } = PolicyRequirementOperator.Or;
@@ -150,28 +160,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Policy requirements.
         /// </summary>
+        [Description("Policy requirements.")]
         [DataMember]
         [ForeignKey(typeof(GXPolicyRequirement))]
         [Filter(FilterType.Contains)]
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXPolicyRequirement>? Requirements { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPolicy.</summary>
+        [Description("Initializes a new instance of GXPolicy.")]
         public GXPolicy()
         {
 
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPolicy.</summary>
         /// <param name="name">Name of the policy.</param>
+        [Description("Initializes a new instance of GXPolicy.")]
         public GXPolicy(string name)
         {
             Name = name;
-            Requirements = new List<GXPolicyRequirement>();
+            Requirements = [];
         }
 
         /// <inheritdoc/>

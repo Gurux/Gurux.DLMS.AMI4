@@ -37,20 +37,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Script
 {
     /// <summary>Associates a script with a script group.</summary>
+    [Description("Associates a script with a script group.")]
     [DataContract(Name = "GXScriptGroupScript"), Serializable]
     [IndexCollection(true, nameof(ScriptGroupId), nameof(ScriptId), Clustered = true)]
     public class GXScriptGroupScript : GXTableBase
     {
-        /// <summary>
-        /// The database ID of the Script group.
-        /// </summary>
+        /// <summary>The database identifier of the Script group.</summary>
+        [Description("The database identifier of the Script group.")]
         [DataMember(Name = "ScriptGroupId")]
         [ForeignKey(typeof(GXScriptGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid ScriptGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the script.
-        /// </summary>
+        /// <summary>The database identifier of the script.</summary>
+        [Description("The database identifier of the script.")]
         [DataMember(Name = "ScriptID")]
         [ForeignKey(typeof(GXScript), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ScriptId { get; set; }
@@ -59,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// Creation time.
         /// The time when the script was added to the script group.
         /// </summary>
+        [Description("Creation time. The time when the script was added to the script group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -67,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// <summary>
         /// Time when script was removed from script group.
         /// </summary>
+        [Description("Time when script was removed from script group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -76,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)

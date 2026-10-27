@@ -37,23 +37,27 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Module
 {
     /// <summary>An external assembly associated with a module.</summary>
+    [System.ComponentModel.Description("An external assembly associated with a module.")]
     public class GXModuleAssembly : IUnique<Guid>
     {
         /// <summary>
         /// Assembly identifier.
         /// </summary>
+        [System.ComponentModel.Description("Assembly identifier.")]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
         /// <summary>
         /// Assembly file name.
         /// </summary>
+        [System.ComponentModel.Description("Assembly file name.")]
         [StringLength(64)]
         public string? FileName { get; set; }
 
         /// <summary>
         /// Parent module.
         /// </summary>
+        [System.ComponentModel.Description("Parent module.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         public GXModule? Module { get; set; }

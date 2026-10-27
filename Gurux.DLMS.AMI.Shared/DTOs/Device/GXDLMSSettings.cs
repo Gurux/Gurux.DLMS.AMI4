@@ -37,6 +37,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>DLMS/COSEM connection, authentication, and protocol settings for a device.</summary>
+    [Description("DLMS/COSEM connection, authentication, and protocol settings for a device.")]
     public class GXDLMSSettings
     {
         /// <summary>
@@ -67,7 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Dedicated Key.
         /// </summary>
         [DefaultValue(null)]
-        [Description("Dedicatedkey.")]
+        [Description("Dedicated Key.")]
         public byte[]? DedicatedKey { get; set; }
 
         /// <summary>
@@ -79,6 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Maximum used baud rate.
         /// </summary>
+        [Description("Maximum used baud rate.")]
         [DefaultValue(0)]
         public int MaximumBaudRate { get; set; }
 
@@ -91,34 +93,39 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Authentication Level.
         /// </summary>
-        [Description("Name of authentication level.")]
+        [Description("Authentication Level.")]
         public string? AuthenticationName { get; set; }
 
         /// <summary>
         /// Used standard.
         /// </summary>
+        [Description("Used standard.")]
         public byte Standard { get; set; }
 
         /// <summary>
         /// Password is used only if authentication is used.
         /// </summary>
+        [Description("Password is used only if authentication is used.")]
         [DefaultValue(null)]
         public byte[]? Password { get; set; }
 
         /// <summary>
         /// Used communication security.
         /// </summary>
+        [Description("Used communication security.")]
         public byte Security { get; set; }
 
         /// <summary>
         /// Used Security Suite.
         /// </summary>
+        [Description("Used Security Suite.")]
         public int SecuritySuite { get; set; }
 
         /// <summary>
         /// Use pre-established application associations.
         /// </summary>
         /// <seealso cref="IgnoreSNRMWithPreEstablished"/>
+        [Description("Use pre-established application associations.")]
         [DefaultValue(false)]
         public bool PreEstablished { get; set; }
 
@@ -130,18 +137,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// but there are some meters that don't follow the standard.
         /// </remarks>
         /// <seealso cref="PreEstablished"/>
+        [Description("SNRM command is not send With pre-established connection.")]
         [DefaultValue(false)]
         public bool IgnoreSNRMWithPreEstablished { get; set; }
 
         /// <summary>
         /// Invocation counter.
         /// </summary>
+        [Description("Invocation counter.")]
         [DefaultValue(0)]
         public uint InvocationCounter { get; set; }
 
         /// <summary>
         /// Frame counter is used to update InvocationCounter automatically.
         /// </summary>
+        [Description("Frame counter is used to update InvocationCounter automatically.")]
         [DefaultValue(null)]
         [StringLength(25)]
         public string? FrameCounter { get; set; }
@@ -149,6 +159,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Static challenge.
         /// </summary>
+        [Description("Static challenge.")]
         [DefaultValue(null)]
         [StringLength(128)]
         public string? Challenge { get; set; }
@@ -156,40 +167,43 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Signing type.
         /// </summary>
+        [Description("Signing type.")]
         public int Signing { get; set; }
 
         /// <summary>
         /// Signing key of the client.
         /// </summary>
+        [Description("Signing key of the client.")]
         [DefaultValue(null)]
         public string? ClientSigningKey { get; set; }
 
         /// <summary>
         /// Agreement key of the client.
         /// </summary>
+        [Description("Agreement key of the client.")]
         [DefaultValue(null)]
         public string? ClientAgreementKey { get; set; }
 
         /// <summary>
         /// Signing key of the server.
         /// </summary>
+        [Description("Signing key of the server.")]
         [DefaultValue(null)]
         public string? ServerSigningKey { get; set; }
 
         /// <summary>
         /// Agreement key of the server.
         /// </summary>
+        [Description("Agreement key of the server.")]
         [DefaultValue(null)]
         public string? ServerAgreementKey { get; set; }
 
-        /// <summary>
-        /// Used logical client ID.
-        /// </summary>
+        /// <summary>Used logical client identifier.</summary>
         /// <remarks>
         /// Client ID is always 1 byte long in HDLC and 2 bytes long when WRAPPER is used.
         /// </remarks>
         [DefaultValue(0x10)]
-        [Description("Client address.")]
+        [Description("Used logical client identifier.")]
         public int ClientAddress { get; set; }
 
         /// <summary>
@@ -199,19 +213,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Server HDLC Address (Logical + Physical address)  might be 1,2 or 4 bytes long.
         /// Serial number is also saved for PhysicalAddress.
         /// </remarks>
+        [Description("Used Physical address.")]
         [DefaultValue(1)]
         virtual public long PhysicalAddress { get; set; }
 
         /// <summary>
         /// Used logical address.
         /// </summary>
+        [Description("Used logical address.")]
         [DefaultValue(0)]
         public int LogicalAddress { get; set; }
 
         /// <summary>
         /// Communication profiles.
         /// </summary>
-        public List<GXCommunicationProfile> Profiles { get; set; } = new List<GXCommunicationProfile>();
+        [Description("Communication profiles.")]
+        public List<GXCommunicationProfile> Profiles { get; set; } = [];
 
         /// <summary>
         /// Standard says that Time zone is from normal time to UTC in minutes.
@@ -219,7 +236,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Example. Italy, Saudi Arabia and India standards are using UTC time zone, not DLMS standard time zone.
         /// </summary>
         [DefaultValue(false)]
-        [Description("Use UTC time zone.")]
+        [Description("Standard says that Time zone is from normal time to UTC in minutes. If meter is configured to use UTC time (UTC to normal time) set this to true. Example. Italy, Saudi Arabia and India standards are using UTC time zone, not DLMS standard time zone.")]
         public bool UtcTimeZone { get; set; }
 
         /// <summary>
@@ -231,13 +248,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Is serial port access through TCP/IP or UDP converter.
         /// </summary>
+        [Description("Is serial port access through TCP/IP or UDP converter.")]
         [DefaultValue(false)]
         public bool UseRemoteSerial { get; set; }
 
         /// <summary>
         /// Used interface type.
         /// </summary>
-        [Description("Interface type.")]
+        [Description("Used interface type.")]
         public int InterfaceType { get; set; }
 
         /// <summary>
@@ -246,6 +264,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// DefaultValue is 128. Minimum value is 32 and max value is 2030.
         /// </remarks>
+        [Description("The maximum information field length in transmit.")]
         [DefaultValue(128)]
         public ushort MaxInfoTX { get; set; }
 
@@ -255,6 +274,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// DefaultValue is 128. Minimum value is 32 and max value is 2030.
         /// </remarks>
+        [Description("The maximum information field length in receive.")]
         [DefaultValue(128)]
         public ushort MaxInfoRX { get; set; }
 
@@ -264,6 +284,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// DefaultValue is 1.
         /// </remarks>
+        [Description("The window size in transmit.")]
         [DefaultValue(1)]
         public byte WindowSizeTX { get; set; }
 
@@ -273,21 +294,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// DefaultValue is 1.
         /// </remarks>
+        [Description("The window size in receive.")]
         [DefaultValue(1)]
         public byte WindowSizeRX { get; set; }
 
-        /// <summary>
-        /// PLC MAC Source Address
-        /// </summary>
+        /// <summary>PLC MAC Source Address.</summary>
         /// <remarks>
         /// DefaultValue is 0xC00.
         /// </remarks>
+        [Description("PLC MAC Source Address.")]
         [DefaultValue(0xC00)]
         public ushort MACSourceAddress { get; set; }
 
         /// <summary>
         /// PLC MAC Target Address.
         /// </summary>
+        [Description("PLC MAC Target Address.")]
         public ushort MacDestinationAddress { get; set; }
 
 
@@ -297,35 +319,37 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// DefaultValue is 0xFFFF.
         /// </remarks>
+        [Description("Proposed maximum size of PDU.")]
         [DefaultValue(0xFFFF)]
         public ushort PduSize { get; set; }
 
-        /// <summary>
-        /// User Id.
-        /// </summary>
+        /// <summary>User identifier.</summary>
         /// <remarks>
         /// In default user id is not used.
         /// </remarks>
+        [Description("User identifier.")]
         public short UserId { get; set; }
 
-        /// <summary>
-        /// Network ID.
-        /// </summary>
+        /// <summary>Network identifier.</summary>
+        [Description("Network identifier.")]
         public byte NetworkId { get; set; }
 
         /// <summary>
         ///Inactivity timeout.
         /// </summary>
+        [Description("Inactivity timeout.")]
         public int InactivityTimeout { get; set; }
 
         /// <summary>
         /// Used Service class.
         /// </summary>
+        [Description("Used Service class.")]
         public byte ServiceClass { get; set; }
 
         /// <summary>
         /// Used priority.
         /// </summary>
+        [Description("Used priority.")]
         public byte Priority { get; set; }
 
 
@@ -335,6 +359,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// This is not udes in default. Some meters require that server address size is constant.
         /// </remarks>
+        [Description("Server address size.")]
         [DefaultValue(0)]
         public byte ServerAddressSize { get; set; }
 
@@ -342,6 +367,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Challenge size.
         /// </summary>
         /// <returns></returns>
+        [Description("Challenge size.")]
         [DefaultValue(16)]
         public byte ChallengeSize { get; set; }
 
@@ -349,18 +375,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Public key certificate is send in part of initialize messages (AARQ and AARE).
         /// </summary>
         /// <returns></returns>
+        [Description("Public key certificate is send in part of initialize messages (AARQ and AARE).")]
         [DefaultValue(false)]
         public bool PublicKeyInInitialize { get; set; }
         /// <summary>
         /// Are Initiate Request and Response (AARQ and AARE) signed.
         /// </summary>
         /// <returns></returns>
+        [Description("Are Initiate Request and Response (AARQ and AARE) signed.")]
         [DefaultValue(false)]
         public bool SignInitiateRequestResponse { get; set; }
 
         /// <summary>
         /// Used signing and ciphering order.
         /// </summary>
+        [Description("Used signing and ciphering order.")]
         public int SignCipherOrder { get; set; }
 
         /// <summary>
@@ -369,16 +398,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Description("Proposed Conformance.")]
         public int Conformance { get; set; }
 
-        /// <summary>
-        /// FLAG ID.
-        /// </summary>
-        [Description("FLAG ID.")]
+        /// <summary>FLAG identifier.</summary>
+        [Description("FLAG identifier.")]
         [StringLength(3)]
         public string? Manufacturer { get; set; }
 
         /// <summary>
         /// What HDLC Addressing is used.
         /// </summary>
+        [Description("What HDLC Addressing is used.")]
         public int HDLCAddressing { get; set; }
 
         /// <summary>
@@ -389,17 +417,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// This is not defined in DLMS standard and different meters are using a different ways
         /// to get this information from the serial number.
         /// </remarks>
+        [Description("Serial number formula.")]
         public string? SerialNumberFormula { get; set; }
 
 
         /// <summary>
         /// If protected release is used release is including a ciphered xDLMS Initiate request.
         /// </summary>
+        [Description("If protected release is used release is including a ciphered xDLMS Initiate request.")]
         public bool UseProtectedRelease { get; set; }
 
         /// <summary>
         /// Is Logical name referencing used.
         /// </summary>
+        [Description("Is Logical name referencing used.")]
         public bool UseLogicalNameReferencing { get; set; }
         /// <summary>
         /// Supporterd interfaces.
@@ -407,9 +438,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Description("Supporterd interfaces.")]
         public int SupporterdInterfaces { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDLMSSettings.</summary>
+        [Description("Initializes a new instance of GXDLMSSettings.")]
         public GXDLMSSettings()
         {
             PduSize = 0xFFFF;

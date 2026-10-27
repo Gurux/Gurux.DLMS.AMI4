@@ -42,30 +42,29 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
     /// <summary>A named group of agents with shared membership and access settings.</summary>
+    [Description("A named group of agents with shared membership and access settings.")]
     public class GXAgentGroup : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAgentGroup.</summary>
+        [Description("Initializes a new instance of GXAgentGroup.")]
         public GXAgentGroup()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAgentGroup.</summary>
         /// <remarks>
-        /// This constuctor is called when a new agent group is created. It will create all needed lists.
+        /// This constructor is called when a new agent group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Agent group name.</param>
+        [Description("Initializes a new instance of GXAgentGroup.")]
         public GXAgentGroup(string? name)
         {
             Name = name;
             Enabled = true;
             Default = true;
-            UserGroups = new List<GXUserGroup>();
-            Agents = new List<GXAgent>();
-            DeviceGroups = new List<GXDeviceGroup>();
+            UserGroups = [];
+            Agents = [];
+            DeviceGroups = [];
         }
 
         /// <summary>
@@ -81,6 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// The creator of the agent group.
         /// </summary>
+        [Description("The creator of the agent group.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -90,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent group name.
         /// </summary>
+        [Description("Agent group name.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -97,20 +98,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [IsRequired]
         public string? Name { get; set; }
 
-        /// <summary>
-        /// Description.
-        /// </summary>
+        /// <summary>Description of the agent group.</summary>
         [DataMember]
         [StringLength(256)]
-        [Description("Description.")]
+        [Description("Description of the agent group.")]
         //Filter uses default value.
         [DefaultValue(null)]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Is agent group enabled.
-        /// </summary>
+        /// <summary>Whether the agent group is enabled.</summary>
         //Filter uses default value.
+        [Description("Whether the agent group is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -120,12 +118,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// List of agents that this agent group can access.
         /// </summary>
+        [Description("List of agents that this agent group can access.")]
         [DataMember, ForeignKey(typeof(GXAgent), typeof(GXAgentGroupAgent))]
         public List<GXAgent>? Agents { get; set; }
 
         /// <summary>
         /// User groups that can access this agent group.
         /// </summary>
+        [Description("User groups that can access this agent group.")]
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupAgentGroup))]
         public List<GXUserGroup>? UserGroups { get; set; }
@@ -133,13 +133,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// List of device groups that this agent group can access.
         /// </summary>
+        [Description("List of device groups that this agent group can access.")]
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), typeof(GXAgentGroupDeviceGroup))]
         public List<GXDeviceGroup>? DeviceGroups { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         //Filter uses default value.
         [DefaultValue(null)]
@@ -148,18 +148,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When was the agent group last updated.
-        /// </summary>
+        /// <summary>Time when the agent group was last updated.</summary>
+        [Description("Time when the agent group was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -170,6 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -178,6 +177,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// This is default agent group where new agents are added automatically when user creates them.
         /// </summary>
+        [Description("This is default agent group where new agents are added automatically when user creates them.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -187,6 +187,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -198,6 +199,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

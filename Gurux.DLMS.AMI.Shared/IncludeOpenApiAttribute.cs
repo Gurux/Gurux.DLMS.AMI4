@@ -38,29 +38,26 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// Limits a nested type in the OpenAPI schema for this property to the named properties.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
+    /// <param name="type">Nested type whose schema is restricted.</param>
+    /// <param name="include">Names of properties to include.</param>
+    [System.ComponentModel.Description("Limits a nested type in the OpenAPI schema for this property to the named properties.")]
     [AttributeUsage(AttributeTargets.Property,
       AllowMultiple = true)]
-    public sealed class IncludeOpenApiAttribute : Attribute
+    public sealed class IncludeOpenApiAttribute(Type type, params string[] include) : Attribute
     {
         /// <summary>
         /// Nested type whose schema is restricted.
         /// </summary>
-        public Type Type { get; private set; }
+        [System.ComponentModel.Description("Nested type whose schema is restricted.")]
+        public Type Type { get; private set; } = type;
 
         /// <summary>
         /// Property names to include in the nested type schema.
         /// </summary>
-        public string[] Include { get; private set; }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="type">Nested type whose schema is restricted.</param>
-        /// <param name="include">Names of properties to include.</param>
-        public IncludeOpenApiAttribute(Type type, params string[] include)
-        {
-            Type = type;
-            Include = include;
-        }
+        [System.ComponentModel.Description("Property names to include in the nested type schema.")]
+        public string[] Include { get; private set; } = include;
     }
 }

@@ -39,16 +39,19 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 /// <summary>Assigns an alternative named policy to a module.</summary>
+[System.ComponentModel.Description("Assigns an alternative named policy to a module.")]
 [DataContract, Serializable]
 [IndexCollection(true, nameof(ModuleId), nameof(PolicyId))]
 public class GXModulePolicy
 {
     /// <summary>Identifier of the module to which the policy is assigned.</summary>
+    [System.ComponentModel.Description("Identifier of the module to which the policy is assigned.")]
     [DataMember, IsRequired, StringLength(64)]
     [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.Cascade)]
     public string ModuleId { get; set; } = "";
 
     /// <summary>Identifier of the assigned authorization policy.</summary>
+    [System.ComponentModel.Description("Identifier of the assigned authorization policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXPolicy))]
     public Guid PolicyId { get; set; }

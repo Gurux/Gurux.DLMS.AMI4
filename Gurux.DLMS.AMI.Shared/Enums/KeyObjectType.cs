@@ -33,16 +33,22 @@
 namespace Gurux.DLMS.AMI.Shared.Enums;
 
 /// <summary>Managed secret representation.</summary>
+[System.ComponentModel.Description("Managed secret representation.")]
 public enum KeyObjectType
 {
     /// <summary>Secret data, such as an authentication password.</summary>
+    [System.ComponentModel.Description("Secret data, such as an authentication password.")]
     SecretData = 1,
     /// <summary>Symmetric cryptographic key.</summary>
+    [System.ComponentModel.Description("Symmetric cryptographic key.")]
     SymmetricKey,
     /// <summary>Private key of an asymmetric key pair.</summary>
+    [System.ComponentModel.Description("Private key of an asymmetric key pair.")]
     PrivateKey,
     /// <summary>Public key of an asymmetric key pair.</summary>
+    [System.ComponentModel.Description("Public key of an asymmetric key pair.")]
     PublicKey,
     /// <summary>Certificate containing a public key.</summary>
+    [System.ComponentModel.Description("Certificate containing a public key.")]
     Certificate
 }

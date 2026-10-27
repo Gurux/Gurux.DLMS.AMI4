@@ -37,21 +37,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
     /// <summary>Associates a schedule with a schedule group.</summary>
+    [Description("Associates a schedule with a schedule group.")]
     [DataContract(Name = "GXScheduleGroupSchedule"), Serializable]
     [IndexCollection(true, nameof(ScheduleGroupId), nameof(ScheduleId), Clustered = true)]
     public class GXScheduleGroupSchedule
     {
-        /// <summary>
-        /// The database ID of the Schedule group.
-        /// </summary>
+        /// <summary>The database identifier of the Schedule group.</summary>
+        [Description("The database identifier of the Schedule group.")]
         [DataMember(Name = "ScheduleGroupId")]
         [ForeignKey(typeof(GXScheduleGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
         public Guid ScheduleGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the schedule.
-        /// </summary>
+        /// <summary>The database identifier of the schedule.</summary>
+        [Description("The database identifier of the schedule.")]
         [DataMember(Name = "ScheduleID")]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ScheduleId { get; set; }
@@ -60,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// Creation time.
         /// The time when the schedule was added to the schedule group.
         /// </summary>
+        [Description("Creation time. The time when the schedule was added to the schedule group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -69,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Time when schedule was removed from schedule group.
         /// </summary>
+        [Description("Time when schedule was removed from schedule group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

@@ -38,30 +38,27 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>Associates a manufacturer with a manufacturer group.</summary>
+    [Description("Associates a manufacturer with a manufacturer group.")]
     [DataContract(Name = "GXManufacturerGroupManufacturer"), Serializable]
     [IndexCollection(true, nameof(ManufacturerGroupId), nameof(ManufacturerId), Clustered = true)]
     public class GXManufacturerGroupManufacturer
     {
-        /// <summary>
-        /// The database ID of the Schedule group.
-        /// </summary>
+        /// <summary>The database identifier of the Schedule group.</summary>
+        [Description("The database identifier of the Schedule group.")]
         [DataMember(Name = "ManufacturerGroupId")]
         [ForeignKey(typeof(GXManufacturerGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the manufacturer is causing multiple cascade paths error in MSSQL.
         public Guid ManufacturerGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the manufacturer.
-        /// </summary>
+        /// <summary>The database identifier of the manufacturer.</summary>
+        [Description("The database identifier of the manufacturer.")]
         [DataMember(Name = "ManufacturerID")]
         [ForeignKey(typeof(GXManufacturer), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ManufacturerId { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Time when the record was created.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -70,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Time when agent group was removed from user group.
         /// </summary>
+        [Description("Time when agent group was removed from user group.")]
         [DataMember]
         [Index(false)]
         [DefaultValue(null)]

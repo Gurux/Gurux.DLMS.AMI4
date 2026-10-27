@@ -34,12 +34,15 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.Enums
 {
     /// <summary>Determines how a policy combines its requirements.</summary>
+    [System.ComponentModel.Description("Determines how a policy combines its requirements.")]
     public enum PolicyRequirementOperator : byte
     {
         /// <summary>Satisfy the policy when at least one requirement is met.</summary>
+        [System.ComponentModel.Description("Satisfy the policy when at least one requirement is met.")]
         [XmlEnum("0")]
         Or,
         /// <summary>Satisfy the policy only when all requirements are met.</summary>
+        [System.ComponentModel.Description("Satisfy the policy only when all requirements are met.")]
         [XmlEnum("1")]
         And
     }

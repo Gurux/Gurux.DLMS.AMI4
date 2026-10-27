@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Module
 {
     /// <summary>Associates a module with a module group.</summary>
+    [Description("Associates a module with a module group.")]
     [DataContract(Name = "GXModuleGroupModule"), Serializable]
     [IndexCollection(true, nameof(ModuleGroupId), nameof(ModuleId), Clustered = true)]
     public class GXModuleGroupModule
     {
-        /// <summary>
-        /// The database ID of the Module group.
-        /// </summary>
+        /// <summary>The database identifier of the Module group.</summary>
+        [Description("The database identifier of the Module group.")]
         [DataMember(Name = "ModuleGroupId")]
         [ForeignKey(typeof(GXModuleGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
         public Guid ModuleGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the schedule.
-        /// </summary>
+        /// <summary>The database identifier of the schedule.</summary>
+        [Description("The database identifier of the schedule.")]
         [DataMember(Name = "ModuleID")]
         [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.Cascade)]
         [StringLength(64)]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// Creation time.
         /// The time when the module was added to the module group.
         /// </summary>
+        [Description("Creation time. The time when the module was added to the module group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// <summary>
         /// Time when module was removed from module group.
         /// </summary>
+        [Description("Time when module was removed from module group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

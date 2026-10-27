@@ -35,11 +35,11 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// Represents a requested AMI item that could not be found in the database.
     /// </summary>
+    [System.ComponentModel.Description("Represents a requested AMI item that could not be found in the database.")]
     public class GXAmiNotFoundException : Exception
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAmiNotFoundException.</summary>
+        [System.ComponentModel.Description("Initializes a new instance of GXAmiNotFoundException.")]
         public GXAmiNotFoundException()
         {
             Message = "";
@@ -48,22 +48,19 @@ namespace Gurux.DLMS.AMI.Shared
         /// <inheritdoc />
         public new string Message { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAmiNotFoundException.</summary>
         /// <param name="message">Error message.</param>
+        [System.ComponentModel.Description("Initializes a new instance of GXAmiNotFoundException.")]
         public GXAmiNotFoundException(string message) : base(message)
         {
             Message = message;
         }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [System.ComponentModel.Description("Time when the record was created.")]
         public DateTime CreationTime { get; set; }
-        /// <summary>
-        /// Message ID on the database.
-        /// </summary>
+        /// <summary>Message identifier on the database.</summary>
+        [System.ComponentModel.Description("Message identifier on the database.")]
         public Guid Id { get; set; }
     }
 }

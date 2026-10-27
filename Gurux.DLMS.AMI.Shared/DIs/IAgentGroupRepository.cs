@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle agent groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle agent groups.")]
     public interface IAgentGroupRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>  
         /// <returns>User groups.</returns>
+        [System.ComponentModel.Description("List agent groups.")]
         Task<IEnumerable<GXAgentGroup>> ListAsync(
             ListAgentGroups? request = null,
             ListAgentGroupsResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <param name="cancellationToken">The cancellation token.</param>  
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Reads an agent group by its identifier.")]
         Task<GXAgentGroup> ReadAsync(Guid id, Expression<Func<GXAgentGroup, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
@@ -69,18 +72,18 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated agent groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>  
+        [System.ComponentModel.Description("Inserts new agent groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAgentGroup> groups,
             Expression<Func<GXAgentGroup, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete agent group(s).
-        /// </summary>
+        /// <summary>Delete agent groups.</summary>
         /// <param name="groups">User agent to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>  
+        [System.ComponentModel.Description("Delete agent groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
 
@@ -90,6 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="agentGroupId">Agent group id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>  
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Get all users that can access this agent group.")]
         Task<List<string>> GetUsersAsync(Guid? agentGroupId,
             CancellationToken cancellationToken = default);
 
@@ -99,6 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="agentGroupIds">Agent group ids.</param>
         /// <param name="cancellationToken">The cancellation token.</param>  
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Get all users that can access agent groups.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentGroupIds,
             CancellationToken cancellationToken = default);
     }

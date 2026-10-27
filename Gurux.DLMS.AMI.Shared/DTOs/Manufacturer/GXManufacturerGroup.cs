@@ -41,28 +41,27 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>A named group of device manufacturers with shared access settings.</summary>
+    [Description("A named group of device manufacturers with shared access settings.")]
     public class GXManufacturerGroup : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXManufacturerGroup.</summary>
+        [Description("Initializes a new instance of GXManufacturerGroup.")]
         public GXManufacturerGroup()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXManufacturerGroup.</summary>
         /// <remarks>
-        /// This constuctor is called when a new manufacturer group is created. It will create all needed lists.
+        /// This constructor is called when a new manufacturer group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Manufacturer group name.</param>
+        [Description("Initializes a new instance of GXManufacturerGroup.")]
         public GXManufacturerGroup(string? name)
         {
             Name = name;
             Default = true;
-            UserGroups = new List<GXUserGroup>();
-            Manufacturers = new List<GXManufacturer>();
+            UserGroups = [];
+            Manufacturers = [];
         }
 
         /// <summary>
@@ -77,6 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// The creator of the management group.
         /// </summary>
+        [Description("The creator of the management group.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -86,6 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Manufacturer group name.
         /// </summary>
+        [Description("Manufacturer group name.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -93,17 +94,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [IsRequired]
         public string? Name { get; set; }
 
-        /// <summary>
-        /// Description.
-        /// </summary>
+        /// <summary>Description of the manufacturer group.</summary>
         [DataMember]
         [StringLength(256)]
-        [Description("Description.")]
+        [Description("Description of the manufacturer group.")]
         //Filter uses default value.
         [DefaultValue(null)]
         public string? Description { get; set; }
 
         /// <summary>Manufacturers belonging to this group.</summary>
+        [Description("Manufacturers belonging to this group.")]
         [DataMember, ForeignKey(typeof(GXManufacturer), typeof(GXManufacturerGroupManufacturer))]
         public List<GXManufacturer>? Manufacturers { get; set; }
 
@@ -113,6 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <remarks>
         /// If manufacturer group is public all the users can see the manufacturers on it.
         /// </remarks>
+        [Description("This manufacturer group is public.")]
         [DataMember]
         //Filter uses default value.
         [DefaultValue(true)]
@@ -123,13 +124,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// User groups that can access this manufacturer group.
         /// </summary>
+        [Description("User groups that can access this manufacturer group.")]
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupManufacturerGroup))]
         public List<GXUserGroup>? UserGroups { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         //Filter uses default value.
         [DefaultValue(null)]
@@ -138,18 +139,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When was the manufacturer group last updated.
-        /// </summary>
+        /// <summary>Time when the manufacturer group was last updated.</summary>
+        [Description("Time when the manufacturer group was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -160,6 +159,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -168,6 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// This is default manufacturer group where new manufacturers are added automatically when user creates them.
         /// </summary>
+        [Description("This is default manufacturer group where new manufacturers are added automatically when user creates them.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -177,6 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -188,6 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

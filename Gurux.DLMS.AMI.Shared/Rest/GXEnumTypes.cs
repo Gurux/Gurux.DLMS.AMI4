@@ -37,9 +37,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Add new enum type.
-    /// </summary>
+    /// <summary>Requests the addition of enum types.</summary>
+    [Description("Requests the addition of enum types.")]
     [DataContract]
     public class AddEnumType : IGXRequest<AddEnumTypeResponse>
     {
@@ -47,71 +46,67 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Enumeration type definition to add.
         /// </summary>
         [DataMember]
-        [Description("Log item.")]
+        [Description("Enumeration type definition to add.")]
         [Required]
         public GXEnumType? Item { get; set; }
     }
 
-    /// <summary>
-    /// Add enum type response.
-    /// </summary>
+    /// <summary>Response to adding enum types.</summary>
     [DataContract]
-    [Description("Add enum typeresponse.")]
+    [Description("Response to adding enum types.")]
     public class AddEnumTypeResponse
     {
     }
 
-    /// <summary>
-    /// Get enum types.
-    /// </summary>
+    /// <summary>Requests a list of enum types.</summary>
     [DataContract]
-    [Description("Get enum types.")]
+    [Description("Requests a list of enum types.")]
     public class ListEnumTypes : IGXRequest<ListEnumTypesResponse>
     {
         /// <summary>
         /// Optional criteria used to filter enum types.
         /// </summary>
+        [Description("Optional criteria used to filter enum types.")]
+        [ExcludeOpenApi(typeof(GXEnumType), nameof(GXEnumType.Id), nameof(GXEnumType.Value))]
         public GXEnumType? Filter { get; set; }
 
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of enum types to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of enum types to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of enum types to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<int>? Included { get; set; }
 
         /// <summary>
@@ -120,21 +115,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<int>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Get enum types response.
-    /// </summary>
-    [Description("Get enum types response.")]
+    /// <summary>Response containing the requested enum types.</summary>
+    [Description("Response containing the requested enum types.")]
     [DataContract]
     public class ListEnumTypesResponse
     {
-        /// <summary>
-        /// enum types.
-        /// </summary>
+        /// <summary>Enum types.</summary>
         [DataMember]
-        [Description("enum types.")]
+        [Description("Enum types.")]
         public IEnumerable<GXEnumType>? Types { get; set; }
 
         /// <summary>
@@ -142,6 +134,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Amount of the enum types.")]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 }

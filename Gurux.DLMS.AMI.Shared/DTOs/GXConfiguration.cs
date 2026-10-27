@@ -39,7 +39,7 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A named application configuration value with its presentation and access settings.</summary>
-    [Description("System configuration")]
+    [Description("A named application configuration value with its presentation and access settings.")]
     public class GXConfiguration : GXTableBase, IUnique<Guid>
     {
         /// <summary>
@@ -55,7 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Configuration name.
         /// </summary>
         [DataMember]
-        [Description("Configuration name")]
+        [Description("Configuration name.")]
         [Index(true)]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
@@ -65,28 +65,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Configuration settings.
         /// </summary>
+        [Description("Configuration settings.")]
         [DataMember]
         [DefaultValue(null)]
         public string? Settings { get; set; }
 
         /// <summary>Whether this configuration is available in the configuration list.</summary>
+        [Description("Whether this configuration is available in the configuration list.")]
         [DataMember, DefaultValue(true)]
         public bool Enabled { get; set; } = true;
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When value is last updated.
-        /// </summary>
+        /// <summary>Time when the value was last updated.</summary>
         [DataMember]
-        [Description("When value is last updated.")]
+        [Description("Time when the value was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
@@ -95,6 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -103,6 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -114,6 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

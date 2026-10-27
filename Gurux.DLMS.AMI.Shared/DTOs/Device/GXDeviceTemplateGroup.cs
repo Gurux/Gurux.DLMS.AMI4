@@ -41,33 +41,31 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>A named group of device templates with shared access settings.</summary>
+    [Description("A named group of device templates with shared access settings.")]
     [DataContract(Name = "GXDeviceTemplateGroup"), Serializable]
     public class GXDeviceTemplateGroup : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceTemplateGroup.</summary>
+        [Description("Initializes a new instance of GXDeviceTemplateGroup.")]
         public GXDeviceTemplateGroup()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceTemplateGroup.</summary>
         /// <remarks>
-        /// This constuctor is called when a new device template group is created. It will create all needed lists.
+        /// This constructor is called when a new device template group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Device template group name.</param>
+        [Description("Initializes a new instance of GXDeviceTemplateGroup.")]
         public GXDeviceTemplateGroup(string? name)
         {
             Name = name;
-            UserGroups = new List<GXUserGroup>();
-            DeviceTemplates = new List<GXDeviceTemplate>();
+            UserGroups = [];
+            DeviceTemplates = [];
         }
 
-        /// <summary>
-        /// Device templategroup ID.
-        /// </summary>
+        /// <summary>Device templategroup identifier.</summary>
+        [Description("Device templategroup identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -77,6 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// The creator of the device template group.
         /// </summary>
+        [Description("The creator of the device template group.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -86,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Name of the device template group.
         /// </summary>
+        [Description("Name of the device template group.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -98,13 +98,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         [DataMember]
         [StringLength(256)]
-        [Description("Description.")]
+        [Description("Device template group description.")]
         [DefaultValue(null)]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -114,15 +113,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Time when device template group was removed.
         /// </summary>
+        [Description("Time when device template group was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When was the device template group last updated.
-        /// </summary>
+        /// <summary>Time when the device template group was last updated.</summary>
+        [Description("Time when the device template group was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -133,16 +132,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
         /// <summary>User groups associated with this device template group.</summary>
+        [Description("User groups associated with this device template group.")]
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceTemplateGroup))]
         public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>Device templates belonging to this group.</summary>
+        [Description("Device templates belonging to this group.")]
         [DataMember, ForeignKey(typeof(GXDeviceTemplate),
             typeof(GXDeviceTemplateGroupDeviceTemplate))]
         public List<GXDeviceTemplate>? DeviceTemplates { get; set; }
@@ -150,6 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// This is default device template group where new device templates are added automatically when user creates them.
         /// </summary>
+        [Description("This is default device template group where new device templates are added automatically when user creates them.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -159,6 +162,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -170,6 +174,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

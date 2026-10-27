@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Associates a user group with a component view group.</summary>
+    [Description("Associates a user group with a component view group.")]
     [DataContract(Name = nameof(GXUserGroupComponentViewGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ComponentViewGroupId), Clustered = true)]
     public class GXUserGroupComponentViewGroup
     {
-        /// <summary>
-        /// The database ID of the user group
-        /// </summary>
+        /// <summary>The database identifier of the user group.</summary>
+        [Description("The database identifier of the user group.")]
         [DataMember(Name = "UserGroupID")]
         [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the component view group is causing multiple cascade paths error in MSSQL.
         public Guid UserGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the component view.
-        /// </summary>
+        /// <summary>The database identifier of the component view.</summary>
+        [Description("The database identifier of the component view.")]
         [DataMember(Name = "ComponentViewGroupID")]
         [ForeignKey(typeof(GXComponentViewGroup), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ComponentViewGroupId { get; set; }
@@ -62,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
 		/// The time when the component view group was added to the user group.
 		/// </summary>
 		[DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. The time when the component view group was added to the user group.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -71,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Time when component view group was removed from user group.
         /// </summary>
+        [Description("Time when component view group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

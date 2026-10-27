@@ -37,19 +37,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>Raw data sent to or received from a device, recorded for communication diagnostics.</summary>
+    [Description("Raw data sent to or received from a device, recorded for communication diagnostics.")]
     public class GXDeviceTrace : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Unique identifier.
         /// </summary>
+        [Description("Unique identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Index(false, Descend = true)]
@@ -63,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// This is null when data is received as push message.
         /// </remarks>
+        [Description("Device.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -72,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device trace type. This can be e.g. send or receive.
         /// </summary>
+        [Description("Device trace type. This can be e.g. send or receive.")]
         [DataMember]
         [DefaultValue(0)]
         [IsRequired]
@@ -81,12 +84,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device frame data as a hex string.
         /// </summary>
+        [Description("Device frame data as a hex string.")]
         [DataMember]
         public string? Frame { get; set; }
 
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)

@@ -37,22 +37,21 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
 {
     /// <summary>Associates a menu with a menu group.</summary>
+    [Description("Associates a menu with a menu group.")]
     [DataContract(Name = "GXMenuGroupMenu"), Serializable]
     [IndexCollection(true, nameof(MenuGroupId), nameof(MenuId), Clustered = true)]
     public class GXMenuGroupMenu
     {
-        /// <summary>
-        /// The database ID of the menu group.
-        /// </summary>
+        /// <summary>The database identifier of the menu group.</summary>
+        [Description("The database identifier of the menu group.")]
         [DataMember(Name = "MenuGroupId")]
         [ForeignKey(typeof(GXMenuGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because creator of the menu is causing multiple cascade paths error in MSSQL.
         public Guid MenuGroupId { get; set; }
 
-        /// <summary>
-        /// The menu ID.
-        /// </summary>
+        /// <summary>The menu identifier.</summary>
+        [Description("The menu identifier.")]
         [DataMember(Name = "MenuId")]
         [ForeignKey(typeof(GXMenu), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// Creation time.
         /// The time when the menu was added to the menu group.
         /// </summary>
+        [Description("Creation time. The time when the menu was added to the menu group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// <summary>
         /// Time when block was removed from menu group.
         /// </summary>
+        [Description("Time when block was removed from menu group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

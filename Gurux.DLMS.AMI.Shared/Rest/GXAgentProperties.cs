@@ -34,101 +34,103 @@ using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get agent properties.
-    /// </summary>
+    /// <summary>Response containing the requested agent property.</summary>
+    [Description("Response containing the requested agent property.")]
     public class GetAgentProperties
     {
         /// <summary>
         /// Agent properties information.
         /// </summary>
+        [Description("Agent properties information.")]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id)
             , nameof(GXAgent.Name))]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
         public GXAgentProperty? Item { get; set; }
     }
 
-    /// <summary>
-    /// Update user properties.
-    /// </summary>
+    /// <summary>Requests changes to the specified agent properties.</summary>
+    [Description("Requests changes to the specified agent properties.")]
     [DataContract]
     public class UpdateAgentProperties : IGXRequest<UpdateAgentPropertiesResponse>
     {
         /// <summary>
         /// Agent properties to add.
         /// </summary>
+        [Description("Agent properties to add.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        [ExcludeOpenApi(typeof(GXAgentProperty), nameof(GXAgentProperty.CreationTime), nameof(GXAgentProperty.Updated))]
         public IEnumerable<GXAgentProperty> Properties { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update agent properties.
-    /// </summary>
+    /// <summary>Response to updating the agent properties.</summary>
+    [Description("Response to updating the agent properties.")]
     [DataContract]
     public class UpdateAgentPropertiesResponse
     {
-        /// <summary>
-        /// User properties identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated agent property records.</summary>
+        [Description("Identifiers of the added or updated agent property records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Get user properties from the DB.
-    /// </summary>
+    /// <summary>Requests a list of agent properties.</summary>
+    [Description("Requests a list of agent properties.")]
     [DataContract]
     public class ListAgentProperties
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of user properties to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of agent properties to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of agent properties to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter agent properties.
         /// </summary>
+        [Description("Optional criteria used to filter agent properties.")]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [ExcludeOpenApi(typeof(GXAgentProperty),
+            nameof(GXAgentProperty.Name), nameof(GXAgentProperty.Value), nameof(GXAgentProperty.ConcurrencyStamp))]
         public GXAgentProperty? Filter { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -137,18 +139,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Get agent properties reply.
-    /// </summary>
+    /// <summary>Response containing the requested agent properties.</summary>
+    [Description("Response containing the requested agent properties.")]
     [DataContract]
     public class ListAgentPropertiesResponse
     {
         /// <summary>
         /// List of agent properties items.
         /// </summary>
+        [Description("List of agent properties items.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
@@ -157,7 +160,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching user properties items before paging.
         /// </summary>
+        [Description("Total number of matching user properties items before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 }

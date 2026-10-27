@@ -38,16 +38,19 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Block;
 
 /// <summary>Assigns an alternative named authorization policy to a block group.</summary>
+[System.ComponentModel.Description("Assigns an alternative named authorization policy to a block group.")]
 [DataContract, Serializable]
 [IndexCollection(true, nameof(BlockGroupId), nameof(PolicyId))]
 public class GXBlockGroupPolicy
 {
     /// <summary>Gets or sets the block group associated with the policy.</summary>
+    [System.ComponentModel.Description("Gets or sets the block group associated with the policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXBlockGroup), OnDelete = ForeignKeyDelete.Cascade)]
     public Guid BlockGroupId { get; set; }
 
     /// <summary>Gets or sets the identifier of the assigned authorization policy.</summary>
+    [System.ComponentModel.Description("Gets or sets the identifier of the assigned authorization policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXPolicy), OnDelete = ForeignKeyDelete.Restrict)]
     public Guid PolicyId { get; set; }

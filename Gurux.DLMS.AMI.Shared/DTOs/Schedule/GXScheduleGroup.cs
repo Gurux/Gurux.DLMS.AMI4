@@ -41,35 +41,33 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
     /// <summary>A named group of schedules with shared access settings.</summary>
+    [Description("A named group of schedules with shared access settings.")]
     [DataContract(Name = "GXScheduleGroup"), Serializable]
     public class GXScheduleGroup : GXTableBase, IUnique<Guid>
     {
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXScheduleGroup.</summary>
+        [Description("Initializes a new instance of GXScheduleGroup.")]
         public GXScheduleGroup()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXScheduleGroup.</summary>
         /// <remarks>
-        /// This constuctor is called when a new schedule group is created. It will create all needed lists.
+        /// This constructor is called when a new schedule group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Schedule group name.</param>
+        [Description("Initializes a new instance of GXScheduleGroup.")]
         public GXScheduleGroup(string? name)
         {
             Name = name;
-            UserGroups = new List<GXUserGroup>();
-            Schedules = new List<GXSchedule>();
+            UserGroups = [];
+            Schedules = [];
             Description = string.Empty;
         }
 
-        /// <summary>
-        /// Schedule group ID.
-        /// </summary>
+        /// <summary>Schedule group identifier.</summary>
+        [Description("Schedule group identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -78,6 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// The creator of the schedule group.
         /// </summary>
+        [Description("The creator of the schedule group.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -87,6 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Name of the schedule group.
         /// </summary>
+        [Description("Name of the schedule group.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -97,14 +97,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Schedule group description.
         /// </summary>
+		[Description("Schedule group description.")]
 		[DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -114,15 +114,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Time when schedule group was removed.
         /// </summary>
+        [Description("Time when schedule group was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When was the schedule group last updated.
-        /// </summary>
+        /// <summary>Time when the schedule group was last updated.</summary>
+        [Description("Time when the schedule group was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -132,22 +132,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
         /// <summary>User groups associated with this schedule group.</summary>
+        [Description("User groups associated with this schedule group.")]
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupScheduleGroup))]
         public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>Schedules belonging to this group.</summary>
+        [Description("Schedules belonging to this group.")]
         [DataMember, ForeignKey(typeof(GXSchedule), typeof(GXScheduleGroupSchedule))]
         public List<GXSchedule>? Schedules { get; set; }
 
         /// <summary>
         /// This is default schedule group where new schedules are added automatically when user creates them.
         /// </summary>
+        [Description("This is default schedule group where new schedules are added automatically when user creates them.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -157,6 +161,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -168,6 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

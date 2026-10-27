@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle localized resources.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle localized resources.")]
     public interface ILocalizedResourceRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List localized resources.")]
         Task<IEnumerable<GXLocalizedResource>> ListAsync(
             ListLocalizedResources? request = null,
             ListLocalizedResourcesResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read localized resource.")]
         Task<GXLocalizedResource> ReadAsync(Guid id,
             Expression<Func<GXLocalizedResource, object>>? columns = null,
             CancellationToken cancellationToken = default);
@@ -72,25 +75,27 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="text">Localized text.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
-        Task<GXLocalizedResource> ReadAsync(string lang, string hash, string? text, CancellationToken cancellationToken = default);
+        [System.ComponentModel.Description("Read localized resource.")]
+        Task<GXLocalizedResource?> ReadAsync(string lang, string hash, string? text, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Inserts new localized resources or updates existing ones.
         /// </summary>
         /// <param name="localizedResources">The records to insert or update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new localized resources or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXLocalizedResource> localizedResources, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete localized resource(s).
-        /// </summary>
+        /// <summary>Delete localized resources.</summary>
         /// <param name="localizedResources">Localized resource(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete localized resources.")]
         Task DeleteAsync(IEnumerable<Guid> localizedResources, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// When the localized resource was last changed.
         /// </summary>
+        [System.ComponentModel.Description("When the localized resource was last changed.")]
         Task<DateTimeOffset?> LastChanged();
     }
 }

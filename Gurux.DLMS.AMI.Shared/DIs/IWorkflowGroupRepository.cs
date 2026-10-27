@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to hanfle workflow group.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to hanfle workflow group.")]
     public interface IWorkflowGroupRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List workflow groups.")]
         Task<IEnumerable<GXWorkflowGroup>> ListAsync(
             ListWorkflowGroups? request = null,
             ListWorkflowGroupsResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read workflow group details.")]
         Task<GXWorkflowGroup> ReadAsync(Guid id, Expression<Func<GXWorkflowGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,17 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated workflow groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new workflow groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXWorkflowGroup> groups,
             Expression<Func<GXWorkflowGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete workflow group(s).
-        /// </summary>
+        /// <summary>Delete workflow groups.</summary>
         /// <param name="groups">Workflow groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete workflow groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -86,6 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="workflowId">Workflow ID</param>
         /// <returns>List of workflow groups.</returns>
+        [System.ComponentModel.Description("Returns workflow groups list where workflow belongs.")]
         Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(Guid workflowId);
     }
 }

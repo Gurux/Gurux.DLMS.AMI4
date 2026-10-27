@@ -43,14 +43,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Block;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get workflow.
-    /// </summary>
+    /// <summary>Response containing the requested workflow information.</summary>
+    [Description("Response containing the requested workflow information.")]
     public class GetWorkflowResponse
     {
         /// <summary>
         /// Workflow information.
         /// </summary>
+        [Description("Workflow information.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
@@ -70,26 +70,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public GXWorkflow? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get list from workflows.
-    /// </summary>
+    /// <summary>Requests a list of workflows.</summary>
+    [Description("Requests a list of workflows.")]
     [DataContract]
     public class ListWorkflows : IGXRequest<ListWorkflowsResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of workflows to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of workflows to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of workflows to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter workflows.
         /// </summary>
         /// 
+        [Description("Optional criteria used to filter workflows.")]
         [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
             nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
             nameof(GXWorkflow.TriggerActivity),
@@ -97,6 +97,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
             nameof(GXWorkflow.WorkflowGroups))]
+        [ExcludeOpenApi(typeof(GXWorkflow),
+            nameof(GXWorkflow.CreationTime), nameof(GXWorkflow.TraceLevel), nameof(GXWorkflow.ConcurrencyStamp),
+            nameof(GXWorkflow.ExecutionTime))]
         public GXWorkflow? Filter { get; set; }
 
         /// <summary>
@@ -105,37 +108,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, workflows from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access workflows from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -144,18 +146,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Workflow items reply.
-    /// </summary>
+    /// <summary>Response containing the requested workflows.</summary>
+    [Description("Response containing the requested workflows.")]
     [DataContract]
     public class ListWorkflowsResponse
     {
         /// <summary>
         /// List of workflow items.
         /// </summary>
+        [Description("List of workflow items.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
             nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
@@ -169,19 +172,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching workflowrs before paging.
         /// </summary>
+        [Description("Total number of matching workflowrs before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Update workflows.
-    /// </summary>
+    /// <summary>Requests changes to the specified workflows.</summary>
+    [Description("Requests changes to the specified workflows.")]
     [DataContract]
     public class UpdateWorkflow : IGXRequest<UpdateWorkflowResponse>
     {
         /// <summary>
         /// Workflows to update.
         /// </summary>
+        [Description("Workflows to update.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
         [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
@@ -191,50 +195,43 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup))]
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.CreationTime), nameof(GXWorkflow.Updated))]
         public IEnumerable<GXWorkflow> Workflows { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update workflows reply.
-    /// </summary>
-    [Description("Update workflows reply.")]
+    /// <summary>Response to updating the specified workflows.</summary>
+    [Description("Response to updating the specified workflows.")]
     [DataContract]
     public class UpdateWorkflowResponse
     {
-        /// <summary>
-        /// Workflow identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated workflow records.</summary>
         [DataMember]
-        [Description("Workflow identifiers.")]
+        [Description("Identifiers of the added or updated workflow records.")]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Remove workflows.
-    /// </summary>
+    /// <summary>Requests deletion of the selected workflows.</summary>
+    [Description("Requests deletion of the selected workflows.")]
     [DataContract]
     public class RemoveWorkflow : IGXRequest<RemoveWorkflowResponse>
     {
-        /// <summary>
-        /// Workflow identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the workflow records to delete.</summary>
+        [Description("Identifiers of the workflow records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Reply from Remove workflow.
-    /// </summary>
+    /// <summary>Response to deleting the selected workflows.</summary>
+    [Description("Response to deleting the selected workflows.")]
     [DataContract]
     public class RemoveWorkflowResponse
     {

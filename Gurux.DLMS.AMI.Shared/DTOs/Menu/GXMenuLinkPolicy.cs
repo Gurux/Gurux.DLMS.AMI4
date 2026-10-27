@@ -38,16 +38,19 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Menu;
 
 /// <summary>Assigns an alternative named authorization policy to a menu link.</summary>
+[System.ComponentModel.Description("Assigns an alternative named authorization policy to a menu link.")]
 [DataContract, Serializable]
 [IndexCollection(true, nameof(MenuLinkId), nameof(PolicyId))]
 public class GXMenuLinkPolicy
 {
     /// <summary>Gets or sets the menu link associated with the policy.</summary>
+    [System.ComponentModel.Description("Gets or sets the menu link associated with the policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXMenuLink), OnDelete = ForeignKeyDelete.Cascade)]
     public Guid MenuLinkId { get; set; }
 
     /// <summary>Gets or sets the identifier of the assigned authorization policy.</summary>
+    [System.ComponentModel.Description("Gets or sets the identifier of the assigned authorization policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXPolicy))]
     public Guid PolicyId { get; set; }

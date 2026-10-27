@@ -39,29 +39,27 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>Version information for a manufacturer's device model.</summary>
+    [Description("Version information for a manufacturer's device model.")]
     public class GXDeviceVersion : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceVersion.</summary>
+        [Description("Initializes a new instance of GXDeviceVersion.")]
         public GXDeviceVersion()
         {
 
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceVersion.</summary>
         /// <param name="name">Version name.</param>
+        [Description("Initializes a new instance of GXDeviceVersion.")]
         public GXDeviceVersion(string? name)
         {
             Name = name;
-            Settings = new List<GXDeviceSettings>();
+            Settings = [];
         }
 
-        /// <summary>
-        /// Device version ID.
-        /// </summary>
+        /// <summary>Device version identifier.</summary>
+        [Description("Device version identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -70,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Version model.
         /// </summary>
+        [Description("Version model.")]
         [DefaultValue(null)]
         [ForeignKey(typeof(GXDeviceModel), OnDelete = ForeignKeyDelete.Cascade)]
         public GXDeviceModel? Model { get; set; }
@@ -80,6 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <remarks>
         /// Generic settings are used for all device versions if the name is empty.
         /// </remarks>
+        [Description("Name of the version version.")]
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
@@ -88,13 +88,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// List of device settings.
         /// </summary>
+        [Description("List of device settings.")]
         [DataMember]
         [Filter(FilterType.Contains)]
         public List<GXDeviceSettings>? Settings { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -104,21 +104,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Time when device type was removed.
         /// </summary>
+        [Description("Time when device type was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When the device type is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the device version was last updated.</summary>
+        [Description("Time when the device version was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -130,6 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

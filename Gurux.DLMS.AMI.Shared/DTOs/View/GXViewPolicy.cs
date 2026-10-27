@@ -38,16 +38,19 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.View;
 
 /// <summary>Assigns an alternative named authorization policy to a table view.</summary>
+[System.ComponentModel.Description("Assigns an alternative named authorization policy to a table view.")]
 [DataContract, Serializable]
 [IndexCollection(true, nameof(ViewId), nameof(PolicyId))]
 public class GXViewPolicy
 {
     /// <summary>Gets or sets the view associated with the policy.</summary>
+    [System.ComponentModel.Description("Gets or sets the view associated with the policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXView), OnDelete = ForeignKeyDelete.Cascade)]
     public Guid ViewId { get; set; }
 
     /// <summary>Gets or sets the identifier of the assigned authorization policy.</summary>
+    [System.ComponentModel.Description("Gets or sets the identifier of the assigned authorization policy.")]
     [DataMember, IsRequired]
     [ForeignKey(typeof(GXPolicy))]
     public Guid PolicyId { get; set; }

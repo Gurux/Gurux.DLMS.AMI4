@@ -37,12 +37,12 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A claim assigned to a user account.</summary>
+    [System.ComponentModel.Description("A claim assigned to a user account.")]
     [DataContract(Name = "GXUserClaim"), Serializable]
     public class GXUserClaim : IUnique<int>
     {
-        /// <summary>
-        /// Identifier.
-        /// </summary>
+        /// <summary>Unique identifier of the user claim.</summary>
+        [System.ComponentModel.Description("Unique identifier of the user claim.")]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true), AutoIncrement]
         public int Id { get; set; }
@@ -53,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <remarks>
         /// User who has the claim.
         /// </remarks>
+        [System.ComponentModel.Description("User identifier.")]
         [DataMember]
         [Index(false)]
         [IsRequired]
@@ -63,12 +64,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Claim type defines e,g. role, name, etc.
         /// </summary>
+        [System.ComponentModel.Description("Claim type defines e,g. role, name, etc.")]
         [DataMember]
         public string? ClaimType { get; set; }
 
         /// <summary>
         /// Claim value defines the value of the claim.
         /// </summary>
+        [System.ComponentModel.Description("Claim value defines the value of the claim.")]
         [DataMember]
         public string? ClaimValue { get; set; }
     }

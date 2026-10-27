@@ -39,12 +39,14 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A translated resource value associated with a language and resource key.</summary>
+    [Description("A translated resource value associated with a language and resource key.")]
     [IndexCollection(true, nameof(Language), nameof(Hash))]
     public class GXLocalizedResource : IUnique<Guid>
     {
         /// <summary>
         /// Localized string identifier.
         /// </summary>
+        [Description("Localized string identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
@@ -52,6 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Localized string.
         /// </summary>
+        [Description("Localized string.")]
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Value { get; set; }
@@ -59,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Hash value for Localized string key.
         /// </summary>
+        [Description("Hash value for Localized string key.")]
         [Index(false)]
         [Filter(FilterType.Exact)]
         [StringLength(64)]
@@ -68,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Status is used to tell when a resource is missing.
         /// </summary>
+        [Description("Status is used to tell when a resource is missing.")]
         [Index(false)]
         [DefaultValue(0)]
         [Filter(FilterType.Exact)]
@@ -80,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// Creator
         /// </remarks>
+        [Description("Parent language.")]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [Index(false)]
@@ -88,25 +94,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The creator of the localized resource.
         /// </summary>
+        [Description("The creator of the localized resource.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? Creator { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When was the localized resource last updated.
-        /// </summary>
-        [Description("When was the localized resource last updated.")]
+        /// <summary>Time when the localized resource was last updated.</summary>
+        [Description("Time when the localized resource was last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -115,6 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -126,6 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             return Id + ": " + Value;
         }
         /// <summary>Load this resource during client initialization when access is allowed.</summary>
+        [Description("Load this resource during client initialization when access is allowed.")]
         [DataMember, IsRequired, DefaultValue(false), Filter(FilterType.Exact)]
         public bool? Preload { get; set; }
     }

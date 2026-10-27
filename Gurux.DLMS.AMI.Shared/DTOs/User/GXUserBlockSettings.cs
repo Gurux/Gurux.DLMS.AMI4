@@ -40,22 +40,21 @@ using Gurux.DLMS.AMI.Shared.DTOs.Block;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>A user's saved configuration for a user interface block.</summary>
+    [Description("A user's saved configuration for a user interface block.")]
     [DataContract(Name = "GXUserBlockSettings"), Serializable]
     [IndexCollection(true, nameof(UserId), nameof(BlockId), Clustered = true)]
     public class GXUserBlockSettings
     {
-        /// <summary>
-        /// The database ID of the user
-        /// </summary>
+        /// <summary>The database identifier of the user.</summary>
+        [Description("The database identifier of the user.")]
         [DataMember(Name = "UserID")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.None)]
         [StringLength(36)]
         //ForeignKeyDelete is None because creator of the block is causing multiple cascade paths error in MSSQL.
         public string? UserId { get; set; }
 
-        /// <summary>
-        /// Block ID.
-        /// </summary>
+        /// <summary>Block identifier.</summary>
+        [Description("Block identifier.")]
         [DataMember(Name = "BlockID"), ForeignKey(typeof(GXBlock),
             OnDelete = ForeignKeyDelete.Cascade)]
         public Guid BlockId { get; set; }
@@ -66,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <remarks>
         /// If block is closed it's not shown for the user.
         /// </remarks>
+        [Description("Time when user closed the block.")]
         [DataMember]
         [Index(false)]
         [DefaultValue(null)]
@@ -75,6 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// User-dependent block settings.
         /// </summary>
+        [Description("User-dependent block settings.")]
         [DataMember]
         public string? Settings { get; set; }
     }

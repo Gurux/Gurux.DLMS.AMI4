@@ -38,20 +38,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Associates a user group with a device template group.</summary>
+    [Description("Associates a user group with a device template group.")]
     [IndexCollection(true, nameof(UserGroupId), nameof(DeviceTemplateGroupId), Clustered = true)]
     public class GXUserGroupDeviceTemplateGroup
     {
-        /// <summary>
-        /// User group ID.
-        /// </summary>
+        /// <summary>User group identifier.</summary>
+        [Description("User group identifier.")]
         [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup),
             OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the device template group is causing multiple cascade paths error in MSSQL.
         public Guid UserGroupId { get; set; }
 
-        /// <summary>
-        /// Device template group ID.
-        /// </summary>
+        /// <summary>Device template group identifier.</summary>
+        [Description("Device template group identifier.")]
         [DataMember(Name = "DeviceTemplateGroupId"), ForeignKey(typeof(GXDeviceTemplateGroup),
             OnDelete = ForeignKeyDelete.Cascade)]
         public Guid DeviceTemplateGroupId { get; set; }
@@ -61,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// The time when the device template group was added to the user group.
         /// </summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. The time when the device template group was added to the user group.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -70,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Time when device template group was removed from user group.
         /// </summary>
+        [Description("Time when device template group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

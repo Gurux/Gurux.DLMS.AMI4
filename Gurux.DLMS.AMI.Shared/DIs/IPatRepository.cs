@@ -38,15 +38,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle personal access tokens.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle personal access tokens.")]
     public interface IPatRepository
     {
-        /// <summary>
-        /// Get personal token by ID that belongs for the user.
-        /// </summary>
+        /// <summary>Get personal token by identifier that belongs for the user.</summary>
         /// <param name="id">Token ID.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Personal token by ID.</returns>
-        Task<GXPersonalToken> GetPersonalTokenByIdAsync(string id, CancellationToken cancellationToken = default);
+        [System.ComponentModel.Description("Get personal token by identifier that belongs for the user.")]
+        Task<GXPersonalToken?> GetPersonalTokenByIdAsync(string id, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get personal tokens that belongs for the user.
@@ -54,6 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="request">The request parameters.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Collection of personal tokens.</returns>
+        [System.ComponentModel.Description("Get personal tokens that belongs for the user.")]
         Task<IEnumerable<GXPersonalToken>> GetPersonalTokensAsync(ListTokens? request, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -61,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="token">Token details to create.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Add new personal access token.")]
         Task<string> AddPersonalTokenAsync(GXPersonalToken token, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Removed token ID</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Remove personal token.")]
         Task<GXPersonalToken> RemovePersonalTokenAsync(string id, CancellationToken cancellationToken = default);
     }
 }

@@ -39,6 +39,7 @@ using System.Text;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A recorded COSEM attribute value and its capture metadata.</summary>
+    [Description("A recorded COSEM attribute value and its capture metadata.")]
     [DataContract]
     public class GXValue : IUnique<Guid>
     {
@@ -51,9 +52,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
-        /// <summary>
-        /// Attribute .
-        /// </summary>
+        /// <summary>COSEM attribute associated with the recorded value.</summary>
+        [Description("COSEM attribute associated with the recorded value.")]
         [DataMember]
         [ForeignKey(typeof(GXAttribute), OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -109,11 +109,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <inheritdoc/>
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             if (Read != null)
             {
                 sb.Append(Read.ToString());
-                sb.Append(" ");
+                sb.Append(' ');
             }
             sb.Append(Value);
             return sb.ToString();

@@ -35,15 +35,19 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.Enums
 {
     /// <summary>Controls whether a configuration value is hidden, displayed, or editable in the user interface.</summary>
+    [System.ComponentModel.Description("Controls whether a configuration value is hidden, displayed, or editable in the user interface.")]
     public enum AccessType : byte
     {
         /// <summary>Hide the configuration value in the user interface.</summary>
+        [System.ComponentModel.Description("Hide the configuration value in the user interface.")]
         [XmlEnum("0")]
         None = 0x0,
         /// <summary>Display the configuration value without allowing edits.</summary>
+        [System.ComponentModel.Description("Display the configuration value without allowing edits.")]
         [XmlEnum("1")]
         View = 0x1,
         /// <summary>Allow the user to view and edit the configuration value.</summary>
+        [System.ComponentModel.Description("Allow the user to view and edit the configuration value.")]
         [XmlEnum("2")]
         Edit = 0x2
     }

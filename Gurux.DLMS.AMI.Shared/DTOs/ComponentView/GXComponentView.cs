@@ -39,27 +39,27 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
 {
     /// <summary>The definition of a component that can be displayed in the user interface.</summary>
+    [Description("The definition of a component that can be displayed in the user interface.")]
     public class GXComponentView : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXComponentView.</summary>
+        [Description("Initializes a new instance of GXComponentView.")]
         public GXComponentView()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXComponentView.</summary>
+        [Description("Initializes a new instance of GXComponentView.")]
         public GXComponentView(string? name)
         {
             Name = name;
-            ComponentViewGroups = new List<GXComponentViewGroup>();
+            ComponentViewGroups = [];
         }
 
         /// <summary>
         /// Name of the component view class.
         /// </summary>
+        [Description("Name of the component view class.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
@@ -67,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// The creator of the Component view.
         /// </summary>
+        [Description("The creator of the Component view.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -76,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// Name of the component view class.
         /// </summary>
+        [Description("Name of the component view class.")]
         [StringLength(128)]
         [IsRequired]
         public string? ClassName { get; set; }
@@ -83,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// Name of the component view.
         /// </summary>
+        [Description("Name of the component view.")]
         [DataMember]
         [StringLength(32)]
         [Index(false)]
@@ -99,27 +102,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// Name of the configuration view class.
         /// </summary>
+        [Description("Name of the configuration view class.")]
         [StringLength(128)]
         public string? ConfigurationUI { get; set; }
 
-        /// <summary>
-        /// Is component view enabled.
-        /// </summary>
+        /// <summary>Whether the component view is enabled.</summary>
+        [Description("Whether the component view is enabled.")]
         [DefaultValue(true)]
         [IsRequired]
         [Filter(FilterType.Exact)]
         public bool? Enabled { get; set; }
 
         /// <summary>Component view groups containing this component view.</summary>
+        [Description("Component view groups containing this component view.")]
         [DataMember, ForeignKey(typeof(GXComponentViewGroup),
             typeof(GXComponentViewGroupComponentView), OnDelete = ForeignKeyDelete.Cascade)]
         public List<GXComponentViewGroup>? ComponentViewGroups { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Time when the record was created.")]
         [DefaultValue(null)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -129,22 +131,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// Time when block group was removed.
         /// </summary>
+        [Description("Time when block group was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When the block is updated for the last time.
-        /// </summary>
-        [Description("When the block is updated for the last time.")]
+        /// <summary>Time when the component view was last updated.</summary>
+        [Description("Time when the component view was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -156,6 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

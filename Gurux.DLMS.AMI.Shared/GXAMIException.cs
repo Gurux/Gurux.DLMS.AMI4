@@ -35,11 +35,11 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// AMI error is used to send server errors.
     /// </summary>
+    [System.ComponentModel.Description("AMI error is used to send server errors.")]
     public class GXAmiException : Exception
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAmiException.</summary>
+        [System.ComponentModel.Description("Initializes a new instance of GXAmiException.")]
         public GXAmiException()
         {
             Message = "";
@@ -48,22 +48,19 @@ namespace Gurux.DLMS.AMI.Shared
         /// <inheritdoc />
         public new string Message { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAmiException.</summary>
         /// <param name="message">Error message.</param>
+        [System.ComponentModel.Description("Initializes a new instance of GXAmiException.")]
         public GXAmiException(string message) : base(message)
         {
             Message = message;
         }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [System.ComponentModel.Description("Time when the record was created.")]
         public DateTime CreationTime { get; set; }
-        /// <summary>
-        /// Message ID on the database.
-        /// </summary>
+        /// <summary>Message identifier on the database.</summary>
+        [System.ComponentModel.Description("Message identifier on the database.")]
         public Guid Id { get; set; }
     }
 }

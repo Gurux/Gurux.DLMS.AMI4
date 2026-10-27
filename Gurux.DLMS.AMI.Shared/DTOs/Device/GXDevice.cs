@@ -45,37 +45,35 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>A managed device with its connection settings, COSEM objects, and operational state.</summary>
-    [Description("Device settings.")]
+    [Description("A managed device with its connection settings, COSEM objects, and operational state.")]
     public class GXDevice : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDevice.</summary>
+        [Description("Initializes a new instance of GXDevice.")]
         public GXDevice()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDevice.</summary>
         /// <remarks>
-        /// This constuctor is called when a new device is created. It will create all needed lists.
+        /// This constructor is called when a new device is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Device name.</param>
+        [Description("Initializes a new instance of GXDevice.")]
         public GXDevice(string? name)
         {
             Name = name;
             Enabled = true;
-            Parameters = new List<GXDeviceProperty>();
-            Objects = new List<GXObject>();
+            Parameters = [];
+            Objects = [];
             TraceLevel = System.Diagnostics.TraceLevel.Verbose;
-            Actions = new List<GXLog>();
-            Traces = new List<GXDeviceTrace>();
-            Errors = new List<GXLog>();
-            DeviceGroups = new List<GXDeviceGroup>();
-            Tasks = new List<GXTask>();
-            Keys = new List<GXKeyManagement>();
-            Gateways = new List<GXGateway>();
+            Actions = [];
+            Traces = [];
+            Errors = [];
+            DeviceGroups = [];
+            Tasks = [];
+            Keys = [];
+            Gateways = [];
         }
 
         /// <summary>
@@ -88,9 +86,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public Guid Id { get; set; }
 
 
-        /// <summary>
-        /// Is device enabled.
-        /// </summary>
+        /// <summary>Whether the device is enabled.</summary>
+        [Description("Whether the device is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -99,6 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Name of the meter.
         /// </summary>
+        [Description("Name of the meter.")]
         [StringLength(64)]
         [DataMember]
         [Index(false)]
@@ -110,6 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// The system title of the meter.
         /// </summary>
+        [Description("The system title of the meter.")]
         [StringLength(16)]
         [DataMember]
         [Index(false)]
@@ -120,6 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Media type.
         /// </summary>
+        [Description("Media type.")]
         [DataMember]
         [StringLength(64)]
         [DefaultValue(null)]
@@ -127,9 +127,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Filter(FilterType.Contains)]
         public string? MediaType { get; set; }
 
-        /// <summary>
-        /// Media settings as a string.
-        /// </summary>
+        /// <summary>Serialized settings for the communication media.</summary>
+        [Description("Serialized settings for the communication media.")]
         [DataMember]
         [DefaultValue(null)]
         public string? MediaSettings { get; set; }
@@ -140,6 +139,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Data collector.")]
         [DataMember]
         [DefaultValue(null)]
         public Guid? Dc { get; set; }
@@ -147,6 +147,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// The creator of the device.
         /// </summary>
+        [Description("The creator of the device.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -156,6 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public GXUser? Creator { get; set; }
 
         /// <summary>Template used to define this device's default settings and objects.</summary>
+        [Description("Template used to define this device's default settings and objects.")]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [Index(false)]
@@ -170,6 +172,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// This is coming from the template, but it's saved to make
         /// device reading from the DB faster when template is not need to read.
         /// </remarks>
+        [Description("Device type.")]
         [DataMember]
         [DefaultValue(null)]
         public string? Type { get; set; }
@@ -186,27 +189,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Define how long reply is waited in seconds.
         /// </summary>
+        [Description("Define how long reply is waited in seconds.")]
         [DataMember]
         public int WaitTime { get; set; }
 
         /// <summary>
         /// Define re-send count.
         /// </summary>
+        [Description("Define re-send count.")]
         [DataMember]
         public int ResendCount { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When was the device last updated.
-        /// </summary>
+        /// <summary>Time when the device was last updated.</summary>
+        [Description("Time when the device was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -218,6 +221,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// This information is not saved in the database.
         /// </remarks>
+        [Description("Device objects are created when they are read from the meter. This improves device creation speed.")]
         [Ignore]
         public bool? LateBinding { get; set; }
 
@@ -225,6 +229,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -233,6 +238,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// When meter is detected last time.
         /// </summary>
+        [Description("When meter is detected last time.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -252,6 +258,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device Status.
         /// </summary>
+        [Description("Device Status.")]
         [DataMember]
         [DefaultValue(DeviceStatus.Disconnected)]
         [Filter(FilterType.Exact)]
@@ -261,14 +268,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device parameters.
         /// </summary>
+        [Description("Device parameters.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
         public List<GXDeviceProperty>? Parameters { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -278,6 +285,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device objects.
         /// </summary>
+        [Description("Device objects.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
@@ -286,6 +294,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Is device using auto connect.
         /// </summary>
+        [Description("Is device using auto connect.")]
         [DataMember]
         [Filter(FilterType.Exact)]
         [DefaultValue(false)]
@@ -303,6 +312,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </remarks>
         /// <seealso cref="KeepAliveAttribute"/>
         /// <seealso cref="KeepAliveInterval"/>
+        [Description("How long the the connection is keeped up in seconds.")]
         public int? ConnectionUpTime { get; set; }
 
         /// <summary>
@@ -310,6 +320,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         /// <seealso cref="ConnectionUpTime"/>
         /// <seealso cref="KeepAliveInterval"/>
+        [Description("Keep-alive attribute.")]
         public Guid? KeepAliveAttribute { get; set; }
 
         /// <summary>
@@ -317,20 +328,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         /// <seealso cref="ConnectionUpTime"/>
         /// <seealso cref="KeepAliveAttribute"/>
+        [Description("Keep-alive interval.")]
         public int? KeepAliveInterval { get; set; }
 
-        /// <summary>
-        /// Used trace level.
-        /// </summary>
+        /// <summary>Trace level used for communication diagnostics.</summary>
         [DataMember]
         [DefaultValue(System.Diagnostics.TraceLevel.Off)]
-        [Description("Used trace level.")]
+        [Description("Trace level used for communication diagnostics.")]
         [IsRequired]
         public TraceLevel? TraceLevel { get; set; }
 
         /// <summary>
         /// Device actions.
         /// </summary>
+        [Description("Device actions.")]
         [DataMember, Ignore(IgnoreType.Db)]
         [Filter(FilterType.Contains)]
         public List<GXLog>? Actions { get; set; }
@@ -338,6 +349,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device hex trace.
         /// </summary>
+        [Description("Device hex trace.")]
         [DataMember, ForeignKey(typeof(GXDeviceTrace))]
         [Filter(FilterType.Contains)]
         public List<GXDeviceTrace>? Traces { get; set; }
@@ -345,11 +357,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device errors.
         /// </summary>
+        [Description("Device errors.")]
         [DataMember, Ignore(IgnoreType.Db)]
         [Filter(FilterType.Contains)]
         public List<GXLog>? Errors { get; set; }
 
         /// <summary>Device groups containing this device.</summary>
+        [Description("Device groups containing this device.")]
         [DataMember,
             ForeignKey(typeof(GXDeviceGroup), typeof(GXDeviceGroupDevice))]
         [Filter(FilterType.Contains)]
@@ -358,6 +372,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Executed tasks.
         /// </summary>
+        [Description("Executed tasks.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
@@ -366,12 +381,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// List of key managements.
         /// </summary>
+        [Description("List of key managements.")]
         [DataMember]
         [ForeignKey(typeof(GXKeyManagement))]
         [Filter(FilterType.Contains)]
         public List<GXKeyManagement>? Keys { get; set; }
 
         /// <summary>Gateways configured to communicate with this device.</summary>
+        [Description("Gateways configured to communicate with this device.")]
         [DataMember(IsRequired = false)]
         [ForeignKey(typeof(GXGateway), typeof(GXGatewayDevice))]
         public List<GXGateway>? Gateways { get; set; }
@@ -380,6 +397,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Latitude and Longitude.
         /// </summary>
+        [Description("Latitude and Longitude.")]
         [DataMember]
         [StringLength(26)]
         [DefaultValue(null)]
@@ -389,6 +407,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Street address.
         /// </summary>
+        [Description("Street address.")]
         [DataMember]
         [StringLength(64)]
         [DefaultValue(null)]
@@ -398,6 +417,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Postal code.
         /// </summary>
+        [Description("Postal code.")]
         [DataMember]
         [StringLength(64)]
         [DefaultValue(null)]
@@ -407,6 +427,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// State or province.
         /// </summary>
+        [Description("State or province.")]
         [DataMember]
         [StringLength(64)]
         [DefaultValue(null)]
@@ -416,6 +437,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Country.
         /// </summary>
+        [Description("Country.")]
         [DataMember]
         [StringLength(64)]
         [DefaultValue(null)]
@@ -423,11 +445,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public string? Country { get; set; }
 
         /// <summary>
-        /// Identifier of the GXAppearance image used as the device's profile picture; null means no picture.
+        /// GXAppearance image used as the device's profile picture; null means no picture.
         /// </summary>
-        [DataMember, StringLength(64), ForeignKey(typeof(GXAppearance), OnDelete = ForeignKeyDelete.Restrict)]
+        [Description("GXAppearance image used as the device's profile picture; null means no picture.")]
+        [DataMember, ForeignKey(OnDelete = ForeignKeyDelete.Restrict)]
         [DefaultValue(null)]
-        public string? ProfilePictureId { get; set; }
+        public GXAppearance? ProfilePicture { get; set; }
 
         /// <summary>
         /// When the device's attribute were last read.
@@ -453,11 +476,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastAction { get; set; }
 
-        /// <summary>
-        /// When the last error was occurred.
-        /// </summary>
+        /// <summary>Time when the most recent error occurred.</summary>
         [DataMember]
-        [Description("When the last error was occurred.")]
+        [Description("Time when the most recent error occurred.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastError { get; set; }
 
@@ -472,6 +493,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -483,6 +505,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

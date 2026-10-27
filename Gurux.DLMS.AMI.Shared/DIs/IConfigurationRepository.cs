@@ -41,12 +41,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// Conficurationn update notification.
     /// </summary>
     /// <param name="configurations">Modified configurations.</param>
+    [System.ComponentModel.Description("Conficurationn update notification.")]
     public delegate void ConfigurationModifiedEventHandler(IEnumerable<GXConfiguration> configurations);
 
 
     /// <summary>
     /// This interface is used to handle configurations.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle configurations.")]
     public interface IConfigurationRepository
     {
         /// <summary>
@@ -57,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Tasks.</returns>
+        [System.ComponentModel.Description("List configuration settings.")]
         Task<IEnumerable<GXConfiguration>> ListAsync(
             ClaimsPrincipal user,
             ListConfiguration? request = null,
@@ -71,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="culture">Used culture.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read configuration details.")]
         Task<GXConfiguration> ReadAsync(ClaimsPrincipal user, Guid id, string? culture, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -80,22 +84,23 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="configurations">The records to insert or update.</param>
         /// <param name="notification">Whether to publish change notifications after saving the configurations.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new configuration settings or updates existing configuration settings.")]
         Task UpsertAsync(
             ClaimsPrincipal user,
             IEnumerable<GXConfiguration> configurations,
             bool notification, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete configuration(s).
-        /// </summary>
+        /// <summary>Delete configurations.</summary>
         /// <param name="user">The user making the request.</param>
         /// <param name="configurations">Deleted configuration(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete configurations.")]
         Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> configurations, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Configuration has been updated.
         /// </summary>
+        [System.ComponentModel.Description("Configuration has been updated.")]
         event ConfigurationModifiedEventHandler? Updated;
 
         /// <summary>
@@ -103,23 +108,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>List of tables with schema changes.</returns>
+        [System.ComponentModel.Description("Returns a list from changed database schemas.")]
         Task<IEnumerable<string>?> GetTablesWithSchemaChangesAsync(CancellationToken cancellationToken = default);
         /// <summary>Returns descriptions of pending schema changes grouped by table.</summary>
         /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [System.ComponentModel.Description("Returns descriptions of pending schema changes grouped by table.")]
         Task<IEnumerable<GXConfigurationTableChange>> GetTableChangesAsync(CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Regenerate configurations.
-        /// </summary>
-        /// <param name="user">The user making the request.</param>
-        /// <param name="configurations">Configurations to regenerate.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <remarks>
-        /// A null or empty selection replaces all configurations. A nonempty selection resets only the given
-        /// built-in configurations, preserving their IDs. Each key can be a configuration name or ID string.
-        /// Configurations without built-in defaults are rejected before any changes.
-        /// </remarks>
-        Task RegenerateAsync(ClaimsPrincipal user, IEnumerable<string>? configurations, CancellationToken cancellationToken = default);
+        /// <summary>Inserts missing built-in configurations, preserving existing settings.</summary>
+        [System.ComponentModel.Description("Inserts missing built-in configurations, preserving existing settings.")]
+        Task EnsureDefaultsAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
+        /// <summary>Resets selected built-in configurations in place by name or identifier. An empty selection is rejected.</summary>
+        [System.ComponentModel.Description("Resets selected built-in configurations in place by name or identifier. An empty selection is rejected.")]
+        Task ResetToDefaultsAsync(ClaimsPrincipal user, IEnumerable<string> configurations, CancellationToken cancellationToken = default);
     }
 }

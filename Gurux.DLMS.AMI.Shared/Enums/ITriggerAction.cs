@@ -35,11 +35,13 @@ namespace Gurux.DLMS.AMI.Shared.Enums
     /// <summary>
     /// Trigger event target.
     /// </summary>
+    [System.ComponentModel.Description("Trigger event target.")]
     public interface ITriggerAction
     {
         /// <summary>
         /// Trigger name.
         /// </summary>
+        [System.ComponentModel.Description("Trigger name.")]
         public string Name
         {
             get;
@@ -48,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// <summary>
         /// Optional configuration UI.
         /// </summary>
+        [System.ComponentModel.Description("Optional configuration UI.")]
         Type? ConfigurationUI
         {
             get;
@@ -56,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// <summary>
         /// Css icon name or Base64 image.
         /// </summary>
+        [System.ComponentModel.Description("Css icon name or Base64 image.")]
         string? Icon
         {
             get;

@@ -37,17 +37,20 @@ using System.ComponentModel.DataAnnotations;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>Aggregated operation counts and execution times for a resource over a measurement interval.</summary>
+    [Description("Aggregated operation counts and execution times for a resource over a measurement interval.")]
     public class GXPerformance : IUnique<Guid>
     {
         /// <summary>
         /// Performance identifier.
         /// </summary>
         //Filter uses default value.
+        [Description("Performance identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
         /// <summary>Resource type whose operation counts and timings are measured.</summary>
+        [Description("Resource type whose operation counts and timings are measured.")]
         [StringLength(32)]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -57,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The number of the list requests during the period.
         /// </summary>
+        [Description("The number of the list requests during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ListCount { get; set; }
@@ -64,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on list requests in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on list requests in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ListTime { get; set; }
@@ -71,6 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The number of the get requests during the period.
         /// </summary>
+        [Description("The number of the get requests during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ReadCount { get; set; }
@@ -78,6 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on get requests in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on get requests in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ReadTime { get; set; }
@@ -85,6 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The number of the add requests during the period.
         /// </summary>
+        [Description("The number of the add requests during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? AddCount { get; set; }
@@ -92,6 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on add requests in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on add requests in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? AddTime { get; set; }
@@ -99,6 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on add notifications in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on add notifications in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? AddNotificationTime { get; set; }
@@ -107,6 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The number of the update requests during the period.
         /// </summary>
+        [Description("The number of the update requests during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? UpdateCount { get; set; }
@@ -114,6 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on update requests in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on update requests in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? UpdateTime { get; set; }
@@ -121,6 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on update notifications in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on update notifications in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? UpdateNotificationTime { get; set; }
@@ -129,6 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The number of the delete requests during the period.
         /// </summary>
+        [Description("The number of the delete requests during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? DeleteCount { get; set; }
@@ -136,6 +150,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on delete requests in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on delete requests in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? DeleteTime { get; set; }
@@ -143,6 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on delete notifications in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on delete notifications in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? DeleteNotificationTime { get; set; }
@@ -150,6 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The number of the clear requests during the period.
         /// </summary>
+        [Description("The number of the clear requests during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ClearCount { get; set; }
@@ -157,6 +174,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on clear requests in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on clear requests in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ClearTime { get; set; }
@@ -164,22 +182,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The total time spent on clear notifications in milliseconds during the period.
         /// </summary>
+        [Description("The total time spent on clear notifications in milliseconds during the period.")]
         [DefaultValue(0)]
         [IsRequired]
         public UInt64? ClearNotificationTime { get; set; }
 
         /// <summary>Start of the measurement interval.</summary>
+        [Description("Start of the measurement interval.")]
         [DefaultValue(null)]
         [IsRequired]
         [Index(false, Descend = true)]
         public DateTimeOffset? Start { get; set; }
 
         /// <summary>End of the measurement interval.</summary>
+        [Description("End of the measurement interval.")]
         [DefaultValue(null)]
         [IsRequired]
         public DateTimeOffset? End { get; set; }
 
         /// <summary>Total number of add, read, update, delete, list, and clear operations during the interval.</summary>
+        [Description("Total number of add, read, update, delete, list, and clear operations during the interval.")]
         public UInt64 TotalCount
         {
             get
@@ -197,6 +219,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Total execution time for add, read, update, delete, list, and clear operations, in milliseconds.
         /// </summary>
+        [Description("Total execution time for add, read, update, delete, list, and clear operations, in milliseconds.")]
         public UInt64 TotalTime
         {
             get
@@ -212,6 +235,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Total time spent delivering add, update, delete, and clear notifications, in milliseconds.</summary>
+        [Description("Total time spent delivering add, update, delete, and clear notifications, in milliseconds.")]
         public UInt64 NotificationTime
         {
             get

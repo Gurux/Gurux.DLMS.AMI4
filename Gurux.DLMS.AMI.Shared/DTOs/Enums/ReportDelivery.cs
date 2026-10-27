@@ -35,18 +35,23 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The destination or transport used to deliver a report.</summary>
+    [System.ComponentModel.Description("The destination or transport used to deliver a report.")]
     public enum ReportDelivery : byte
     {
         /// <summary>Return the report to the caller in JSON format.</summary>
+        [System.ComponentModel.Description("Return the report to the caller in JSON format.")]
         [XmlEnum("0")]
         Caller = 0,
         /// <summary>Deliver the report by email.</summary>
+        [System.ComponentModel.Description("Deliver the report by email.")]
         [XmlEnum("1")]
         Email = 1,
         /// <summary>Deliver the report using FTP.</summary>
+        [System.ComponentModel.Description("Deliver the report using FTP.")]
         [XmlEnum("2")]
         Ftp = 2,
         /// <summary>Deliver the report using HTTP.</summary>
+        [System.ComponentModel.Description("Deliver the report using HTTP.")]
         [XmlEnum("3")]
         Http = 3,
     }

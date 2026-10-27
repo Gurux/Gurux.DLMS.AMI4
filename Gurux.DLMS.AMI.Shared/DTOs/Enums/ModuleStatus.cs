@@ -35,16 +35,20 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The installation state or build origin of a module.</summary>
+    [System.ComponentModel.Description("The installation state or build origin of a module.")]
     [Flags]
     public enum ModuleStatus : byte
     {
         /// <summary>The module is available for installation.</summary>
+        [System.ComponentModel.Description("The module is available for installation.")]
         [XmlEnum("1")]
         Installable = 0x1,
         /// <summary>The module is installed.</summary>
+        [System.ComponentModel.Description("The module is installed.")]
         [XmlEnum("2")]
         Installed = 0x2,
         /// <summary>The module is supplied as a custom build.</summary>
+        [System.ComponentModel.Description("The module is supplied as a custom build.")]
         [XmlEnum("4")]
         CustomBuild = 0x4,
     }

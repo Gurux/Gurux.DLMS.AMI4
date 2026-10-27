@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Associates a user group with a gateway group.</summary>
+    [Description("Associates a user group with a gateway group.")]
     [DataContract(Name = nameof(GXUserGroupGatewayGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(GatewayGroupId), Clustered = true)]
     public class GXUserGroupGatewayGroup
     {
-        /// <summary>
-        /// User group ID.
-        /// </summary>
+        /// <summary>User group identifier.</summary>
+        [Description("User group identifier.")]
         [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup),
             OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the gateway group is causing multiple cascade paths error in MSSQL.
         public Guid UserGroupId { get; set; }
 
-        /// <summary>
-        /// Gateway group ID.
-        /// </summary>
+        /// <summary>Gateway group identifier.</summary>
+        [Description("Gateway group identifier.")]
         [DataMember(Name = "GatewayGroupID"), ForeignKey(typeof(GXGatewayGroup),
             OnDelete = ForeignKeyDelete.Cascade)]
         public Guid GatewayGroupId { get; set; }
@@ -61,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Creation time.
         /// The time when the gateway group was added to the user group.
         /// </summary>
+        [Description("Creation time. The time when the gateway group was added to the user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -70,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Time when gateway group was removed from user group.
         /// </summary>
+        [Description("Time when gateway group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

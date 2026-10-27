@@ -38,6 +38,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This public interface is used to handle listed notification types.
     /// </summary>
+    [System.ComponentModel.Description("This public interface is used to handle listed notification types.")]
     public interface INotificationTypeRepository
     {
         /// <summary>
@@ -46,6 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("List notification types.")]
         Task<IEnumerable<GXNotificationType>> ListAsync(
             ListNotificationType? request = null,
             ListNotificationTypeResponse? response = null,
@@ -57,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="id">Notification type id.</param>
         /// <param name="columns">Read columns.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read notification type details.")]
         Task<GXNotificationType> ReadAsync(Guid id, Expression<Func<GXNotificationType, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
@@ -66,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="list">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new notification types or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXNotificationType> list,
             Expression<Func<GXNotificationType, object>>? columns = null,
@@ -78,16 +82,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, items are deleted permanently instead of being soft-deleted.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete notification types.")]
         Task DeleteAsync(IEnumerable<Guid> list, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Regenerate notification types.
-        /// </summary>
-        /// <param name="notificationTypes">Notification type(s) to regenerate.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task RegenerateAsync(IEnumerable<Guid>? notificationTypes,
-        CancellationToken cancellationToken = default);
+        /// <summary>Create missing built-in notification types without modifying existing rows.</summary>
+        [System.ComponentModel.Description("Create missing built-in notification types without modifying existing rows.")]
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>Restore selected built-ins in place. Empty selections are rejected.</summary>
+        [System.ComponentModel.Description("Restore selected built-ins in place. Empty selections are rejected.")]
+        Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }
 }

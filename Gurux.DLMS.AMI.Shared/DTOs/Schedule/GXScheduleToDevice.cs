@@ -38,20 +38,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
     /// <summary>Associates a schedule with a target device.</summary>
+    [Description("Associates a schedule with a target device.")]
     [IndexCollection(true, nameof(ScheduleId), nameof(DeviceId), Clustered = true)]
     public class GXScheduleToDevice
     {
-        /// <summary>
-        /// Schedule ID.
-        /// </summary>
+        /// <summary>Schedule identifier.</summary>
+        [Description("Schedule identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
         public Guid ScheduleId { get; set; }
 
-        /// <summary>
-        /// Device ID.
-        /// </summary>
+        /// <summary>Device identifier.</summary>
+        [Description("Device identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXDevice), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid DeviceId { get; set; }
@@ -60,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// Creation time.
         /// The time when the device was added to the schedule.
         /// </summary>
+        [Description("Creation time. The time when the device was added to the schedule.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -69,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Time when device was removed from user schedule.
         /// </summary>
+        [Description("Time when device was removed from user schedule.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

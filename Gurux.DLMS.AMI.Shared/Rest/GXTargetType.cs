@@ -36,25 +36,29 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Target type.
     /// </summary>
+    [System.ComponentModel.Description("Target type.")]
     [DataContract]
     public class GXTargetType
     {
         /// <summary>
         /// Data type identifier.
         /// </summary>
+        [System.ComponentModel.Description("Data type identifier.")]
         [DataMember]
         public string? Id { get; set; }
 
         /// <summary>
         /// Localized name for the data type.
         /// </summary>
+        [System.ComponentModel.Description("Localized name for the data type.")]
         [DataMember]
         public string? LocalizedName { get; set; }
 
         /// <summary>
         /// Imported item count.
         /// </summary>
+        [System.ComponentModel.Description("Imported item count.")]
         [DataMember]
-        public int? Count { get; set; }
+        public long? Count { get; set; }
     }
 }

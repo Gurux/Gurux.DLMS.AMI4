@@ -39,20 +39,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
 {
     /// <summary>A notification delivery channel, such as email or a module-provided channel.</summary>
 
+    [Description("A notification delivery channel, such as email or a module-provided channel.")]
     [DataContract(Name = "GXNotificationType"), Serializable]
     public class GXNotificationType : IUnique<Guid>
     {
-        /// <summary>
-        /// Notification ID.
-        /// </summary>
+        /// <summary>Notification identifier.</summary>
+        [Description("Notification identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
-        /// <summary>
-        /// Is notification type enabled.
-        /// </summary>
+        /// <summary>Whether the notification type is enabled.</summary>
+        [Description("Whether the notification type is enabled.")]
         [DataMember]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Notification type name.
         /// </summary>
+        [Description("Notification type name.")]
         [DataMember]
         [StringLength(128)]
         [Index(true)]
@@ -74,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <remarks>
         /// Name is converted to kebab-case.
         /// </remarks>
+        [Description("Normalized type name.")]
         [DataMember]
         [StringLength(128)]
         [DefaultValue(null)]
@@ -81,9 +82,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [IsRequired]
         public string? NormalizedName { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -91,11 +91,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When was the notification type last updated.
-        /// </summary>
+        /// <summary>Time when the notification type was last updated.</summary>
         [DataMember]
-        [Description("When was the notification type last updated.")]
+        [Description("Time when the notification type was last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -104,14 +102,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

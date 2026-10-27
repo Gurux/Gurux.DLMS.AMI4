@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle gateways.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle gateways.")]
     public interface IGatewayRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List gateways.")]
         Task<IEnumerable<GXGateway>> ListAsync(
             ListGateways? request = null,
             ListGatewaysResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read gateway.")]
         Task<GXGateway> ReadAsync(Guid id, Expression<Func<GXGateway, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,17 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="gateways">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new gateways or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXGateway> gateways,
             Expression<Func<GXGateway, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete gateway(s).
-        /// </summary>
+        /// <summary>Delete gateways.</summary>
         /// <param name="gateways">Gateway(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete gateways.")]
         Task DeleteAsync(IEnumerable<Guid> gateways, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="gatewayId">Gateway id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this gateway.")]
         Task<List<string>> GetUsersAsync(Guid? gatewayId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -96,6 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="Ids">Gateway ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access gateways.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -104,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="gatewayId">Gateway ID.</param>
         /// <param name="status">Gateway status</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Gateway updates the status.")]
         Task UpdateStatusAsync(Guid gatewayId, GatewayStatus status, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -111,6 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="gateways">Resetted gateway(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Reset gateways to offline.")]
         Task ResetAsync(IEnumerable<Guid> gateways, CancellationToken cancellationToken = default);
     }
 }

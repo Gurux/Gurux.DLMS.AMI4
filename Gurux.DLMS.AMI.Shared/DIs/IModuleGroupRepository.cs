@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle module groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle module groups.")]
     public interface IModuleGroupRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List module groups.")]
         Task<IEnumerable<GXModuleGroup>> ListAsync(
             ListModuleGroups? request = null,
             ListModuleGroupsResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read module group details.")]
         Task<GXModuleGroup> ReadAsync(Guid id, Expression<Func<GXModuleGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
 
@@ -70,17 +73,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated module groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new module groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXModuleGroup> groups,
             Expression<Func<GXModuleGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete module group(s).
-        /// </summary>
+        /// <summary>Delete module groups.</summary>
         /// <param name="groups">Module groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, users are notified about the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete module groups.")]
         Task DeleteAsync(
             IEnumerable<Guid> groups,
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
@@ -90,6 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="moduleId">Module ID</param>
         /// <returns>List of module groups.</returns>
+        [System.ComponentModel.Description("Returns module groups list where module belongs.")]
         Task<List<GXModuleGroup>> GetJoinedModuleGroups(string moduleId);
 
         /// <summary>
@@ -98,6 +102,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groupId">Module group Id.</param>
         /// <returns>List of users.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Returns list of users that can access this module group.")]
         Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -106,6 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groupIds">Module group Ids.</param>
         /// <returns>List of users.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Returns list of users that can access module groups.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default);
     }
 }

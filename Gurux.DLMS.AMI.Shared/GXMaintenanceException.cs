@@ -35,30 +35,31 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// Server is in maintenance mode.
     /// </summary>
+    [System.ComponentModel.Description("Server is in maintenance mode.")]
     public class GXMaintenanceException : Exception
     {
         /// <summary>
         /// Retry after tells when server should be operating again.
         /// </summary>
+        [System.ComponentModel.Description("Retry after tells when server should be operating again.")]
         public TimeSpan? RetryAfter { get; set; }
 
         /// <summary>
         /// Maintenance end time.
         /// </summary>
+        [System.ComponentModel.Description("Maintenance end time.")]
         public DateTimeOffset? EndTime { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXMaintenanceException.</summary>
+        [System.ComponentModel.Description("Initializes a new instance of GXMaintenanceException.")]
         public GXMaintenanceException() : base()
         {
 
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXMaintenanceException.</summary>
         /// <param name="message"> The message that describes the error.</param>
+        [System.ComponentModel.Description("Initializes a new instance of GXMaintenanceException.")]
         public GXMaintenanceException(string? message) : base(message)
         {
 

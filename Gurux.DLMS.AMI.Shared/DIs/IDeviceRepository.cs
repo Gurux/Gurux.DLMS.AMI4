@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle devices.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle devices.")]
     public interface IDeviceRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List devices.")]
         Task<IEnumerable<GXDevice>> ListAsync(
         ListDevices? request = null,
         ListDevicesResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Device information.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read device details.")]
         Task<GXDevice> ReadAsync(Guid id, Expression<Func<GXDevice, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -75,6 +78,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Late binding improves device creation when a huge amount of devices is created. 
         /// This is handy when only a part of device objects is read, but the objects want to remain active just in case.
         /// </remarks>
+        [System.ComponentModel.Description("Inserts new devices or updates existing ones.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068", Justification = "Preserves the existing public repository signature and positional callers.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken = default,
@@ -82,13 +87,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             bool lateBinding = false,
             IEnumerable<GXDeviceGroup>? groups = null);
 
-        /// <summary>
-        /// Delete device(s).
-        /// </summary>
+        /// <summary>Delete devices.</summary>
         /// <param name="devices">Deleted device(s).</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, users are notified about the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete devices.")]
         Task DeleteAsync(
             IEnumerable<Guid> devices,
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
@@ -99,6 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceId">Device Id.</param>
         /// <returns>List of users.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Returns list of users that can access this device.")]
         Task<List<string>> GetUsersAsync(Guid? deviceId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -107,6 +112,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceIds">Device Ids.</param>
         /// <returns>List of users.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Returns list of users that can access devices.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid> deviceIds, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -115,12 +121,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceId">Device ID.</param>
         /// <param name="status">Device status</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Updates the device status.")]
         Task UpdateStatusAsync(Guid deviceId, DeviceStatus status, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reset devices to disconnected state.
         /// </summary>
         /// <param name="devices">Resetted device(s).</param>
+        [System.ComponentModel.Description("Reset devices to disconnected state.")]
         Task ResetAsync(IEnumerable<Guid> devices);
     }
 }

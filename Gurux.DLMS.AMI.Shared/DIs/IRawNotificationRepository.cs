@@ -42,6 +42,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// All lease transitions are atomic and use server UTC time. A connection is identified
     /// by its receiving Agent and ConnectionId; its chunks must never be split between processors.
     /// </remarks>
+    [System.ComponentModel.Description("Stores received bytes and coordinates deferred notification processing.")]
     public interface IRawNotificationRepository
     {
         /// <summary>Lists notifications for inspection without reserving them.</summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">Optional paging response.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Matching notifications.</returns>
+        [System.ComponentModel.Description("Lists notifications for inspection without reserving them.")]
         Task<IEnumerable<GXRawNotification>> ListAsync(
             ListRawNotifications? request = null,
             ListRawNotificationsResponse? response = null,
@@ -59,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Optional columns to read.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The notification.</returns>
+        [System.ComponentModel.Description("Reads a notification without reserving it.")]
         Task<GXRawNotification> ReadAsync(Guid id,
             Expression<Func<GXRawNotification, object>>? columns = null,
             CancellationToken cancellationToken = default);
@@ -74,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="notifications">Received chunks with stable identifiers.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Identifiers in input order, including identical retries.</returns>
+        [System.ComponentModel.Description("Adds received chunks without parsing their bytes.")]
         Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXRawNotification> notifications,
             CancellationToken cancellationToken = default);
 
@@ -90,6 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="receivingAgentId">Optional receiving agent filter.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Reserved chunks carrying the server-generated lease token.</returns>
+        [System.ComponentModel.Description("Atomically reserves the oldest eligible connection for a processor.")]
         Task<IEnumerable<GXRawNotification>> GetNextAsync(Guid processorId, TimeSpan leaseDuration,
             Guid? receivingAgentId = null, CancellationToken cancellationToken = default);
 
@@ -104,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="leaseToken">Current connection lease token.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Chunks held by the connection lease.</returns>
+        [System.ComponentModel.Description("Reads and reserves newly arrived chunks under an existing connection lease.")]
         Task<IEnumerable<GXRawNotification>> GetLeasedAsync(Guid processorId, Guid leaseToken,
             CancellationToken cancellationToken = default);
 
@@ -113,6 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="leaseDuration">Duration of at least one millisecond from server UTC time; never shortens the current lease.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The updated lease expiration time.</returns>
+        [System.ComponentModel.Description("Extends an unexpired connection lease atomically.")]
         Task<DateTimeOffset> RenewLeaseAsync(Guid processorId, Guid leaseToken, TimeSpan leaseDuration,
             CancellationToken cancellationToken = default);
 
@@ -127,6 +134,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="processorId">Lease owner.</param>
         /// <param name="leaseToken">Current connection lease token.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Completes a closed connection after its device updates have been persisted.")]
         Task DoneAsync(Guid processorId, Guid leaseToken, CancellationToken cancellationToken = default);
 
         /// <summary>Records a processing failure and releases the entire connection lease.</summary>
@@ -140,6 +148,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="error">Processing error description.</param>
         /// <param name="nextAttempt">Optional automatic retry time.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Records a processing failure and releases the entire connection lease.")]
         Task FailAsync(Guid processorId, Guid leaseToken, string error, DateTimeOffset? nextAttempt = null,
             CancellationToken cancellationToken = default);
 
@@ -151,16 +160,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </remarks>
         /// <param name="notifications">Identifiers selecting connections to restart.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Requeues failed or expired connections for an explicit retry.")]
         Task RestartAsync(IEnumerable<Guid> notifications, CancellationToken cancellationToken = default);
 
         /// <summary>Deletes selected connections, rejecting any with an active lease.</summary>
         /// <param name="notifications">Identifiers selecting entire connections to delete.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Deletes selected connections, rejecting any with an active lease.")]
         Task DeleteAsync(IEnumerable<Guid> notifications, CancellationToken cancellationToken = default);
 
         /// <summary>Deletes only completed connections processed before the retention cutoff.</summary>
         /// <param name="processedBefore">Exclusive UTC retention cutoff.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        [System.ComponentModel.Description("Deletes only completed connections processed before the retention cutoff.")]
         Task ClearAsync(DateTimeOffset processedBefore, CancellationToken cancellationToken = default);
     }
 }

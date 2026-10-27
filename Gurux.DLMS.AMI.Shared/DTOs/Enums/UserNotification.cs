@@ -36,24 +36,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
     /// <summary>
     /// What types of notifications the user is interested in.
     /// </summary>
+    [System.ComponentModel.Description("What types of notifications the user is interested in.")]
     public enum UserNotification : byte
     {
         /// <summary>
         /// User wants no notifications.
         /// </summary>
+        [System.ComponentModel.Description("User wants no notifications.")]
         [XmlEnum("0")]
         None = 0,
         /// <summary>
         /// The user is notified when logging in from a new IP address.
         /// </summary>
+        [System.ComponentModel.Description("The user is notified when logging in from a new IP address.")]
         [XmlEnum("1")]
         NewIp = 1,
         /// <summary>Notify when a personal access token is expiring or has expired.</summary>
+        [System.ComponentModel.Description("Notify when a personal access token is expiring or has expired.")]
         [XmlEnum("2")]
         PetExpiring = 2,
         /// <summary>
         /// The user is notified when content is modified.
         /// </summary>
+        [System.ComponentModel.Description("The user is notified when content is modified.")]
         [XmlEnum("4")]
         Content = 4,
     }

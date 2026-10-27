@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle component views.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle component views.")]
     public interface IComponentViewRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <returns>Blocks.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("List component views.")]
         Task<IEnumerable<GXComponentView>> ListAsync(
             ListComponentViews? request = null,
             ListComponentViewsResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read component view.")]
         Task<GXComponentView> ReadAsync(Guid id, Expression<Func<GXComponentView, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,17 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="componentviews">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new component views or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXComponentView> componentviews,
             Expression<Func<GXComponentView, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete component view(s).
-        /// </summary>
+        /// <summary>Delete component views.</summary>
         /// <param name="componentviews">Component view(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete component views.")]
         Task DeleteAsync(IEnumerable<Guid> componentviews, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="componentViewId">Component view id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this component view.")]
         Task<List<string>> GetUsersAsync(Guid? componentViewId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -96,12 +100,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="Ids">Component view ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access component views.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Refresh component view(s).
-        /// </summary>
+        /// <summary>Refresh component views.</summary>
         /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [System.ComponentModel.Description("Refresh component views.")]
         Task<bool> RefrestAsync(CancellationToken cancellationToken);
     }
 }

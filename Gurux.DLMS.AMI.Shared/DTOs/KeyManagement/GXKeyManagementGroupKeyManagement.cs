@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
     /// <summary>Associates a key management configuration with a key management group.</summary>
+    [Description("Associates a key management configuration with a key management group.")]
     [DataContract(Name = "GXKeyManagementGroupKeyManagement"), Serializable]
     [IndexCollection(true, nameof(KeyManagementGroupId), nameof(KeyManagementId), Clustered = true)]
     public class GXKeyManagementGroupKeyManagement : GXTableBase
     {
-        /// <summary>
-        /// The database ID of the KeyManagement group.
-        /// </summary>
+        /// <summary>The database identifier of the KeyManagement group.</summary>
+        [Description("The database identifier of the KeyManagement group.")]
         [DataMember(Name = "KeyManagementGroupId")]
         [ForeignKey(typeof(GXKeyManagementGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the key management is causing multiple cascade paths error in MSSQL.
         public Guid KeyManagementGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the key management.
-        /// </summary>
+        /// <summary>The database identifier of the key management.</summary>
+        [Description("The database identifier of the key management.")]
         [DataMember(Name = "KeyManagementID")]
         [ForeignKey(typeof(GXKeyManagement), OnDelete = ForeignKeyDelete.Cascade)]
         [StringLength(36)]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// Creation time.
         /// The time when the key management was added to the key management group.
         /// </summary>
+        [Description("Creation time. The time when the key management was added to the key management group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// Time when key management was removed from key management group.
         /// </summary>
+        [Description("Time when key management was removed from key management group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -80,6 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)

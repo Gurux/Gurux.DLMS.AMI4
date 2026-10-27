@@ -34,58 +34,59 @@ using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get configuration settings.
-    /// </summary>
+    /// <summary>Requests a list of options.</summary>
+    [System.ComponentModel.Description("Requests a list of options.")]
     [DataContract]
     public class ListOptions : IGXRequest<ListConfigurationResponse>
     {
         /// <summary>
         /// Configuration key identifying the settings to read or update.
         /// </summary>
+        [System.ComponentModel.Description("Configuration key identifying the settings to read or update.")]
         public string? Configuration { get; set; }
     }
 
-    /// <summary>
-    /// Get configuration settings reply.
-    /// </summary>
+    /// <summary>Response containing the requested options.</summary>
+    [System.ComponentModel.Description("Response containing the requested options.")]
     [DataContract]
     public class ListOptionsResponse
     {
         /// <summary>
         /// Configuration settings as JSON.
         /// </summary>
+        [System.ComponentModel.Description("Configuration settings as JSON.")]
         [DataMember]
         public string? Settings { get; set; }
     }
 
-    /// <summary>
-    /// Updates the configuration settings stored under the specified key.
-    /// </summary>
+    /// <summary>Updates the configuration settings stored under the specified key.</summary>
+    [System.ComponentModel.Description("Updates the configuration settings stored under the specified key.")]
     [DataContract]
     public class UpdateOptions : IGXRequest<UpdateOptionsResponse>
     {
         /// <summary>
         /// Configuration key identifying the settings to read or update.
         /// </summary>
+        [System.ComponentModel.Description("Configuration key identifying the settings to read or update.")]
         public string? Configuration { get; set; }
 
         /// <summary>
         /// Settings data type.
         /// </summary>
+        [System.ComponentModel.Description("Settings data type.")]
         [DataMember]
         public string? SettingsType { get; set; }
 
         /// <summary>
         /// Configuration settings as JSON.
         /// </summary>
+        [System.ComponentModel.Description("Configuration settings as JSON.")]
         [DataMember]
         public string? Settings { get; set; }
     }
 
-    /// <summary>
-    /// Response to updating configuration settings.
-    /// </summary>
+    /// <summary>Response to updating configuration settings.</summary>
+    [System.ComponentModel.Description("Response to updating configuration settings.")]
     [DataContract]
     public class UpdateOptionsResponse
     {

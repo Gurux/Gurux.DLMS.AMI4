@@ -41,6 +41,7 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>A module parameter associated with a device group.</summary>
+    [Description("A module parameter associated with a device group.")]
     [DataContract(Name = nameof(GXDeviceGroupProperty)), Serializable]
     [IndexCollection(true, nameof(DeviceGroup), nameof(Module), nameof(Name))]
     public class GXDeviceGroupProperty : IUnique<Guid>, IGXProperty
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Parameter identifier.
         /// </summary>
+        [Description("Parameter identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -56,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Parent device.
         /// </summary>
+        [Description("Parent device.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Index(false)]
@@ -67,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// The module whose settings these are.
         /// </summary>
+        [Description("The module whose settings these are.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         public GXModule? Module { get; set; }
@@ -74,6 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Module settings unique name.
         /// </summary>
+        [Description("Module settings unique name.")]
         [DataMember]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
@@ -83,32 +88,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Module settings.
         /// </summary>
+        [Description("Module settings.")]
         [DataMember]
         public string? Value { get; set; }
 
         /// <summary>Version token maintained by Gurux Service.</summary>
+        [Description("Version token maintained by Gurux Service.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset CreationTime { get; set; }
-        /// <summary>
-        /// When parameter is updated for last time.
-        /// </summary>
+        /// <summary>Time when the parameter was last updated.</summary>
+        [Description("Time when the parameter was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

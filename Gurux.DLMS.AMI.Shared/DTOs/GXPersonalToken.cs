@@ -35,27 +35,30 @@ using Gurux.Service.Orm.Common;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A personal access token and its ownership, expiry, and usage information.</summary>
+    [System.ComponentModel.Description("A personal access token and its ownership, expiry, and usage information.")]
     public class GXPersonalToken
     {
         /// <summary>
         /// Token identifier.
         /// </summary>
+        [System.ComponentModel.Description("Token identifier.")]
         public string Id { get; set; }
 
         /// <summary>
         /// Token Name.
         /// </summary>
+        [System.ComponentModel.Description("Token Name.")]
         public string? Name { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [System.ComponentModel.Description("Time when the record was created.")]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Expiration time.
         /// </summary>
+        [System.ComponentModel.Description("Expiration time.")]
         public DateTimeOffset? Expiration { get; set; }
 
         /// <summary>
@@ -64,11 +67,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// Custom scopes can be used if full access is not wanted to give for the client.
         /// </remarks>
+        [System.ComponentModel.Description("Custom scopes.")]
         public IEnumerable<string>? Scopes { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPersonalToken.</summary>
+        [System.ComponentModel.Description("Initializes a new instance of GXPersonalToken.")]
         public GXPersonalToken()
         {
             Id = "";

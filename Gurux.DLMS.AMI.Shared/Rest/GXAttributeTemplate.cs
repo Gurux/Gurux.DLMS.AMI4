@@ -34,16 +34,18 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get attribute template.
-    /// </summary>
+    /// <summary>Response containing the requested attribute template information.</summary>
+    [Description("Response containing the requested attribute template information.")]
     public class GetAttributeTemplateResponse
     {
         /// <summary>
         /// AttributeTemplate information.
         /// </summary>
+        [Description("AttributeTemplate information.")]
         [ExcludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.ObjectTemplate),
                 nameof(GXAttributeTemplate.ListItems))]
@@ -51,59 +53,62 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
 
-    /// <summary>
-    /// Add COSEM attribute template.
-    /// </summary>
+    /// <summary>Requests the addition or update of COSEM attribute templates.</summary>
+    [Description("Requests the addition or update of COSEM attribute templates.")]
     [DataContract]
     public class UpdateAttributeTemplate : IGXRequest<UpdateAttributeTemplateResponse>
     {
         /// <summary>
         /// Added COSEM attribute templates.
         /// </summary>
+        [Description("Added COSEM attribute templates.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
         [ExcludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.ListItems))]
+        [ExcludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.CreationTime), nameof(GXAttributeTemplate.Updated))]
         public IEnumerable<GXAttributeTemplate>? AttributeTemplates { get; set; }
     }
 
-    /// <summary>
-    /// Add COSEM attribute template Reply.
-    /// </summary>
+    /// <summary>Response to updating the specified attribute templates.</summary>
+    [Description("Response to updating the specified attribute templates.")]
     [DataContract]
     public class UpdateAttributeTemplateResponse
     {
-        /// <summary>
-        /// AttributeTemplate identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated attribute template records.</summary>
+        [Description("Identifiers of the added or updated attribute template records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Get attribute template.
-    /// </summary>
+    /// <summary>Requests a list of attribute templates.</summary>
+    [Description("Requests a list of attribute templates.")]
     [DataContract]
     public class ListAttributeTemplates : IGXRequest<ListAttributeTemplatesResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
         [DataMember]
-        public UInt64 Index { get; set; }
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of items to retrieve; zero disables paging.
-        /// </summary>
+        /// <summary>Maximum number of items to retrieve. Use 0 to return all matching items without paging.</summary>
         [DataMember]
-        public UInt64 Count { get; set; }
+        [DefaultValue(0)]
+        [Description("Maximum number of items to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter attribute templates.
         /// </summary>
+        [Description("Optional criteria used to filter attribute templates.")]
         [ExcludeOpenApi(typeof(GXAttributeTemplate),
                nameof(GXAttributeTemplate.ObjectTemplate),
                nameof(GXAttributeTemplate.ListItems))]
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
+            nameof(GXAttributeTemplate.ExpirationTime), nameof(GXAttributeTemplate.ConcurrencyStamp), nameof(GXAttributeTemplate.AccessLevel),
+            nameof(GXAttributeTemplate.DataType), nameof(GXAttributeTemplate.UIDataType), nameof(GXAttributeTemplate.Weight),
+            nameof(GXAttributeTemplate.Scaler), nameof(GXAttributeTemplate.Unit))]
         public GXAttributeTemplate? Filter { get; set; }
 
         /// <summary>
@@ -112,37 +117,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, attribute templates from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access attribute templates from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -151,11 +155,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
 
-        /// <summary>
-        /// Device template Ids.
-        /// </summary>
+        /// <summary>Device template identifiers.</summary>
+        [Description("Device template identifiers.")]
         public IEnumerable<Guid>? DeviceTemplates { get; set; }
 
         /// <summary>
@@ -163,17 +167,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <remarks>
         /// </remarks>
+        [Description("Filtered object types.")]
         public IEnumerable<int>? ObjectTypes { get; set; }
 
         /// <summary>
         /// Ignored object types.
         /// </summary>
+        [Description("Ignored object types.")]
         public IEnumerable<int>? IgnoredObjectTypes { get; set; }
     }
 
-    /// <summary>
-    /// List COSEM attribute template response.
-    /// </summary>
+    /// <summary>Response containing the requested attribute templates.</summary>
+    [Description("Response containing the requested attribute templates.")]
     [DataContract]
     public class ListAttributeTemplatesResponse
     {
@@ -181,6 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// List of COSEM attribute templates.
         /// </summary>
+        [Description("List of COSEM attribute templates.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.ObjectTemplate),
@@ -189,49 +195,46 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching attribute templates before paging.
         /// </summary>
+        [Description("Total number of matching attribute templates before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Remove COSEM attribute templates.
-    /// </summary>
+    /// <summary>Requests deletion of the selected attribute templates.</summary>
+    [Description("Requests deletion of the selected attribute templates.")]
     public class RemoveAttributeTemplate : IGXRequest<RemoveAttributeTemplateResponse>
     {
-        /// <summary>
-        /// COSEM attribute templates identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the attribute template records to delete.</summary>
+        [Description("Identifiers of the attribute template records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Remove COSEM attribute template response.
-    /// </summary>
+    /// <summary>Response to deleting the selected attribute templates.</summary>
+    [Description("Response to deleting the selected attribute templates.")]
     [DataContract]
     public class RemoveAttributeTemplateResponse
     {
     }
 
-    /// <summary>
-    /// Update data type of the attribute template.
-    /// </summary>
+    /// <summary>Requests changes to the attribute template data type.</summary>
+    [Description("Requests changes to the attribute template data type.")]
     [DataContract]
     public class UpdateAttributeTemplateDataType : IGXRequest<UpdateAttributeTemplateDataTypeResponse>
     {
         /// <summary>
         /// Updated attribute templates.
         /// </summary>
+        [Description("Updated attribute templates.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXAttributeTemplate),
             nameof(GXAttributeTemplate.Id),
@@ -240,9 +243,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public IEnumerable<GXAttributeTemplate>? Items { get; set; }
     }
 
-    /// <summary>
-    /// Update data type of the attribute template reply.
-    /// </summary>
+    /// <summary>Response to updating the attribute template data type.</summary>
+    [Description("Response to updating the attribute template data type.")]
     [DataContract]
     public class UpdateAttributeTemplateDataTypeResponse
     {

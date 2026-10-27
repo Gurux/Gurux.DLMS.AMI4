@@ -39,11 +39,13 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A condition evaluated as part of a named authorization policy.</summary>
+    [Description("A condition evaluated as part of a named authorization policy.")]
     [DataContract(Name = "GXPolicyRequirement"), Serializable]
     [IndexCollection(false, nameof(Type), nameof(Value))]
     public partial class GXPolicyRequirement : IUnique<Guid>, IValidatableObject
     {
         /// <summary>Unique identifier of this policy requirement.</summary>
+        [Description("Unique identifier of this policy requirement.")]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
@@ -53,6 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Parent policy.
         /// </summary>
+        [Description("Parent policy.")]
         [DataMember(Name = "PolicyID"), Index(Unique = false)]
         [ForeignKey(typeof(GXPolicy), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -62,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Policy requirement type.
         /// </summary>
+        [Description("Policy requirement type.")]
         [DataMember(Name = "Type"), Index(Unique = false)]
         [IsRequired]
         public PolicyRequirementType Type { get; set; }
@@ -69,11 +73,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Claim type to match when Type is Claim. Independent of the display name.
         /// </summary>
+        [Description("Claim type to match when Type is Claim. Independent of the display name.")]
         [DataMember]
         [StringLength(256)]
         public string? ClaimType { get; set; }
 
         /// <summary>Value interpreted according to the requirement type, such as a permission, role, or user identifier.</summary>
+        [Description("Value interpreted according to the requirement type, such as a permission, role, or user identifier.")]
         [DataMember(Name = "Value"), Index(Unique = false)]
         [MaxLength(256)]
         public string? Value { get; set; }
@@ -81,6 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Optional display name of the requirement.
         /// </summary>
+        [Description("Optional display name of the requirement.")]
         [DataMember]
         [StringLength(128)]
         [Filter(FilterType.Equals)]
@@ -89,29 +96,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Policy description.
         /// </summary>
+        [Description("Policy description.")]
         [DataMember]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// When was the policy last updated.
-        /// </summary>
+        /// <summary>Time when the policy requirement was last updated.</summary>
+        [Description("Time when the policy requirement was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPolicyRequirement.</summary>
+        [Description("Initializes a new instance of GXPolicyRequirement.")]
         public GXPolicyRequirement()
         {
 
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPolicyRequirement.</summary>
         /// <param name="name">Name of the policy.</param>
+        [Description("Initializes a new instance of GXPolicyRequirement.")]
         public GXPolicyRequirement(string? name)
         {
             Name = name;

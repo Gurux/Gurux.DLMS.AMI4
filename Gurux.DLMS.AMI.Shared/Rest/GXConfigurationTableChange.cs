@@ -33,10 +33,13 @@
 namespace Gurux.DLMS.AMI.Shared.Rest;
 
 /// <summary>Describes the pending schema changes for an application table.</summary>
+[System.ComponentModel.Description("Describes the pending schema changes for an application table.")]
 public sealed class GXConfigurationTableChange
 {
     /// <summary>Gets or sets the name of the table with pending schema changes.</summary>
+    [System.ComponentModel.Description("Gets or sets the name of the table with pending schema changes.")]
     public string TableName { get; set; } = string.Empty;
     /// <summary>Gets or sets the descriptions of the pending schema changes.</summary>
+    [System.ComponentModel.Description("Gets or sets the descriptions of the pending schema changes.")]
     public string[] Changes { get; set; } = [];
 }

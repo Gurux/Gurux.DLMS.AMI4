@@ -38,28 +38,28 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
 {
     /// <summary>Version and release information for a module.</summary>
     ///
+    [Description("Version and release information for a module.")]
     [IndexCollection(true, nameof(Module), nameof(Number))]
     public class GXModuleVersion : IUnique<Guid>
     {
         /// <summary>
         /// Version identifier.
         /// </summary>
+        [Description("Version identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
-        /// <summary>
-        /// Is version enabled.
-        /// </summary>
+        /// <summary>Whether the module version is enabled.</summary>
         //Filter uses default value.
+        [Description("Whether the module version is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? Enabled { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? CreationTime { get; set; }
@@ -67,18 +67,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// <summary>
         /// Module Version number.
         /// </summary>
+        [Description("Module Version number.")]
         [StringLength(128)]
         [DefaultValue(null)]
         public string? Number { get; set; }
 
-        /// <summary>
-        /// Is this a pre-release version.
-        /// </summary>
+        /// <summary>Whether this is a prerelease version.</summary>
+        [Description("Whether this is a prerelease version.")]
         public bool Prerelease { get; set; }
 
         /// <summary>
         /// List of framework versions that can use this module version.
         /// </summary>
+        [Description("List of framework versions that can use this module version.")]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         public string? RequiredFrameworkVersions { get; set; }
@@ -89,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// <remarks>
         /// If module is added manually this is null.
         /// </remarks>
+        [Description("Installation Url.")]
         [StringLength(2048)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -97,16 +99,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// <summary>
         /// File path.
         /// </summary>
+        [Description("File path.")]
         public string? FileName { get; set; }
 
         /// <summary>
         /// Version description.
         /// </summary>
+        [Description("Version description.")]
         public string? Description { get; set; }
 
         /// <summary>
         /// The module that owns this version.
         /// </summary>
+        [Description("The module that owns this version.")]
         [DefaultValue(null)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]

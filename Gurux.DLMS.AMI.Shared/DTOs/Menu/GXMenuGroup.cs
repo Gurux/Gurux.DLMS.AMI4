@@ -42,35 +42,33 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
 {
     /// <summary>A named group of menus with shared access settings.</summary>
+    [Description("A named group of menus with shared access settings.")]
     [DataContract(Name = "GXMenuGroup"), Serializable]
     public class GXMenuGroup : GXTableBase, IUnique<Guid>
     {
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXMenuGroup.</summary>
+        [Description("Initializes a new instance of GXMenuGroup.")]
         public GXMenuGroup()
         {
         }
 
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXMenuGroup.</summary>
         /// <remarks>
-        /// This constuctor is called when a new content group is created. It will create all needed lists.
+        /// This constructor is called when a new content group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Menu group name.</param>
+        [Description("Initializes a new instance of GXMenuGroup.")]
         public GXMenuGroup(string? name)
         {
             Name = name;
-            UserGroups = new List<GXUserGroup>();
-            Menus = new List<GXMenu>();
+            UserGroups = [];
+            Menus = [];
         }
 
-        /// <summary>
-        /// Menu group ID.
-        /// </summary>
+        /// <summary>Menu group identifier.</summary>
+        [Description("Menu group identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -79,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// <summary>
         /// The creator of the content group.
         /// </summary>
+        [Description("The creator of the content group.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -88,6 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// <summary>
         /// Name of the content group.
         /// </summary>
+        [Description("Name of the content group.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -100,14 +100,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// </summary>
 		[DataMember]
         [StringLength(256)]
-        [Description("Description.")]
+        [Description("Menu group description.")]
         //Filter uses default value.
         [DefaultValue(null)]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -117,15 +116,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// <summary>
         /// Time when content group was removed.
         /// </summary>
+        [Description("Time when content group was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When was the content group last updated.
-        /// </summary>
+        /// <summary>Time when the menu group was last updated.</summary>
+        [Description("Time when the menu group was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -136,22 +135,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
         /// <summary>User groups associated with this menu group.</summary>
+        [Description("User groups associated with this menu group.")]
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupMenuGroup))]
         public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>Menus belonging to this group.</summary>
+        [Description("Menus belonging to this group.")]
         [DataMember, ForeignKey(typeof(GXMenu), typeof(GXMenuGroupMenu))]
         public List<GXMenu>? Menus { get; set; }
 
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -163,6 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

@@ -35,30 +35,39 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The area of the user interface in which a block is displayed.</summary>
+    [System.ComponentModel.Description("The area of the user interface in which a block is displayed.")]
     public enum BlockLocation : byte
     {
         /// <summary>Display the block in the page header.</summary>
+        [System.ComponentModel.Description("Display the block in the page header.")]
         [XmlEnum("0")]
         Header = 0,
         /// <summary>Display the block in the left sidebar.</summary>
+        [System.ComponentModel.Description("Display the block in the left sidebar.")]
         [XmlEnum("1")]
         SidebarLeft = 1,
         /// <summary>Display the block in the right sidebar.</summary>
+        [System.ComponentModel.Description("Display the block in the right sidebar.")]
         [XmlEnum("2")]
         SidebarRight = 2,
         /// <summary>Display the block in the main content area.</summary>
+        [System.ComponentModel.Description("Display the block in the main content area.")]
         [XmlEnum("3")]
         Content = 3,
         /// <summary>Display the block in the page footer.</summary>
+        [System.ComponentModel.Description("Display the block in the page footer.")]
         [XmlEnum("4")]
         Footer = 4,
         /// <summary>Display the block above the page content.</summary>
+        [System.ComponentModel.Description("Display the block above the page content.")]
         [XmlEnum("5")]
         ContentHeader = 5,
         /// <summary>Display the block below the page content.</summary>
+        [System.ComponentModel.Description("Display the block below the page content.")]
         [XmlEnum("6")]
         ContentFooter = 6,
         /// <summary>Display the block inside a user interface component.</summary>
+        [System.ComponentModel.Description("Display the block inside a user interface component.")]
         [XmlEnum("7")]
         Component = 7
     }

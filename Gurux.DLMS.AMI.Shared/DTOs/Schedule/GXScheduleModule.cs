@@ -39,19 +39,18 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
     /// <summary>Associates a schedule with a module to invoke.</summary>
+    [Description("Associates a schedule with a module to invoke.")]
     [IndexCollection(true, nameof(ScheduleId), nameof(ModuleId), Clustered = true)]
     public class GXScheduleModule
     {
-        /// <summary>
-        /// Schedule ID.
-        /// </summary>
+        /// <summary>Schedule identifier.</summary>
+        [Description("Schedule identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ScheduleId { get; set; }
 
-        /// <summary>
-        /// Module ID.
-        /// </summary>
+        /// <summary>Module identifier.</summary>
+        [Description("Module identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.None)]
         [StringLength(64)]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// Creation time.
         /// The time when the module was added to the schedule.
         /// </summary>
+        [Description("Creation time. The time when the module was added to the schedule.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Time when module was removed from schedule.
         /// </summary>
+        [Description("Time when module was removed from schedule.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -80,6 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Time when module was updated to the schedule.
         /// </summary>
+        [Description("Time when module was updated to the schedule.")]
         [DataMember]
         public DateTimeOffset? Updated { get; set; }
 
@@ -87,6 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -95,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Schedule-specific module settings.
         /// </summary>
+        [Description("Schedule-specific module settings.")]
         [DataMember]
         public string? Settings { get; set; }
     }

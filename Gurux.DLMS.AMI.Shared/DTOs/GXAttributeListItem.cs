@@ -38,11 +38,13 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>An item in the list of possible values for an attribute.</summary>
+    [Description("An item in the list of possible values for an attribute.")]
     public class GXAttributeListItem : IUnique<Guid>
     {
         /// <summary>
         /// Attribute value identifier.
         /// </summary>
+        [Description("Attribute value identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -51,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Parent attribute template.
         /// </summary>
+        [Description("Parent attribute template.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -58,22 +61,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public GXAttributeTemplate? Template { get; set; }
 
         /// <summary>Display label corresponding to the numeric attribute value.</summary>
+        [Description("Display label corresponding to the numeric attribute value.")]
         [DataMember]
         public string? UIValue { get; set; }
 
         /// <summary>Numeric attribute value represented by the display label.</summary>
+        [Description("Numeric attribute value represented by the display label.")]
         [DataMember]
         public int Value { get; set; }
 
         /// <summary>
         /// Mask size.
         /// </summary>
+        [Description("Mask size.")]
         [DataMember]
         public int MaskSize { get; set; }
 
         /// <summary>
         /// Shift.
         /// </summary>
+        [Description("Shift.")]
         [DataMember]
         public int Shift { get; set; }
 

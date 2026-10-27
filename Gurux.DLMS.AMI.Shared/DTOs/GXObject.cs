@@ -40,31 +40,29 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A COSEM object belonging to a device, with its template, attributes, and module parameters.</summary>
+    [Description("A COSEM object belonging to a device, with its template, attributes, and module parameters.")]
     [IndexCollection(true, nameof(Device), nameof(Template))]
     public class GXObject : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObject.</summary>
+        [Description("Initializes a new instance of GXObject.")]
         public GXObject()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObject.</summary>
+        [Description("Initializes a new instance of GXObject.")]
         public GXObject(GXObjectTemplate? template)
         {
             Template = template;
-            Attributes = new();
-            Parameters = new();
-            Tasks = new();
-            Errors = new List<GXObjectError>();
+            Attributes = [];
+            Parameters = [];
+            Tasks = [];
+            Errors = [];
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObject.</summary>
+        [Description("Initializes a new instance of GXObject.")]
         public GXObject(int objectType, string? logicalName)
         {
             Template = new GXObjectTemplate()
@@ -72,20 +70,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
                 LogicalName = logicalName,
                 ObjectType = objectType,
             };
-            Attributes = new();
-            Parameters = new();
-            Tasks = new();
-            Errors = new List<GXObjectError>();
+            Attributes = [];
+            Parameters = [];
+            Tasks = [];
+            Errors = [];
         }
 
-        /// <summary>
-        /// Object Id.
-        /// </summary>
+        /// <summary>Object identifier.</summary>
+        [Description("Object identifier.")]
         [DataMember]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
         /// <summary>Device that owns this COSEM object.</summary>
+        [Description("Device that owns this COSEM object.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -96,26 +94,24 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Object Template.
         /// </summary>
+        [Description("Object Template.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Index(false)]
         [Filter(FilterType.Exact)]
         public GXObjectTemplate? Template { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When object is last updated.
-        /// </summary>
+        /// <summary>Time when the object was last updated.</summary>
         [DataMember]
-        [Description("When object is last updated.")]
+        [Description("Time when the object was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
@@ -128,6 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// It's created when needed for the first time.
         /// This makes faster to add new devices for the database.
         /// </remarks>
+        [Description("Object is created only when needed.")]
         [Ignore]
         public bool Latebind { get; set; }
 
@@ -135,14 +132,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -152,40 +149,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Object parameters.
         /// </summary>
+        [Description("Object parameters.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
         public List<GXObjectParameter>? Parameters { get; set; }
 
-        /// <summary>
-        /// When the object's attribute were last read.
-        /// </summary>
+        /// <summary>Time when the object attributes were last read.</summary>
         [DataMember]
-        [Description("When the object's attribute were last read.")]
+        [Description("Time when the object attributes were last read.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastRead { get; set; }
 
-        /// <summary>
-        /// When the object's attribute were last written.
-        /// </summary>
+        /// <summary>Time when the object attributes were last written.</summary>
         [DataMember]
-        [Description("When the object's attribute were last written.")]
+        [Description("Time when the object attributes were last written.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastWrite { get; set; }
 
-        /// <summary>
-        /// When the object's actions were last invoked.
-        /// </summary>
+        /// <summary>Time when the object actions were last invoked.</summary>
         [DataMember]
-        [Description("When the object's actions were last invoked.")]
+        [Description("Time when the object actions were last invoked.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastAction { get; set; }
 
-        /// <summary>
-        /// When the last error was occurred.
-        /// </summary>
+        /// <summary>Time when the most recent error occurred.</summary>
         [DataMember]
-        [Description("When the last error was occurred.")]
+        [Description("Time when the most recent error occurred.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastError { get; set; }
 
@@ -200,6 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attributes.
         /// </summary>
+        [Description("Attributes.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
@@ -208,6 +199,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Executed tasks.
         /// </summary>
+        [Description("Executed tasks.")]
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
@@ -216,6 +208,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Object errors.
         /// </summary>
+        [Description("Object errors.")]
         [DataMember, ForeignKey(typeof(GXObjectError))]
         [Filter(FilterType.Contains)]
         public List<GXObjectError>? Errors { get; set; }
@@ -223,6 +216,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -234,6 +228,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

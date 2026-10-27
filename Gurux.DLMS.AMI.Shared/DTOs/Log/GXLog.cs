@@ -42,6 +42,7 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Log
 {
     /// <summary>A log entry containing its category, source, severity, message, and optional operation details.</summary>
+    [Description("A log entry containing its category, source, severity, message, and optional operation details.")]
     [DataContract]
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     [IndexCollection(false, nameof(LogType), nameof(Creator), nameof(CreationTime), nameof(Id), Name = "LogType_Creator_Time_Id")]
@@ -51,30 +52,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
     [IndexCollection(false, nameof(CreationTime), nameof(Id), Name = "Time_Id")]
     public class GXLog : IUnique<long>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXLog.</summary>
+        [Description("Initializes a new instance of GXLog.")]
         public GXLog()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXLog.</summary>
         /// <remarks>
         /// Log levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
         /// <param name="level">Log severity level</param>
+        [Description("Initializes a new instance of GXLog.")]
         public GXLog(int level)
         {
             Level = level;
             Type = 0;
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXLog.</summary>
         /// <param name="level">Log severity level</param>
+        [Description("Initializes a new instance of GXLog.")]
         public GXLog(TraceLevel level) : this((int)level)
         {
         }
@@ -82,6 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <summary>
         /// External GUID identifier.
         /// </summary>
+        [Description("External GUID identifier.")]
         [DataMember(IsRequired = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -90,32 +89,38 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public Guid PublicId { get; set; }
 
         /// <summary>Database-generated insertion order and storage primary key.</summary>
+        [Description("Database-generated insertion order and storage primary key.")]
         [DataMember]
         [PrimaryKey]
         [AutoIncrement]
         public long Id { get; set; }
 
         /// <summary>Origin identifier, including string identifiers used by modules.</summary>
+        [Description("Origin identifier, including string identifiers used by modules.")]
         [DataMember]
         [StringLength(128)]
         [Filter(FilterType.Exact)]
         public string? SourceId { get; set; }
 
         /// <summary>Optional diagnostic stack trace.</summary>
+        [Description("Optional diagnostic stack trace.")]
         [DataMember]
         public string? StackTrace { get; set; }
 
         /// <summary>Presentation group, preserving system log grouping.</summary>
+        [Description("Presentation group, preserving system log grouping.")]
         [DataMember]
         [DefaultValue(0)]
         public int Group { get; set; }
         /// <summary>Category that determines how this entry is listed and accessed.</summary>
+        [Description("Category that determines how this entry is listed and accessed.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Restrict)]
         [Filter(FilterType.Exact)]
         public GXLogType? LogType { get; set; }
 
         /// <summary>Optional user associated with the logged event.</summary>
+        [Description("Optional user associated with the logged event.")]
         [Filter(FilterType.Exact)]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
@@ -126,13 +131,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// This is not the user, but the creator of the log, for example, a script or a module.
         /// It is used to link logs to their source.
         /// </remarks>
+        [Description("Optional GUID identifying the source resource, such as a script, rather than a user account.")]
         [DataMember]
         [Filter(FilterType.Exact)]
         public Guid? Creator { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -140,16 +145,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>Time when the entry was closed; <see langword="null"/> indicates that it is still open.</summary>
+        [Description("Time when the entry was closed; null indicates that it is still open.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Closed { get; set; }
 
         /// <summary>Whether closing this entry is allowed; defaults to <see langword="true"/>.</summary>
+        [Description("Whether closing this entry is allowed; defaults to true.")]
         [DataMember, DefaultValue(true)]
         public bool Closable { get; set; } = true;
 
         /// <summary>Human-readable message describing the logged event.</summary>
+        [Description("Human-readable message describing the logged event.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -157,12 +165,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public string? Message { get; set; }
 
         /// <summary>Optional additional event data, such as a serialized payload.</summary>
+        [Description("Optional additional event data, such as a serialized payload.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         public string? Data { get; set; }
 
         /// <summary>Duration of the logged operation, in milliseconds.</summary>
+        [Description("Duration of the logged operation, in milliseconds.")]
         [DataMember]
         [DefaultValue(0)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -171,6 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <summary>
         /// Log severity level.
         /// </summary>
+        [Description("Log severity level.")]
         [DataMember]
         [DefaultValue(1)]
         [IsRequired]
@@ -178,24 +189,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public int? Level { get; set; }
 
         /// <summary>Numeric event subtype within the log category.</summary>
+        [Description("Numeric event subtype within the log category.")]
         [DataMember]
         [DefaultValue(0)]
         [IsRequired]
         [Filter(FilterType.Exact)]
         public int? Type { get; set; }
         /// <summary>Audit target category.</summary>
+        [Description("Audit target category.")]
         [DataMember, StringLength(32), Filter(FilterType.Exact)]
         public string? TargetType { get; set; }
 
         /// <summary>Audit operation.</summary>
+        [Description("Audit operation.")]
         [DataMember, DefaultValue(CrudAction.None), Filter(FilterType.Exact, CrudAction.None)]
         public CrudAction Action { get; set; }
 
         /// <summary>Audit response status.</summary>
+        [Description("Audit response status.")]
         [DataMember, DefaultValue(0), Filter(FilterType.Exact, 0)]
         public int Status { get; set; }
 
         /// <summary>Audit response payload.</summary>
+        [Description("Audit response payload.")]
         [DataMember]
         public string? Reply { get; set; }
 

@@ -40,14 +40,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get component view group.
-    /// </summary>
+    /// <summary>Response containing the requested component view group information.</summary>
+    [Description("Response containing the requested component view group information.")]
     public class GetComponentViewGroupResponse
     {
         /// <summary>
         /// Component view group information.
         /// </summary>
+        [Description("Component view group information.")]
         [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id),
                 nameof(GXComponentView.Name))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
@@ -57,21 +57,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public GXComponentViewGroup? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get component view group list.
-    /// </summary>
+    /// <summary>Requests a list of component view groups.</summary>
+    [Description("Requests a list of component view groups.")]
     [DataContract]
     public class ListComponentViewGroups : IGXRequest<ListComponentViewGroupsResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of component view groups to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of component view groups to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of component view groups to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter component view groups.
@@ -79,48 +78,47 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Optional criteria used to filter block groups.
         /// </summary>
+        [Description("Optional criteria used to filter component view groups.")]
         [ExcludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
             nameof(GXComponentViewGroup.UserGroups))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Description), nameof(GXComponentViewGroup.ConcurrencyStamp))]
         public GXComponentViewGroup? Filter { get; set; }
 
-        /// <summary>
-        /// Admin user can access groups from all users.
-        /// </summary>
+        /// <summary>Whether administrators can access groups owned by other users.</summary>
         /// <remarks>
         /// If true, groups from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Whether administrators can access groups owned by other users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -129,18 +127,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Get component view groups response.
-    /// </summary>
+    /// <summary>Response containing the requested component view groups.</summary>
+    [Description("Response containing the requested component view groups.")]
     [DataContract]
     public class ListComponentViewGroupsResponse
     {
         /// <summary>
         /// List of component view groups.
         /// </summary>
+        [Description("List of component view groups.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
             nameof(GXComponentViewGroup.UserGroups))]
@@ -151,64 +150,58 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching component view groups before paging.
         /// </summary>
+        [Description("Total number of matching component view groups before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Add new component view group.
-    /// </summary>
+    /// <summary>Requests the addition of component view groups.</summary>
+    [Description("Requests the addition of component view groups.")]
     [DataContract]
     public class AddComponentViewGroup : IGXRequest<AddComponentViewGroupResponse>
     {
-        /// <summary>
-        /// New component view group(s).
-        /// </summary>
+        /// <summary>New component view groups.</summary>
+        [Description("New component view groups.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.CreationTime), nameof(GXComponentViewGroup.Updated))]
         public IEnumerable<GXComponentViewGroup>? ComponentViewGroups { get; set; }
     }
 
-    /// <summary>
-    /// Add new component view group response.
-    /// </summary>
+    /// <summary>Response to adding component view groups.</summary>
+    [Description("Response to adding component view groups.")]
     [DataContract]
     public class AddComponentViewGroupResponse
     {
-        /// <summary>
-        /// New component view groups.
-        /// </summary>
+        /// <summary>Identifiers of the newly added component view group records.</summary>
+        [Description("Identifiers of the newly added component view group records.")]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Remove component view group.
-    /// </summary>
+    /// <summary>Requests deletion of the selected component view groups.</summary>
+    [Description("Requests deletion of the selected component view groups.")]
     [DataContract]
     public class RemoveComponentViewGroup : IGXRequest<RemoveComponentViewGroupResponse>
     {
-        /// <summary>
-        /// ComponentView group Ids to remove.
-        /// </summary>
+        /// <summary>Identifiers of the component view group records to delete.</summary>
+        [Description("Identifiers of the component view group records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Remove component view group response.
-    /// </summary>
+    /// <summary>Response to deleting the selected component view groups.</summary>
+    [Description("Response to deleting the selected component view groups.")]
     [DataContract]
     public class RemoveComponentViewGroupResponse
     {

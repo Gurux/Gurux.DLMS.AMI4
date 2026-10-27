@@ -40,34 +40,32 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A COSEM object attribute with its current value, access rights, and read state.</summary>
+    [Description("A COSEM object attribute with its current value, access rights, and read state.")]
     public class GXAttribute : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAttribute.</summary>
+        [Description("Initializes a new instance of GXAttribute.")]
         public GXAttribute()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAttribute.</summary>
         /// <param name="template">Attribute template.</param>
+        [Description("Initializes a new instance of GXAttribute.")]
         public GXAttribute(GXAttributeTemplate? template)
         {
             Template = template;
-            Parameters = new();
-            Values = new();
-            Tasks = new();
-            Errors = new List<GXAttributeError>();
+            Parameters = [];
+            Values = [];
+            Tasks = [];
+            Errors = [];
         }
 
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAttribute.</summary>
         /// <param name="index">Attribute index.</param>
         /// <param name="value">Attribute value.</param>
+        [Description("Initializes a new instance of GXAttribute.")]
         public GXAttribute(int index, string? value)
         {
             Template = new GXAttributeTemplate()
@@ -75,21 +73,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
                 Index = index,
             };
             Value = value;
-            Parameters = new();
-            Values = new();
-            Tasks = new();
-            Errors = new List<GXAttributeError>();
+            Parameters = [];
+            Values = [];
+            Tasks = [];
+            Errors = [];
         }
 
-        /// <summary>
-        /// Attribute Id.
-        /// </summary>
+        /// <summary>Attribute identifier.</summary>
         [DataMember]
-        [Description("Attribute Id.")]
+        [Description("Attribute identifier.")]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
         /// <summary>COSEM object to which this attribute belongs.</summary>
+        [Description("COSEM object to which this attribute belongs.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -98,6 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public GXObject? Object { get; set; }
 
         /// <summary>Template defining the attribute's metadata and access settings.</summary>
+        [Description("Template defining the attribute's metadata and access settings.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Index(false)]
@@ -108,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute module settings.
         /// </summary>
+        [Description("Attribute module settings.")]
         [DataMember]
         public string? Settings { get; set; }
 
@@ -115,27 +114,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Latest read value.
         /// </summary>
         [DataMember]
-        [Description("Latest read value")]
+        [Description("Latest read value.")]
         [Filter(FilterType.Contains)]
         public string? Value { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When value is last updated.
-        /// </summary>
+        /// <summary>Time when the value was last updated.</summary>
+        [Description("Time when the value was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>Whether the edited attribute value is pending a write to the meter; not persisted or serialized.</summary>
+        [Description("Whether the edited attribute value is pending a write to the meter; not persisted or serialized.")]
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
@@ -145,43 +143,36 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// When value is read last time.
-        /// </summary>
+        /// <summary>Time when the value was last read.</summary>
         /// <remarks>
         /// Profile generic uses this when buffer is read.
         /// </remarks>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        [Description("When value is read last time.")]
+        [Description("Time when the value was last read.")]
         public DateTimeOffset? Read { get; set; }
 
-        /// <summary>
-        /// When the object's attribute were last written.
-        /// </summary>
+        /// <summary>Time when the object attributes were last written.</summary>
         [DataMember]
-        [Description("When the object's attribute were last written.")]
+        [Description("Time when the object attributes were last written.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastWrite { get; set; }
 
-        /// <summary>
-        /// When the object's actions were last invoked.
-        /// </summary>
+        /// <summary>Time when the object actions were last invoked.</summary>
         [DataMember]
-        [Description("When the object's actions were last invoked.")]
+        [Description("Time when the object actions were last invoked.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastAction { get; set; }
 
-        /// <summary>
-        /// When the last error was occurred.
-        /// </summary>
+        /// <summary>Time when the most recent error occurred.</summary>
         [DataMember]
-        [Description("When the last error was occurred.")]
+        [Description("Time when the most recent error occurred.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastError { get; set; }
 
@@ -189,19 +180,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Last exception. Successful read nulls this.
         /// </summary>
         [DataMember]
-        [Description("Last exception.")]
+        [Description("Last exception. Successful read nulls this.")]
         [Filter(FilterType.Contains)]
         public string? Exception { get; set; }
 
-        /// <summary>
-        /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
-        /// </summary>
+        /// <summary>Controls how often the value is read from the meter. Null reads the value on every request; DateTime.MaxValue reads it only once.</summary>
+        [Description("Controls how often the value is read from the meter. Null reads the value on every request; DateTime.MaxValue reads it only once.")]
         [DataMember]
         public DateTimeOffset? ExpirationTime { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -211,6 +200,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute parameters.
         /// </summary>
+        [Description("Attribute parameters.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
@@ -219,6 +209,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute historical values.
         /// </summary>
+        [Description("Attribute historical values.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
@@ -227,6 +218,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Executed tasks.
         /// </summary>
+        [Description("Executed tasks.")]
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
@@ -235,6 +227,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute errors.
         /// </summary>
+        [Description("Attribute errors.")]
         [DataMember, ForeignKey(typeof(GXAttributeError))]
         [Filter(FilterType.Contains)]
         [JsonIgnore]
@@ -243,6 +236,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -254,6 +248,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
@@ -262,7 +257,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <inheritdoc/>
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             if (Template != null)
             {
                 sb.Append("#" + Template.Index + ". " + Template.Name);

@@ -39,26 +39,26 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
     /// <summary>A version of an agent available for installation or update.</summary>
+    [Description("A version of an agent available for installation or update.")]
     [IndexCollection(true, nameof(Agent), nameof(Number))]
     public class GXAgentVersion : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Agent version identifier.
         /// </summary>
+        [Description("Agent version identifier.")]
         [DefaultValue(null)]
         public Guid Id { get; set; }
 
-        /// <summary>
-        /// Is this the default agent version.
-        /// </summary>
+        /// <summary>Whether this is the default agent version.</summary>
+        [Description("Whether this is the default agent version.")]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? Default { get; set; }
 
-        /// <summary>
-        /// Is agent version enabled.
-        /// </summary>
+        /// <summary>Whether the agent version is enabled.</summary>
+        [Description("Whether the agent version is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -68,15 +68,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent version number.
         /// </summary>
+        [Description("Agent version number.")]
         [StringLength(128)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Number { get; set; }
 
-        /// <summary>
-        /// Is this a pre-release version.
-        /// </summary>
+        /// <summary>Whether this is a prerelease version.</summary>
+        [Description("Whether this is a prerelease version.")]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -88,6 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <remarks>
         /// Only agent template sets this.
         /// </remarks>
+        [Description("Installation Url.")]
         [StringLength(2048)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -96,32 +97,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// File path.
         /// </summary>
+        [Description("File path.")]
         [StringLength(256)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? FileName { get; set; }
 
-        /// <summary>
-        /// Description.
-        /// </summary>
+        /// <summary>Description of the agent version.</summary>
+        [Description("Description of the agent version.")]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DefaultValue(null)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -131,6 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// The agent that owns this version.
         /// </summary>
+        [Description("The agent that owns this version.")]
         [DefaultValue(null)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -138,9 +138,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [JsonIgnore]
         public GXAgent? Agent { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAgentVersion.</summary>
+        [Description("Initializes a new instance of GXAgentVersion.")]
         public GXAgentVersion()
         {
             Enabled = true;
@@ -159,6 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)

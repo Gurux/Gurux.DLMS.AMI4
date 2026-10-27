@@ -41,11 +41,11 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Tracks which resources a user has seen, supporting unread-item indicators.</summary>
+    [Description("Tracks which resources a user has seen, supporting unread-item indicators.")]
     public class GXUserStamp : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXUserStamp.</summary>
+        [Description("Initializes a new instance of GXUserStamp.")]
         public GXUserStamp()
         {
         }
@@ -61,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// The stamp Creator.
         /// </summary>
+        [Description("The stamp Creator.")]
         [DataMember]
         [Index(false)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
@@ -68,19 +69,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [IsRequired]
         public GXUser? Creator { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When was the stamp last updated.
-        /// </summary>
-        [Description("When was the stamp last updated.")]
+        /// <summary>Time when the user stamp was last updated.</summary>
+        [Description("Time when the user stamp was last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -90,6 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -118,24 +117,28 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Number of the errors.
         /// </summary>
+        [Description("Number of the errors.")]
         [Ignore]
         public int Errors { get; set; }
 
         /// <summary>
         /// Number of the warnings.
         /// </summary>
+        [Description("Number of the warnings.")]
         [Ignore]
         public int Warnings { get; set; }
 
         /// <summary>
         /// Number of the informational messages.
         /// </summary>
+        [Description("Number of the informational messages.")]
         [Ignore]
         public int Informational { get; set; }
 
         /// <summary>
         /// Number of the verbose messages.
         /// </summary>
+        [Description("Number of the verbose messages.")]
         [Ignore]
         public int Verboses { get; set; }
 
@@ -143,6 +146,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Get user stamp count.
         /// </summary>
         /// <returns></returns>
+        [Description("Get user stamp count.")]
         public int GetCount()
         {
             if (Errors != 0)
@@ -168,6 +172,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Get user stamp count.
         /// </summary>
         /// <returns></returns>
+        [Description("Get user stamp count.")]
         public int GetTotalCount()
         {
             return Errors + Warnings + Informational + Verboses;
@@ -177,6 +182,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Get used trace level.
         /// </summary>
         /// <returns></returns>
+        [Description("Get used trace level.")]
         public TraceLevel GetTraceLevel()
         {
             if (Errors != 0)
@@ -202,6 +208,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Add stamp counts to the target.
         /// </summary>
         /// <param name="target">Target.</param>
+        [Description("Add stamp counts to the target.")]
         public void AddTo(GXUserStamp target)
         {
             if (Errors == 0 && Warnings == 0 &&
@@ -227,6 +234,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Copy stamp counts to the target.
         /// </summary>
         /// <param name="target">Target.</param>
+        [Description("Copy stamp counts to the target.")]
         public void CopyTo(GXUserStamp target)
         {
             target.Errors = Errors;
@@ -238,6 +246,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -249,6 +258,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

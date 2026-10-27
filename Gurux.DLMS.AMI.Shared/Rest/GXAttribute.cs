@@ -35,16 +35,18 @@ using Gurux.Service.Orm.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get attribute.
-    /// </summary>
+    /// <summary>Response containing the requested attribute information.</summary>
+    [Description("Response containing the requested attribute information.")]
     public class GetAttributeResponse
     {
         /// <summary>
         /// Attribute information.
         /// </summary>
+        [Description("Attribute information.")]
         [IncludeOpenApi(typeof(GXObject),
                 nameof(GXObject.Id))]
         [IncludeOpenApi(typeof(GXModule),
@@ -63,15 +65,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
 
-    /// <summary>
-    /// Add COSEM attribute.
-    /// </summary>
+    /// <summary>Requests the addition or update of COSEM attributes.</summary>
+    [Description("Requests the addition or update of COSEM attributes.")]
     [DataContract]
     public class UpdateAttribute
     {
         /// <summary>
         /// Added COSEM attributes.
         /// </summary>
+        [Description("Added COSEM attributes.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id))]
@@ -83,43 +85,42 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Tasks),
             nameof(GXAttribute.Values),
             nameof(GXAttribute.Errors))]
+        [ExcludeOpenApi(typeof(GXAttributeProperty), nameof(GXAttributeProperty.CreationTime), nameof(GXAttributeProperty.Updated))]
         public IEnumerable<GXAttribute>? Attributes { get; set; }
     }
 
-    /// <summary>
-    /// Add COSEM attribute Reply.
-    /// </summary>
+    /// <summary>Response to updating the specified attributes.</summary>
+    [Description("Response to updating the specified attributes.")]
     [DataContract]
     public class UpdateAttributeResponse
     {
-        /// <summary>
-        /// Attribute identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated attribute records.</summary>
+        [Description("Identifiers of the added or updated attribute records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Get attribute.
-    /// </summary>
+    /// <summary>Requests a list of attributes.</summary>
+    [Description("Requests a list of attributes.")]
     [DataContract]
     public class ListAttributes : IGXRequest<ListAttributesResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
         [DataMember]
-        public UInt64 Index { get; set; }
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of items to retrieve; zero disables paging.
-        /// </summary>
+        /// <summary>Maximum number of items to retrieve. Use 0 to return all matching items without paging.</summary>
         [DataMember]
-        public UInt64 Count { get; set; }
+        [DefaultValue(0)]
+        [Description("Maximum number of items to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter attributes.
         /// </summary>
+        [Description("Optional criteria used to filter attributes.")]
         [ExcludeOpenApi(typeof(GXAttribute),
             nameof(GXAttribute.Object),
             nameof(GXAttribute.Template),
@@ -127,6 +128,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Errors),
             nameof(GXAttribute.Parameters),
             nameof(GXAttribute.Values))]
+        [ExcludeOpenApi(typeof(GXAttribute),
+            nameof(GXAttribute.Settings), nameof(GXAttribute.Modified), nameof(GXAttribute.ConcurrencyStamp),
+            nameof(GXAttribute.ExpirationTime))]
         public GXAttribute? Filter { get; set; }
 
         /// <summary>
@@ -135,36 +139,35 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, attributes from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access attributes from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -173,11 +176,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
 
-        /// <summary>
-        /// Device Ids.
-        /// </summary>
+        /// <summary>Device identifiers.</summary>
+        [Description("Device identifiers.")]
         public IEnumerable<Guid>? Devices { get; set; }
 
         /// <summary>
@@ -185,17 +188,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <remarks>
         /// </remarks>
+        [Description("Filtered object types.")]
         public IEnumerable<int>? ObjectTypes { get; set; }
 
         /// <summary>
         /// Ignored object types.
         /// </summary>
+        [Description("Ignored object types.")]
         public IEnumerable<int>? IgnoredObjectTypes { get; set; }
     }
 
-    /// <summary>
-    /// List COSEM attribute response.
-    /// </summary>
+    /// <summary>Response containing the requested attributes.</summary>
+    [Description("Response containing the requested attributes.")]
     [DataContract]
     public class ListAttributesResponse
     {
@@ -203,6 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// List of COSEM attributes.
         /// </summary>
+        [Description("List of COSEM attributes.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXAttribute),
             nameof(GXAttribute.Object),
@@ -217,49 +222,46 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching attributes before paging.
         /// </summary>
+        [Description("Total number of matching attributes before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Remove COSEM attributes.
-    /// </summary>
+    /// <summary>Requests deletion of the selected attributes.</summary>
+    [Description("Requests deletion of the selected attributes.")]
     public class RemoveAttribute : IGXRequest<RemoveAttributeResponse>
     {
-        /// <summary>
-        /// COSEM attributes identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the attribute records to delete.</summary>
+        [Description("Identifiers of the attribute records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Remove COSEM attribute response.
-    /// </summary>
+    /// <summary>Response to deleting the selected attributes.</summary>
+    [Description("Response to deleting the selected attributes.")]
     [DataContract]
     public class RemoveAttributeResponse
     {
     }
 
-    /// <summary>
-    /// Update data type of the attribute.
-    /// </summary>
+    /// <summary>Requests changes to the data type.</summary>
+    [Description("Requests changes to the data type.")]
     [DataContract]
     public class UpdateDatatype : IGXRequest<UpdateAttributeResponse>
     {
         /// <summary>
         /// Updated attributes.
         /// </summary>
+        [Description("Updated attributes.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXAttribute),
             nameof(GXAttribute.Object),
@@ -269,12 +271,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Parameters))]
         [IncludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.Id))]
+        [ExcludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.CreationTime), nameof(GXAttribute.Updated))]
         public IEnumerable<GXAttribute> Items { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update data type of the attribute reply.
-    /// </summary>
+    /// <summary>Response to updating the data type.</summary>
+    [Description("Response to updating the data type.")]
     [DataContract]
     public class UpdateDatatypeResponse
     {

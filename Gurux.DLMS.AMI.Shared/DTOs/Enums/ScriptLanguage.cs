@@ -35,12 +35,15 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The programming language used to compile a script.</summary>
+    [System.ComponentModel.Description("The programming language used to compile a script.")]
     public enum ScriptLanguage : byte
     {
         /// <summary>Compile the script as C# source code.</summary>
+        [System.ComponentModel.Description("Compile the script as C# source code.")]
         [XmlEnum("0")]
         CSharp = 0,
         /// <summary>Compile the script as Visual Basic source code.</summary>
+        [System.ComponentModel.Description("Compile the script as Visual Basic source code.")]
         [XmlEnum("1")]
         VisualBasic = 1
     }

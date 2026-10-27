@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// Performance information.
     /// </summary>
+    [System.ComponentModel.Description("Performance information.")]
     public interface IPerformanceRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Performances.</returns>
+        [System.ComponentModel.Description("Performance list.")]
         Task<IEnumerable<GXPerformance>> ListAsync(
             ClaimsPrincipal User,
             ListPerformances? request = null,
@@ -61,15 +63,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">The user performing the operation.</param>
         /// <param name="performances">Added performances.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Add new performances.")]
         Task<IEnumerable<Guid>> AddAsync(ClaimsPrincipal User, IEnumerable<GXPerformance> performances,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete performance(s).
-        /// </summary>
+        /// <summary>Delete performances.</summary>
         /// <param name="User">The user performing the operation.</param>
         /// <param name="performances">Performance(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete performances.")]
         Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> performances, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -77,11 +79,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">The user performing the operation.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Clear performances.")]
         Task ClearAsync(ClaimsPrincipal User, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Snapshot values.
         /// </summary>
+        [System.ComponentModel.Description("Snapshot values.")]
         Dictionary<string, GXPerformance> Snapshots
         {
             get;

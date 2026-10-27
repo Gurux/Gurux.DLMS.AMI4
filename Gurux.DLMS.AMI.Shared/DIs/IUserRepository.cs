@@ -41,6 +41,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle users.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle users.")]
     public interface IUserRepository
     {
         /// <summary>
@@ -50,6 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List users.")]
         Task<IEnumerable<GXUser>> ListAsync(
             ListUsers? request = null,
             ListUsersResponse? response = null,
@@ -62,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>User information.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read user.")]
         Task<GXUser> ReadAsync(string? id, Expression<Func<GXUser, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -70,17 +73,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="users">Updated users.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new users or updates existing ones.")]
         Task<IEnumerable<string>> UpsertAsync(
             IEnumerable<GXUser> users,
             Expression<Func<GXUser, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete user(s).
-        /// </summary>
+        /// <summary>Delete users.</summary>
         /// <param name="users">Users to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete users.")]
         Task DeleteAsync(IEnumerable<string> users, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="roles">Searched roles.</param>
         /// <returns>List of used IDs.</returns>
+        [System.ComponentModel.Description("Return users that are in the given role.")]
         Task<List<string>> GetUserIdsInRoleAsync(IEnumerable<string> roles);
     }
 }

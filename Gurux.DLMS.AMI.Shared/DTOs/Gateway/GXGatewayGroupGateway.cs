@@ -37,22 +37,21 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
 {
     /// <summary>Associates a gateway with a gateway group.</summary>
+    [Description("Associates a gateway with a gateway group.")]
     [DataContract(Name = "GXGatewayGroupGateway"), Serializable]
     [IndexCollection(true, nameof(GatewayGroupId), nameof(GatewayId), Clustered = true)]
     public class GXGatewayGroupGateway : GXTableBase
     {
-        /// <summary>
-        /// The database ID of the gateway group.
-        /// </summary>
+        /// <summary>The database identifier of the gateway group.</summary>
+        [Description("The database identifier of the gateway group.")]
         [DataMember(Name = "GatewayGroupID")]
         [ForeignKey(typeof(GXGatewayGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because creator of the gateway is causing multiple cascade paths error in MSSQL.
         public Guid GatewayGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the gateway.
-        /// </summary>
+        /// <summary>The database identifier of the gateway.</summary>
+        [Description("The database identifier of the gateway.")]
         [DataMember(Name = "GatewayID")]
         [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -63,7 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
 		/// The time when the gateway was added to the gateway group.
 		/// </summary>
 		[DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. The time when the gateway was added to the gateway group.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -72,15 +71,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// <summary>
         /// Time when gateway was removed from gateway group.
         /// </summary>
+        [Description("Time when gateway was removed from gateway group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// Update Creation time.
-        /// </summary>
+        /// <summary>Initializes the creation timestamp before insertion.</summary>
+        [Description("Initializes the creation timestamp before insertion.")]
         public override void BeforeAdd()
         {
             CreationTime = DateTime.Now;

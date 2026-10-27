@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle device template groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle device template groups.")]
     public interface IDeviceTemplateGroupRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List device template groups.")]
         Task<IEnumerable<GXDeviceTemplateGroup>> ListAsync(
             ListDeviceTemplateGroups? request = null,
             ListDeviceTemplateGroupsResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Device template group information.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read device template group.")]
         Task<GXDeviceTemplateGroup> ReadAsync(Guid id, Expression<Func<GXDeviceTemplateGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,17 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated device template groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new device template groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXDeviceTemplateGroup> groups,
             Expression<Func<GXDeviceTemplateGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete device template group(s).
-        /// </summary>
+        /// <summary>Delete device template groups.</summary>
         /// <param name="groups">Device template groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete device template groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -87,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="deviceTemplateId">Device template ID</param>
         /// <returns>List of device template groups.</returns>
+        [System.ComponentModel.Description("Returns device template groups list where device template belongs.")]
         Task<List<GXDeviceTemplateGroup>> GetJoinedDeviceTemplateGroups(Guid deviceTemplateId);
 
         /// <summary>
@@ -95,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groupId">Device template group Id.</param>
         /// <returns>List of users.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Returns list of users that can access this device template group.")]
         Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -103,6 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groupIds">Device template group Ids.</param>
         /// <returns>List of users.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Returns list of users that can access device template groups.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default);
     }
 }

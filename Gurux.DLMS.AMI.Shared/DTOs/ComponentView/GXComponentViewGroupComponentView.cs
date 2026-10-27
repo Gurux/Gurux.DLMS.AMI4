@@ -37,22 +37,21 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
 {
     /// <summary>Associates a component view with a component view group.</summary>
+    [Description("Associates a component view with a component view group.")]
     [DataContract(Name = "GXComponentViewGroupComponentView"), Serializable]
     [IndexCollection(true, nameof(ComponentViewGroupId), nameof(ComponentViewId), Clustered = true)]
     public class GXComponentViewGroupComponentView
     {
-        /// <summary>
-        /// The database ID of the component view group.
-        /// </summary>
+        /// <summary>The database identifier of the component view group.</summary>
+        [Description("The database identifier of the component view group.")]
         [DataMember(Name = "ComponentViewGroupId")]
         [ForeignKey(typeof(GXComponentViewGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because creator of the component view is causing multiple cascade paths error in MSSQL.
         public Guid ComponentViewGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the component view.
-        /// </summary>
+        /// <summary>The database identifier of the component view.</summary>
+        [Description("The database identifier of the component view.")]
         [DataMember(Name = "ComponentViewID")]
         [ForeignKey(typeof(GXComponentView), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// Creation time.
         /// The time when the component view was added to the component view group.
         /// </summary>
+        [Description("Creation time. The time when the component view was added to the component view group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// Time when component view was removed from component view group.
         /// </summary>
+        [Description("Time when component view was removed from component view group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

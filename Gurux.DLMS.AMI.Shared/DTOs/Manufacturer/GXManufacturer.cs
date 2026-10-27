@@ -39,30 +39,28 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>A device manufacturer and its available device models.</summary>
+    [Description("A device manufacturer and its available device models.")]
     public class GXManufacturer : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXManufacturer.</summary>
+        [Description("Initializes a new instance of GXManufacturer.")]
         public GXManufacturer()
         {
 
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
+        /// <summary>Initializes a new instance of GXManufacturer.</summary>
         /// <param name="name">Manufacturer's name.</param>
+        [Description("Initializes a new instance of GXManufacturer.")]
         public GXManufacturer(string? name)
         {
             Name = name;
-            Models = new List<GXDeviceModel>();
-            ManufacturerGroups = new List<GXManufacturerGroup>();
+            Models = [];
+            ManufacturerGroups = [];
         }
 
-        /// <summary>
-        /// Favorite ID.
-        /// </summary>
+        /// <summary>Favorite identifier.</summary>
+        [Description("Favorite identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -71,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Manufacturer Name.
         /// </summary>
+        [Description("Manufacturer Name.")]
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
@@ -79,6 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Manufacturer template settings are used to show download information.
         /// </summary>
+        [Description("Manufacturer template settings are used to show download information.")]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -87,12 +87,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Manufacturer logo.
         /// </summary>
+        [Description("Manufacturer logo.")]
         [DefaultValue(null)]
         public string? Logo { get; set; }
 
         /// <summary>
         /// Manufacturer url.
         /// </summary>
+        [Description("Manufacturer url.")]
         [StringLength(128)]
         [DefaultValue(null)]
         public string? Url { get; set; }
@@ -100,19 +102,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// List of manufacturer device models.
         /// </summary>
+        [Description("List of manufacturer device models.")]
         [DataMember]
         [ForeignKey(typeof(GXDeviceModel))]
         [Filter(FilterType.Contains)]
         public List<GXDeviceModel>? Models { get; set; }
 
         /// <summary>Manufacturer groups containing this manufacturer.</summary>
+        [Description("Manufacturer groups containing this manufacturer.")]
         [DataMember, ForeignKey(typeof(GXManufacturerGroup), typeof(GXManufacturerGroupManufacturer))]
         [Filter(FilterType.Contains)]
         public List<GXManufacturerGroup>? ManufacturerGroups { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -122,27 +125,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Time when manufacturer was removed.
         /// </summary>
+        [Description("Time when manufacturer was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When the block is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the manufacturer was last updated.</summary>
+        [Description("Time when the manufacturer was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>Revision of the manufacturer profiles installed in AMI.</summary>
+        [Description("Revision of the manufacturer profiles installed in AMI.")]
         [DataMember, StringLength(64)]
         public string? Version { get; set; }
 
         /// <summary>Latest manufacturer profile revision recorded by cron.</summary>
+        [Description("Latest manufacturer profile revision recorded by cron.")]
         [DataMember, StringLength(64)]
         public string? AvailableVersion { get; set; }
 
         /// <summary>Whether at least one profile belonging to this manufacturer is installed.</summary>
+        [Description("Whether at least one profile belonging to this manufacturer is installed.")]
         [DataMember]
         public bool ProfilesInstalled { get; set; }
 
@@ -151,6 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -159,6 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -170,6 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

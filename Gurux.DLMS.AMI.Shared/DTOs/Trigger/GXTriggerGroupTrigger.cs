@@ -38,27 +38,25 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
 {
     /// <summary>Associates a trigger with a trigger group.</summary>
+    [Description("Associates a trigger with a trigger group.")]
     [DataContract(Name = "GXTriggerGroupTrigger"), Serializable]
     [IndexCollection(true, nameof(TriggerGroupId), nameof(TriggerId), Clustered = true)]
     public class GXTriggerGroupTrigger
     {
-        /// <summary>
-        /// The database ID of the trigger group.
-        /// </summary>
+        /// <summary>The database identifier of the trigger group.</summary>
+        [Description("The database identifier of the trigger group.")]
         [DataMember(Name = "TriggerGroupID")]
         [ForeignKey(typeof(GXTriggerGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid TriggerGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the trigger.
-        /// </summary>
+        /// <summary>The database identifier of the trigger.</summary>
+        [Description("The database identifier of the trigger.")]
         [DataMember(Name = "TriggerID")]
         [ForeignKey(typeof(GXTrigger), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid TriggerId { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -68,6 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Time when agent group was removed from user group.
         /// </summary>
+        [Description("Time when agent group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

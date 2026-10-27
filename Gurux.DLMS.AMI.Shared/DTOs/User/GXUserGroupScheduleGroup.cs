@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Associates a user group with a schedule group.</summary>
+    [Description("Associates a user group with a schedule group.")]
     [DataContract(Name = nameof(GXUserGroupScheduleGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ScheduleGroupId), Clustered = true)]
     public class GXUserGroupScheduleGroup
     {
-        /// <summary>
-        /// The database ID of the user group
-        /// </summary>
+        /// <summary>The database identifier of the user group.</summary>
+        [Description("The database identifier of the user group.")]
         [DataMember(Name = "UserGroupID")]
         [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the schedule group is causing multiple cascade paths error in MSSQL.
         public Guid UserGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the user
-        /// </summary>
+        /// <summary>The database identifier of the user.</summary>
+        [Description("The database identifier of the user.")]
         [DataMember(Name = "ScheduleGroupID")]
         [ForeignKey(typeof(GXScheduleGroup), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ScheduleGroupId { get; set; }
@@ -62,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
 		/// The time when the schedule group was added to the user group.
 		/// </summary>
 		[DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. The time when the schedule group was added to the user group.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -71,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Time when schedule group was removed from user group.
         /// </summary>
+        [Description("Time when schedule group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

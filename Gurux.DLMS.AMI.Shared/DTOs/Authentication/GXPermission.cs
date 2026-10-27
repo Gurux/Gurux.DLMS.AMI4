@@ -38,12 +38,14 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A named permission that can be assigned to users or roles.</summary>
+    [Description("A named permission that can be assigned to users or roles.")]
     [DataContract(Name = "GXPermission"), Serializable]
     public partial class GXPermission : IUnique<Guid>
     {
         /// <summary>
         /// Permission identifier.
         /// </summary>
+        [Description("Permission identifier.")]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
@@ -53,6 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// If true, the permission is granted to new users by default.
         /// </summary>
+        [Description("If true, the permission is granted to new users by default.")]
         [DataMember]
         [DefaultValue(false)]
         [IsRequired]
@@ -61,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Notify users when content associated with this permission changes.
         /// </summary>
+        [Description("Notify users when content associated with this permission changes.")]
         [DataMember]
         [DefaultValue(false)]
         [IsRequired]
@@ -69,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Name of the permission.
         /// </summary>
+        [Description("Name of the permission.")]
         [DataMember]
         [StringLength(128)]
         [Index(Unique = true)]
@@ -79,6 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Permission description.
         /// </summary>
+        [Description("Permission description.")]
         [DataMember]
         public string? Description { get; set; }
 
@@ -90,24 +96,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// including editing and deletion. System-defined entities are controlled
         /// by the application and are required for core functionality.
         /// </remarks>
+        [Description("Indicates whether the entity is defined and managed by the system.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? SystemDefined { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPermission.</summary>
+        [Description("Initializes a new instance of GXPermission.")]
         public GXPermission()
         {
 
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXPermission.</summary>
         /// <param name="name">Name of the permission.</param>
+        [Description("Initializes a new instance of GXPermission.")]
         public GXPermission(string? name)
         {
             Name = name;
@@ -117,9 +122,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// Make permission clone.
         /// </summary>
         /// <returns></returns>
+        [Description("Make permission clone.")]
         public GXPermission Clone()
         {
-            GXPermission item = new GXPermission()
+            GXPermission item = new()
             {
                 Id = Id,
                 Default = Default,

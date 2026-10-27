@@ -37,13 +37,13 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A token value stored for a user and authentication provider.</summary>
+    [System.ComponentModel.Description("A token value stored for a user and authentication provider.")]
     [DataContract(Name = "GXUserToken"), Serializable]
     [IndexCollection(true, nameof(Id), nameof(LoginProvider), nameof(Name))]
     public class GXUserToken : IUnique<string>
     {
-        /// <summary>
-        /// Identifier.
-        /// </summary>
+        /// <summary>Unique identifier of the user token.</summary>
+        [System.ComponentModel.Description("Unique identifier of the user token.")]
         [StringLength(36)]
         [DataMember(Name = "UserId")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
@@ -53,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Login provider.
         /// </summary>
+        [System.ComponentModel.Description("Login provider.")]
         [DataMember]
         [StringLength(128)]
         public string LoginProvider { get; set; } = "";
@@ -60,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Name.
         /// </summary>
+        [System.ComponentModel.Description("Name.")]
         [DataMember]
         [StringLength(128)]
         public string Name { get; set; } = "";
@@ -67,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Value.
         /// </summary>
+        [System.ComponentModel.Description("Value.")]
         [DataMember]
         public string Value { get; set; } = "";
     }

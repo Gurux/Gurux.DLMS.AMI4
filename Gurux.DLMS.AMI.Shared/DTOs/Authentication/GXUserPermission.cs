@@ -37,22 +37,21 @@ using System.ComponentModel.DataAnnotations;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A permission assigned directly to a user account.</summary>
+    [System.ComponentModel.Description("A permission assigned directly to a user account.")]
     [DataContract(Name = "GXUserPermission"), Serializable]
     [IndexCollection(true, nameof(UserId), nameof(PermissionId), Clustered = true)]
     public class GXUserPermission
     {
-        /// <summary>
-        /// User ID.
-        /// </summary>
+        /// <summary>User identifier.</summary>
+        [System.ComponentModel.Description("User identifier.")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
         [DataMember]
         [StringLength(36)]
         public string? UserId { get; set; }
 
-        /// <summary>
-        /// Permission ID.
-        /// </summary>
+        /// <summary>Permission identifier.</summary>
+        [System.ComponentModel.Description("Permission identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXPermission), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]

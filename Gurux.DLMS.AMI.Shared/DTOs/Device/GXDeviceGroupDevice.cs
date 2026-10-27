@@ -37,21 +37,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>Associates a device with a device group.</summary>
+    [Description("Associates a device with a device group.")]
     [DataContract(Name = "GXDeviceGroupDevice"), Serializable]
     [IndexCollection(true, nameof(DeviceId), nameof(DeviceGroupId), Clustered = true)]
     public class GXDeviceGroupDevice
     {
-        /// <summary>
-        /// Device ID.
-        /// </summary>
+        /// <summary>Device identifier.</summary>
+        [Description("Device identifier.")]
         [DataMember(Name = "DeviceID")]
         [ForeignKey(typeof(GXDevice), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
         public Guid DeviceId { get; set; }
 
-        /// <summary>
-        /// Device Group ID.
-        /// </summary>
+        /// <summary>Device Group identifier.</summary>
+        [Description("Device Group identifier.")]
         [DataMember(Name = "DeviceGroupID")]
         [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Creation time.
         /// The time when the device was added to the device group.
         /// </summary>
+        [Description("Creation time. The time when the device was added to the device group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Time when device was removed from device group.
         /// </summary>
+        [Description("Time when device was removed from device group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

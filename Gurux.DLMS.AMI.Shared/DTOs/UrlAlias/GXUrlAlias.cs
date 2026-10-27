@@ -38,16 +38,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.UrlAlias
 {
     /// <summary>A URL alias for a resource, including resource types supplied by extensions.</summary>
+    [Description("A URL alias for a resource, including resource types supplied by extensions.")]
     [DataContract(Name = "GXUrlAlias")]
     [IndexCollection(false, nameof(Target), nameof(TargetId))]
     public class GXUrlAlias : GXTableBase, IUnique<Guid>, IValidatableObject
     {
         /// <summary>URL alias identifier.</summary>
+        [Description("URL alias identifier.")]
         [Key, DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
         /// <summary>Unique URL alias name.</summary>
+        [Description("Unique URL alias name.")]
         [DataMember, IsRequired, StringLength(128), Index(Unique = true)]
         [Filter(FilterType.Contains)]
         public string? Name { get; set; } = default!;
@@ -56,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.UrlAlias
         /// Resource type identifier, for example "module" or "vendor.custom-resource".
         /// This is a string, not an enum or a CLR type that needs to be registered.
         /// </summary>
+        [Description("Resource type identifier, for example \"module\" or \"vendor.custom-resource\". This is a string, not an enum or a CLR type that needs to be registered.")]
         [DataMember, IsRequired, StringLength(256)]
         [DefaultValue("")]
         [Filter(FilterType.Equals)]
@@ -64,17 +68,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.UrlAlias
         /// <summary>
         /// Opaque resource identifier. May be a GUID, user identifier, or extension-defined string.
         /// </summary>
+        [Description("Opaque resource identifier. May be a GUID, user identifier, or extension-defined string.")]
         [DataMember, Required, IsRequired, StringLength(256)]
         [DefaultValue("")]
         [Filter(FilterType.Equals)]
         public string TargetId { get; set; } = string.Empty;
 
-        /// <summary>Creation time.</summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember, Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual), IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>Last update time.</summary>
+        /// <summary>Time when the URL alias was last updated.</summary>
+        [Description("Time when the URL alias was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }

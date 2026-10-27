@@ -38,28 +38,25 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// Excludes named properties of a nested type from the OpenAPI schema for this property.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
+    /// <param name="type">Nested type whose schema is restricted.</param>
+    /// <param name="exclude">Names of properties to exclude.</param>
+    [System.ComponentModel.Description("Excludes named properties of a nested type from the OpenAPI schema for this property.")]
     [AttributeUsage(AttributeTargets.Property,
         AllowMultiple = true)]
-    public sealed class ExcludeOpenApiAttribute : Attribute
+    public sealed class ExcludeOpenApiAttribute(Type type, params string[] exclude) : Attribute
     {
         /// <summary>
         /// Nested type whose schema is restricted.
         /// </summary>
-        public Type Type { get; private set; }
+        [System.ComponentModel.Description("Nested type whose schema is restricted.")]
+        public Type Type { get; private set; } = type;
         /// <summary>
         /// Property names to exclude from the nested type schema.
         /// </summary>
-        public string[] Exclude { get; private set; }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="type">Nested type whose schema is restricted.</param>
-        /// <param name="exclude">Names of properties to exclude.</param>
-        public ExcludeOpenApiAttribute(Type type, params string[] exclude)
-        {
-            Type = type;
-            Exclude = exclude;
-        }
+        [System.ComponentModel.Description("Property names to exclude from the nested type schema.")]
+        public string[] Exclude { get; private set; } = exclude;
     }
 }

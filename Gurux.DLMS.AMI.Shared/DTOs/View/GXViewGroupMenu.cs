@@ -37,22 +37,21 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.View
 {
     /// <summary>Associates a table view with a view group.</summary>
+    [Description("Associates a table view with a view group.")]
     [DataContract(Name = "GXViewGroupView"), Serializable]
     [IndexCollection(true, nameof(ViewGroupId), nameof(ViewId), Clustered = true)]
     public class GXViewGroupView
     {
-        /// <summary>
-        /// The database ID of the content group.
-        /// </summary>
+        /// <summary>The database identifier of the content group.</summary>
+        [Description("The database identifier of the content group.")]
         [DataMember(Name = "ViewGroupId")]
         [ForeignKey(typeof(GXViewGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because creator of the view is causing multiple cascade paths error in MSSQL.
         public Guid ViewGroupId { get; set; }
 
-        /// <summary>
-        /// The content ID.
-        /// </summary>
+        /// <summary>Identifier of the view assigned to the group.</summary>
+        [Description("Identifier of the view assigned to the group.")]
         [DataMember(Name = "ViewId")]
         [ForeignKey(typeof(GXView), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.View
         /// Creation time.
         /// The time when the view was added to the view group.
         /// </summary>
+        [Description("Creation time. The time when the view was added to the view group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.View
         /// <summary>
         /// Time when block was removed from view group.
         /// </summary>
+        [Description("Time when block was removed from view group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

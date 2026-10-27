@@ -37,12 +37,14 @@ using System.ComponentModel.DataAnnotations;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>An external authentication provider login associated with a user account.</summary>
+    [System.ComponentModel.Description("An external authentication provider login associated with a user account.")]
     [DataContract(Name = "GXUserLogin"), Serializable]
     public class GXUserLogin : IUnique<string>
     {
         /// <summary>
         /// Gets or sets the login provider.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the login provider.")]
         [StringLength(128)]
         [DataMember(Name = "LoginProvider")]
         [Filter(FilterType.Exact)]
@@ -51,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the unique identifier for the authentication provider.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the unique identifier for the authentication provider.")]
         [DataMember]
         [StringLength(128)]
         public string? ProviderKey { get; set; } = default!;
@@ -58,13 +61,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the display name of the authentication provider.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the display name of the authentication provider.")]
         [DataMember]
         [StringLength(128)]
         public string? ProviderDisplayName { get; set; } = default!;
 
-        /// <summary>
-        /// User ID.
-        /// </summary>
+        /// <summary>User identifier.</summary>
+        [System.ComponentModel.Description("User identifier.")]
         [DataMember]
         [Index]
         public Guid UserId { get; set; }

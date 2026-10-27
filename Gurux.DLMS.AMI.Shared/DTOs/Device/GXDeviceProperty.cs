@@ -42,36 +42,43 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
     /// <summary>
     /// Common identity, value and version contract for named properties associated with resources.
     /// </summary>
+    [Description("Common identity, value and version contract for named properties associated with resources.")]
     public interface IGXProperty : IUnique<Guid>
     {
         /// <summary>Writable property identifier.</summary>
+        [Description("Writable property identifier.")]
         new Guid Id { get; set; }
 
         /// <summary>
         /// Module settings unique name.
         /// </summary>
+        [Description("Module settings unique name.")]
         public string? Name { get; set; }
 
 
         /// <summary>
         /// The module whose settings these are.
         /// </summary>
+        [Description("The module whose settings these are.")]
         public GXModule? Module { get; set; }
 
         /// <summary>
         /// Module settings.
         /// </summary>
+        [Description("Module settings.")]
         public string? Value { get; set; }
 
         /// <summary>
         /// Version expected by optimistic updates and deletes.
         /// </summary>
+        [Description("Version expected by optimistic updates and deletes.")]
         public string? ConcurrencyStamp { get; set; }
     }
 
     /// <summary>
     /// A module property associated with a device.
     /// </summary>
+    [Description("A module property associated with a device.")]
     [DataContract(Name = nameof(GXDeviceProperty)), Serializable]
     [IndexCollection(true, nameof(Device), nameof(Module), nameof(Name))]
     public class GXDeviceProperty : IUnique<Guid>, IGXProperty
@@ -79,6 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Property identifier.
         /// </summary>
+        [Description("Property identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -87,6 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Parent device.
         /// </summary>
+        [Description("Parent device.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -97,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// The module whose settings these are.
         /// </summary>
+        [Description("The module whose settings these are.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
@@ -105,6 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Module settings unique name.
         /// </summary>
+        [Description("Module settings unique name.")]
         [DataMember]
         [StringLength(64)]
         [IsRequired]
@@ -113,32 +124,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Module settings.
         /// </summary>
+        [Description("Module settings.")]
         [DataMember]
         public string? Value { get; set; }
 
         /// <summary>Version token maintained by Gurux Service.</summary>
+        [Description("Version token maintained by Gurux Service.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset CreationTime { get; set; }
-        /// <summary>
-        /// When parameter is updated for last time.
-        /// </summary>
+        /// <summary>Time when the parameter was last updated.</summary>
+        [Description("Time when the parameter was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

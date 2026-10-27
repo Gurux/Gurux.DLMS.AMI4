@@ -1,4 +1,4 @@
-//
+﻿//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,32 +30,21 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module.Enums
+using System.Xml.Serialization;
+
+namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
-    /// <summary>
-    /// Specifies the lifecycle states owned by the host module runtime.
-    /// </summary>
-    public enum AmiModuleState
+    /// <summary>Determines whether a block's page list includes or excludes pages where it is displayed.</summary>
+    [System.ComponentModel.Description("Determines whether a block's page list includes or excludes pages where it is displayed.")]
+    public enum BlockPageVisibility : byte
     {
-        /// <summary>
-        /// Module is loading. It is not yet ready to be used.
-        /// </summary>
-        Loading,
-        /// <summary>
-        /// Module is active and ready to be used.
-        /// </summary>
-        Active,
-        /// <summary>
-        /// Module is stopping. It is not yet fully stopped and may still be processing requests.
-        /// </summary>
-        Stopping,
-        /// <summary>
-        /// Module is stopped. It is not processing any requests and may be unloaded from memory.
-        /// </summary>
-        Stopped,
-        /// <summary>
-        /// Module failed to load or encountered an error during operation. It may not be usable until the issue is resolved.
-        /// </summary>
-        Failed
+        /// <summary>Display the block only on the listed pages.</summary>
+        [System.ComponentModel.Description("Display the block only on the listed pages.")]
+        [XmlEnum("0")]
+        ShowOnListedPages = 0,
+        /// <summary>Display the block on every page except those listed.</summary>
+        [System.ComponentModel.Description("Display the block on every page except those listed.")]
+        [XmlEnum("1")]
+        HideOnListedPages = 1
     }
 }

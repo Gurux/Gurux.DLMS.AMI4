@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle localization.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle localization.")]
     public interface ILocalizationRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List languages.")]
         Task<IEnumerable<GXLanguage>> ListAsync(
             ListLanguages? request = null,
             ListLanguagesResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read language.")]
         Task<GXLanguage> ReadAsync(Guid id, Expression<Func<GXLanguage, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
@@ -68,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User culture.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get default culture for the user.")]
         Task<string?> GetUserLanguageAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -76,6 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="activeOnly">Only active cultures are returned.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Installed cultures.</returns>
+        [System.ComponentModel.Description("Get installed cultures.")]
         Task<IEnumerable<GXLanguage>> GetInstalledCulturesAsync(bool activeOnly, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -83,6 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="languages">Languages to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Update active state of the cultures.")]
         Task UpdateCulturesAsync(IEnumerable<GXLanguage> languages, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -92,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="hash">Hash for invaliant string.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Localized string.</returns>
+        [System.ComponentModel.Description("Get localized string.")]
         Task<string?> GetLocalizedStringAsync(string language, string hash, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -99,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="languages">Languages to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Refresh Localized strings.")]
         Task RefreshLocalizationsAsync(IEnumerable<GXLanguage>? languages, CancellationToken cancellationToken = default);
     }
 }

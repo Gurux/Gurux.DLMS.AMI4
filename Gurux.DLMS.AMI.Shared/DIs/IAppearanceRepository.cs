@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle appearances.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle appearances.")]
     public interface IAppearanceRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Appearances.</returns>
+        [System.ComponentModel.Description("List appearances.")]
         Task<IEnumerable<GXAppearance>> ListAsync(
             ListAppearances? request = null,
             ListAppearancesResponse? response = null,
@@ -62,7 +64,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
-        Task<GXAppearance> ReadAsync(int type, string id, Expression<Func<GXAppearance, object>>? columns = null, CancellationToken cancellationToken = default);
+        [System.ComponentModel.Description("Read appearance.")]
+        Task<GXAppearance?> ReadAsync(int type, Guid id, Expression<Func<GXAppearance, object>>? columns = null, CancellationToken cancellationToken = default);
+
+        /// <summary>Reads a resource by its unique symbolic name.</summary>
+        /// <param name="type">Appearance type.</param>
+        /// <param name="name">The resource name.</param>
+        /// <param name="columns">Read columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Reads a resource by its unique symbolic name.")]
+        Task<GXAppearance?> ReadByNameAsync(int type, string name, Expression<Func<GXAppearance, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Inserts new appearances or updates existing ones.
@@ -70,19 +81,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="appearances">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        Task<IEnumerable<string>> UpsertAsync(
+        [System.ComponentModel.Description("Inserts new appearances or updates existing ones.")]
+        Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAppearance> appearances,
             Expression<Func<GXAppearance, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete appearance(s).
-        /// </summary>
+        /// <summary>Delete appearances.</summary>
         /// <param name="appearances">Appearance(s) to delete.</param>
         /// <param name="delete">If true, appearances are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        Task DeleteAsync(IEnumerable<string> appearances,
+        [System.ComponentModel.Description("Delete appearances.")]
+        Task DeleteAsync(IEnumerable<Guid> appearances,
             bool delete = true,
             bool notify = true,
             CancellationToken cancellationToken = default);
@@ -92,15 +103,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="type">Appearance type</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("When the appearance was last changed.")]
         Task<DateTimeOffset?> LastChanged(byte type, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Regenerate appearance(s).
-        /// </summary>
-        /// <param name="type">Resource type. Image, Iconpack, Theme, Image. If null or empty, all types are regenerated.</param>
-        /// <param name="appearances">Existing appearance IDs to restore, or null/empty to replace all appearances with built-in defaults.</param>
-        /// <param name="overwriteExisting">If true, existing appearances will be overwritten.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task RegenerateAsync(int? type, IEnumerable<string>? appearances, bool overwriteExisting = false, CancellationToken cancellationToken = default);
+        /// <summary>Create missing built-in appearances without modifying existing rows.</summary>
+        [System.ComponentModel.Description("Create missing built-in appearances without modifying existing rows.")]
+        Task EnsureDefaultsAsync(int? type, CancellationToken cancellationToken = default);
+
+        /// <summary>Restore selected built-ins in place. Empty selections are rejected.</summary>
+        [System.ComponentModel.Description("Restore selected built-ins in place. Empty selections are rejected.")]
+        Task ResetToDefaultsAsync(int? type, IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }
 }

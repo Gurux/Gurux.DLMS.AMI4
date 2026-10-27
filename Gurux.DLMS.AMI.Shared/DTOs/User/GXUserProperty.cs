@@ -41,6 +41,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>A user's saved value for a named application setting.</summary>
+    [Description("A user's saved value for a named application setting.")]
     [DataContract(Name = nameof(GXUserProperty)), Serializable]
     [IndexCollection(true, nameof(User), nameof(Module), nameof(Name))]
     public class GXUserProperty : IUnique<Guid>, IGXProperty
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// User settings identifier.
         /// </summary>
+        [Description("User settings identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -56,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// User settings name.
         /// </summary>
+        [Description("User settings name.")]
         [DataMember]
         [StringLength(64)]
         [IsRequired]
@@ -65,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Settings owner.
         /// </summary>
+        [Description("Settings owner.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -74,29 +78,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Settings module.
         /// </summary>
+        [Description("Settings module.")]
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        // Module properties are deleted explicitly when a module is removed to avoid multiple
+        // SQL Server cascade paths through the owning user and the module creator.
         [Filter(FilterType.Exact)]
         public GXModule? Module { get; set; }
 
         /// <summary>
         /// User settings value.
         /// </summary>
+        [Description("User settings value.")]
         [DataMember]
         public string? Value { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When the user setting is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the user property was last updated.</summary>
+        [Description("Time when the user property was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -105,6 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]

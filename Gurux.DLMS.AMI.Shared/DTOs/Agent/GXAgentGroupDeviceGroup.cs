@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
     /// <summary>Associates an agent group with a device group.</summary>
+    [Description("Associates an agent group with a device group.")]
     [IndexCollection(true, nameof(DeviceGroupId), nameof(AgentGroupId), Clustered = true)]
     public class GXAgentGroupDeviceGroup
     {
-        /// <summary>
-        /// Agent group ID.
-        /// </summary>
+        /// <summary>Agent group identifier.</summary>
+        [Description("Agent group identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXAgentGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because creator of the device group is causing multiple cascade paths error in MSSQL.
         public Guid AgentGroupId { get; set; }
 
-        /// <summary>
-        /// Device group ID.
-        /// </summary>
+        /// <summary>Device group identifier.</summary>
+        [Description("Device group identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// Creation time.
         /// The time when the device group was added to the agent agent.
         /// </summary>
+        [Description("Creation time. The time when the device group was added to the agent agent.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Time when device group was removed from agent group.
         /// </summary>
+        [Description("Time when device group was removed from agent group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

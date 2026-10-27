@@ -37,6 +37,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// Provides operations for importing and exporting AMI data.
     /// </summary>
+    [System.ComponentModel.Description("Provides operations for importing and exporting AMI data.")]
     public interface IDataExchange
     {
         /// <summary>
@@ -45,6 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="req">Request for the available data exchange types.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Available target type identifiers and localized names.</returns>
+        [System.ComponentModel.Description("Returns the supported import and export target types.")]
         Task<GXDataExchangeTypeResponse> AvailableTypes(
             GXDataExchangeType? req,
             CancellationToken cancellationToken = default);
@@ -55,6 +57,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="data">Import data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The imported target types and item counts.</returns>
+        [System.ComponentModel.Description("Imports JSON data according to the supplied conflict rule.")]
         Task<GXImportDataResponse> ImportDataAsync(
             GXImportData data,
             CancellationToken cancellationToken = default);
@@ -64,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="filter">Exported filter.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Exported data.")]
         Task<GXExportDataResponse> ExportDataAsync(
             GXExportData filter,
             CancellationToken cancellationToken = default);

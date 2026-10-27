@@ -41,10 +41,12 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Script
 {
     /// <summary>An invocable script method and the resources that reference it.</summary>
+    [Description("An invocable script method and the resources that reference it.")]
     [DataContract(Name = "GXScriptMethod"), Serializable]
     public class GXScriptMethod : IUnique<Guid>
     {
         /// <summary>Unique identifier of the script method.</summary>
+        [Description("Unique identifier of the script method.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -53,6 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// <summary>
         /// Name of the script method.
         /// </summary>
+		[Description("Name of the script method.")]
 		[DataMember]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
@@ -61,48 +64,52 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// <summary>
         /// Script method description.
         /// </summary>
+        [Description("Script method description.")]
         [DataMember]
         [Filter(FilterType.Contains)]
         public string? Description { get; set; }
 
         /// <summary>Whether the method returns a value.</summary>
+		[Description("Whether the method returns a value.")]
 		[DataMember]
         public bool IsFunction { get; set; }
 
-        /// <summary>
-        /// Is method an asyncronous method.
-        /// </summary>
+        /// <summary>Whether the script method executes asynchronously.</summary>
+        [Description("Whether the script method executes asynchronously.")]
         [DataMember]
         public bool IsAsynchronous { get; set; }
 
         /// <summary>
         /// Parent script.
         /// </summary>
+        [Description("Parent script.")]
         [DataMember, ForeignKey(typeof(GXScript), OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [Filter(FilterType.Exact)]
         public GXScript? Script { get; set; }
 
         /// <summary>Blocks that reference this script method.</summary>
+        [Description("Blocks that reference this script method.")]
         [DataMember]
         [ForeignKey(typeof(GXBlock))]
         [Filter(FilterType.Contains)]
         public List<GXBlock> Blocks { get; set; }
 
         /// <summary>Agents that reference this script method.</summary>
+        [Description("Agents that reference this script method.")]
         [DataMember]
         [ForeignKey(typeof(GXAgent))]
         [Filter(FilterType.Contains)]
         public List<GXAgent> Agents { get; set; }
 
         /// <summary>Notifications that reference this script method.</summary>
+        [Description("Notifications that reference this script method.")]
         [DataMember]
         [ForeignKey(typeof(GXNotification))]
         [Filter(FilterType.Contains)]
         public List<GXNotification> Notifications { get; set; }
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXScriptMethod.</summary>
+        [Description("Initializes a new instance of GXScriptMethod.")]
         public GXScriptMethod()
         {
             Blocks = [];

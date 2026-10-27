@@ -38,20 +38,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
 {
     /// <summary>Associates a gateway with a device.</summary>
+    [Description("Associates a gateway with a device.")]
     [IndexCollection(true, nameof(DeviceId), nameof(GatewayId), Clustered = true)]
     public class GXGatewayDevice
     {
-        /// <summary>
-        /// Device ID.
-        /// </summary>
+        /// <summary>Device identifier.</summary>
+        [Description("Device identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXDevice), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
         public Guid DeviceId { get; set; }
 
-        /// <summary>
-        /// Gateway ID.
-        /// </summary>
+        /// <summary>Gateway identifier.</summary>
+        [Description("Gateway identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// Creation time.
         /// The time when the device group was added to the gateway gateway.
         /// </summary>
+        [Description("Creation time. The time when the device group was added to the gateway gateway.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// <summary>
         /// Time when device group was removed from gateway group.
         /// </summary>
+        [Description("Time when device group was removed from gateway group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

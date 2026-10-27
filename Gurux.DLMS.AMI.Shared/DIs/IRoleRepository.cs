@@ -41,6 +41,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle roles.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle roles.")]
     public interface IRoleRepository
     {
         /// <summary>
@@ -50,6 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List roles.")]
         Task<IEnumerable<GXRole>> ListAsync(
             ListRoles? request = null,
             ListRolesResponse? response = null,
@@ -62,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read role.")]
         Task<GXRole> ReadAsync(string id, Expression<Func<GXRole, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="name">Role name.</param>
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Read by role name.")]
         Task<GXRole> ReadByNameAsync(string name);
 
         /// <summary>
@@ -76,13 +80,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="roles">The records to insert or update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new roles or updates existing ones.")]
         Task<IEnumerable<string>> UpsertAsync(IEnumerable<GXRole> roles, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete role(s).
-        /// </summary>
+        /// <summary>Delete roles.</summary>
         /// <param name="roles">Role(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete roles.")]
         Task DeleteAsync(IEnumerable<string> roles, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -90,6 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>true if the refresh succeeds; otherwise, false.</returns>
+        [System.ComponentModel.Description("Asynchronously restores the default roles.")]
         Task<bool> RestoreDefaultRoles(CancellationToken cancellationToken);
     }
 }

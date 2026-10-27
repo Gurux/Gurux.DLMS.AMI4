@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to manage device templates.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to manage device templates.")]
     public interface IDeviceTemplateRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List device templates.")]
         Task<IEnumerable<GXDeviceTemplate>> ListAsync(
             ListDeviceTemplates? request = null,
             ListDeviceTemplatesResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read device template details.")]
         Task<GXDeviceTemplate> ReadAsync(Guid id, Expression<Func<GXDeviceTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,17 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="templates">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new device templates or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXDeviceTemplate> templates,
             Expression<Func<GXDeviceTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete device template(s).
-        /// </summary>
+        /// <summary>Delete device templates.</summary>
         /// <param name="templates">Device templates to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete device templates.")]
         Task DeleteAsync(IEnumerable<Guid> templates, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -87,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceTemplateId">Device template id.</param>
         /// <returns>User Ids that can access device template.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access device template.")]
         Task<List<string>> GetUsersAsync(Guid? deviceTemplateId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -95,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceTemplateIds">Device template ids.</param>
         /// <returns>User Ids that can access device template.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access given device templates.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceTemplateIds, CancellationToken cancellationToken = default);
     }
 }

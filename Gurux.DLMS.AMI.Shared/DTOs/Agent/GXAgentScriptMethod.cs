@@ -38,30 +38,28 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
     /// <summary>Associates an agent with a script method.</summary>
+    [Description("Associates an agent with a script method.")]
     [DataContract(Name = "GXAgentScriptMethod"), Serializable]
     [IndexCollection(true, nameof(AgentId), nameof(MethodId), Clustered = true)]
     public class GXAgentScriptMethod : GXTableBase
     {
-        /// <summary>
-        /// The database ID of the Agent.
-        /// </summary>
+        /// <summary>The database identifier of the Agent.</summary>
+        [Description("The database identifier of the Agent.")]
         [DataMember(Name = "AgentID")]
         [ForeignKey(typeof(GXAgent), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
         public Guid AgentId { get; set; }
 
-        /// <summary>
-        /// The database ID of the script method.
-        /// </summary>
+        /// <summary>The database identifier of the script method.</summary>
+        [Description("The database identifier of the script method.")]
         [DataMember(Name = "MethodId")]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because Agent will handle the deletion.
         public Guid MethodId { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Time when script method was removed from Agent.
         /// </summary>
+        [Description("Time when script method was removed from Agent.")]
         [DataMember]
         [Index(false)]
         [DefaultValue(null)]
@@ -80,6 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)

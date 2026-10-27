@@ -35,18 +35,23 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The execution state of a report request.</summary>
+    [System.ComponentModel.Description("The execution state of a report request.")]
     public enum ReportStatus : byte
     {
         /// <summary>The report is waiting to be processed.</summary>
+        [System.ComponentModel.Description("The report is waiting to be processed.")]
         [XmlEnum("0")]
         Idle = 0,
         /// <summary>The report is being processed.</summary>
+        [System.ComponentModel.Description("The report is being processed.")]
         [XmlEnum("1")]
         Process = 1,
         /// <summary>Report processing has been cancelled.</summary>
+        [System.ComponentModel.Description("Report processing has been cancelled.")]
         [XmlEnum("2")]
         Cancel = 2,
         /// <summary>Report processing has failed.</summary>
+        [System.ComponentModel.Description("Report processing has failed.")]
         [XmlEnum("3")]
         Error = 3
     }

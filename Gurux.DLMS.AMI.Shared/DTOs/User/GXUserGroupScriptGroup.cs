@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Associates a user group with a script group.</summary>
+    [Description("Associates a user group with a script group.")]
     [DataContract(Name = nameof(GXUserGroupScriptGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ScriptGroupId), Clustered = true)]
     public class GXUserGroupScriptGroup
     {
-        /// <summary>
-        /// The database ID of the user group
-        /// </summary>
+        /// <summary>The database identifier of the user group.</summary>
+        [Description("The database identifier of the user group.")]
         [DataMember(Name = "UserGroupID")]
         [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the script group is causing multiple cascade paths error in MSSQL.
         public Guid UserGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the trigger group.
-        /// </summary>
+        /// <summary>The database identifier of the trigger group.</summary>
+        [Description("The database identifier of the trigger group.")]
         [DataMember(Name = "ScriptGroupID")]
         [ForeignKey(typeof(GXScriptGroup), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid ScriptGroupId { get; set; }
@@ -62,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
 		/// The time when the script group was added to the user group.
 		/// </summary>
 		[DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. The time when the script group was added to the user group.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -71,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Time when script group was removed from user group.
         /// </summary>
+        [Description("Time when script group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

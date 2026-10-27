@@ -37,16 +37,18 @@ using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get gateway.
-    /// </summary>
+    /// <summary>Response containing the requested gateway information.</summary>
+    [Description("Response containing the requested gateway information.")]
     public class GetGatewayResponse
     {
         /// <summary>
         /// Gateway information.
         /// </summary>
+        [Description("Gateway information.")]
         [ExcludeOpenApi(typeof(GXGateway),
                 nameof(GXGateway.Logs), nameof(GXGateway.ScriptMethod))]
         [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id)
@@ -59,15 +61,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public GXGateway? Item { get; set; }
     }
 
-    /// <summary>
-    /// Update gateway.
-    /// </summary>
+    /// <summary>Requests changes to the specified gateways.</summary>
+    [Description("Requests changes to the specified gateways.")]
     [DataContract]
     public class UpdateGateway : IGXRequest<UpdateGatewayResponse>
     {
         /// <summary>
         /// Gateway to add.
         /// </summary>
+        [Description("Gateway to add.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
             nameof(GXGateway.ScriptMethod),
@@ -81,44 +83,45 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public IEnumerable<GXGateway> Gateways { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update reader gateway.
-    /// </summary>
+    /// <summary>Response to updating the specified gateways.</summary>
+    [Description("Response to updating the specified gateways.")]
     [DataContract]
     public class UpdateGatewayResponse
     {
-        /// <summary>
-        /// Gateway identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated gateway records.</summary>
+        [Description("Identifiers of the added or updated gateway records.")]
         [DataMember]
         public IEnumerable<Guid>? Ids { get; set; }
     }
 
-    /// <summary>
-    /// Get list from gateways.
-    /// </summary>
+    /// <summary>Requests a list of gateways.</summary>
+    [Description("Requests a list of gateways.")]
     [DataContract]
     public class ListGateways : IGXRequest<ListGatewaysResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of gateways to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of gateways to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of gateways to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter gateways.
         /// </summary>
+        [Description("Optional criteria used to filter gateways.")]
         [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
             nameof(GXGateway.ScriptMethod),
             nameof(GXGateway.GatewayGroups), nameof(GXGateway.Logs))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [ExcludeOpenApi(typeof(GXGateway),
+            nameof(GXGateway.Description), nameof(GXGateway.DeviceGroups), nameof(GXGateway.Devices),
+            nameof(GXGateway.TraceLevel), nameof(GXGateway.ConcurrencyStamp))]
         public GXGateway? Filter { get; set; }
 
         /// <summary>
@@ -127,37 +130,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, gateways from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access gateways from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -166,18 +168,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// List gateways response.
-    /// </summary>
+    /// <summary>Response containing the requested gateways.</summary>
+    [Description("Response containing the requested gateways.")]
     [DataContract]
     public class ListGatewaysResponse
     {
         /// <summary>
         /// List of gateways.
         /// </summary>
+        [Description("List of gateways.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
             nameof(GXGateway.ScriptMethod),
@@ -189,57 +192,53 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching gateways before paging.
         /// </summary>
+        [Description("Total number of matching gateways before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Remove gateways.
-    /// </summary>
+    /// <summary>Requests deletion of the selected gateways.</summary>
+    [Description("Requests deletion of the selected gateways.")]
     [DataContract]
     public class RemoveGateway : IGXRequest<RemoveGatewayResponse>
     {
-        /// <summary>
-        /// Gateway identifiers to remove.
-        /// </summary>
+        /// <summary>Identifiers of the gateway records to delete.</summary>
+        [Description("Identifiers of the gateway records to delete.")]
         [DataMember]
         [Required]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Remove gateway response.
-    /// </summary>
+    /// <summary>Response to deleting the selected gateways.</summary>
+    [Description("Response to deleting the selected gateways.")]
     [DataContract]
     public class RemoveGatewayResponse
     {
     }
 
-    /// <summary>
-    /// Update gateway state.
-    /// </summary>
+    /// <summary>Requests changes to the gateway status.</summary>
+    [Description("Requests changes to the gateway status.")]
     [DataContract]
     public class UpdateGatewayStatus
     {
-        /// <summary>
-        /// Gateway ID.
-        /// </summary>
+        /// <summary>Gateway identifier.</summary>
+        [Description("Gateway identifier.")]
         [DataMember]
         public Guid Id { get; set; }
 
         /// <summary>
         /// Gateway Status.
         /// </summary>
+        [Description("Gateway Status.")]
         [DataMember]
         public DTOs.Enums.GatewayStatus Status { get; set; }
     }

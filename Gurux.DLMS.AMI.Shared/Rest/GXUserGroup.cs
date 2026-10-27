@@ -47,18 +47,21 @@ using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.Service.Orm.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.View;
+
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get user group.
-    /// </summary>
+    /// <summary>Response containing the requested user group information.</summary>
+    [Description("Response containing the requested user group information.")]
     public class GetUserGroupResponse
     {
         /// <summary>
         /// User group information.
         /// </summary>
-        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+        [Description("User group information.")]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName),
             nameof(GXUser.GivenName), nameof(GXUser.Surname))]
         [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
             nameof(GXScheduleGroup.Name))]
@@ -76,28 +79,29 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
             nameof(GXUserGroup.MenuGroups))]
+        [ExcludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.ViewGroups))]
         public GXUserGroup? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get user group list.
-    /// </summary>
+    /// <summary>Requests a list of user groups.</summary>
+    [Description("Requests a list of user groups.")]
     [DataContract]
     public class ListUserGroups : IGXRequest<ListUserGroupsResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of user groups to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of user groups to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of user groups to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter user groups.
         /// </summary>
+        [Description("Optional criteria used to filter user groups.")]
         [ExcludeOpenApi(typeof(GXUserGroup),
             nameof(GXUserGroup.Users),
             nameof(GXUserGroup.DeviceGroups),
@@ -115,45 +119,44 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.ScriptGroups),
             nameof(GXUserGroup.MenuGroups))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.ViewGroups))]
+        [ExcludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.ConcurrencyStamp))]
         public GXUserGroup? Filter { get; set; }
 
-        /// <summary>
-        /// Admin user can access groups from all users.
-        /// </summary>
+        /// <summary>Whether administrators can access groups owned by other users.</summary>
         /// <remarks>
         /// If true, groups from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Whether administrators can access groups owned by other users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -162,18 +165,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Get user groups response.
-    /// </summary>
+    /// <summary>Response containing the requested user groups.</summary>
+    [Description("Response containing the requested user groups.")]
     [DataContract]
     public class ListUserGroupsResponse
     {
         /// <summary>
         /// List of user groups.
         /// </summary>
+        [Description("List of user groups.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXUserGroup),
             nameof(GXUserGroup.Users),
@@ -191,24 +195,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
             nameof(GXUserGroup.MenuGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.ViewGroups))]
         public IEnumerable<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// Total number of matching user groups before paging.
         /// </summary>
+        [Description("Total number of matching user groups before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Add new user group.
-    /// </summary>
+    /// <summary>Requests the addition of user groups.</summary>
+    [Description("Requests the addition of user groups.")]
     [DataContract]
     public class AddUserGroup : IGXRequest<AddUserGroupResponse>
     {
-        /// <summary>
-        /// New user group(s).
-        /// </summary>
+        /// <summary>New user groups.</summary>
+        [Description("New user groups.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
@@ -225,47 +230,43 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
         [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id))]
         [IncludeOpenApi(typeof(GXMenuGroup), nameof(GXMenuGroup.Id))]
+        [IncludeOpenApi(typeof(GXViewGroup), nameof(GXViewGroup.Id))]
+        [ExcludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.CreationTime), nameof(GXUserGroup.Updated))]
         public IEnumerable<GXUserGroup> UserGroups { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Add new user group response.
-    /// </summary>
+    /// <summary>Response to adding user groups.</summary>
+    [Description("Response to adding user groups.")]
     [DataContract]
     public class AddUserGroupResponse
     {
-        /// <summary>
-        /// New user group IDs.
-        /// </summary>
+        /// <summary>Identifiers of the newly added user group records.</summary>
+        [Description("Identifiers of the newly added user group records.")]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Remove user group.
-    /// </summary>
+    /// <summary>Requests deletion of the selected user groups.</summary>
+    [Description("Requests deletion of the selected user groups.")]
     [DataContract]
     public class RemoveUserGroup : IGXRequest<RemoveUserGroupResponse>
     {
-        /// <summary>
-        /// User group Ids to remove.
-        /// </summary>
+        /// <summary>Identifiers of the user group records to delete.</summary>
+        [Description("Identifiers of the user group records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Remove user group response.
-    /// </summary>
+    /// <summary>Response to deleting the selected user groups.</summary>
+    [Description("Response to deleting the selected user groups.")]
     [DataContract]
     public class RemoveUserGroupResponse
     {

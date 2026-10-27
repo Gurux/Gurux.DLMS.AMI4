@@ -37,22 +37,21 @@ using System.ComponentModel.DataAnnotations;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>Associates a user account with an authorization role.</summary>
+    [System.ComponentModel.Description("Associates a user account with an authorization role.")]
     [DataContract(Name = "GXUserRole"), Serializable]
     [IndexCollection(true, nameof(UserId), nameof(RoleId), Clustered = true)]
     public class GXUserRole
     {
-        /// <summary>
-        /// User ID.
-        /// </summary>
+        /// <summary>User identifier.</summary>
+        [System.ComponentModel.Description("User identifier.")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
         [DataMember]
         [StringLength(36)]
         public string? UserId { get; set; }
 
-        /// <summary>
-        /// Role ID.
-        /// </summary>
+        /// <summary>Role identifier.</summary>
+        [System.ComponentModel.Description("Role identifier.")]
         [DataMember]
         [StringLength(36)]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]

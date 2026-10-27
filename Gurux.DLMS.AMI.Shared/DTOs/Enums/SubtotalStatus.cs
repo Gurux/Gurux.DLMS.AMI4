@@ -35,23 +35,29 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The execution state of a subtotal calculation.</summary>
+    [System.ComponentModel.Description("The execution state of a subtotal calculation.")]
     public enum SubtotalStatus : byte
     {
         /// <summary>No subtotal calculation is in progress.</summary>
+        [System.ComponentModel.Description("No subtotal calculation is in progress.")]
         [XmlEnum("0")]
         Idle = 0,
         /// <summary>
         /// Subtotals are currently being calculated.
         /// </summary>
+        [System.ComponentModel.Description("Subtotals are currently being calculated.")]
         [XmlEnum("1")]
         Calculate = 1,
         /// <summary>The subtotals have been cleared.</summary>
+        [System.ComponentModel.Description("The subtotals have been cleared.")]
         [XmlEnum("2")]
         Clear = 2,
         /// <summary>The subtotal calculation has been cancelled.</summary>
+        [System.ComponentModel.Description("The subtotal calculation has been cancelled.")]
         [XmlEnum("3")]
         Cancel = 3,
         /// <summary>The subtotal calculation has failed.</summary>
+        [System.ComponentModel.Description("The subtotal calculation has failed.")]
         [XmlEnum("4")]
         Error = 4
     }

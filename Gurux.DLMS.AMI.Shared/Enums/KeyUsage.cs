@@ -33,27 +33,38 @@
 namespace Gurux.DLMS.AMI.Shared.Enums;
 
 /// <summary>Permitted operations; these are application values, not KMIP wire values.</summary>
+[System.ComponentModel.Description("Permitted operations; these are application values, not KMIP wire values.")]
 [Flags]
 public enum KeyUsage
 {
     /// <summary>No key operations are permitted.</summary>
+    [System.ComponentModel.Description("No key operations are permitted.")]
     None = 0,
     /// <summary>Use the secret as an authentication password.</summary>
+    [System.ComponentModel.Description("Use the secret as an authentication password.")]
     Password = 1,
     /// <summary>Encrypt data.</summary>
+    [System.ComponentModel.Description("Encrypt data.")]
     Encrypt = 2,
     /// <summary>Decrypt data.</summary>
+    [System.ComponentModel.Description("Decrypt data.")]
     Decrypt = 4,
     /// <summary>Generate digital signatures.</summary>
+    [System.ComponentModel.Description("Generate digital signatures.")]
     Sign = 8,
     /// <summary>Verify digital signatures.</summary>
+    [System.ComponentModel.Description("Verify digital signatures.")]
     Verify = 16,
     /// <summary>Generate message authentication codes (MACs).</summary>
+    [System.ComponentModel.Description("Generate message authentication codes (MACs).")]
     MacGenerate = 32,
     /// <summary>Verify message authentication codes (MACs).</summary>
+    [System.ComponentModel.Description("Verify message authentication codes (MACs).")]
     MacVerify = 64,
     /// <summary>Wrap other keys to protect their key material.</summary>
+    [System.ComponentModel.Description("Wrap other keys to protect their key material.")]
     Wrap = 128,
     /// <summary>Unwrap protected key material.</summary>
+    [System.ComponentModel.Description("Unwrap protected key material.")]
     Unwrap = 256
 }

@@ -35,12 +35,15 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>Determines whether a menu entry navigates to a URL or displays component content.</summary>
+    [System.ComponentModel.Description("Determines whether a menu entry navigates to a URL or displays component content.")]
     public enum MenuLinkType : byte
     {
         /// <summary>Navigate to the configured URL.</summary>
+        [System.ComponentModel.Description("Navigate to the configured URL.")]
         [XmlEnum("0")]
         Link = 0x00,
         /// <summary>Display the configured Blazor content.</summary>
+        [System.ComponentModel.Description("Display the configured Blazor content.")]
         [XmlEnum("1")]
         Content = 0x01,
     }

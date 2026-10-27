@@ -40,6 +40,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
     /// <summary>An agent's saved value for a named application setting.</summary>
+    [Description("An agent's saved value for a named application setting.")]
     [DataContract(Name = nameof(GXAgentProperty)), Serializable]
     [IndexCollection(true, nameof(Agent), nameof(Module), nameof(Name))]
     public class GXAgentProperty : IUnique<Guid>, IGXProperty
@@ -47,6 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent property identifier.
         /// </summary>
+        [Description("Agent property identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -55,6 +57,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent property name.
         /// </summary>
+        [Description("Agent property name.")]
         [DataMember]
         [StringLength(64)]
         [IsRequired]
@@ -63,6 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Property owner.
         /// </summary>
+        [Description("Property owner.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -72,29 +76,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Settings module.
         /// </summary>
+        [Description("Settings module.")]
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        // Module properties are deleted explicitly when a module is removed. Cascading here creates
+        // User -> Agent -> AgentProperty and User -> Module -> AgentProperty paths on SQL Server.
         [Filter(FilterType.Exact)]
         public GXModule? Module { get; set; }
 
         /// <summary>
         /// Agent property value.
         /// </summary>
+        [Description("Agent property value.")]
         [DataMember]
         public string? Value { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When the agent property is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the agent property was last updated.</summary>
+        [Description("Time when the agent property was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -103,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]

@@ -36,16 +36,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums;
 /// The lifecycle state of one background execution.
 /// </summary>
 ///
+[System.ComponentModel.Description("The lifecycle state of one background execution.")]
 public enum BackgroundTaskState
 {
     /// <summary>The execution is queued and has not started.</summary>
+    [System.ComponentModel.Description("The execution is queued and has not started.")]
     Queued,
     /// <summary>The execution is in progress.</summary>
+    [System.ComponentModel.Description("The execution is in progress.")]
     Running,
     /// <summary>The execution completed successfully.</summary>
+    [System.ComponentModel.Description("The execution completed successfully.")]
     Succeeded,
     /// <summary>The execution ended with an error.</summary>
+    [System.ComponentModel.Description("The execution ended with an error.")]
     Failed,
     /// <summary>The execution was cancelled.</summary>
+    [System.ComponentModel.Description("The execution was cancelled.")]
     Cancelled
 }

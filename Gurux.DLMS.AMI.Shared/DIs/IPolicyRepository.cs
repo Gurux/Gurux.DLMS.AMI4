@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle policies.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle policies.")]
     public interface IPolicyRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List policies.")]
         Task<IEnumerable<GXPolicy>> ListAsync(
             ListPolicys? request = null,
             ListPolicysResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read policy.")]
         Task<GXPolicy> ReadAsync(Guid id, Expression<Func<GXPolicy, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -67,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="name">Policy name.</param>
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Read by policy name.")]
         Task<GXPolicy> ReadByNameAsync(string name);
 
         /// <summary>
@@ -74,13 +78,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="policies">The records to insert or update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new policies or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXPolicy> policies, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete policy(s).
-        /// </summary>
+        /// <summary>Delete policys.</summary>
         /// <param name="policies">Policy(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete policys.")]
         Task DeleteAsync(IEnumerable<Guid> policies, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>true if the refresh succeeds; otherwise, false.</returns>
+        [System.ComponentModel.Description("Asynchronously restores the default policies.")]
         Task<bool> RestoreDefaultPolicies(CancellationToken cancellationToken = default);
     }
 }

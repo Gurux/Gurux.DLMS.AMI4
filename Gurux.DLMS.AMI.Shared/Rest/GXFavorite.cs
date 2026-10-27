@@ -34,67 +34,70 @@ using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get favorite.
-    /// </summary>
+    /// <summary>Response containing the requested favorite information.</summary>
+    [Description("Response containing the requested favorite information.")]
     public class GetFavoriteResponse
     {
         /// <summary>
         /// Favorite information.
         /// </summary>        
+        [Description("Favorite information.")]
         [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.User))]
         public GXFavorite? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get list from favorites.
-    /// </summary>
+    /// <summary>Requests a list of favorites.</summary>
+    [Description("Requests a list of favorites.")]
     [DataContract]
     public class ListFavorites : IGXRequest<ListFavoritesResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of favorites to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of favorites to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of favorites to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter favorites.
         /// </summary>
+        [Description("Optional criteria used to filter favorites.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.Type), nameof(GXFavorite.Path))]
         public GXFavorite? Filter { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
     }
 
-    /// <summary>
-    /// Favorite items reply.
-    /// </summary>
+    /// <summary>Response containing the requested favorites.</summary>
+    [Description("Response containing the requested favorites.")]
     [DataContract]
     public class ListFavoritesResponse
     {
         /// <summary>
         /// List of favorite items.
         /// </summary>
+        [Description("List of favorite items.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.User))]
         public IEnumerable<GXFavorite>? Favorites { get; set; }
@@ -102,54 +105,51 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching favoriters before paging.
         /// </summary>
+        [Description("Total number of matching favoriters before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Update favorites.
-    /// </summary>
+    /// <summary>Requests changes to the specified favorites.</summary>
+    [Description("Requests changes to the specified favorites.")]
     [DataContract]
     public class UpdateFavorite : IGXRequest<UpdateFavoriteResponse>
     {
         /// <summary>
         /// Favorites to update.
         /// </summary>
+        [Description("Favorites to update.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXFavorite),
             nameof(GXFavorite.CreationTime), nameof(GXFavorite.User))]
+        [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.Updated))]
         public IEnumerable<GXFavorite> Favorites { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update favorites reply.
-    /// </summary>
+    /// <summary>Response to updating the specified favorites.</summary>
+    [Description("Response to updating the specified favorites.")]
     [DataContract]
     public class UpdateFavoriteResponse
     {
-        /// <summary>
-        /// Favorite identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated favorite records.</summary>
+        [Description("Identifiers of the added or updated favorite records.")]
         [DataMember]
         public IEnumerable<Guid>? Ids { get; set; }
     }
 
-    /// <summary>
-    /// Delete favorites.
-    /// </summary>
+    /// <summary>Requests deletion of the selected favorites.</summary>
+    [Description("Requests deletion of the selected favorites.")]
     [DataContract]
     public class RemoveFavorite : IGXRequest<RemoveFavoriteResponse>
     {
-        /// <summary>
-        /// Favorite identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the favorite records to delete.</summary>
+        [Description("Identifiers of the favorite records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Reply from Delete favorite.
-    /// </summary>
+    /// <summary>Response to deleting the selected favorites.</summary>
+    [Description("Response to deleting the selected favorites.")]
     [DataContract]
     public class RemoveFavoriteResponse
     {

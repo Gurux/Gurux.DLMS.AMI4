@@ -35,6 +35,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle options.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle options.")]
     public interface IOptionsRepository
     {
         /// <summary>
@@ -43,6 +44,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <typeparam name="T">Type of the settings object.</typeparam>
         /// <param name="configuration">Configuration key.</param>
         /// <returns>Settings object of type T.</returns>
+        [System.ComponentModel.Description("Get server settings.")]
         T GetServerSettings<T>(string configuration);
 
         /// <summary>
@@ -50,6 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="configuration">Configuration key.</param>
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Get settings from the database as JSON string.")]
         Task<string> GetSettingsAsJsonAsync(string configuration);
 
         /// <summary>
@@ -58,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="configuration">Configuration key.</param>
         /// <param name="value">Configuration value to persist.</param>
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Save settings to the database.")]
         Task SaveSettingsAsync(string configuration, object value);
     }
 }

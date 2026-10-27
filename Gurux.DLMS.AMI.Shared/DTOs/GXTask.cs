@@ -45,11 +45,13 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A queued or executed device operation, including its target, parameters, and result.</summary>
+    [Description("A queued or executed device operation, including its target, parameters, and result.")]
     public class GXTask : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Request identifier.
         /// </summary>
+        [Description("Request identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -58,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The creator of the task.
         /// </summary>
+        [Description("The creator of the task.")]
         [DataMember]
         [Index(false)]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
@@ -73,6 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// Task order number can be used to execute tasks in given order.
         /// </remarks>
+        [Description("Task order number.")]
         [DataMember]
         [DefaultValue(0)]
         [Filter(FilterType.Exact)]
@@ -84,6 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// Task batching is used to run group of tasks in the same batch.
         /// </remarks>
+        [Description("Task batching.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -92,6 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target of the task as a string.
         /// </summary>
+        [Description("Target of the task as a string.")]
         [StringLength(256)]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -100,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target script method.
         /// </summary>
+        [Description("Target script method.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -109,6 +116,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target module.
         /// </summary>
+        [Description("Target module.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -119,6 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target device group.
         /// </summary>
+        [Description("Target device group.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -129,6 +138,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target device.
         /// </summary>
+        [Description("Target device.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -139,6 +149,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target COSEM object.
         /// </summary>
+        [Description("Target COSEM object.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -149,6 +160,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Target COSEM Attribute.
         /// </summary>
+        [Description("Target COSEM Attribute.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -158,6 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Schedule that triggers this task.
         /// </summary>
+        [Description("Schedule that triggers this task.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -168,6 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// User that triggers this task.
         /// </summary>
+        [Description("User that triggers this task.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -178,6 +192,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Script that triggers this task.
         /// </summary>
+        [Description("Script that triggers this task.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -188,6 +203,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Module that triggers this task.
         /// </summary>
+        [Description("Module that triggers this task.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -198,6 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The agent that performs this task.
         /// </summary>
+        [Description("The agent that performs this task.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -210,6 +227,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// This information is added to ensure that multiple agents are not running on the same meter.
         /// </remarks>
+        [Description("The device this task runs on.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -222,6 +240,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// This information is used when agents are notified
         /// from the new task and it's not saved to the DB.
         /// </remarks>
+        [Description("Target agent.")]
         [Ignore]
         public Guid? TargetAgent { get; set; }
 
@@ -232,20 +251,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// This information is used when agents are notified
         /// from the new task and it's not saved to the DB.
         /// </remarks>
+        [Description("Target gateway.")]
         [Ignore]
         public Guid? TargetGateway { get; set; }
 
         /// <summary>
         /// Task type.
         /// </summary>
+        [Description("Task type.")]
         [DataMember]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public TaskType? TaskType { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Index(false, Descend = true)]
@@ -257,6 +277,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Time when task is updated for the last time.
         /// </summary>
+        [Description("Time when task is updated for the last time.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
@@ -265,6 +286,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Start execution time.
         /// </summary>
+        [Description("Start execution time.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
@@ -273,6 +295,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Time when task is ready.
         /// </summary>
+        [Description("Time when task is ready.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
@@ -282,12 +305,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Task result.
         /// </summary>
+        [Description("Task result.")]
         [DataMember]
         public string? Result { get; set; }
 
         /// <summary>
         /// Task error.
         /// </summary>
+        [Description("Task error.")]
         [DataMember]
         [DefaultValue(null)]
         public string? Error { get; set; }
@@ -295,6 +320,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute index.
         /// </summary>
+        [Description("Attribute index.")]
         [DataMember]
         [DefaultValue(0)]
         public int? Index { get; set; }
@@ -302,6 +328,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Data to write.
         /// </summary>
+        [Description("Data to write.")]
         [DataMember]
         [DefaultValue(null)]
         public string? Data { get; set; }
@@ -314,6 +341,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// If condition script returns true, the task is executed.
         /// </remarks>
         ///
+        [Description("Condition script is used to check should the task executed.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -323,6 +351,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Action script is executed after the task is executed.
         /// </summary>
+        [Description("Action script is executed after the task is executed.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -332,6 +361,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -382,72 +412,87 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     }
 
     /// <summary>A projection of task foreign keys used when reading task associations.</summary>
+    [Description("A projection of task foreign keys used when reading task associations.")]
     public class GXTaskColumns
     {
         /// <summary>
         /// The task creator.
         /// </summary>
+        [Description("The task creator.")]
         public Guid? Creator { get; set; }
         /// <summary>
         /// Task order number.
         /// </summary>
+        [Description("Task order number.")]
         public int Order { get; set; }
 
         /// <summary>
         /// Task batching.
         /// </summary>
+        [Description("Task batching.")]
         public Guid? Batch { get; set; }
 
         /// <summary>
         /// Target of the task as a string.
         /// </summary>
+        [Description("Target of the task as a string.")]
         public string? Target { get; set; }
 
         /// <summary>
         /// Script method foreign key.
         /// </summary>
+        [Description("Script method foreign key.")]
         public Guid? ScriptMethod { get; set; }
 
         /// <summary>
         /// Device group foreign key.
         /// </summary>
+        [Description("Device group foreign key.")]
         public Guid? DeviceGroup { get; set; }
         /// <summary>
         /// Device foreign key.
         /// </summary>
+        [Description("Device foreign key.")]
         public Guid? Device { get; set; }
         /// <summary>
         /// Object foreign key.
         /// </summary>
+        [Description("Object foreign key.")]
         public Guid? Object { get; set; }
 
         /// <summary>
         /// Attribute foreign key.
         /// </summary>
+        [Description("Attribute foreign key.")]
         public Guid? Attribute { get; set; }
 
         /// <summary>
         /// Schedule foreign key.
         /// </summary>
+        [Description("Schedule foreign key.")]
         public Guid? TriggerSchedule { get; set; }
 
         /// <summary>
         /// Trigger user foreign key.
         /// </summary>
+        [Description("Trigger user foreign key.")]
         public string? TriggerUser { get; set; }
         /// <summary>
         /// Identifier of the script that triggered this task.
         /// </summary>
+        [Description("Identifier of the script that triggered this task.")]
         public Guid? TriggerScript { get; set; }
 
         /// <summary>
         /// Identifier of the module that triggered this task.
         /// </summary>
+        [Description("Identifier of the module that triggered this task.")]
         public Guid? TriggerModule { get; set; }
 
         /// <summary>
         /// Agent foreign key.
         /// </summary>
+        [Description("Agent foreign key.")]
         public Guid? OperatingAgent { get; set; }
         /// <summary>
         /// The device this task runs on.
@@ -455,6 +500,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// This information is added to ensure that multiple agents are not running on the same meter.
         /// </remarks>
+        [Description("The device this task runs on.")]
         public Guid? TargetDevice { get; set; }
     }
 }

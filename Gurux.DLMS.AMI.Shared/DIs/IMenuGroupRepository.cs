@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle menu groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle menu groups.")]
     public interface IMenuGroupRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List menu groups.")]
         Task<IEnumerable<GXMenuGroup>> ListAsync(
             ListMenuGroups? request = null,
             ListMenuGroupsResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read menu group information.")]
         Task<GXMenuGroup> ReadAsync(Guid id, Expression<Func<GXMenuGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,17 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated menu groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new menu groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXMenuGroup> groups,
             Expression<Func<GXMenuGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete menu group(s).
-        /// </summary>
+        /// <summary>Delete menu groups.</summary>
         /// <param name="groups">Menu groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete menu groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -86,6 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="menuId">Menu ID</param>
         /// <returns>List of menu groups.</returns>
+        [System.ComponentModel.Description("Returns menu groups list where menu belongs.")]
         Task<List<GXMenuGroup>> GetJoinedMenuGroups(Guid menuId);
 
         /// <summary>
@@ -94,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="menuGroupId">Menu group id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this menu group.")]
         Task<List<string>> GetUsersAsync(Guid? menuGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -102,6 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="menuGroupIds">Agent Menu ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access menu group.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? menuGroupIds, CancellationToken cancellationToken = default);
     }
 }

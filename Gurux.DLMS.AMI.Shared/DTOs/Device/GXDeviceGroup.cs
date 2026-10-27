@@ -44,38 +44,36 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>A named group of devices with shared membership and access settings.</summary>
+    [Description("A named group of devices with shared membership and access settings.")]
     [DataContract(Name = "GXDeviceGroup"), Serializable]
     public class GXDeviceGroup : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceGroup.</summary>
+        [Description("Initializes a new instance of GXDeviceGroup.")]
         public GXDeviceGroup()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceGroup.</summary>
         /// <remarks>
-        /// This constuctor is called when a new device group is created. It will create all needed lists.
+        /// This constructor is called when a new device group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Device group name.</param>
+        [Description("Initializes a new instance of GXDeviceGroup.")]
         public GXDeviceGroup(string? name)
         {
             Name = name;
-            Devices = new List<GXDevice>();
-            UserGroups = new List<GXUserGroup>();
-            AgentGroups = new List<GXAgentGroup>();
-            Keys = new List<GXKeyManagement>();
-            Parameters = new();
-            Gateways = new List<GXGateway>();
+            Devices = [];
+            UserGroups = [];
+            AgentGroups = [];
+            Keys = [];
+            Parameters = [];
+            Gateways = [];
             Enabled = true;
         }
 
-        /// <summary>
-        /// Device group ID.
-        /// </summary>
+        /// <summary>Device group identifier.</summary>
+        [Description("Device group identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -84,15 +82,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// The device group creator.
         /// </summary>
+        [Description("The device group creator.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator { get; set; }
 
-        /// <summary>
-        /// Is device group enabled.
-        /// </summary>
+        /// <summary>Whether the device group is enabled.</summary>
+        [Description("Whether the device group is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -101,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device group name.
         /// </summary>
+		[Description("Device group name.")]
 		[DataMember]
         [DefaultValue(null)]
         [StringLength(64)]
@@ -110,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device group description.
         /// </summary>
+        [Description("Device group description.")]
         [DataMember]
         [DefaultValue(null)]
         public string? Description { get; set; }
@@ -119,7 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Date and time when the device group was created.
         /// </summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. Date and time when the device group was created.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -129,15 +129,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Date and time when the device group was removed.
         /// </summary>
+        [Description("Date and time when the device group was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When was the device group last updated.
-        /// </summary>
+        /// <summary>Time when the device group was last updated.</summary>
+        [Description("Time when the device group was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -149,6 +149,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -157,6 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Device group parameters.
         /// </summary>
+        [Description("Device group parameters.")]
         [DataMember]
         [ForeignKey]
         public List<GXDeviceGroupProperty>? Parameters { get; set; }
@@ -164,27 +166,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// List of key managements.
         /// </summary>
+        [Description("List of key managements.")]
         [DataMember]
         [ForeignKey(typeof(GXKeyManagement))]
         [Filter(FilterType.Contains)]
         public List<GXKeyManagement>? Keys { get; set; }
 
         /// <summary>Devices belonging to this group.</summary>
+        [Description("Devices belonging to this group.")]
         [DataMember, ForeignKey(typeof(GXDevice), typeof(GXDeviceGroupDevice))]
         public List<GXDevice>? Devices { get; set; }
 
-        /// <summary>
-        /// List of user groups that can access this device group
-        /// </summary>
+        /// <summary>List of user groups that can access this device group.</summary>
+        [Description("List of user groups that can access this device group.")]
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceGroup))]
         public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>Agent groups configured to access devices in this group.</summary>
+        [Description("Agent groups configured to access devices in this group.")]
         [DataMember(IsRequired = false)]
         [ForeignKey(typeof(GXAgentGroup), typeof(GXAgentGroupDeviceGroup))]
         public List<GXAgentGroup>? AgentGroups { get; set; }
 
         /// <summary>Gateways configured to access devices in this group.</summary>
+        [Description("Gateways configured to access devices in this group.")]
         [DataMember(IsRequired = false)]
         [ForeignKey(typeof(GXGateway), typeof(GXGatewayDeviceGroup))]
         public List<GXGateway>? Gateways { get; set; }
@@ -192,6 +197,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// This is default device group where new devices are added automatically when user creates them.
         /// </summary>
+        [Description("This is default device group where new devices are added automatically when user creates them.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -201,6 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -212,6 +219,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

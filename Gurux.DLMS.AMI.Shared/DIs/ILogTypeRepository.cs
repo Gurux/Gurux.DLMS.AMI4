@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// Provides persistence operations for log type definitions.
     /// </summary>
+    [System.ComponentModel.Description("Provides persistence operations for log type definitions.")]
     public interface ILogTypeRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List log types.")]
         Task<IEnumerable<GXLogType>> ListAsync(
             ListLogTypes? request = null,
             ListLogTypesResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read log type details.")]
         Task<GXLogType> ReadAsync(Guid id, Expression<Func<GXLogType, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="types">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new log types or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXLogType> types,
             Expression<Func<GXLogType, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -79,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Deletes log type definitions.")]
         Task DeleteAsync(IEnumerable<Guid> types, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
     }

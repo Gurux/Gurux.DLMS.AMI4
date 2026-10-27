@@ -41,6 +41,7 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A module parameter associated with a COSEM attribute.</summary>
+    [Description("A module parameter associated with a COSEM attribute.")]
     [DataContract(Name = nameof(GXAttributeProperty)), Serializable]
     [IndexCollection(true, nameof(Attribute), nameof(Module), nameof(Name))]
     public class GXAttributeProperty : IUnique<Guid>, IGXProperty
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute parameter identifier.
         /// </summary>
+        [Description("Attribute parameter identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -56,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Parent attribute.
         /// </summary>
+        [Description("Parent attribute.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -66,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The module whose settings these are.
         /// </summary>
+        [Description("The module whose settings these are.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
@@ -74,6 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Module settings unique name.
         /// </summary>
+        [Description("Module settings unique name.")]
         [DataMember]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
@@ -83,32 +88,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Module attribute settings.
         /// </summary>
+        [Description("Module attribute settings.")]
         [DataMember]
         public string? Value { get; set; }
 
         /// <summary>Version token maintained by Gurux Service.</summary>
+        [Description("Version token maintained by Gurux Service.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset CreationTime { get; set; }
-        /// <summary>
-        /// When parameter is updated for last time.
-        /// </summary>
+        /// <summary>Time when the parameter was last updated.</summary>
+        [Description("Time when the parameter was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

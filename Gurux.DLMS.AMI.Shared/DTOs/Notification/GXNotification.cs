@@ -43,31 +43,29 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
 {
     /// <summary>A notification subscription defining its event sources, delivery channel, and destination.</summary>
+    [Description("A notification subscription defining its event sources, delivery channel, and destination.")]
     public class GXNotification : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXNotification.</summary>
+        [Description("Initializes a new instance of GXNotification.")]
         public GXNotification()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXNotification.</summary>
         /// <remarks>
-        /// This constuctor is called when a new notification is created. It will create all needed lists.
+        /// This constructor is called when a new notification is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Notification name.</param>
+        [Description("Initializes a new instance of GXNotification.")]
         public GXNotification(string? name)
         {
             Enabled = true;
             Name = name;
         }
 
-        /// <summary>
-        /// Notification ID.
-        /// </summary>
+        /// <summary>Notification identifier.</summary>
+        [Description("Notification identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -76,17 +74,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Notification Name.
         /// </summary>
+        [Description("Notification Name.")]
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
         public string? Name { get; set; }
 
-        /// <summary>
-        /// Description.
-        /// </summary>
+        /// <summary>Description of the notification.</summary>
         [DataMember]
         [StringLength(256)]
-        [Description("Description.")]
+        [Description("Description of the notification.")]
         //Filter uses default value.
         [DefaultValue(null)]
         public string? Description { get; set; }
@@ -94,14 +91,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Script method that this notification uses.
         /// </summary>
+        [Description("Script method that this notification uses.")]
         [DefaultValue(null)]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the script is causing multiple cascade paths error in MSSQL.
         public GXScriptMethod? ScriptMethod { get; set; }
 
-        /// <summary>
-        /// Is notification enabled.
-        /// </summary>
+        /// <summary>Whether the notification is enabled.</summary>
+        [Description("Whether the notification is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -110,6 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Notification target type. E.g. Mail, SMS, Toaster, etc.
         /// </summary>
+        [Description("Notification target type. E.g. Mail, SMS, Toaster, etc.")]
         [DataMember]
         [DefaultValue(null)]
         [Index(false)]
@@ -121,6 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Notification sources. E.g. agent, user, system log, etc.
         /// </summary>
+        [Description("Notification sources. E.g. agent, user, system log, etc.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -129,14 +128,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
 
 
         /// <summary>Delivery destination, such as email addresses or a network address, interpreted by the selected channel.</summary>
+        [Description("Delivery destination, such as email addresses or a network address, interpreted by the selected channel.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         public string? Destination { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -146,21 +145,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// The creator of the notification.
         /// </summary>
+        [Description("The creator of the notification.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? Creator { get; set; }
 
-        /// <summary>
-        /// When the notification is sent for the last time.
-        /// </summary>
-        [Description("When the notification is sent for the last time.")]
+        /// <summary>Time when the notification was last sent.</summary>
+        [Description("Time when the notification was last sent.")]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
         public DateTimeOffset? Detected { get; set; }
 
         /// <summary>Minimum interval between notification deliveries, in seconds.</summary>
+        [Description("Minimum interval between notification deliveries, in seconds.")]
         [DataMember]
         public int MinimumDeliveryTime { get; set; }
 
@@ -170,25 +169,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <remarks>
         /// In filter if the removed time is set it will return values that are not null.
         /// </remarks>
+        [Description("Time when notification was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When the notification is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the notification was last updated.</summary>
+        [Description("Time when the notification was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
-        /// <summary>
-        /// Used trace level.
-        /// </summary>
+        /// <summary>Trace level used for communication diagnostics.</summary>
         [DataMember]
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
-        [Description("Used trace level.")]
+        [Description("Trace level used for communication diagnostics.")]
         [IsRequired]
         public TraceLevel? TraceLevel { get; set; }
 
@@ -196,6 +193,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -204,6 +202,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -215,6 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

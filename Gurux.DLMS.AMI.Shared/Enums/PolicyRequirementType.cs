@@ -35,40 +35,48 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.Enums
 {
     /// <summary>The kind of identity or permission check performed by a policy requirement.</summary>
+    [System.ComponentModel.Description("The kind of identity or permission check performed by a policy requirement.")]
     public enum PolicyRequirementType : byte
     {
         /// <summary>
         /// User must have a specific permission to access the resource.
         /// </summary>
+        [System.ComponentModel.Description("User must have a specific permission to access the resource.")]
         [XmlEnum("0")]
         Permission,
         /// <summary>
         /// User must be in a specific role to access the resource.
         /// </summary>
+        [System.ComponentModel.Description("User must be in a specific role to access the resource.")]
         [XmlEnum("1")]
         Role,
         /// <summary>
         /// User must have a specific claim to access the resource.
         /// </summary>
+        [System.ComponentModel.Description("User must have a specific claim to access the resource.")]
         [XmlEnum("2")]
         Claim,
         /// <summary>
         /// User must be authenticated to access the resource.
         /// </summary>
+        [System.ComponentModel.Description("User must be authenticated to access the resource.")]
         [XmlEnum("3")]
         AuthenticatedUser,
         /// <summary>
         /// Only the user can access the resource. 
         /// This is used to restrict access to a specific user.
         /// </summary>
+        [System.ComponentModel.Description("Only the user can access the resource. This is used to restrict access to a specific user.")]
         [XmlEnum("4")]
         User,
         /// <summary>
         /// Only users authenticated with a specific authentication scheme can access the resource.
         /// </summary>
+        [System.ComponentModel.Description("Only users authenticated with a specific authentication scheme can access the resource.")]
         [XmlEnum("5")]
         AuthenticationScheme,
         /// <summary>Explicit public access, including anonymous users.</summary>
+        [System.ComponentModel.Description("Explicit public access, including anonymous users.")]
         [XmlEnum("6")]
         AnyUser
     }

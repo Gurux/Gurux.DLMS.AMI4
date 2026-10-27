@@ -37,12 +37,12 @@ using System.ComponentModel.DataAnnotations;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A persisted authorization grant or token issued to a client.</summary>
+    [System.ComponentModel.Description("A persisted authorization grant or token issued to a client.")]
     [DataContract(Name = "GXPersistedGrants"), Serializable]
     public class GXPersistedGrants : IUnique<string>
     {
-        /// <summary>
-        /// Identifier.
-        /// </summary>
+        /// <summary>Unique identifier of the persisted grants.</summary>
+        [System.ComponentModel.Description("Unique identifier of the persisted grants.")]
         [StringLength(200)]
         [DataMember(Name = "Key")]
         [Filter(FilterType.Exact)]
@@ -51,6 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the entity type.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the entity type.")]
         [DataMember]
         [StringLength(50)]
         public string Type { get; set; } = default!;
@@ -58,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the unique identifier for the subject.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the unique identifier for the subject.")]
         [StringLength(200)]
         [DataMember]
         public string SubjectId { get; set; } = default!;
@@ -65,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the session identifier.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the session identifier.")]
         [DataMember]
         [StringLength(100)]
         public string SessionId { get; set; } = default!;
@@ -72,6 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the client identifier.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the client identifier.")]
         [DataMember]
         [StringLength(200)]
         public string ClientId { get; set; } = default!;
@@ -79,13 +83,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Gets or sets the description.
         /// </summary>
+        [System.ComponentModel.Description("Gets or sets the description.")]
         [DataMember]
         [StringLength(200)]
         public string Description { get; set; } = default!;
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [System.ComponentModel.Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -95,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Expiration time.
         /// </summary>
+        [System.ComponentModel.Description("Expiration time.")]
         [DataMember]
         [Index(false)]
         public DateTime Expiration { get; set; }
@@ -102,12 +107,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Consumed time.
         /// </summary>
+        [System.ComponentModel.Description("Consumed time.")]
         [DataMember]
         public DateTime ConsumedTime { get; set; } = default!;
 
         /// <summary>
         /// Data. This is the actual data of the token, which can be a JSON string or any other format depending on the implementation. It contains the information needed to validate and use the token, such as claims, scopes, and other relevant details.
         /// </summary>
+        [System.ComponentModel.Description("Data. This is the actual data of the token, which can be a JSON string or any other format depending on the implementation. It contains the information needed to validate and use the token, such as claims, scopes, and other relevant details.")]
         [DataMember]
         public string Data { get; set; } = default!;
     }

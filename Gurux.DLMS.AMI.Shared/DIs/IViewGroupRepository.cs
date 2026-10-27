@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle view groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle view groups.")]
     public interface IViewGroupRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List view groups.")]
         Task<IEnumerable<GXViewGroup>> ListAsync(
             ListViewGroups? request = null,
             ListViewGroupsResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read view group information.")]
         Task<GXViewGroup> ReadAsync(Guid id, Expression<Func<GXViewGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,17 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated view groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new view groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXViewGroup> groups,
             Expression<Func<GXViewGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete view group(s).
-        /// </summary>
+        /// <summary>Delete view groups.</summary>
         /// <param name="groups">View groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete view groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -86,6 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="viewId">View ID</param>
         /// <returns>List of view groups.</returns>
+        [System.ComponentModel.Description("Returns view groups list where view belongs.")]
         Task<List<GXViewGroup>> GetJoinedViewGroups(Guid viewId);
 
         /// <summary>
@@ -94,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="viewGroupId">View group id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this view group.")]
         Task<List<string>> GetUsersAsync(Guid? viewGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -102,6 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="viewGroupIds">Agent View ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access view group.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? viewGroupIds, CancellationToken cancellationToken = default);
     }
 }

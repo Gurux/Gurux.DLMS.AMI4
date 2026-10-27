@@ -38,21 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>Associates a user group with a block group.</summary>
+    [Description("Associates a user group with a block group.")]
     [DataContract(Name = nameof(GXUserGroupBlockGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(BlockGroupId), Clustered = true)]
     public class GXUserGroupBlockGroup
     {
-        /// <summary>
-        /// The database ID of the user group
-        /// </summary>
+        /// <summary>The database identifier of the user group.</summary>
+        [Description("The database identifier of the user group.")]
         [DataMember(Name = "UserGroupID")]
         [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the block group is causing multiple cascade paths error in MSSQL.
         public Guid UserGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the user
-        /// </summary>
+        /// <summary>The database identifier of the user.</summary>
+        [Description("The database identifier of the user.")]
         [DataMember(Name = "BlockGroupID")]
         [ForeignKey(typeof(GXBlockGroup), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid BlockGroupId { get; set; }
@@ -62,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
 		/// The time when the block group was added to the user group.
 		/// </summary>
 		[DataMember]
-        [Description("Creation time.")]
+        [Description("Creation time. The time when the block group was added to the user group.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? CreationTime { get; set; }
@@ -70,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Time when block group was removed from user group.
         /// </summary>
+        [Description("Time when block group was removed from user group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

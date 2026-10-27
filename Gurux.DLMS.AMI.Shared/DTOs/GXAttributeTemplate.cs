@@ -39,29 +39,26 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>The definition of a COSEM attribute shared by objects using the same template.</summary>
+    [Description("The definition of a COSEM attribute shared by objects using the same template.")]
     public class GXAttributeTemplate : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAttributeTemplate.</summary>
+        [Description("Initializes a new instance of GXAttributeTemplate.")]
         public GXAttributeTemplate()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAttributeTemplate.</summary>
+        [Description("Initializes a new instance of GXAttributeTemplate.")]
         public GXAttributeTemplate(string? name)
         {
             Name = name;
-            ListItems = new List<GXAttributeListItem>();
+            ListItems = [];
         }
 
-        /// <summary>
-        /// Attribute template Id.
-        /// </summary>
+        /// <summary>Attribute template identifier.</summary>
         [DataMember]
-        [Description("Attribute template Id.")]
+        [Description("Attribute template identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
@@ -69,6 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Object template.
         /// </summary>
+        [Description("Object template.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
@@ -79,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute index.
         /// </summary>
+        [Description("Attribute index.")]
         [DataMember]
         [Filter(FilterType.Exact, 0)]
         public int Index { get; set; }
@@ -86,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Object attribute name.
         /// </summary>
+        [Description("Object attribute name.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -97,29 +97,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Attribute enumerated values.
         /// </summary>
+        [Description("Attribute enumerated values.")]
         [DataMember]
         [ForeignKey]
         public List<GXAttributeListItem>? ListItems { get; set; }
 
-        /// <summary>
-        /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
-        /// </summary>
+        /// <summary>Controls how often the value is read from the meter. Null reads the value on every request; DateTime.MaxValue reads it only once.</summary>
+        [Description("Controls how often the value is read from the meter. Null reads the value on every request; DateTime.MaxValue reads it only once.")]
         [DataMember]
         [DefaultValue(null)]
         public DateTimeOffset? ExpirationTime { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When value is last updated.
-        /// </summary>
+        /// <summary>Time when the value was last updated.</summary>
+        [Description("Time when the value was last updated.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -130,15 +128,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [DefaultValue(null)]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -175,6 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// Attribute weight can be used to ask to execute tasks in given order.
         /// </remarks>
+        [Description("Attribute weight.")]
         [DataMember]
         [DefaultValue(0)]
         public int Weight { get; set; }
@@ -183,7 +182,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Default value.
         /// </summary>
         [DataMember]
-        [Description("Default value")]
+        [Description("Default value.")]
         [Filter(FilterType.Contains)]
         public string? DefaultValue { get; set; }
 
@@ -205,6 +204,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -216,6 +216,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

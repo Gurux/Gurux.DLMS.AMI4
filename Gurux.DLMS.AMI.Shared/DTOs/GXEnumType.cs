@@ -38,16 +38,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A named value in a persisted enumeration category.</summary>
+    [Description("A named value in a persisted enumeration category.")]
     [DataContract]
     public class GXEnumType : GXTableBase, IUnique<int>
     {
         /// <summary>Database identifier of this enumeration entry.</summary>
+        [Description("Database identifier of this enumeration entry.")]
         [DataMember]
         [DefaultValue(null)]
         [AutoIncrement]
         public int Id { get; set; }
 
         /// <summary>Category containing the entry, such as a resource type or log severity category.</summary>
+        [Description("Category containing the entry, such as a resource type or log severity category.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -57,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public string? Type { get; set; }
 
         /// <summary>Name of the entry within its category.</summary>
+        [Description("Name of the entry within its category.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -66,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public string? Name { get; set; }
 
         /// <summary>Optional integer value represented by this entry, distinct from its database identifier.</summary>
+        [Description("Optional integer value represented by this entry, distinct from its database identifier.")]
         [DataMember]
         public int? Value { get; set; }
 

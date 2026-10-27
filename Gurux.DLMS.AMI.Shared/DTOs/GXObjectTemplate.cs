@@ -40,23 +40,21 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A reusable COSEM object definition containing attribute templates.</summary>
-    [Description("COSEM object template.")]
+    [Description("A reusable COSEM object definition containing attribute templates.")]
     public class GXObjectTemplate : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObjectTemplate.</summary>
+        [Description("Initializes a new instance of GXObjectTemplate.")]
         public GXObjectTemplate()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObjectTemplate.</summary>
+        [Description("Initializes a new instance of GXObjectTemplate.")]
         public GXObjectTemplate(string? name)
         {
             Name = name;
-            Attributes = new List<GXAttributeTemplate>();
+            Attributes = [];
         }
 
         /// <summary>
@@ -73,7 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>Device template containing this object definition.</summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Description("Device template identifier.")]
+        [Description("Device template containing this object definition.")]
         [Index(false)]
         [Filter(FilterType.Exact)]
         public GXDeviceTemplate? DeviceTemplate { get; set; }
@@ -99,6 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
 
 
         /// <summary>Display name of the COSEM object template.</summary>
+        [Description("Display name of the COSEM object template.")]
         [DataMember]
         [StringLength(256)]
         [Index(false)]
@@ -109,6 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Logical name of the object.
         /// </summary>
+        [Description("Logical name of the object.")]
         [DataMember]
         [StringLength(25)]
         [Filter(FilterType.Contains)]
@@ -119,43 +119,39 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Short name of the object.
         /// </summary>
+        [Description("Short name of the object.")]
         [DataMember]
         [Filter(FilterType.Exact)]
         [DefaultValue(0)]
         public UInt16? ShortName { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When object is last updated.
-        /// </summary>
+        /// <summary>Time when the object was last updated.</summary>
+        [Description("Time when the object was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
-        /// </summary>
+        /// <summary>Controls how often the value is read from the meter. Null reads the value on every request; DateTime.MaxValue reads it only once.</summary>
         [DataMember]
-        [Description("Expiration time.")]
+        [Description("Controls how often the value is read from the meter. Null reads the value on every request; DateTime.MaxValue reads it only once.")]
         [DefaultValue(null)]
         public DateTimeOffset? ExpirationTime { get; set; }
 
@@ -163,13 +159,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Attribute templates.
         /// </summary>
         [DataMember]
-        [Description("Attribute templates")]
+        [Description("Attribute templates.")]
         [ForeignKey(typeof(GXAttributeTemplate))]
         public List<GXAttributeTemplate>? Attributes { get; set; }
 
         /// <summary>
         /// Action access levels.
         /// </summary>
+        [Description("Action access levels.")]
         [DataMember]
         [DefaultValue(null)]
         [StringLength(20)]
@@ -178,6 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -189,6 +187,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

@@ -31,37 +31,6 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs.Log;
-//
-// --------------------------------------------------------------------------
-//  Gurux Ltd
-//
-//
-//
-// Filename:        $HeadURL$
-//
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
-//
-// Copyright (c) Gurux Ltd
-//
-//---------------------------------------------------------------------------
-//
-//  DESCRIPTION
-//
-// This file is a part of Gurux Device Framework.
-//
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -79,35 +48,35 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
 {
     /// <summary>An executable workflow composed of script methods, modules, and execution conditions.</summary>
+    [Description("An executable workflow composed of script methods, modules, and execution conditions.")]
     public class GXWorkflow : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXWorkflow.</summary>
+        [Description("Initializes a new instance of GXWorkflow.")]
         public GXWorkflow()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXWorkflow.</summary>
         /// <remarks>
-        /// This constuctor is called when a new workflow is created. It will create all needed lists.
+        /// This constructor is called when a new workflow is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Workflow name.</param>
+        [Description("Initializes a new instance of GXWorkflow.")]
         public GXWorkflow(string? name)
         {
             Name = name;
-            ScriptMethods = new List<GXScriptMethod>();
-            WorkflowGroups = new List<GXWorkflowGroup>();
-            Logs = new List<GXLog>();
-            Modules = new List<GXModule>();
+            ScriptMethods = [];
+            WorkflowGroups = [];
+            Logs = [];
+            Modules = [];
             TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
 
         /// <summary>
         /// Workflow identifier.
         /// </summary>
+        [Description("Workflow identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -116,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Workflow name.
         /// </summary>
+        [Description("Workflow name.")]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
         [IsRequired]
@@ -124,14 +94,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Workflow description.
         /// </summary>
+        [Description("Workflow description.")]
         [DataMember]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Is Workflow enabled.
-        /// </summary>
+        /// <summary>Whether the workflow is enabled.</summary>
+        [Description("Whether the workflow is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -140,6 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// The creator of the workflow.
         /// </summary>
+        [Description("The creator of the workflow.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -150,6 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Trigger that invokes the work flow.
         /// </summary>
+        [Description("Trigger that invokes the work flow.")]
         [DataMember]
         [ForeignKey(typeof(GXTriggerActivity))]
         public GXTriggerActivity? TriggerActivity { get; set; }
@@ -157,6 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Trigger condition script method that workflow uses.
         /// </summary>
+        [Description("Trigger condition script method that workflow uses.")]
         [DefaultValue(null)]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         public GXScriptMethod? TriggerMethod { get; set; }
@@ -164,6 +137,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// User that Workflows this event.
         /// </summary>
+        [Description("User that Workflows this event.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXUser? User { get; set; }
@@ -171,6 +145,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// User group that Workflows this event.
         /// </summary>
+        [Description("User group that Workflows this event.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXUserGroup? UserGroup { get; set; }
@@ -178,6 +153,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Device that Workflows this event.
         /// </summary>
+        [Description("Device that Workflows this event.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXDevice? Device { get; set; }
@@ -185,6 +161,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// DeviceGroup that Workflows this event.
         /// </summary>
+        [Description("DeviceGroup that Workflows this event.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXDeviceGroup? DeviceGroup { get; set; }
@@ -192,6 +169,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Executed script methods.
         /// </summary>
+        [Description("Executed script methods.")]
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXWorkflowScriptMethod))]
         public List<GXScriptMethod>? ScriptMethods { get; set; }
@@ -199,11 +177,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Executed modules.
         /// </summary>
+        [Description("Executed modules.")]
         [DataMember]
         [ForeignKey(typeof(GXModule), typeof(GXWorkflowModule))]
         public List<GXModule>? Modules { get; set; }
 
         /// <summary>Workflow groups containing this workflow.</summary>
+        [Description("Workflow groups containing this workflow.")]
         [DataMember]
         [ForeignKey(typeof(GXWorkflowGroup), typeof(GXWorkflowGroupWorkflow))]
         public List<GXWorkflowGroup>? WorkflowGroups { get; set; }
@@ -211,31 +191,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Workflow logs.
         /// </summary>
+        [Description("Workflow logs.")]
         [DataMember, Ignore(IgnoreType.Db)]
         public List<GXLog>? Logs { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Time when the record was created.")]
         [DefaultValue(null)]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When the Workflow is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the workflow was last updated.</summary>
+        [Description("Time when the workflow was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
-        /// <summary>
-        /// Used trace level.
-        /// </summary>
+        /// <summary>Trace level used for communication diagnostics.</summary>
         [DataMember]
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
-        [Description("Used trace level.")]
+        [Description("Trace level used for communication diagnostics.")]
         [IsRequired]
         public TraceLevel? TraceLevel { get; set; }
 
@@ -243,25 +219,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// Last execution time
-        /// </summary>
+        /// <summary>Time of the most recent execution.</summary>
         [DataMember]
-        [Description("Last execution time.")]
+        [Description("Time of the most recent execution.")]
         //Filter uses default value.
         [DefaultValue(null)]
         public DateTimeOffset? ExecutionTime { get; set; }
@@ -269,6 +243,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -280,6 +255,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

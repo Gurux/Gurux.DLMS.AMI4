@@ -40,14 +40,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get script.
-    /// </summary>
+    /// <summary>Response containing the requested script information.</summary>
+    [Description("Response containing the requested script information.")]
     public class GetScriptResponse
     {
         /// <summary>
         /// Script information.
         /// </summary>
+        [Description("Script information.")]
         [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id),
             nameof(GXScriptGroup.Name))]
         [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id),
@@ -62,25 +62,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     }
 
-    /// <summary>
-    /// Get list from scripts.
-    /// </summary>
+    /// <summary>Requests a list of scripts.</summary>
+    [Description("Requests a list of scripts.")]
     [DataContract]
     public class ListScripts : IGXRequest<ListScriptsResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of scripts to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of scripts to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of scripts to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter scripts.
         /// </summary>
+        [Description("Optional criteria used to filter scripts.")]
         [ExcludeOpenApi(typeof(GXScript),
         nameof(GXScript.ScriptGroups),
              nameof(GXScript.Workflows),
@@ -88,6 +88,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXScript.Logs),
              nameof(GXScript.Creator),
              nameof(GXScript.Module))]
+        [ExcludeOpenApi(typeof(GXScript),
+            nameof(GXScript.Language), nameof(GXScript.SourceCode), nameof(GXScript.CatalogVersion),
+            nameof(GXScript.CatalogSha256), nameof(GXScript.CatalogSourceCode), nameof(GXScript.Namespaces),
+            nameof(GXScript.ServerSide), nameof(GXScript.ByteAssembly), nameof(GXScript.TraceLevel),
+            nameof(GXScript.ConcurrencyStamp))]
         public GXScript? Filter { get; set; }
 
         /// <summary>
@@ -96,37 +101,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, scripts from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access scripts from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -135,6 +139,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
         /// <summary>
         /// Byte assembly is send for the client.
@@ -144,11 +149,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public bool Assembly { get; set; }
     }
 
-    /// <summary>
-    /// Script items reply.
-    /// </summary>
+    /// <summary>Response containing the requested scripts.</summary>
     [DataContract]
-    [Description("Script items reply.")]
+    [Description("Response containing the requested scripts.")]
     public class ListScriptsResponse
     {
         /// <summary>
@@ -169,13 +172,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Total number of matching scriptrs before paging.
         /// </summary>
         [DataMember]
-        [Description("Total count of the scriptrs.")]
-        public int Count { get; set; }
+        [Description("Total number of matching scriptrs before paging.")]
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Update scripts.
-    /// </summary>
+    /// <summary>Requests changes to the specified scripts.</summary>
+    [Description("Requests changes to the specified scripts.")]
     [DataContract]
     public class UpdateScript : IGXRequest<UpdateScriptResponse>
     {
@@ -192,50 +194,43 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXScript.Logs),
             nameof(GXScript.Creator),
             nameof(GXScript.Module))]
+        [ExcludeOpenApi(typeof(GXScript), nameof(GXScript.CreationTime), nameof(GXScript.Updated))]
         public IEnumerable<GXScript> Scripts { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update scripts reply.
-    /// </summary>
-    [Description("Update scripts reply.")]
+    /// <summary>Response to updating the specified scripts.</summary>
+    [Description("Response to updating the specified scripts.")]
     [DataContract]
     public class UpdateScriptResponse
     {
-        /// <summary>
-        /// Script identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated script records.</summary>
         [DataMember]
-        [Description("Script identifiers.")]
+        [Description("Identifiers of the added or updated script records.")]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Delete scripts.
-    /// </summary>
+    /// <summary>Requests deletion of the selected scripts.</summary>
+    [Description("Requests deletion of the selected scripts.")]
     [DataContract]
     public class RemoveScript : IGXRequest<RemoveScriptResponse>
     {
-        /// <summary>
-        /// Script identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the script records to delete.</summary>
+        [Description("Identifiers of the script records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Reply from Delete script.
-    /// </summary>
+    /// <summary>Response to deleting the selected scripts.</summary>
+    [Description("Response to deleting the selected scripts.")]
     [DataContract]
     public class RemoveScriptResponse
     {
@@ -244,76 +239,83 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Validate script.
     /// </summary>
+    [Description("Validate script.")]
     [DataContract]
     public class ValidateScript : IGXRequest<ValidateScriptResponse>
     {
         /// <summary>
         /// Validated string.
         /// </summary>
+        [Description("Validated string.")]
         public string Script { get; set; } = default!;
 
         /// <summary>
         /// Additional name spaces.
         /// </summary>
+        [Description("Additional name spaces.")]
         public string? NameSpaces { get; set; }
     }
 
-    /// <summary>
-    /// Reply from refresh scripts.
-    /// </summary>
+    /// <summary>Response containing the script validation result.</summary>
+    [Description("Response containing the script validation result.")]
     [DataContract]
     public class ValidateScriptResponse
     {
         /// <summary>
         /// Script errors in JSON, or null if there are no errors.
         /// </summary>
+        [Description("Script errors in JSON, or null if there are no errors.")]
         public string? Errors { get; set; }
 
         /// <summary>
         /// Compile time.
         /// </summary>
+        [Description("Compile time.")]
         public int CompileTime { get; set; }
     }
 
     /// <summary>
     /// Run the script.
     /// </summary>
+    [Description("Run the script.")]
     [DataContract]
     public class RunScript : IGXRequest<RunScriptResponse>
     {
-        /// <summary>
-        /// Script method ID.
-        /// </summary>
+        /// <summary>Script method identifier.</summary>
+        [Description("Script method identifier.")]
         public Guid MethodId { get; set; }
     }
 
     /// <summary>
     /// Run script reply.
     /// </summary>
+    [Description("Run script reply.")]
     [DataContract]
     public class RunScriptResponse
     {
         /// <summary>
         /// Result value.
         /// </summary>
+        [Description("Result value.")]
         public object? Result { get; set; }
     }
 
     /// <summary>
     /// Rebuild the scripts.
     /// </summary>
+    [Description("Rebuild the scripts.")]
     [DataContract]
     public class RebuildScript : IGXRequest<RebuildScriptResponse>
     {
-        /// <summary>
-        /// Rebuild script IDs.
-        /// </summary>
+        /// <summary>Rebuild script identifiers.</summary>
+        [Description("Rebuild script identifiers.")]
         public IEnumerable<Guid>? Scripts { get; set; }
     }
 
     /// <summary>
     /// Rebuild the scripts reply.
     /// </summary>
+    [Description("Rebuild the scripts reply.")]
     [DataContract]
     public class RebuildScriptResponse
     {

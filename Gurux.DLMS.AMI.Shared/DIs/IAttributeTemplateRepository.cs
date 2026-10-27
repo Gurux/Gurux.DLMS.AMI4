@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle attribute templates.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle attribute templates.")]
     public interface IAttributeTemplateRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Attribute templates.</returns>
+        [System.ComponentModel.Description("List attribute templates.")]
         Task<IEnumerable<GXAttributeTemplate>> ListAsync(
             ListAttributeTemplates? request = null,
             ListAttributeTemplatesResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Attribute template information.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read attribute template details.")]
         Task<GXAttributeTemplate> ReadAsync(Guid id, Expression<Func<GXAttributeTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,17 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="templates">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new attribute templates or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAttributeTemplate> templates,
             Expression<Func<GXAttributeTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete attribute template(s).
-        /// </summary>
+        /// <summary>Delete attribute templates.</summary>
         /// <param name="templates">AttributeTemplate(s) to delete.</param>
         /// <param name="delete">If true, attribute templates are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete attribute templates.")]
         Task DeleteAsync(IEnumerable<Guid> templates, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="templateId">Attribute template id.</param>
         /// <returns>Collection of User IDs.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this attribute template.")]
         Task<List<string>> GetUsersAsync(Guid? templateId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -96,6 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="templateIds">Attribute template ids.</param>
         /// <returns>Collection of User IDs.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access attribute templates.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? templateIds, CancellationToken cancellationToken = default);
     }
 }

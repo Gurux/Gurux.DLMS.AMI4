@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle workflows.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle workflows.")]
     public interface IWorkflowRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="includeActivity">If true, includes workflow activity details.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Workflows.</returns>
+        [System.ComponentModel.Description("List workflows.")]
         Task<IEnumerable<GXWorkflow>> ListAsync(
             ListWorkflows? request = null,
             ListWorkflowsResponse? response = null,
@@ -63,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read workflow.")]
         Task<GXWorkflow> ReadAsync(
             Guid id,
             bool includeScripts,
@@ -74,17 +77,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="workflows">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new workflows or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXWorkflow> workflows,
             Expression<Func<GXWorkflow, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete workflow(s).
-        /// </summary>
+        /// <summary>Delete workflows.</summary>
         /// <param name="workflows">Workflow(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete workflows.")]
         Task DeleteAsync(IEnumerable<Guid> workflows, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -96,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// If workflowId is null all the users who can access the workflow are returned.
         /// </remarks>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this workflow.")]
         Task<List<string>> GetUsersAsync(Guid? workflowId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -107,6 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// If workflowId is null all the users who can access the workflow are returned.
         /// </remarks>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access given workflows.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -114,6 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Workflow id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Run the workflow.")]
         Task RunAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

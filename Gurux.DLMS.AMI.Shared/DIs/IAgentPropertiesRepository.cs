@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle agent properties.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle agent properties.")]
     public interface IAgentPropertiesRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List agent properties.")]
         Task<IEnumerable<GXAgentProperty>> ListAsync(
             ListAgentProperties? request = null,
             ListAgentPropertiesResponse? response = null,
@@ -63,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="moduleId">Module Id.</param>
         /// <param name="agentId">Agent Id.</param>
         /// <returns>The matching property, or <see langword="null"/> if it does not exist.</returns>
+        [System.ComponentModel.Description("Read agent properties.")]
         Task<GXAgentProperty?> ReadAsync(string agentId, string name, string? moduleId = null, Expression<Func<GXAgentProperty, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -71,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="properties">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new agent properties or updates existing ones.")]
         Task UpsertAsync(
             IEnumerable<GXAgentProperty> properties,
             Expression<Func<GXAgentProperty, object>>? columns = null,
@@ -81,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="ids">Agent properties to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete agent properties.")]
         Task DeleteAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }
 }

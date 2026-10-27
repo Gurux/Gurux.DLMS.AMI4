@@ -34,61 +34,63 @@ using Gurux.Service.Orm.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get notification type.
-    /// </summary>
+    /// <summary>Response containing the requested notification type information.</summary>
+    [Description("Response containing the requested notification type information.")]
     public class GetNotificationTypeResponse
     {
         /// <summary>
         /// Notification type information.
         /// </summary>        
+        [Description("Notification type information.")]
         public GXNotificationType? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get list from notification types.
-    /// </summary>
+    /// <summary>Requests a list of notification types.</summary>
+    [Description("Requests a list of notification types.")]
     [DataContract]
     public class ListNotificationType : IGXRequest<ListNotificationTypeResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of notification types to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of notification types to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of notification types to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter notification types.
         /// </summary>
+        [Description("Optional criteria used to filter notification types.")]
+        [ExcludeOpenApi(typeof(GXNotificationType), nameof(GXNotificationType.ConcurrencyStamp))]
         public GXNotificationType? Filter { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -97,80 +99,77 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Notification type items reply.
-    /// </summary>
+    /// <summary>Response containing the requested notification types.</summary>
+    [Description("Response containing the requested notification types.")]
     [DataContract]
     public class ListNotificationTypeResponse
     {
         /// <summary>
         /// List of notification types.
         /// </summary>
+        [Description("List of notification types.")]
         [DataMember]
         public IEnumerable<GXNotificationType>? NotificationTypes { get; set; }
 
         /// <summary>
         /// Total number of matching notification types before paging.
         /// </summary>
+        [Description("Total number of matching notification types before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Update notification types.
-    /// </summary>
+    /// <summary>Requests changes to the specified notification types.</summary>
+    [Description("Requests changes to the specified notification types.")]
     [DataContract]
     public class UpdateNotificationType : IGXRequest<UpdateNotificationTypeResponse>
     {
         /// <summary>
         /// Notification types to update.
         /// </summary>
+        [Description("Notification types to update.")]
         [DataMember]
+        [ExcludeOpenApi(typeof(GXNotificationType), nameof(GXNotificationType.CreationTime), nameof(GXNotificationType.Updated))]
         public IEnumerable<GXNotificationType> NotificationTypes { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update notification types reply.
-    /// </summary>
+    /// <summary>Response to updating the specified notification types.</summary>
+    [Description("Response to updating the specified notification types.")]
     [DataContract]
     public class UpdateNotificationTypeResponse
     {
-        /// <summary>
-        /// Notification type identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated notification type records.</summary>
+        [Description("Identifiers of the added or updated notification type records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Remove notification types.
-    /// </summary>
+    /// <summary>Requests deletion of the selected notification types.</summary>
+    [Description("Requests deletion of the selected notification types.")]
     [DataContract]
     public class RemoveNotificationType : IGXRequest<RemoveNotificationTypeResponse>
     {
-        /// <summary>
-        /// IP address identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the notification type records to delete.</summary>
+        [Description("Identifiers of the notification type records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Reply from Remove notification types.
-    /// </summary>
+    /// <summary>Response to deleting the selected notification types.</summary>
+    [Description("Response to deleting the selected notification types.")]
     [DataContract]
     public class RemoveNotificationTypeResponse
     {

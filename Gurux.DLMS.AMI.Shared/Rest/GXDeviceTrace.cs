@@ -37,14 +37,14 @@ using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get device trace.
-    /// </summary>
+    /// <summary>Requests the specified device trace information.</summary>
+    [Description("Requests the specified device trace information.")]
     public class GetDeviceTrace
     {
         /// <summary>
         /// Device trace.
         /// </summary>
+        [Description("Device trace.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id)
@@ -52,17 +52,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public GXDeviceTrace? Item { get; set; }
     }
 
-    /// <summary>
-    /// Adds a new device trace.
-    /// </summary>
+    /// <summary>Requests the addition of device traces.</summary>
+    [Description("Requests the addition of device traces.")]
     [DataContract]
     public class AddDeviceTrace : IGXRequest<AddDeviceTraceResponse>
     {
         /// <summary>
         /// Added Device traces.
         /// </summary>
+        [Description("Added Device traces.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceTrace), nameof(GXDeviceTrace.CreationTime))]
         public IEnumerable<GXDeviceTrace> Traces { get; set; } = default!;
 
         /// <summary>
@@ -73,37 +74,39 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public string Type { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Add device trace response.
-    /// </summary>
+    /// <summary>Response to adding device traces.</summary>
+    [Description("Response to adding device traces.")]
     [DataContract]
     public class AddDeviceTraceResponse
     {
 
     }
 
-    /// <summary>
-    /// Get list from the device traces.
-    /// </summary>
+    /// <summary>Requests a list of device traces.</summary>
+    [Description("Requests a list of device traces.")]
     [DataContract]
     public class ListDeviceTrace : IGXRequest<ListDeviceTraceResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
         [DataMember]
-        public int Index { get; set; }
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
         /// <summary>
         /// Maximum device trace count to return.
         /// </summary>
         [DataMember]
-        public int Count { get; set; }
+        [DefaultValue(0)]
+        [Description("Maximum device trace count to return.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter device traces.
         /// </summary>
+        [Description("Optional criteria used to filter device traces.")]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceTrace), nameof(GXDeviceTrace.Frame))]
         public GXDeviceTrace? Filter { get; set; }
 
 
@@ -113,37 +116,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, traces from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access traces from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -152,18 +154,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// List device trace response.
-    /// </summary>
+    /// <summary>Response containing the requested device traces.</summary>
+    [Description("Response containing the requested device traces.")]
     [DataContract]
     public class ListDeviceTraceResponse
     {
         /// <summary>
         /// List of device traces.
         /// </summary>
+        [Description("List of device traces.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
         public IEnumerable<GXDeviceTrace> Traces { get; set; } = default!;
@@ -171,19 +174,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching trace items before paging.
         /// </summary>
+        [Description("Total number of matching trace items before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
     /// <summary>
     /// Clear device trace. All traces are removed from the given device.
     /// </summary>
+    [Description("Clear device trace. All traces are removed from the given device.")]
     [DataContract]
     public class ClearDeviceTrace : IGXRequest<ClearDeviceTraceResponse>
     {
         /// <summary>
         /// Device identifiers where device traces are removed.
         /// </summary>
+        [Description("Device identifiers where device traces are removed.")]
         [DataMember]
         public IEnumerable<Guid>? Ids { get; set; }
     }
@@ -191,6 +197,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Clear device trace response.
     /// </summary>
+    [Description("Clear device trace response.")]
     [DataContract]
     public class ClearDeviceTraceResponse
     {

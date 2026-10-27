@@ -38,29 +38,26 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
 {
     /// <summary>Associates a workflow with a workflow group.</summary>
+    [Description("Associates a workflow with a workflow group.")]
     [DataContract(Name = "GXWorkflowGroupWorkflow"), Serializable]
     [IndexCollection(true, nameof(WorkflowGroupId), nameof(WorkflowId), Clustered = true)]
     public class GXWorkflowGroupWorkflow
     {
-        /// <summary>
-        /// The database ID of the workflow group.
-        /// </summary>
+        /// <summary>The database identifier of the workflow group.</summary>
+        [Description("The database identifier of the workflow group.")]
         [DataMember(Name = "WorkflowGroupId")]
         [ForeignKey(typeof(GXWorkflowGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid WorkflowGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the workflow.
-        /// </summary>
+        /// <summary>The database identifier of the workflow.</summary>
+        [Description("The database identifier of the workflow.")]
         [DataMember(Name = "WorkflowID")]
         [ForeignKey(typeof(GXWorkflow), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid WorkflowId { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Time when the record was created.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -69,6 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Time when agent group was removed from user group.
         /// </summary>
+        [Description("Time when agent group was removed from user group.")]
         [DataMember]
         [Index(false)]
         [DefaultValue(null)]

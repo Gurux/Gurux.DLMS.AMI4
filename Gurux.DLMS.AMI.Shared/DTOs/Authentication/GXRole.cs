@@ -39,12 +39,14 @@ using System.Data;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A named authorization role with its claims and permissions.</summary>
+    [Description("A named authorization role with its claims and permissions.")]
     [DataContract(Name = "GXRole"), Serializable]
     public class GXRole : IUnique<string>
     {
         /// <summary>
         /// Role Identifier.
         /// </summary>
+        [Description("Role Identifier.")]
         [StringLength(36)]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
@@ -55,6 +57,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Name of the role.
         /// </summary>
+        [Description("Name of the role.")]
         [DataMember]
         [Index]
         [StringLength(256)]
@@ -65,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Normalized name.
         /// </summary>
+        [Description("Normalized name.")]
         [DataMember]
         [Index(Unique = true)]
         [StringLength(256)]
@@ -75,14 +79,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Is user added to this role when new user is created.
-        /// </summary>
+        /// <summary>Whether this is the default role.</summary>
+        [Description("Whether this is the default role.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -92,6 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Notify users when content associated with this role changes.
         /// </summary>
+        [Description("Notify users when content associated with this role changes.")]
         [DataMember]
         [DefaultValue(false)]
         [IsRequired]
@@ -100,6 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Role description.
         /// </summary>
+        [Description("Role description.")]
         [DataMember]
         public string? Description { get; set; }
 
@@ -111,6 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// including editing and deletion. System-defined entities are controlled
         /// by the application and are required for core functionality.
         /// </remarks>
+        [Description("Indicates whether the entity is defined and managed by the system.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -123,6 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <remarks>
         /// In filter if the removed time is set it will return values that are not null.
         /// </remarks>
+        [Description("Time when role was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -132,38 +140,38 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Role permissions.
         /// </summary>
+        [Description("Role permissions.")]
         [DataMember]
         [ForeignKey(typeof(GXPermission), typeof(GXRolePermission))]
         [Filter(FilterType.Contains)]
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXPermission>? Permissions { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXRole.</summary>
+        [Description("Initializes a new instance of GXRole.")]
         public GXRole()
         {
 
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXRole.</summary>
         /// <param name="name">Role name.</param>
+        [Description("Initializes a new instance of GXRole.")]
         public GXRole(string? name)
         {
             Name = name;
             NormalizedName = name?.ToUpperInvariant();
-            Permissions = new List<GXPermission>();
+            Permissions = [];
         }
 
         /// <summary>
         /// Make role clone.
         /// </summary>
         /// <returns></returns>
+        [Description("Make role clone.")]
         public GXRole Clone()
         {
-            GXRole item = new GXRole()
+            GXRole item = new()
             {
                 Id = Id,
                 Name = Name,
@@ -174,7 +182,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             };
             if (Permissions != null)
             {
-                item.Permissions = new List<GXPermission>();
+                item.Permissions = [];
                 foreach (var it in Permissions)
                 {
                     GXPermission s = it.Clone();
@@ -188,10 +196,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// Get list of role permissions.
         /// </summary>
         /// <returns></returns>
+        [Description("Get list of role permissions.")]
         public IEnumerable<string> GetPermissions()
         {
-            return (Permissions ?? []).Where(p => !string.IsNullOrWhiteSpace(p.Name))
-                .Select(p => p.Name!).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            return [.. (Permissions ?? []).Where(p => !string.IsNullOrWhiteSpace(p.Name))
+                .Select(p => p.Name!).Distinct(StringComparer.OrdinalIgnoreCase)];
         }
 
         /// <summary>
@@ -202,12 +211,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <param name="onlyDefault">Only default roles are returned.</param>
         /// <param name="unknownException">Throw exception if name is unknown.</param>
         /// <returns></returns>
+        [Description("Returns selected roles.")]
         public static IEnumerable<GXRole> GetRoles(IEnumerable<GXRole> roles,
             IEnumerable<string>? names,
             bool onlyDefault,
             bool unknownException)
         {
-            List<GXRole> list = new List<GXRole>();
+            List<GXRole> list = [];
             if (names != null)
             {
 
@@ -232,7 +242,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
                     }
                 }
             }
-            return list.ToArray();
+            return [.. list];
         }
 
         /// <summary>
@@ -242,11 +252,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <param name="names">Permission names.</param>
         /// <param name="unknownException">Throw exception if name is unknown.</param>
         /// <returns></returns>
+        [Description("Returns permissions from the roles.")]
         public static IEnumerable<GXPermission> GetPermissions(IEnumerable<GXRole> roles,
             IEnumerable<string>? names,
             bool unknownException)
         {
-            List<GXPermission> list = new List<GXPermission>();
+            List<GXPermission> list = [];
             if (names != null)
             {
                 foreach (var name in names)
@@ -278,7 +289,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
                     }
                 }
             }
-            return list.ToArray();
+            return [.. list];
         }
 
         /// <inheritdoc/>
@@ -286,7 +297,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         {
             if (!string.IsNullOrEmpty(Name))
             {
-                if (Permissions?.Any() == true)
+                if (Permissions is { Count: > 0 })
                 {
                     return Name + " [" + Permissions.Select(s => s.Name).Aggregate((current, next) => current + ", " + next) + "]";
                 }

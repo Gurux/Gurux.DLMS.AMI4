@@ -38,29 +38,27 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>A device model offered by a manufacturer.</summary>
+    [Description("A device model offered by a manufacturer.")]
     public class GXDeviceModel : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceModel.</summary>
+        [Description("Initializes a new instance of GXDeviceModel.")]
         public GXDeviceModel()
         {
 
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceModel.</summary>
         /// <param name="name">Model name.</param>
+        [Description("Initializes a new instance of GXDeviceModel.")]
         public GXDeviceModel(string? name)
         {
             Name = name;
-            Versions = new List<GXDeviceVersion>();
+            Versions = [];
         }
 
-        /// <summary>
-        /// Device type ID.
-        /// </summary>
+        /// <summary>Device type identifier.</summary>
+        [Description("Device type identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -69,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Manufacturer who owns this model.
         /// </summary>
+        [Description("Manufacturer who owns this model.")]
         [DefaultValue(null)]
         [ForeignKey(typeof(GXManufacturer), OnDelete = ForeignKeyDelete.Cascade)]
         public GXManufacturer? Manufacturer { get; set; }
@@ -76,6 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// List of device versions.
         /// </summary>
+        [Description("List of device versions.")]
         [DataMember]
         [ForeignKey(typeof(GXDeviceVersion))]
         [Filter(FilterType.Contains)]
@@ -84,6 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Device model name.
         /// </summary>
+        [Description("Device model name.")]
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
@@ -92,6 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Optional url where is more information from this model.
         /// </summary>
+        [Description("Optional url where is more information from this model.")]
         [StringLength(128)]
         [DefaultValue(null)]
         public string? Url { get; set; }
@@ -99,12 +101,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Device picture.
         /// </summary>
+        [Description("Device picture.")]
         [DefaultValue(null)]
         public string? Picture { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -114,21 +116,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Time when device type was removed.
         /// </summary>
+        [Description("Time when device type was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When the device type is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the device model was last updated.</summary>
+        [Description("Time when the device model was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -140,6 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

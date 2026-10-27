@@ -38,18 +38,21 @@ namespace Gurux.DLMS.AMI.Shared
     /// <summary>
     /// Defines hub callbacks used to broadcast server-side updates.
     /// </summary>
+    [System.ComponentModel.Description("Defines hub callbacks used to broadcast server-side updates.")]
     public interface IGXHubEvents
     {
         /// <summary>
         /// Notifies clients that one or more target entities were created or updated.
         /// </summary>
         /// <param name="items">Updated target entities.</param>
+        [System.ComponentModel.Description("Notifies clients that one or more target entities were created or updated.")]
         Task OnUpdate(IEnumerable<GXTarget> items);
 
         /// <summary>
         /// Notifies clients that one or more user stamps were created or updated.
         /// </summary>
         /// <param name="stamps">Updated user stamps.</param>
+        [System.ComponentModel.Description("Notifies clients that one or more user stamps were created or updated.")]
         Task StampUpdate(IEnumerable<GXUserStamp> stamps);
     }
 }

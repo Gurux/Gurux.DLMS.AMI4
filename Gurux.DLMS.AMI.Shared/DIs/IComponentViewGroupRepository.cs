@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle component view groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle component view groups.")]
     public interface IComponentViewGroupRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>User groups.</returns>
+        [System.ComponentModel.Description("List component view groups.")]
         Task<IEnumerable<GXComponentViewGroup>> ListAsync(
             ListComponentViewGroups? request = null,
             ListComponentViewGroupsResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read component view group details.")]
         Task<GXComponentViewGroup> ReadAsync(Guid id, Expression<Func<GXComponentViewGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,18 +72,18 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated component view groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new component view groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
 
             IEnumerable<GXComponentViewGroup> groups,
             Expression<Func<GXComponentViewGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete component view group(s).
-        /// </summary>
+        /// <summary>Delete component view groups.</summary>
         /// <param name="groups">Block component view to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete component view groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="componentViewId">Component view ID</param>
         /// <returns>List of component view groups.</returns>
+        [System.ComponentModel.Description("Returns component view groups list where component view belongs.")]
         Task<List<GXComponentViewGroup>> GetJoinedComponentViewGroups(Guid componentViewId);
 
         /// <summary>
@@ -96,6 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="componentViewGroupId">Component view group id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this component view group.")]
         Task<List<string>> GetUsersAsync(Guid? componentViewGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -104,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="componentViewGroupIds">Component view group ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access component view groups.")]
         Task<List<string>> GetUsersAsync(
             IEnumerable<Guid>? componentViewGroupIds, CancellationToken cancellationToken = default);
     }

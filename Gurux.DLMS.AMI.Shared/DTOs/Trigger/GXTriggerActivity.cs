@@ -38,6 +38,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
 {
     /// <summary>An activity configured to run when a trigger fires.</summary>
+    [Description("An activity configured to run when a trigger fires.")]
     public class GXTriggerActivity : GXTableBase, IUnique<Guid>
     {
         /// <summary>
@@ -52,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Trigger activity name.
         /// </summary>
+        [Description("Trigger activity name.")]
         [DataMember]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
@@ -61,25 +63,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Parent trigger.
         /// </summary>
+        [Description("Parent trigger.")]
         [ForeignKey(typeof(GXTrigger))]
         [Index(false)]
         public GXTrigger? Trigger { get; set; }
 
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
         [DataMember]
-        [Description("Creation time.")]
+        [Description("Time when the record was created.")]
         [DefaultValue(null)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When the Trigger is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the trigger activity was last updated.</summary>
+        [Description("Time when the trigger activity was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -87,6 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -98,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

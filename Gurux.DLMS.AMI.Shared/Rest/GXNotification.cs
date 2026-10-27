@@ -49,16 +49,18 @@ using Gurux.Service.Orm.Common;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
+using System.ComponentModel;
+
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get notification.
-    /// </summary>
+    /// <summary>Response containing the requested notification information.</summary>
+    [Description("Response containing the requested notification information.")]
     public class GetNotificationResponse
     {
         /// <summary>
         /// Device information.
         /// </summary>        
+        [Description("Device information.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
@@ -95,25 +97,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public GXNotification? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get list from notifications.
-    /// </summary>
+    /// <summary>Requests a list of notifications.</summary>
+    [Description("Requests a list of notifications.")]
     [DataContract]
     public class ListNotifications : IGXRequest<ListNotificationResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of notifications to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of notifications to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of notifications to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter notifications.
         /// </summary>
+        [Description("Optional criteria used to filter notifications.")]
         [ExcludeOpenApi(typeof(GXNotification),
             nameof(GXNotification.ScriptMethod))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
@@ -149,37 +151,38 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id), nameof(GXManufacturer.Name))]
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
         [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        [ExcludeOpenApi(typeof(GXNotification),
+            nameof(GXNotification.Description), nameof(GXNotification.MinimumDeliveryTime), nameof(GXNotification.TraceLevel),
+            nameof(GXNotification.ConcurrencyStamp))]
         public GXNotification? Filter { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -188,18 +191,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Notification items reply.
-    /// </summary>
+    /// <summary>Response containing the requested notifications.</summary>
+    [Description("Response containing the requested notifications.")]
     [DataContract]
     public class ListNotificationResponse
     {
         /// <summary>
         /// List of notification items.
         /// </summary>
+        [Description("List of notification items.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
@@ -239,27 +243,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching notificationrs before paging.
         /// </summary>
+        [Description("Total number of matching notificationrs before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Update notifications.
-    /// </summary>
+    /// <summary>Requests changes to the specified notifications.</summary>
+    [Description("Requests changes to the specified notifications.")]
     [DataContract]
     public class UpdateNotification : IGXRequest<UpdateNotificationResponse>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of UpdateNotification.</summary>
+        [Description("Initializes a new instance of UpdateNotification.")]
         public UpdateNotification()
         {
-            Notifications = new List<GXNotification>();
+            Notifications = [];
         }
 
         /// <summary>
         /// Notifications to update.
         /// </summary>
+        [Description("Notifications to update.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
@@ -295,48 +299,44 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
         [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
 
+        [ExcludeOpenApi(typeof(GXNotificationType), nameof(GXNotificationType.CreationTime), nameof(GXNotificationType.Updated))]
+        [ExcludeOpenApi(typeof(GXNotification), nameof(GXNotification.CreationTime), nameof(GXNotification.Updated))]
         public List<GXNotification> Notifications { get; set; }
     }
 
-    /// <summary>
-    /// Update notifications reply.
-    /// </summary>
+    /// <summary>Response to updating the specified notifications.</summary>
+    [Description("Response to updating the specified notifications.")]
     [DataContract]
     public class UpdateNotificationResponse
     {
-        /// <summary>
-        /// Notification identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated notification records.</summary>
+        [Description("Identifiers of the added or updated notification records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Delete notifications.
-    /// </summary>
+    /// <summary>Requests deletion of the selected notifications.</summary>
+    [Description("Requests deletion of the selected notifications.")]
     [DataContract]
     public class RemoveNotification : IGXRequest<RemoveNotificationResponse>
     {
-        /// <summary>
-        /// Notification identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the notification records to delete.</summary>
+        [Description("Identifiers of the notification records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Reply from Delete notification.
-    /// </summary>
+    /// <summary>Response to deleting the selected notifications.</summary>
+    [Description("Response to deleting the selected notifications.")]
     [DataContract]
     public class RemoveNotificationResponse
     {
@@ -345,12 +345,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Refresh user notifications.
     /// </summary>
+    [Description("Refresh user notifications.")]
     [DataContract]
     public class RefreshNotification : IGXRequest<RefreshNotificationResponse>
     {
         /// <summary>
         /// User for whom the notifications are being refreshed.
         /// </summary>
+        [Description("User for whom the notifications are being refreshed.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUser? User { get; set; }
@@ -358,6 +360,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// If true, existing notifications are removed.
         /// </summary>
+        [Description("If true, existing notifications are removed.")]
         [DataMember]
         public bool Delete { get; set; }
     }
@@ -365,12 +368,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Refresh user notifications response.
     /// </summary>
+    [Description("Refresh user notifications response.")]
     [DataContract]
     public class RefreshNotificationResponse
     {
         /// <summary>
         /// Notification identifiers.
         /// </summary>
+        [Description("Notification identifiers.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }

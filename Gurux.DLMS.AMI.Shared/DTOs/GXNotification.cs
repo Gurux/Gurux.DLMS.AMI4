@@ -32,11 +32,13 @@
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A lightweight description of a resource update delivered to connected clients.</summary>
+    [System.ComponentModel.Description("A lightweight description of a resource update delivered to connected clients.")]
     public class GXTarget
     {
         /// <summary>
         /// Initializes a new instance of the GXTarget class.
         /// </summary>
+        [System.ComponentModel.Description("Initializes a new instance of the GXTarget class.")]
         public GXTarget()
         {
         }
@@ -48,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <param name="id">The identifier of the target.</param>
         /// <param name="name">The name of the target.</param>
         /// <param name="description">The description of the target.</param>
+        [System.ComponentModel.Description("Initializes a new instance of the GXTarget class.")]
         public GXTarget(string type, string? id = default, string? name = default, string? description = default)
         {
             Type = type;
@@ -64,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <param name="id">The identifier of the target.</param>
         /// <param name="name">The name of the target.</param>
         /// <param name="description">The description of the target.</param>
+        [System.ComponentModel.Description("Initializes a new instance of the GXTarget class.")]
         public GXTarget(string type, Guid id, string? name = default, string? description = default)
         {
             Type = type;
@@ -74,33 +78,43 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Resource type and update action, for example <c>system-log.clear</c>.</summary>
+        [System.ComponentModel.Description("Resource type and update action, for example system-log.clear.")]
         public string Type { get; set; } = default!;
 
         /// <summary>Originating resource or module identifier, used to filter update notifications.</summary>
+        [System.ComponentModel.Description("Originating resource or module identifier, used to filter update notifications.")]
         public string? Source { get; set; }
 
         /// <summary>Identifier of the affected item; may be absent for notifications concerning an entire source.</summary>
+        [System.ComponentModel.Description("Identifier of the affected item; may be absent for notifications concerning an entire source.")]
         public string? Id { get; set; }
 
         /// <summary>Optional saved row version; an opaque equality token, not a notification sequence number.</summary>
+        [System.ComponentModel.Description("Optional saved row version; an opaque equality token, not a notification sequence number.")]
         public string? ConcurrencyStamp { get; set; }
 
         /// <summary>Optional display name of the affected item.</summary>
+        [System.ComponentModel.Description("Optional display name of the affected item.")]
         public string? Name { get; set; }
 
         /// <summary>Human-readable notification title supplied by the server.</summary>
+        [System.ComponentModel.Description("Human-readable notification title supplied by the server.")]
         public string? Title { get; set; }
 
         /// <summary>Optional human-readable description of the update.</summary>
+        [System.ComponentModel.Description("Optional human-readable description of the update.")]
         public string? Description { get; set; }
 
         /// <summary>Time associated with the notification; initialized to the current time by the parameterized constructors.</summary>
+        [System.ComponentModel.Description("Time associated with the notification; initialized to the current time by the parameterized constructors.")]
         public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>Optional severity level associated with the update.</summary>
+        [System.ComponentModel.Description("Optional severity level associated with the update.")]
         public int? Level { get; set; }
 
         /// <summary>Optional serialized settings or additional data supplied by the notification producer.</summary>
+        [System.ComponentModel.Description("Optional serialized settings or additional data supplied by the notification producer.")]
         public string? Settings { get; set; }
 
         /// <inheritdoc />

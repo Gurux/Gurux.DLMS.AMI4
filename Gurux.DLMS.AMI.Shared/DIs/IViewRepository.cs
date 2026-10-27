@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle Views.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle Views.")]
     public interface IViewRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List Views.")]
         Task<IEnumerable<GXView>> ListAsync(
             ListViews? request = null,
             ListViewsResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read View.")]
         Task<GXView> ReadAsync(Guid id, Expression<Func<GXView, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read View by name.")]
         Task<GXView> ReadAsync(string id, Expression<Func<GXView, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -78,17 +82,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Newly inserted view IDs. Updates, resets and no-ops do not add IDs.</returns>
+        [System.ComponentModel.Description("Inserts new views or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXView> Views,
             Expression<Func<GXView, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete View(s).
-        /// </summary>
+        /// <summary>Delete Views.</summary>
         /// <param name="Views">View(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete Views.")]
         Task DeleteAsync(IEnumerable<Guid> Views, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -97,6 +101,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="ViewId">View id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this View.")]
         Task<List<string>> GetUsersAsync(Guid? ViewId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -105,16 +110,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="ViewIds">View ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access Views.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? ViewIds, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Restore code-defined table defaults by removing stored view overrides.
-        /// </summary>
-        /// <param name="Views">Null or empty deletes all stored views and associated override data.
-        /// Otherwise deletes only selected existing built-in view overrides and their group links.
-        /// View groups and their user memberships are preserved. Missing views and views without a built-in
-        /// default definition are rejected before any changes are made.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task RegenerateAsync(IEnumerable<Guid>? Views, CancellationToken cancellationToken = default);
+        /// <summary>Ensure component-defined defaults remain available without changing persisted overrides.
+        /// Built-in views use virtual defaults and require no database rows.</summary>
+        [System.ComponentModel.Description("Ensure component-defined defaults remain available without changing persisted overrides. Built-in views use virtual defaults and require no database rows.")]
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>Reset selected existing built-in resources in place, preserving identity and references.
+        /// The selection must be nonempty and every target must be valid before any writes.</summary>
+        [System.ComponentModel.Description("Reset selected existing built-in resources in place, preserving identity and references. The selection must be nonempty and every target must be valid before any writes.")]
+        Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }
 }

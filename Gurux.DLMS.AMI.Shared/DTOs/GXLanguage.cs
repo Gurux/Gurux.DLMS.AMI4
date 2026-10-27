@@ -37,11 +37,13 @@ using System.ComponentModel.DataAnnotations;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>A supported language and its localization settings.</summary>
+    [Description("A supported language and its localization settings.")]
     public class GXLanguage : IUnique<string>
     {
         /// <summary>
         /// Language name is the identifier.
         /// </summary>
+        [Description("Language name is the identifier.")]
         [StringLength(5)]
         [Filter(FilterType.Exact)]
         public string Id { get; set; }
@@ -49,26 +51,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Language English name.
         /// </summary>
+        [Description("Language English name.")]
         [StringLength(30)]
         public string EnglishName { get; set; }
 
         /// <summary>
         /// Native name.
         /// </summary>
+        [Description("Native name.")]
         [StringLength(30)]
         public string NativeName { get; set; }
 
-        /// <summary>
-        /// Is the language actived.
-        /// </summary>
+        /// <summary>Whether the language is enabled.</summary>
+        [Description("Whether the language is enabled.")]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? Enabled { get; set; }
 
-        /// <summary>
-        /// Is this the default language.
-        /// </summary>
+        /// <summary>Whether this is the default language.</summary>
+        [Description("Whether this is the default language.")]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -77,11 +79,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Localized strings.
         /// </summary>
+        [Description("Localized strings.")]
         public IEnumerable<GXLocalizedResource>? Resources { get; set; }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXLanguage.</summary>
+        [Description("Initializes a new instance of GXLanguage.")]
         public GXLanguage()
         {
             Id = "";

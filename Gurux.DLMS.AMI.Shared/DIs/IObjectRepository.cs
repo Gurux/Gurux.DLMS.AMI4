@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle object.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle object.")]
     public interface IObjectRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List objects.")]
         Task<IEnumerable<GXObject>> ListAsync(
             ListObjects? request = null,
             ListObjectsResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Object information.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read object details.")]
         Task<GXObject> ReadAsync(Guid id, Expression<Func<GXObject, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,17 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="objects">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new objects or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXObject> objects,
             Expression<Func<GXObject, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete object(s).
-        /// </summary>
+        /// <summary>Delete objects.</summary>
         /// <param name="objects">Object(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete objects.")]
         Task DeleteAsync(IEnumerable<Guid> objects, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -87,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="objectId">Object id.</param>
         /// <returns>Collection of User IDs.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this object.")]
         Task<List<string>> GetUsersAsync(Guid? objectId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -95,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="objectIds">Object ids.</param>
         /// <returns>Collection of User IDs.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access objects.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds, CancellationToken cancellationToken = default);
     }
 }

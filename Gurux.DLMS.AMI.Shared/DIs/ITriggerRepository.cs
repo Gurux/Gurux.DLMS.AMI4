@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle triggers.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle triggers.")]
     public interface ITriggerRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List triggers.")]
         Task<IEnumerable<GXTrigger>> ListAsync(
             ListTriggers? request = null,
             ListTriggersResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read trigger.")]
         Task<GXTrigger> ReadAsync(Guid id, Expression<Func<GXTrigger, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,17 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="triggers">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new triggers or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXTrigger> triggers,
             Expression<Func<GXTrigger, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete trigger(s).
-        /// </summary>
+        /// <summary>Delete triggers.</summary>
         /// <param name="triggers">Trigger(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete triggers.")]
         Task DeleteAsync(IEnumerable<Guid> triggers, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="triggerId">Trigger id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this trigger.")]
         Task<List<string>> GetUsersAsync(Guid? triggerId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -96,13 +100,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="Ids">Trigger ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access triggers.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Refresh triggers(s).
-        /// </summary>
+        /// <summary>Refresh triggerss.</summary>
         /// <returns>True, if there are new triggers.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Refresh triggerss.")]
         Task<bool> RefrestAsync(CancellationToken cancellationToken = default);
     }
 }

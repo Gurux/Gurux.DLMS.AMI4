@@ -37,22 +37,21 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>Associates a device template with a device template group.</summary>
+    [Description("Associates a device template with a device template group.")]
     [DataContract(Name = "GXDeviceTemplateGroupDeviceTemplate"), Serializable]
     [IndexCollection(true, nameof(DeviceTemplateGroupId), nameof(DeviceTemplateId), Clustered = true)]
     public class GXDeviceTemplateGroupDeviceTemplate : GXTableBase
     {
-        /// <summary>
-        /// The database ID of the Schedule group.
-        /// </summary>
+        /// <summary>The database identifier of the Schedule group.</summary>
+        [Description("The database identifier of the Schedule group.")]
         [DataMember(Name = "DeviceTemplateGroupId")]
         [ForeignKey(typeof(GXDeviceTemplateGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         //ForeignKeyDelete is None because creator of the device template is causing multiple cascade paths error in MSSQL.
         public Guid DeviceTemplateGroupId { get; set; }
 
-        /// <summary>
-        /// The database ID of the schedule.
-        /// </summary>
+        /// <summary>The database identifier of the schedule.</summary>
+        [Description("The database identifier of the schedule.")]
         [DataMember(Name = "DeviceTemplateId")]
         [ForeignKey(typeof(GXDeviceTemplate), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -62,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Creation time.
         /// The time when the device template was added to the device template group.
         /// </summary>
+        [Description("Creation time. The time when the device template was added to the device template group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -71,15 +71,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Time when device template was removed from device template group.
         /// </summary>
+        [Description("Time when device template was removed from device template group.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// Update Creation time.
-        /// </summary>
+        /// <summary>Initializes the creation timestamp before insertion.</summary>
+        [Description("Initializes the creation timestamp before insertion.")]
         public override void BeforeAdd()
         {
             CreationTime = DateTime.Now;

@@ -39,34 +39,33 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>A saved set of device settings associated with a device model version.</summary>
+    [Description("A saved set of device settings associated with a device model version.")]
     public class GXDeviceSettings : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceSettings.</summary>
+        [Description("Initializes a new instance of GXDeviceSettings.")]
         public GXDeviceSettings()
         {
 
         }
 
-        /// <summary>
-        /// Constructor
-        /// </summary>
+        /// <summary>Initializes a new instance of GXDeviceSettings.</summary>
         /// <param name="name">Settings name.</param>
+        [Description("Initializes a new instance of GXDeviceSettings.")]
         public GXDeviceSettings(string? name)
         {
             Name = name;
         }
 
-        /// <summary>
-        /// Device settings ID.
-        /// </summary>
+        /// <summary>Device settings identifier.</summary>
+        [Description("Device settings identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
-        /// <summary>Stable identity in the DeviceProfiles index; distinct from the database ID.</summary>
+        /// <summary>Stable identity in the DeviceProfiles index; distinct from the database identifier.</summary>
+        [Description("Stable identity in the DeviceProfiles index; distinct from the database identifier.")]
         [DataMember]
         [StringLength(1024)]
         public string? ProfileId { get; set; }
@@ -74,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Settings version.
         /// </summary>
+        [Description("Settings version.")]
         [DefaultValue(null)]
         [ForeignKey(typeof(GXDeviceVersion), OnDelete = ForeignKeyDelete.Cascade)]
         public GXDeviceVersion? Version { get; set; }
@@ -81,6 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Name of the model version settings.
         /// </summary>
+        [Description("Name of the model version settings.")]
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
@@ -89,13 +90,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Device settings as JSON.
         /// </summary>
+        [Description("Device settings as JSON.")]
         [DataMember]
         [DefaultValue(null)]
         public string? Settings { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -105,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Installation time.
         /// </summary>
+        [Description("Installation time.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? InstallationTime { get; set; }
@@ -112,12 +114,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Device Template location.
         /// </summary>
+        [Description("Device Template location.")]
         [DataMember]
         public string? Location { get; set; }
 
         /// <summary>
         /// Installed device template.
         /// </summary>
+        [Description("Installed device template.")]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DataMember]
@@ -126,21 +130,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Time when device type was removed.
         /// </summary>
+        [Description("Time when device type was removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
         public DateTimeOffset? Removed { get; set; }
 
-        /// <summary>
-        /// When the device type is updated for the last time.
-        /// </summary>
+        /// <summary>Time when the device settings was last updated.</summary>
+        [Description("Time when the device settings was last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -152,6 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

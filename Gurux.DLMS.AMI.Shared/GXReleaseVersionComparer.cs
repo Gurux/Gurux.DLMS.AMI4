@@ -35,17 +35,20 @@ using System.Text.RegularExpressions;
 namespace Gurux.DLMS.AMI.Shared;
 
 /// <summary>Normalizes and compares release versions, including prerelease identifiers and optional fourth version components.</summary>
-public sealed class GXReleaseVersionComparer : IComparer<string?>
+[System.ComponentModel.Description("Normalizes and compares release versions, including prerelease identifiers and optional fourth version components.")]
+public sealed partial class GXReleaseVersionComparer : IComparer<string?>
 {
     /// <summary>Gets the shared release version comparer.</summary>
+    [System.ComponentModel.Description("Gets the shared release version comparer.")]
     public static GXReleaseVersionComparer Instance { get; } = new();
 
-    static readonly Regex Pattern = new(@"^[vV]?(?<core>\d+(?:\.\d+){1,3})(?:-(?<pre>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$", RegexOptions.CultureInvariant);
+    static readonly Regex Pattern = MyRegex();
 
     /// <summary>Attempts to normalize a release version, padding missing core components and preserving prerelease and build metadata.</summary>
     /// <param name="value">Version text, optionally prefixed by v or V.</param>
     /// <param name="normalized">Normalized version text, or an empty string if validation fails.</param>
     /// <returns>True if the value is a supported release version; otherwise false.</returns>
+    [System.ComponentModel.Description("Attempts to normalize a release version, padding missing core components and preserving prerelease and build metadata.")]
     public static bool TryNormalize(string? value, out string normalized)
     {
         normalized = "";
@@ -92,12 +95,14 @@ public sealed class GXReleaseVersionComparer : IComparer<string?>
     /// <summary>Determines whether the version is valid and includes a prerelease identifier.</summary>
     /// <param name="value">Version text to validate and inspect.</param>
     /// <returns>True if the version is valid and has a prerelease component.</returns>
+    [System.ComponentModel.Description("Determines whether the version is valid and includes a prerelease identifier.")]
     public static bool IsPrerelease(string value) => TryNormalize(value, out var n) && n.Split('+')[0].Contains('-');
 
     /// <summary>Compares release versions, ignoring build metadata and sorting invalid versions before valid versions.</summary>
     /// <param name="left">First version to compare.</param>
     /// <param name="right">Second version to compare.</param>
     /// <returns>A negative value, zero, or a positive value when the first version precedes, equals, or follows the second.</returns>
+    [System.ComponentModel.Description("Compares release versions, ignoring build metadata and sorting invalid versions before valid versions.")]
     public int Compare(string? left, string? right)
     {
         if (!TryNormalize(left, out var a))
@@ -147,4 +152,7 @@ public sealed class GXReleaseVersionComparer : IComparer<string?>
         }
         return aa.Length.CompareTo(ba.Length);
     }
+
+    [GeneratedRegex(@"^[vV]?(?<core>\d+(?:\.\d+){1,3})(?:-(?<pre>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$", RegexOptions.CultureInvariant)]
+    private static partial Regex MyRegex();
 }

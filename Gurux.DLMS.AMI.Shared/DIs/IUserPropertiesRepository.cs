@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle user properties.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle user properties.")]
     public interface IUserPropertiesRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List user properties.")]
         Task<IEnumerable<GXUserProperty>> ListAsync(
             ListUserProperties? request = null,
             ListUserPropertiesResponse? response = null,
@@ -61,7 +63,9 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>User property.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="userId">Property owner; defaults to the current user. Another owner requires administrator access.</param>
-        Task<GXUserProperty> ReadAsync(string name, Expression<Func<GXUserProperty, object>>? columns = null, CancellationToken cancellationToken = default, string? userId = null);
+        [System.ComponentModel.Description("Read user properties.")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068", Justification = "Preserves the existing public repository signature and positional callers.")]
+        Task<GXUserProperty?> ReadAsync(string name, Expression<Func<GXUserProperty, object>>? columns = null, CancellationToken cancellationToken = default, string? userId = null);
 
         /// <summary>
         /// Inserts new user properties or updates existing ones.
@@ -69,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="settings">The user properties to insert or update, matched by owner and name. Module-owned properties must be saved through the module interface.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new user properties or updates existing ones.")]
         Task UpsertAsync(
             IEnumerable<GXUserProperty> settings,
             Expression<Func<GXUserProperty, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -78,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="ids">User settings to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete user settings.")]
         Task DeleteAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }
 }

@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle user stamps.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle user stamps.")]
     public interface IUserStampRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List user stamps.")]
         Task<IEnumerable<GXUserStamp>> ListAsync(
             ListUserStamps? request = null,
             ListUserStampsResponse? response = null,
@@ -58,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="userStamps">User stamps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete user stamps.")]
         Task DeleteAsync(IEnumerable<Guid> userStamps, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -65,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="userStamps">The user stamps to insert or refresh, matched by target type for the current user.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new user stamps or refreshes existing stamps for the current user.")]
         Task UpsertAsync(IEnumerable<GXUserStamp> userStamps, CancellationToken cancellationToken = default);
     }
 }

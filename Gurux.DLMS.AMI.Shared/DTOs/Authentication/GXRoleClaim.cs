@@ -37,20 +37,19 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
     /// <summary>A claim assigned to an authorization role.</summary>
+    [System.ComponentModel.Description("A claim assigned to an authorization role.")]
     [DataContract(Name = "GXRoleClaim"), Serializable]
     public class GXRoleClaim : IUnique<int>
     {
-        /// <summary>
-        ///Identifier.
-        /// </summary>
+        /// <summary>Unique identifier of the role claim.</summary>
+        [System.ComponentModel.Description("Unique identifier of the role claim.")]
         [Key]
         [DataMember(Name = "ID"), Index]
         [AutoIncrement]
         public int Id { get; set; }
 
-        /// <summary>
-        /// Role ID.
-        /// </summary>
+        /// <summary>Role identifier.</summary>
+        [System.ComponentModel.Description("Role identifier.")]
         [DataMember]
         [StringLength(36)]
         [Index(Unique = false)]
@@ -61,12 +60,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Claim type.
         /// </summary>
+        [System.ComponentModel.Description("Claim type.")]
         [DataMember]
         public string? ClaimType { get; set; }
 
         /// <summary>
         /// Claim value.
         /// </summary>
+        [System.ComponentModel.Description("Claim value.")]
         [DataMember]
         public string? ClaimValue { get; set; }
     }

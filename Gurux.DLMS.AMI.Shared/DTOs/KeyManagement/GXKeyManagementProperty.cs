@@ -41,6 +41,7 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
     /// <summary>A key management's saved value for a named application setting.</summary>
+    [Description("A key management's saved value for a named application setting.")]
     [DataContract(Name = nameof(GXKeyManagementProperty)), Serializable]
     [IndexCollection(true, nameof(KeyManagement), nameof(Module), nameof(Name))]
     public class GXKeyManagementProperty : IUnique<Guid>, IGXProperty
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// Key management property identifier.
         /// </summary>
+        [Description("Key management property identifier.")]
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -56,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// Key management property name.
         /// </summary>
+        [Description("Key management property name.")]
         [DataMember]
         [StringLength(64)]
         [IsRequired]
@@ -64,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// Property owner.
         /// </summary>
+        [Description("Property owner.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -74,29 +78,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// Settings module.
         /// </summary>
+        [Description("Settings module.")]
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        // Module properties are deleted explicitly when a module is removed to avoid multiple
+        // SQL Server cascade paths through key management ownership and the module creator.
         [Filter(FilterType.Exact)]
         public GXModule? Module { get; set; }
 
         /// <summary>
         /// Key management property value.
         /// </summary>
+        [Description("Key management property value.")]
         [DataMember]
         public string? Value { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When the key management property was last updated.
-        /// </summary>
+        /// <summary>Time when the key management property was last updated.</summary>
+        [Description("Time when the key management property was last updated.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -105,6 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]

@@ -39,43 +39,44 @@ using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get component view.
-    /// </summary>
+    /// <summary>Response containing the requested component view information.</summary>
+    [Description("Response containing the requested component view information.")]
     public class GetComponentViewResponse
     {
         /// <summary>
         /// Component view information.
         /// </summary>
+        [Description("Component view information.")]
         [IncludeOpenApi(typeof(GXComponentViewGroup),
             nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
         public GXComponentView? Item { get; set; }
     }
-    /// <summary>
-    /// Get list from component views.
-    /// </summary>
+    /// <summary>Requests a list of component views.</summary>
+    [Description("Requests a list of component views.")]
     [DataContract]
     public class ListComponentViews : IGXRequest<ListComponentViewsResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of component views to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of component views to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of component views to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter component views.
         /// </summary>
+        [Description("Optional criteria used to filter component views.")]
         [ExcludeOpenApi(typeof(GXComponentView),
             nameof(GXComponentView.ComponentViewGroups),
             nameof(GXComponentView.Icon))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.ClassName), nameof(GXComponentView.ConfigurationUI))]
         public GXComponentView? Filter { get; set; }
 
         /// <summary>
@@ -84,37 +85,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, component views from all users are retrieved, not just current user.
         /// </remarks>
+        [Description("Admin user can access component views from all users.")]
         public bool AllUsers { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -123,18 +123,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// List ComponentView items reply.
-    /// </summary>
+    /// <summary>Response containing the requested component views.</summary>
+    [Description("Response containing the requested component views.")]
     [DataContract]
     public class ListComponentViewsResponse
     {
         /// <summary>
         /// List of component view items.
         /// </summary>
+        [Description("List of component view items.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXComponentViewGroup),
             nameof(GXComponentViewGroup.ComponentViews),
@@ -145,65 +146,61 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching component viewrs before paging.
         /// </summary>
+        [Description("Total number of matching component viewrs before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Update component views.
-    /// </summary>
+    /// <summary>Requests changes to the specified component views.</summary>
+    [Description("Requests changes to the specified component views.")]
     [DataContract]
     public class UpdateComponentView : IGXRequest<UpdateComponentViewResponse>
     {
         /// <summary>
         /// ComponentViews to update.
         /// </summary>
+        [Description("ComponentViews to update.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXComponentViewGroup),
             nameof(GXComponentViewGroup.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.CreationTime), nameof(GXComponentView.Updated))]
         public IEnumerable<GXComponentView> ComponentViews { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Update component views reply.
-    /// </summary>
+    /// <summary>Response to updating the specified component views.</summary>
+    [Description("Response to updating the specified component views.")]
     [DataContract]
     public class UpdateComponentViewResponse
     {
-        /// <summary>
-        /// Component view identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the added or updated component view records.</summary>
+        [Description("Identifiers of the added or updated component view records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Delete component views.
-    /// </summary>
+    /// <summary>Requests deletion of the selected component views.</summary>
+    [Description("Requests deletion of the selected component views.")]
     [DataContract]
     public class RemoveComponentView : IGXRequest<RemoveComponentViewResponse>
     {
-        /// <summary>
-        /// Component view identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the component view records to delete.</summary>
+        [Description("Identifiers of the component view records to delete.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Reply from Delete component view.
-    /// </summary>
+    /// <summary>Response to deleting the selected component views.</summary>
+    [Description("Response to deleting the selected component views.")]
     [DataContract]
     public class RemoveComponentViewResponse
     {
@@ -213,6 +210,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Refresh component views.
     /// </summary>
+    [Description("Refresh component views.")]
     [DataContract]
     public class RefreshComponentView : IGXRequest<RefreshComponentViewResponse>
     {
@@ -221,12 +219,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Reply from Refresh component views.
     /// </summary>
+    [Description("Reply from Refresh component views.")]
     [DataContract]
     public class RefreshComponentViewResponse
     {
         /// <summary>
         /// True, if there are new component views avialable.
         /// </summary>
+        [Description("True, if there are new component views avialable.")]
         public bool NewItems { get; set; }
     }
 }

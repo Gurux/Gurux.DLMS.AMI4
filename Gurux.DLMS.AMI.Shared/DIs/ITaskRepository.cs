@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle tasks.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle tasks.")]
     public interface ITaskRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List tasks.")]
         Task<IEnumerable<GXTask>> ListAsync(
             ListTasks? request = null,
             ListTasksResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read task details.")]
         Task<GXTask> ReadAsync(Guid id, Expression<Func<GXTask, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,27 +71,25 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="tasks">Updated task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Add new tasks.")]
         Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken);
 
-        /// <summary>
-        /// Delete task(s).
-        /// </summary>
+        /// <summary>Delete tasks.</summary>
         /// <param name="tasks">Deleted task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete tasks.")]
         Task DeleteAsync(IEnumerable<Guid> tasks, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Mark task(s) to complete.
-        /// </summary>
+        /// <summary>Mark tasks to complete.</summary>
         /// <param name="tasks">Completed task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Mark tasks to complete.")]
         Task DoneAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Restart task(s).
-        /// </summary>
+        /// <summary>Restart tasks.</summary>
         /// <param name="tasks">Restarted task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Restart tasks.")]
         Task RestartAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -101,6 +102,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="listener">Is agent in listener mode.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Collections of tasks to execute.</returns>
+        [System.ComponentModel.Description("Claim all pending tasks for one idle meter, preferring mapped meters before the oldest unmapped meter.")]
         Task<IEnumerable<GXTask>> GetNextAsync(
             string? connectionInfo,
             Guid agentId,
@@ -112,6 +114,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Clear tasks.
         /// <param name="cancellationToken">The cancellation token.</param>
         /// </summary>
+        [System.ComponentModel.Description("Clear tasks. The cancellation token.")]
         Task ClearAsync(CancellationToken cancellationToken = default);
     }
 }

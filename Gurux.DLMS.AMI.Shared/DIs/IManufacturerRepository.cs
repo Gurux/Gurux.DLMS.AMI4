@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle manufacturers.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle manufacturers.")]
     public interface IManufacturerRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List manufacturers.")]
         Task<IEnumerable<GXManufacturer>> ListAsync(
             ListManufacturers? request = null,
             ListManufacturersResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read manufacturer.")]
         Task<GXManufacturer> ReadAsync(Guid id, Expression<Func<GXManufacturer, object>>? columns = null,
             CancellationToken cancellationToken = default);
 
@@ -70,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="id">Manufacturer id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read manufacturer model details.")]
         Task<GXDeviceModel> ReadModelAsync(Guid id, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -78,6 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="id">Manufacturer id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read model version details.")]
         Task<GXDeviceVersion> ReadVersionAsync(Guid id, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -86,17 +91,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="manufacturers">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new manufacturers or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXManufacturer> manufacturers,
             Expression<Func<GXManufacturer, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete manufacturer(s).
-        /// </summary>
+        /// <summary>Delete manufacturers.</summary>
         /// <param name="manufacturers">Manufacturer(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete manufacturers.")]
         Task DeleteAsync(IEnumerable<Guid> manufacturers, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -105,6 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="manufacturerId">Manufacturer id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this manufacturer.")]
         Task<List<string>> GetUsersAsync(Guid? manufacturerId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -113,6 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="manufacturerIds">Manufacturer ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access manufacturers.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerIds, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -123,6 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="versions">List of installed versions.</param>
         /// <param name="settings">List of installed settings.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Install device templates for the manufacturers.")]
         Task InstallAsync(
             IEnumerable<GXManufacturer>? manufacturers,
             IEnumerable<GXDeviceModel>? models,

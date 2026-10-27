@@ -1,4 +1,4 @@
-//
+﻿//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -37,73 +37,73 @@ using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get configuration.
-    /// </summary>
+    /// <summary>Response containing the requested configuration information.</summary>
+    [Description("Response containing the requested configuration information.")]
     public class GetConfigurationResponse
     {
         /// <summary>
         /// Configuration information.
         /// </summary>        
+        [Description("Configuration information.")]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [ExcludeOpenApi(typeof(GXLocalizedResource),
             nameof(GXLocalizedResource.Language))]
         public GXConfiguration? Item { get; set; }
     }
 
-    /// <summary>
-    /// Get site information.
-    /// </summary>
+    /// <summary>Requests a list of configurations.</summary>
+    [Description("Requests a list of configurations.")]
     [DataContract]
     public class ListConfiguration : IGXRequest<ListConfigurationResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of configuration items to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of configuration items to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of configuration items to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter system info.
         /// </summary>
+        [Description("Optional criteria used to filter system info.")]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [ExcludeOpenApi(typeof(GXLocalizedResource),
              nameof(GXLocalizedResource.Language))]
+        [ExcludeOpenApi(typeof(GXConfiguration),
+            nameof(GXConfiguration.Settings), nameof(GXConfiguration.Enabled), nameof(GXConfiguration.ConcurrencyStamp))]
         public GXConfiguration? Filter { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -112,18 +112,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Get site information reply.
-    /// </summary>
+    /// <summary>Response containing the requested configurations.</summary>
+    [Description("Response containing the requested configurations.")]
     [DataContract]
     public class ListConfigurationResponse
     {
         /// <summary>
         /// List of configuration settings.
         /// </summary>
+        [Description("List of configuration settings.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [ExcludeOpenApi(typeof(GXLocalizedResource),
@@ -133,21 +134,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching configuration items before paging.
         /// </summary>
+        [Description("Total number of matching configuration items before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
     /// <summary>
     /// Update configuration values.
     /// </summary>
+    [Description("Update configuration values.")]
     [DataContract]
     public class ConfigurationUpdate : IGXRequest<ConfigurationUpdateResponse>
     {
         /// <summary>
         /// Updated configurations.
         /// </summary>
+        [Description("Updated configurations.")]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [ExcludeOpenApi(typeof(GXConfiguration), nameof(GXConfiguration.CreationTime), nameof(GXConfiguration.Updated))]
         public IEnumerable<GXConfiguration>? Configurations { get; set; }
     }
 
@@ -163,6 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Requests execution of scheduled cron work.
     /// </summary>
+    [Description("Requests execution of scheduled cron work.")]
     [DataContract]
     public class ConfigurationRunCron : IGXRequest<ConfigurationRunCronResponse>
     {
@@ -171,6 +177,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Run cron reply.
     /// </summary>
+    [Description("Run cron reply.")]
     [DataContract]
     public class ConfigurationRunCronResponse
     {
@@ -179,6 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Run prune reply.
     /// </summary>
+    [Description("Run prune reply.")]
     [DataContract]
     public class ConfigurationRunPruneResponse
     {
@@ -187,6 +195,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Run prune.
     /// </summary>
+    [Description("Run prune.")]
     [DataContract]
     public class ConfigurationRunPrune : IGXRequest<ConfigurationRunPruneResponse>
     {
@@ -195,30 +204,35 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Requests information about assemblies loaded by the server.
     /// </summary>
+    [Description("Requests information about assemblies loaded by the server.")]
     [DataContract]
     public class LoadedAssemblies : IGXRequest<LoadedAssembliesResponse>
     {
         /// <summary>
         /// Optional criteria used to filter assemblies.
         /// </summary>
+        [Description("Optional criteria used to filter assemblies.")]
         public GXAssembly? Filter { get; set; }
     }
 
     /// <summary>
     /// Assemblies loaded by the server.
     /// </summary>
+    [Description("Assemblies loaded by the server.")]
     [DataContract]
     public class LoadedAssembliesResponse
     {
         /// <summary>
         /// Loaded assemblies.
         /// </summary>
+        [Description("Loaded assemblies.")]
         public IEnumerable<GXAssembly>? Assemblies { get; set; }
     }
 
     /// <summary>
     /// Stop application request.
     /// </summary>
+    [Description("Stop application request.")]
     [DataContract]
     public class StopApplicationRequest
     {
@@ -227,12 +241,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Resets configuration settings to built-in defaults.
     /// </summary>
+    [Description("Resets configuration settings to built-in defaults.")]
     [DataContract]
     public class RegenerateConfiguration : IGXRequest<RegenerateConfigurationResponse>
     {
-        /// <summary>
-        /// Configuration names or ID strings to reset. Null or empty recreates all configurations.
-        /// </summary>
+        /// <summary>Existing configuration names or identifier strings to reset to built-in defaults. Null or empty adds only missing defaults.</summary>
+        [Description("Existing configuration names or identifier strings to reset to built-in defaults. Null or empty adds only missing defaults.")]
         [DataMember]
         public IEnumerable<string>? Ids { get; set; }
     }
@@ -240,6 +254,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Response to resetting configuration settings to their built-in defaults.
     /// </summary>
+    [Description("Response to resetting configuration settings to their built-in defaults.")]
     [DataContract]
     public class RegenerateConfigurationResponse
     {

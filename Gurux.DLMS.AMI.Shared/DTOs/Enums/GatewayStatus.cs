@@ -35,34 +35,41 @@ using System.Xml.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>The connection and task execution state of a gateway.</summary>
+    [System.ComponentModel.Description("The connection and task execution state of a gateway.")]
     public enum GatewayStatus : byte
     {
         /// <summary>
         /// Gateway is disconnected.
         /// </summary>
+        [System.ComponentModel.Description("Gateway is disconnected.")]
         [XmlEnum("0")]
         Offline = 0,
         /// <summary>
         /// Gateway is connected.
         /// </summary>
+        [System.ComponentModel.Description("Gateway is connected.")]
         [XmlEnum("1")]
         Connected = 1,
         /// <summary>
         /// Gateway is idle.
         /// </summary>
+        [System.ComponentModel.Description("Gateway is idle.")]
         [XmlEnum("2")]
         Idle = 2,
         /// <summary>
         /// Gateway is processing the task.
         /// </summary>
+        [System.ComponentModel.Description("Gateway is processing the task.")]
         [XmlEnum("3")]
         Process = 3,
         /// <summary>The gateway is in an error state.</summary>
+        [System.ComponentModel.Description("The gateway is in an error state.")]
         [XmlEnum("4")]
         Error = 4,
         /// <summary>
         /// Indicates that the gateway has been detected.
         /// </summary>
+        [System.ComponentModel.Description("Indicates that the gateway has been detected.")]
         [XmlEnum("5")]
         Detected = 5
     }

@@ -37,20 +37,19 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
     /// <summary>Selects an attribute template for a scheduled device group operation.</summary>
+    [Description("Selects an attribute template for a scheduled device group operation.")]
     [IndexCollection(true, nameof(ScheduleId), nameof(AttributeTemplateId), Clustered = true)]
     public class GXScheduleToDeviceGroupAttributeTemplate
     {
-        /// <summary>
-        /// Schedule ID.
-        /// </summary>
+        /// <summary>Schedule identifier.</summary>
+        [Description("Schedule identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.None)]
         //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
         public Guid ScheduleId { get; set; }
 
-        /// <summary>
-        /// Attribute template ID.
-        /// </summary>
+        /// <summary>Attribute template identifier.</summary>
+        [Description("Attribute template identifier.")]
         [DataMember]
         [ForeignKey(typeof(GXAttributeTemplate), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid AttributeTemplateId { get; set; }
@@ -59,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// Creation time.
         /// The time when the attribute template was added to the schedule.
         /// </summary>
+        [Description("Creation time. The time when the attribute template was added to the schedule.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -68,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Time when attribute template was removed from user schedule.
         /// </summary>
+        [Description("Time when attribute template was removed from user schedule.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]

@@ -33,12 +33,16 @@
 namespace Gurux.DLMS.AMI.Shared.Enums;
 
 /// <summary>Supported key algorithms.</summary>
+[System.ComponentModel.Description("Supported key algorithms.")]
 public enum KeyAlgorithm
 {
     /// <summary>No cryptographic algorithm is associated with the secret.</summary>
+    [System.ComponentModel.Description("No cryptographic algorithm is associated with the secret.")]
     None = 1,
     /// <summary>Advanced Encryption Standard (AES) symmetric key algorithm.</summary>
+    [System.ComponentModel.Description("Advanced Encryption Standard (AES) symmetric key algorithm.")]
     Aes,
     /// <summary>Elliptic Curve Digital Signature Algorithm (ECDSA).</summary>
+    [System.ComponentModel.Description("Elliptic Curve Digital Signature Algorithm (ECDSA).")]
     Ecdsa
 }

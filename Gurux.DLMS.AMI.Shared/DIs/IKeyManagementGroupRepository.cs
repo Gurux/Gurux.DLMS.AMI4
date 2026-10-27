@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle key management groups.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle key management groups.")]
     public interface IKeyManagementGroupRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List key management groups.")]
         Task<IEnumerable<GXKeyManagementGroup>> ListAsync(
             ListKeyManagementGroups? request = null,
             ListKeyManagementGroupsResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read key management group details.")]
         Task<GXKeyManagementGroup> ReadAsync(Guid id, Expression<Func<GXKeyManagementGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,17 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated key management groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new key management groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXKeyManagementGroup> groups,
             Expression<Func<GXKeyManagementGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete key management group(s).
-        /// </summary>
+        /// <summary>Delete key management groups.</summary>
         /// <param name="groups">KeyManagement groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete key management groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -87,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="keyId">Key management ID</param>
         /// <returns>List of key management groups.</returns>
+        [System.ComponentModel.Description("Returns key management groups list where key management belongs.")]
         Task<List<GXKeyManagementGroup>> GetJoinedKeyManagementGroups(Guid keyId);
 
         /// <summary>
@@ -95,6 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groupId">Key management group id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this key management group.")]
         Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -103,6 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groupId">KeyManagement group ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access key management groups.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId, CancellationToken cancellationToken = default);
     }
 }

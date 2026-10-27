@@ -37,11 +37,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Update;
 /// <summary>
 /// Persistent catalog identity, independent of mutable display names and agent GUIDs.
 /// </summary>
+[System.ComponentModel.Description("Persistent catalog identity, independent of mutable display names and agent GUIDs.")]
 public sealed class GXCatalogProduct : IUnique<string>
 {
     /// <summary>Gets or sets the stable product identifier in the update catalog.</summary>
+    [System.ComponentModel.Description("Gets or sets the stable product identifier in the update catalog.")]
     [Key, StringLength(256)] public string Id { get; set; } = "";
 
     /// <summary>Gets or sets the identifier of the application entity associated with the catalog product.</summary>
+    [System.ComponentModel.Description("Gets or sets the identifier of the application entity associated with the catalog product.")]
     [StringLength(128)] public string EntityId { get; set; } = "";
 }

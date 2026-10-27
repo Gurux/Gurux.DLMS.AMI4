@@ -35,23 +35,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Assembly information.
     /// </summary>
+    [System.ComponentModel.Description("Assembly information.")]
     public class GXAssembly
     {
         /// <summary>
         /// Assembly name.
         /// </summary>
+        [System.ComponentModel.Description("Assembly name.")]
         public string Name { get; set; } = "";
         /// <summary>
         /// Assembly version.
         /// </summary>
+        [System.ComponentModel.Description("Assembly version.")]
         public string Version { get; set; } = "";
         /// <summary>
         /// Assembly location.
         /// </summary>
+        [System.ComponentModel.Description("Assembly location.")]
         public string? Location { get; set; } = "";
-        /// <summary>
-        /// Is this a script.
-        /// </summary>
+        /// <summary>Whether the assembly contains a script.</summary>
+        [System.ComponentModel.Description("Whether the assembly contains a script.")]
         public bool? IsScript { get; set; }
     }
 }

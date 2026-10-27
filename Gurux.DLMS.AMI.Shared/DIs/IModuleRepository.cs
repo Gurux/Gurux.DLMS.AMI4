@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle modules.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle modules.")]
     public interface IModuleRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List modules.")]
         Task<IEnumerable<GXModule>> ListAsync(
             ListModules? request = null,
             ListModulesResponse? response = null,
@@ -58,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List modules.
         /// </summary>
         /// <returns>Modules.</returns>
+        [System.ComponentModel.Description("List modules.")]
         Task<IEnumerable<GXModule>> ListWithVersionsAsync();
 
         /// <summary>
@@ -67,6 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read module.")]
         Task<GXModule> ReadAsync(string id, Expression<Func<GXModule, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -75,6 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="module">The existing module and the values to update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Updates an existing module. This operation does not install or insert a missing module.")]
         Task UpsertAsync(
             GXModule module,
             Expression<Func<GXModule, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -83,13 +88,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Add new module.
         /// </summary>
         /// <param name="modules">Added modules.</param>
+        [System.ComponentModel.Description("Add new module.")]
         Task AddAsync(IEnumerable<GXModule> modules);
 
-        /// <summary>
-        /// Delete module(s).
-        /// </summary>
+        /// <summary>Delete modules.</summary>
         /// <param name="modules">Module(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete modules.")]
         Task DeleteAsync(IEnumerable<string> modules, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -98,6 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="moduleId">Module id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this module.")]
         Task<List<string>> GetUsersAsync(string? moduleId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -106,6 +112,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="moduleIds">Module ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access modules.")]
         Task<List<string>> GetUsersAsync(IEnumerable<string>? moduleIds, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -113,6 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="moduleId">Module id.</param>
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Get all scripts that belong for the given module.")]
         Task<List<GXScript>> GetScriptsAsync(string? moduleId);
     }
 }

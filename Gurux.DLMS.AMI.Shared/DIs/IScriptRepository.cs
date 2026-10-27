@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle scripts.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle scripts.")]
     public interface IScriptRepository
     {
         /// <summary>
@@ -51,6 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// If script is null all the users who can access the scripts are returned.
         /// </remarks>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this script.")]
         Task<List<string>> GetUsersAsync(Guid scriptId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -62,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// If script is null all the users who can access the scripts are returned.
         /// </remarks>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this script.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid> Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -71,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List scripts.")]
         Task<IEnumerable<GXScript>> ListAsync(
             ListScripts? request = null,
             ListScriptsResponse? response = null,
@@ -83,6 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read script details.")]
         Task<GXScript> ReadAsync(Guid id, Expression<Func<GXScript, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -91,17 +96,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="scripts">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new scripts or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXScript> scripts,
             Expression<Func<GXScript, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete script(s).
-        /// </summary>
+        /// <summary>Delete scripts.</summary>
         /// <param name="scripts">Deleted script(s).</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, users are notified about the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete scripts.")]
         Task DeleteAsync(
             IEnumerable<Guid> scripts,
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
@@ -117,6 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="compileTime">Compile time in ms.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Byte assembly if compile succeeded.</returns>
+        [System.ComponentModel.Description("Validate script.")]
         byte[]? Compile(
             string fileName,
             string script,
@@ -130,6 +136,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="methodId">Script method ID to run.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Script output.</returns>
+        [System.ComponentModel.Description("Run script.")]
         Task<object?> RunAsync(Guid methodId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -137,6 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="scripts">Rebuild script IDs.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Rebuild scripts.")]
         public Task RebuildAsync(IEnumerable<Guid>? scripts, CancellationToken cancellationToken = default);
     }
 }

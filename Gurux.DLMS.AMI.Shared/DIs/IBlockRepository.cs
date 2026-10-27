@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle blocks.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle blocks.")]
     public interface IBlockRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Blocks.</returns>
+        [System.ComponentModel.Description("List blocks.")]
         Task<IEnumerable<GXBlock>> ListAsync(
             ListBlocks? request = null,
             ListBlocksResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read block.")]
         Task<GXBlock> ReadAsync(Guid id, Expression<Func<GXBlock, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,24 +71,23 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="blocks">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new blocks or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXBlock> blocks,
             Expression<Func<GXBlock, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete block(s).
-        /// </summary>
+        /// <summary>Delete blocks.</summary>
         /// <param name="blocks">Block(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete blocks.")]
         Task DeleteAsync(IEnumerable<Guid> blocks, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Close block(s).
-        /// </summary>
+        /// <summary>Close blocks.</summary>
         /// <param name="blocks">Blocks to close.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Close blocks.")]
         Task CloseAsync(IEnumerable<Guid>? blocks, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -94,6 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="blockId">Block id.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access this block.")]
         Task<List<string>> GetUsersAsync(Guid? blockId, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -102,17 +105,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="blockIds">Block ids.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Get all users that can access blocks.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockIds, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Restore built-in block defaults.
-        /// </summary>
-        /// <param name="blocks">Null or empty deletes all blocks and recreates the built-in defaults.
-        /// Otherwise, reset only the specified existing built-in blocks, matched by their default names,
-        /// preserving their IDs, group memberships and user settings. Missing or custom targets are rejected
-        /// before any changes are made.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        Task RegenerateAsync(IEnumerable<Guid>? blocks,
-            CancellationToken cancellationToken);
+        /// <summary>Ensure missing defaults exist without changing existing resources.</summary>
+        [System.ComponentModel.Description("Ensure missing defaults exist without changing existing resources.")]
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>Reset selected existing built-in resources in place, preserving identity and references.
+        /// The selection must be nonempty and every target must be valid before any writes.</summary>
+        [System.ComponentModel.Description("Reset selected existing built-in resources in place, preserving identity and references. The selection must be nonempty and every target must be valid before any writes.")]
+        Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }
 }

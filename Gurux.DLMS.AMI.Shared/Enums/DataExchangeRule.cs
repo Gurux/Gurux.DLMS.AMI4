@@ -33,15 +33,20 @@
 namespace Gurux.DLMS.AMI.Shared.DIs.Enums
 {
     /// <summary>Determines how an import handles data that already exists.</summary>
+    [System.ComponentModel.Description("Determines how an import handles data that already exists.")]
     public enum DataExchangeRule
     {
         /// <summary>Keep the existing data and ignore the imported replacement.</summary>
+        [System.ComponentModel.Description("Keep the existing data and ignore the imported replacement.")]
         Keep,
         /// <summary>Replace the existing data with the imported data.</summary>
+        [System.ComponentModel.Description("Replace the existing data with the imported data.")]
         Replace,
         /// <summary>Create a separate copy when the imported data already exists.</summary>
+        [System.ComponentModel.Description("Create a separate copy when the imported data already exists.")]
         Copy,
         /// <summary>Reject the import when the data already exists.</summary>
+        [System.ComponentModel.Description("Reject the import when the data already exists.")]
         Error
     };
 }

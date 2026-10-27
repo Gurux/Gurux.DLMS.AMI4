@@ -37,57 +37,55 @@ using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get historical value from the DB.
-    /// </summary>
+    /// <summary>Requests a list of values.</summary>
+    [Description("Requests a list of values.")]
     [DataContract]
     public class ListValues : IGXRequest<ListValuesResponse>
     {
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
-        public int Index { get; set; }
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
-        /// <summary>
-        /// Maximum number of values to retrieve; zero disables paging.
-        /// </summary>
-        public int Count { get; set; }
+        /// <summary>Maximum number of values to retrieve. Use 0 to return all matching items without paging.</summary>
+        [DefaultValue(0)]
+        [Description("Maximum number of values to retrieve. Use 0 to return all matching items without paging.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Optional criteria used to filter values.
         /// </summary>
+        [Description("Optional criteria used to filter values.")]
         [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
         public GXValue? Filter { get; set; }
 
-        /// <summary>
-        /// Selected extra information.
-        /// </summary>
+        /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
+        [Description("Additional related information to include in the response. Reserved for future use.")]
         public IEnumerable<string>? Select { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
-        /// <summary>
-        /// Identifiers to include in the results.
-        /// </summary>
+        /// <summary>Identifiers to include in the results. A nonempty collection restricts results to these identifiers.</summary>
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Identifiers to include in the results. A nonempty collection restricts results to these identifiers.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -96,38 +94,35 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
 
-        /// <summary>
-        /// Device Ids for which values are retrieved.
-        /// </summary>
+        /// <summary>Device identifiers for which values are retrieved.</summary>
+        [Description("Device identifiers for which values are retrieved.")]
         public IEnumerable<Guid>? Devices { get; set; }
 
-        /// <summary>
-        /// Object Ids for which values are retrieved.
-        /// </summary>
+        /// <summary>Object identifiers for which values are retrieved.</summary>
+        [Description("Object identifiers for which values are retrieved.")]
         public IEnumerable<Guid>? Objects { get; set; }
 
-        /// <summary>
-        /// Attribute Ids for which values are retrieved.
-        /// </summary>
+        /// <summary>Attribute identifiers for which values are retrieved.</summary>
+        [Description("Attribute identifiers for which values are retrieved.")]
         public IEnumerable<Guid>? Attributes { get; set; }
 
-        /// <summary>
-        /// Attribute template Ids for which values are retrieved.
-        /// </summary>
+        /// <summary>Attribute template identifiers for which values are retrieved.</summary>
+        [Description("Attribute template identifiers for which values are retrieved.")]
         public IEnumerable<Guid>? AttributeTemplates { get; set; }
     }
 
-    /// <summary>
-    /// Get values reply.
-    /// </summary>
+    /// <summary>Response containing the requested values.</summary>
+    [Description("Response containing the requested values.")]
     [DataContract]
     public class ListValuesResponse
     {
         /// <summary>
         /// List of value items.
         /// </summary>
+        [Description("List of value items.")]
         [DataMember]
         [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
         public IEnumerable<GXValue>? Values { get; set; }
@@ -135,13 +130,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching value items before paging.
         /// </summary>
+        [Description("Total number of matching value items before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Add attribute value.
-    /// </summary>
+    /// <summary>Requests the addition of values.</summary>
+    [Description("Requests the addition of values.")]
     [DataContract]
     public class AddValue : IGXRequest<AddValueResponse>
     {
@@ -149,21 +144,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Values to add.
         /// </summary>
         [DataMember]
-        [Description("Values to add")]
+        [Description("Values to add.")]
         [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
         public IEnumerable<GXValue> Values { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Value add response.
-    /// </summary>
-    [Description("Value add response.")]
+    /// <summary>Response to adding values.</summary>
+    [Description("Response to adding values.")]
     [DataContract]
     public class AddValueResponse
     {
-        /// <summary>
-        /// Value identifiers.
-        /// </summary>
+        /// <summary>Identifiers of the newly added value records.</summary>
+        [Description("Identifiers of the newly added value records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = default!;
     }
@@ -171,24 +163,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Clear attribute, object or device value.
     /// </summary>
+    [Description("Clear attribute, object or device value.")]
     [DataContract]
     public class ClearValue : IGXRequest<ClearValueResponse>
     {
         /// <summary>
         /// Devices to clear.
         /// </summary>
+        [Description("Devices to clear.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         public IEnumerable<GXDevice>? Devices { get; set; }
         /// <summary>
         /// Objects to clear.
         /// </summary>
+        [Description("Objects to clear.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         public IEnumerable<GXObject>? Objects { get; set; }
         /// <summary>
         /// Attributes to clear.
         /// </summary>
+        [Description("Attributes to clear.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
         public IEnumerable<GXAttribute>? Attributes { get; set; }
@@ -197,6 +193,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Clear Value response.
     /// </summary>
+    [Description("Clear Value response.")]
     [DataContract]
     public class ClearValueResponse
     {

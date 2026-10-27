@@ -40,6 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle Favorites.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle Favorites.")]
     public interface IFavoriteRepository
     {
         /// <summary>
@@ -49,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        [System.ComponentModel.Description("List Favorites.")]
         Task<IEnumerable<GXFavorite>> ListAsync(
             ListFavorites? request = null,
             ListFavoritesResponse? response = null,
@@ -61,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Operation result.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read Favorite.")]
         Task<GXFavorite> ReadAsync(Guid id, Expression<Func<GXFavorite, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -69,16 +72,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="favorites">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new favorites or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
 
             IEnumerable<GXFavorite> favorites,
             Expression<Func<GXFavorite, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete Favorite(s).
-        /// </summary>
+        /// <summary>Delete Favorites.</summary>
         /// <param name="favorites">Favorite(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete Favorites.")]
         Task DeleteAsync(IEnumerable<Guid> favorites, CancellationToken cancellationToken = default);
     }
 }

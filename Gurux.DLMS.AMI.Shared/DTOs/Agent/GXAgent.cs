@@ -45,31 +45,30 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
     /// <summary>An agent that communicates with devices and reports its connection and execution state.</summary>
+    [Description("An agent that communicates with devices and reports its connection and execution state.")]
     public class GXAgent : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAgent.</summary>
+        [Description("Initializes a new instance of GXAgent.")]
         public GXAgent()
         {
         }
 
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXAgent.</summary>
         /// <remarks>
-        /// This constuctor is called when a new agent is created. It will create all needed lists.
+        /// This constructor is called when a new agent is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Agent name.</param>
+        [Description("Initializes a new instance of GXAgent.")]
         public GXAgent(string? name)
         {
             Name = name;
-            Tasks = new List<GXTask>();
-            AgentGroups = new List<GXAgentGroup>();
-            Logs = new List<GXLog>();
-            Versions = new List<GXAgentVersion>();
-            ScriptMethods = new List<GXScriptMethod>();
+            Tasks = [];
+            AgentGroups = [];
+            Logs = [];
+            Versions = [];
+            ScriptMethods = [];
             Concurrently = true;
             TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
@@ -83,6 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         public Guid Id { get; set; }
 
         /// <summary>Catalog product identity for an agent installer template.</summary>
+        [Description("Catalog product identity for an agent installer template.")]
         [DataMember, StringLength(128), Index(Unique = false)]
         public string? CatalogId { get; set; }
 
@@ -105,20 +105,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [IsRequired]
         public byte? Type { get; set; }
 
-        /// <summary>
-        /// Is agent enabled.
-        /// </summary>
+        /// <summary>Whether the agent is enabled.</summary>
+        [Description("Whether the agent is enabled.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? Enabled { get; set; }
 
-        /// <summary>
-        /// Description.
-        /// </summary>
+        /// <summary>Description of the agent.</summary>
         [DataMember]
         [StringLength(256)]
-        [Description("Description.")]
+        [Description("Description of the agent.")]
         //Filter uses default value.
         [DefaultValue(null)]
         public string? Description { get; set; }
@@ -126,6 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// The creator of the agent.
         /// </summary>
+        [Description("The creator of the agent.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -135,6 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent template settings are used to shown download information.
         /// </summary>
+        [Description("Agent template settings are used to shown download information.")]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -143,6 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Executed tasks.
         /// </summary>
+        [Description("Executed tasks.")]
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
@@ -151,6 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// List of agent groups where this agent belongs.
         /// </summary>
+        [Description("List of agent groups where this agent belongs.")]
         [DataMember,
             ForeignKey(typeof(GXAgentGroup), typeof(GXAgentGroupAgent))]
         [Filter(FilterType.Contains)]
@@ -159,6 +160,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent logs.
         /// </summary>
+        [Description("Agent logs.")]
         [DataMember, Ignore(IgnoreType.Db)]
         [Filter(FilterType.Contains)]
         public List<GXLog>? Logs { get; set; }
@@ -166,18 +168,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Reader settings.
         /// </summary>
+        [Description("Reader settings.")]
         [DefaultValue(null)]
         public string? ReaderSettings { get; set; }
 
         /// <summary>
         /// Listener settings. Agent waits server to connect for the listener.
         /// </summary>
+        [Description("Listener settings. Agent waits server to connect for the listener.")]
         [DefaultValue(null)]
         public string? ListenerSettings { get; set; }
 
         /// <summary>
         /// Notification settings. Agent waits notification, event or push messages to this port.
         /// </summary>
+        [Description("Notification settings. Agent waits notification, event or push messages to this port.")]
         [DefaultValue(null)]
         public string? NotifySettings { get; set; }
 
@@ -186,12 +191,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// Serialized <see cref="Gurux.DLMS.AMI.Shared.RawNotificationSettings"/> for the processing agent.
         /// Independent of NotifySettings, which configures the transport receiving meter notifications.
         /// </remarks>
+        [Description("JSON settings for parsing raw notifications retrieved from the server.")]
         [DefaultValue(null)]
         public string? RawNotificationSettings { get; set; }
 
         /// <summary>
         /// Gateway settings.
         /// </summary>
+        [Description("Gateway settings.")]
         [DefaultValue(null)]
         public string? GatewaySettings { get; set; }
 
@@ -215,30 +222,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         public string? ConnectionInfo { get; set; }
 
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? CreationTime { get; set; }
 
-        /// <summary>
-        /// When was the agent last updated.
-        /// </summary>
-        [Description("When was the agent last updated.")]
+        /// <summary>Time when the agent was last updated.</summary>
+        [Description("Time when the agent was last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
 
 
-        /// <summary>
-        /// Used trace level.
-        /// </summary>
+        /// <summary>Trace level used for communication diagnostics.</summary>
         [DataMember]
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
-        [Description("Used trace level.")]
+        [Description("Trace level used for communication diagnostics.")]
         [IsRequired]
         public TraceLevel? TraceLevel { get; set; }
 
@@ -246,21 +248,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
-        /// <summary>
-        /// Last run time
-        /// </summary>
+        /// <summary>Last run time.</summary>
+        [Description("Last run time.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? LastRun { get; set; }
 
-        /// <summary>
-        /// Remove time.
-        /// </summary>
+        /// <summary>Time when the record was marked as removed.</summary>
+        [Description("Time when the record was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -270,6 +271,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent Status.
         /// </summary>
+        [Description("Agent Status.")]
         [DataMember]
         [DefaultValue(AgentStatus.Offline)]
         [Filter(FilterType.Exact)]
@@ -279,6 +281,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// List of script methods that agent is using.
         /// </summary>
+        [Description("List of script methods that agent is using.")]
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXAgentScriptMethod))]
         [Filter(FilterType.Contains)]
@@ -287,6 +290,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Available agent versions.
         /// </summary>
+        [Description("Available agent versions.")]
         [DataMember, ForeignKey(typeof(GXAgentVersion))]
         [Filter(FilterType.Contains)]
         public List<GXAgentVersion>? Versions { get; set; }
@@ -294,6 +298,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Active agent version number.
         /// </summary>
+        [Description("Active agent version number.")]
         [DefaultValue(null)]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
@@ -302,6 +307,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Latest available agent version.
         /// </summary>
+        [Description("Latest available agent version.")]
         [DefaultValue(null)]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
@@ -313,6 +319,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <remarks>
         /// Client asks agent to update for this version.
         /// </remarks>
+        [Description("Updated version.")]
         [DefaultValue(null)]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
@@ -321,24 +328,28 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// An array of available serial port names for the agent.
         /// </summary>
+        [Description("An array of available serial port names for the agent.")]
         [DefaultValue(null)]
         public string? SerialPorts { get; set; }
 
         /// <summary>
         /// The serial port for the agent.
         /// </summary>
+        [Description("The serial port for the agent.")]
         [DefaultValue(null)]
         public string? SerialPort { get; set; }
 
         /// <summary>
         /// Cache expiration time in seconds.
         /// </summary>
+        [Description("Cache expiration time in seconds.")]
         [DefaultValue(0)]
         public int CacheExpiration { get; set; }
 
         /// <summary>
         /// Is concurrently reading used.
         /// </summary>
+        [Description("Is concurrently reading used.")]
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -347,6 +358,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Latitude and Longitude.
         /// </summary>
+        [Description("Latitude and Longitude.")]
         [DataMember]
         [StringLength(26)]
         [DefaultValue(null)]
@@ -357,6 +369,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Saved properties belonging to this agent.
         /// </summary>
+        [Description("Saved properties belonging to this agent.")]
         [DataMember]
         [ForeignKey(typeof(GXAgentProperty))]
         [Filter(FilterType.Contains)]
@@ -365,6 +378,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
@@ -376,6 +390,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Updates the last-modified timestamp before persisting changes.
         /// </summary>
+        [Description("Updates the last-modified timestamp before persisting changes.")]
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;

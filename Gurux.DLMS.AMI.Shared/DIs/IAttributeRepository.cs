@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// This interface is used to handle attributes.
     /// </summary>
+    [System.ComponentModel.Description("This interface is used to handle attributes.")]
     public interface IAttributeRepository
     {
         /// <summary>
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Attributes.</returns>
+        [System.ComponentModel.Description("List attributes.")]
         Task<IEnumerable<GXAttribute>> ListAsync(
             ListAttributes? request = null,
             ListAttributesResponse? response = null,
@@ -60,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="columns">Read columns.</param>
         /// <returns>Attribute information.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Read attribute details.")]
         Task<GXAttribute> ReadAsync(Guid id, Expression<Func<GXAttribute, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -68,17 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="attributers">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Inserts new attributes or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAttribute> attributers,
             Expression<Func<GXAttribute, object>>? columns = null, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Delete attribute(s).
-        /// </summary>
+        /// <summary>Delete attributes.</summary>
         /// <param name="attributes">Attribute(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        [System.ComponentModel.Description("Delete attributes.")]
         Task DeleteAsync(IEnumerable<Guid> attributes, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
 
@@ -88,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="attributes">Attributes whose datatype metadata is updated.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Operation result.</returns>
+        [System.ComponentModel.Description("Update attribute datatype.")]
         Task UpdateDatatypeAsync(IEnumerable<GXAttribute> attributes,
             CancellationToken cancellationToken = default);
     }

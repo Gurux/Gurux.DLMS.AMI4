@@ -38,62 +38,69 @@ using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-    /// <summary>
-    /// Get a log entry.
-    /// </summary>
+    /// <summary>Response containing the requested log information.</summary>
+    [Description("Response containing the requested log information.")]
     public class GetLogResponse
     {
         /// <summary>
         /// Log information.
         /// </summary>        
+        [Description("Log information.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName), nameof(GXUser.Email))]
         [IncludeOpenApi(typeof(GXLogType), nameof(GXLogType.Id), nameof(GXLogType.Name))]
         public GXLog? Item { get; set; }
     }
 
-    /// <summary>
-    /// List log entries.
-    /// </summary>
+    /// <summary>Requests a list of logs.</summary>
+    [Description("Requests a list of logs.")]
     [DataContract]
     public class ListLogs : IGXRequest<ListLogsResponse>
     {
         /// <summary>Whether an authorized administrator requests logs for all users.</summary>
+        [Description("Whether an authorized administrator requests logs for all users.")]
         public bool AllUsers { get; set; }
 
         /// <summary>Optional additional fields to select.</summary>
+        [Description("Optional additional fields to select.")]
         public IEnumerable<string>? Select { get; set; }
-        /// <summary>
-        /// Zero-based index of the first item to retrieve.
-        /// </summary>
+        /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
         [DataMember]
-        public int Index { get; set; }
+        [DefaultValue(0)]
+        [Description("Zero-based index of the first item to retrieve. Use 0 to start from the first item.")]
+        public long Index { get; set; }
 
         /// <summary>
         /// Maximum number of log entries to return; zero requests all matching entries.
         /// </summary>
         [DataMember]
-        public int Count { get; set; }
+        [DefaultValue(0)]
+        [Description("Maximum number of log entries to return; zero requests all matching entries.")]
+        public long Count { get; set; }
 
         /// <summary>
         /// Filter for log entries.
         /// </summary>
+        [Description("Filter for log entries.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [IncludeOpenApi(typeof(GXLogType), nameof(GXLogType.Id))]
+        [ExcludeOpenApi(typeof(GXLog),
+            nameof(GXLog.Id), nameof(GXLog.StackTrace), nameof(GXLog.Group),
+            nameof(GXLog.Closable), nameof(GXLog.Reply))]
         public GXLog? Filter { get; set; }
 
-        /// <summary>
-        /// Name of the property to sort by.
-        /// </summary>
+        /// <summary>Name of the property to sort by. If omitted, the endpoint uses its default ordering.</summary>
         /// <remarks>
         /// Uses the endpoint's default ordering when not specified.
         /// </remarks>
         /// <seealso cref="Descending"/>
+        [Description("Name of the property to sort by. If omitted, the endpoint uses its default ordering.")]
         public string? OrderBy { get; set; }
 
         /// <summary>
         /// Whether to sort results in descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
+        [Description("Whether to sort results in descending order.")]
         public bool Descending { get; set; }
 
         /// <summary>
@@ -102,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// A nonempty collection restricts the results to these identifiers.
         /// </remarks>
+        [Description("Public log identifiers to include in the results.")]
         public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
@@ -110,18 +118,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Items with these identifiers are omitted from the results.
         /// </remarks>
+        [Description("Public log identifiers to exclude from the results.")]
         public IEnumerable<Guid>? Exclude { get; set; }
     }
 
-    /// <summary>
-    /// Log listing response.
-    /// </summary>
+    /// <summary>Response containing the requested logs.</summary>
+    [Description("Response containing the requested logs.")]
     [DataContract]
     public class ListLogsResponse
     {
         /// <summary>
         /// Log entries.
         /// </summary>
+        [Description("Log entries.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName), nameof(GXUser.Email))]
         [IncludeOpenApi(typeof(GXLogType), nameof(GXLogType.Id), nameof(GXLogType.Name))]
@@ -130,22 +139,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total number of matching log entries before paging.
         /// </summary>
+        [Description("Total number of matching log entries before paging.")]
         [DataMember]
-        public int Count { get; set; }
+        public long Count { get; set; }
     }
 
-    /// <summary>
-    /// Add new log.
-    /// </summary>
+    /// <summary>Requests the addition of logs.</summary>
+    [Description("Requests the addition of logs.")]
     [DataContract]
     public class AddLog : IGXRequest<AddLogResponse>
     {
         /// <summary>
         /// New log.
         /// </summary>
+        [Description("New log.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXLogType), nameof(GXLogType.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXLog), nameof(GXLog.CreationTime))]
         public IEnumerable<GXLog> Logs { get; set; } = default!;
 
         /// <summary>
@@ -156,15 +167,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public string Type { get; set; } = default!;
     }
 
-    /// <summary>
-    /// Add new log response.
-    /// </summary>
+    /// <summary>Response to adding logs.</summary>
+    [Description("Response to adding logs.")]
     [DataContract]
     public class AddLogResponse
     {
-        /// <summary>
-        /// Added log identifiers, when returned by the endpoint.
-        /// </summary>
+        /// <summary>Identifiers of the newly added log records.</summary>
+        [Description("Identifiers of the newly added log records.")]
         [DataMember]
         public IEnumerable<Guid> Ids { get; set; } = [];
     }
@@ -172,33 +181,40 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Clear log entries within the scope supported by the endpoint.
     /// </summary>
+    [Description("Clear log entries within the scope supported by the endpoint.")]
     [DataContract]
     public class ClearLog : IGXRequest<ClearLogResponse>
     {
         /// <summary>Source identifiers whose logs are cleared, as defined by the endpoint.</summary>
+        [Description("Source identifiers whose logs are cleared, as defined by the endpoint.")]
         [DataMember]
         public IEnumerable<Guid>? Ids { get; set; }
 
         /// <summary>Module identifiers whose logs are cleared.</summary>
+        [Description("Module identifiers whose logs are cleared.")]
         [DataMember]
         public IEnumerable<string>? Modules { get; set; }
 
         /// <summary>User identifiers whose logs are cleared.</summary>
+        [Description("User identifiers whose logs are cleared.")]
         [DataMember]
         public IEnumerable<string>? Users { get; set; }
 
         /// <summary>Whether the endpoint permanently deletes entries.</summary>
+        [Description("Whether the endpoint permanently deletes entries.")]
         [DataMember]
         public bool Delete { get; set; }
         /// <summary>
         /// Cleared log groups.
         /// </summary>
+        [Description("Cleared log groups.")]
         public IEnumerable<Guid>? Groups { get; set; }
     }
 
     /// <summary>
     /// Log clearing response.
     /// </summary>
+    [Description("Log clearing response.")]
     [DataContract]
     public class ClearLogResponse
     {
@@ -207,12 +223,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Close logs.
     /// </summary>
+    [Description("Close logs.")]
     [DataContract]
     public class CloseLog : IGXRequest<CloseLogResponse>
     {
         /// <summary>
         /// Closed logs.
         /// </summary>
+        [Description("Closed logs.")]
         [DataMember]
         public IEnumerable<Guid>? Ids { get; set; }
     }
@@ -220,37 +238,34 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>
     /// Close logs response.
     /// </summary>
+    [Description("Close logs response.")]
     [DataContract]
     public class CloseLogResponse
     {
     }
 
-    /// <summary>
-    /// Remove logs.
-    /// </summary>
+    /// <summary>Requests deletion of the selected logs.</summary>
+    [Description("Requests deletion of the selected logs.")]
     [DataContract]
     public class RemoveLog : IGXRequest<RemoveLogResponse>
     {
-        /// <summary>
-        /// Log Ids to remove.
-        /// </summary>
+        /// <summary>Identifiers of the log records to delete.</summary>
+        [Description("Identifiers of the log records to delete.")]
         [DataMember]
         public IEnumerable<Guid>? Ids { get; set; }
 
-        /// <summary>
-        /// Whether to permanently delete the items from the database.
-        /// </summary>
+        /// <summary>Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.</summary>
         /// <remarks>
         /// If false, marks the items as removed and retains their database records.
         /// </remarks>
+        [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
         [Required]
         public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Remove log response.
-    /// </summary>
+    /// <summary>Response to deleting the selected logs.</summary>
+    [Description("Response to deleting the selected logs.")]
     [DataContract]
     public class RemoveLogResponse
     {

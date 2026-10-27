@@ -38,42 +38,39 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>An error associated with a specific COSEM object.</summary>
+    [Description("An error associated with a specific COSEM object.")]
     [DataContract]
     public class GXObjectError : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObjectError.</summary>
+        [Description("Initializes a new instance of GXObjectError.")]
         public GXObjectError()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObjectError.</summary>
         /// <remarks>
         /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
         /// <param name="level">Error severity level</param>
+        [Description("Initializes a new instance of GXObjectError.")]
         public GXObjectError(int level)
         {
             Level = level;
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXObjectError.</summary>
         /// <remarks>
         /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
         /// <param name="level">Error severity level</param>
+        [Description("Initializes a new instance of GXObjectError.")]
         public GXObjectError(TraceLevel level) : this((int)level)
         {
         }
 
-        /// <summary>
-        /// Error Id.
-        /// </summary>
+        /// <summary>Error identifier.</summary>
+        [Description("Error identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -82,15 +79,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The object that caused the error.
         /// </summary>
+        [Description("The object that caused the error.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [DefaultValue(null)]
         public GXObject? Object { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Index(false, Descend = true)]
@@ -101,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Error is active if closed time is not set.
         /// </summary>
+        [Description("Error is active if closed time is not set.")]
         [DataMember]
         [Index(false)]
         [DefaultValue(null)]
@@ -110,6 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Error string.
         /// </summary>
+        [Description("Error string.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -119,6 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Stack trace.
         /// </summary>
+        [Description("Stack trace.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
@@ -127,6 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Error severity level.
         /// </summary>
+        [Description("Error severity level.")]
         [DataMember]
         [DefaultValue(1)]
         [IsRequired]
@@ -136,6 +137,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)

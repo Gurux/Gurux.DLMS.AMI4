@@ -41,32 +41,32 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Log
 {
     /// <summary>A log category with a stable public identifier and access and presentation settings.</summary>
+    [Description("A log category with a stable public identifier and access and presentation settings.")]
     [DataContract(Name = "GXLogType"), Serializable]
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public class GXLogType : IUnique<long>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXLogType.</summary>
+        [Description("Initializes a new instance of GXLogType.")]
         public GXLogType()
         {
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
+        /// <summary>Initializes a new instance of GXLogType.</summary>
         /// <remarks>
-        /// This constuctor is called when a new log group is created. It will create all needed lists.
+        /// This constructor is called when a new log group is created. It will create all required collections.
         /// </remarks>
         /// <param name="name">Script group name.</param>
+        [Description("Initializes a new instance of GXLogType.")]
         public GXLogType(string? name)
         {
             Enabled = true;
             Name = name;
-            Logs = new List<GXLog>();
+            Logs = [];
         }
 
         /// <summary>Stable external identifier of the log category.</summary>
+        [Description("Stable external identifier of the log category.")]
         [DataMember(IsRequired = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
@@ -75,13 +75,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public Guid PublicId { get; set; }
 
         /// <summary>Database-generated log type storage key.</summary>
+        [Description("Database-generated log type storage key.")]
         [DataMember, PrimaryKey, AutoIncrement]
         [DefaultValue(null)]
         public long Id { get; set; }
 
-        /// <summary>
-        /// Is log type enabled.
-        /// </summary>
+        /// <summary>Whether the log type is enabled.</summary>
+        [Description("Whether the log type is enabled.")]
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -91,6 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <summary>
         /// Minimum log severity level that is saved.
         /// </summary>
+        [Description("Minimum log severity level that is saved.")]
         [DataMember]
         [DefaultValue(1)]
         [IsRequired]
@@ -100,6 +101,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <summary>
         /// The creator of the log type.
         /// </summary>
+        [Description("The creator of the log type.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
@@ -107,6 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public GXUser? Creator { get; set; }
 
         /// <summary>Display name of the log category.</summary>
+        [Description("Display name of the log category.")]
         [DataMember]
         [StringLength(64)]
         [Index(false)]
@@ -120,6 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <remarks>
         /// Normalized name is unique and it's used for case-insensitive comparisons and searches.
         /// </remarks>
+        [Description("Normalized name.")]
         [DataMember]
         [Index]
         [StringLength(64)]
@@ -128,12 +132,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public string? NormalizedName { get; set; }
 
         /// <summary>Human-readable description of the log category.</summary>
+        [Description("Human-readable description of the log category.")]
         [DataMember]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -141,6 +145,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>Time when the log category was removed; <see langword="null"/> indicates an active category.</summary>
+        [Description("Time when the log category was removed; null indicates an active category.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -148,6 +153,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         public DateTimeOffset? Removed { get; set; }
 
         /// <summary>Time when the log category was last modified.</summary>
+        [Description("Time when the log category was last modified.")]
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
@@ -157,6 +163,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <remarks>
         /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
         /// </remarks>
+        [Description("Version token used by the database to detect conflicting updates.")]
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
@@ -166,11 +173,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         /// <summary>
         /// Authorization policies that allow viewing this resource (alternative named policies).
         /// </summary>
+        [Description("Authorization policies that allow viewing this resource (alternative named policies).")]
         [DataMember]
         [Ignore(IgnoreType.Db)]
         public List<string>? Policies { get; set; }
 
         /// <summary>Log entries belonging to this category.</summary>
+        [Description("Log entries belonging to this category.")]
         [DataMember, ForeignKey(typeof(GXLog))]
         public List<GXLog>? Logs { get; set; }
 

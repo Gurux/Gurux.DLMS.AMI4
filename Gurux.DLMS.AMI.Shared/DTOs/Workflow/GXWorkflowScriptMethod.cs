@@ -38,27 +38,25 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
 {
     /// <summary>Associates a workflow with a script method to invoke.</summary>
+    [Description("Associates a workflow with a script method to invoke.")]
     [DataContract(Name = "GXWorkflowScriptMethod"), Serializable]
     [IndexCollection(true, nameof(WorkflowId), nameof(MethodId), Clustered = true)]
     public class GXWorkflowScriptMethod : GXTableBase
     {
-        /// <summary>
-        /// The database ID of the workflow.
-        /// </summary>
+        /// <summary>The database identifier of the workflow.</summary>
+        [Description("The database identifier of the workflow.")]
         [DataMember(Name = "WorkflowID")]
         [ForeignKey(typeof(GXWorkflow), OnDelete = ForeignKeyDelete.None)]
         public Guid WorkflowId { get; set; }
 
-        /// <summary>
-        /// The database ID of the script method.
-        /// </summary>
+        /// <summary>The database identifier of the script method.</summary>
+        [Description("The database identifier of the script method.")]
         [DataMember(Name = "MethodId")]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid MethodId { get; set; }
 
-        /// <summary>
-        /// Creation time.
-        /// </summary>
+        /// <summary>Time when the record was created.</summary>
+        [Description("Time when the record was created.")]
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
@@ -68,6 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Time when script method was removed from workflow.
         /// </summary>
+        [Description("Time when script method was removed from workflow.")]
         [DataMember]
         [Index(false)]
         [DefaultValue(null)]
@@ -77,6 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// <summary>
         /// Initializes the creation timestamp before insertion if it has not been set.
         /// </summary>
+        [Description("Initializes the creation timestamp before insertion if it has not been set.")]
         public override void BeforeAdd()
         {
             if (CreationTime == null)
