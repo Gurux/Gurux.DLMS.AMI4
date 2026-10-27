@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -36,29 +36,33 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Script
 {
     /// <summary>
-    /// This class contains information from the script log.
+    /// Describes a compiler diagnostic reported while generating a script assembly.
     /// </summary>
+    /// <remarks>
+    /// This is a diagnostic data object, not a throwable exception. Diagnostics are collected by
+    /// <see cref="GXAmiScript.Generate"/> when compilation fails.
+    /// </remarks>
     public class GXScriptException
     {
         /// <summary>
-        /// Error identifier.
+        /// Gets or sets the compiler diagnostic identifier. Defaults to an empty string.
         /// </summary>
         [Filter(FilterType.Exact)]
         public string Id { get; set; }
 
         /// <summary>
-        /// Line number where error has occurred.
+        /// Gets or sets the zero-based source line containing the diagnostic.
         /// </summary>
         public int Line { get; set; }
 
         /// <summary>
-        /// Occurred error.
+        /// Gets or sets the diagnostic message. Defaults to an empty string.
         /// </summary>
         [Filter(FilterType.Contains)]
         public string Message { get; set; }
 
         /// <summary>
-        /// Constructor.
+        /// Initializes a diagnostic with an empty identifier and message.
         /// </summary>
         public GXScriptException()
         {

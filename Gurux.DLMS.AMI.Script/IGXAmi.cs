@@ -37,155 +37,162 @@ using System.Threading;
 namespace Gurux.DLMS.AMI.Script
 {
     /// <summary>
-    /// Defines the contract for an agent management interface that provides access to user, device, and service
-    /// operations, including querying, adding, updating, and removing entities in the database.
+    /// Provides scripts with their execution context, supported repository operations and application services.
     /// </summary>
-    /// <remarks>Implementations of this interface enable interaction with the underlying data store for
-    /// users, devices, logs, and related entities. The interface supports both synchronous and asynchronous operations
-    /// for most actions. Not all entity types may support all operations; for example, clearing is typically restricted
-    /// to errors and logs for security reasons. Thread safety and specific behavior may depend on the concrete
-    /// implementation.</remarks>
+    /// <remarks>
+    /// Supported entity types depend on the operation. The default implementation dispatches to
+    /// repositories resolved from dependency injection and provides synchronous wrappers for asynchronous calls.
+    /// </remarks>
     public interface IGXAmi
     {
         /// <summary>
-        /// Sender object.
+        /// Gets or sets the object that triggered execution, or null when there is no sender.
+        /// Assigning a user as the sender also sets User in the default implementation.
         /// </summary>
         object? Sender { get; set; }
 
         /// <summary>
-        /// User that owns the script.
+        /// Gets or sets the user associated with script execution, or null when no user is assigned.
         /// </summary>
         GXUser? User { get; set; }
 
         /// <summary>
-        /// Default device template.
+        /// Gets or sets the template used for an unknown connecting device, or null when none is configured.
         /// </summary>
         /// <remarks>
-        /// Default device template is used to create a new device when unknown device 
-        /// establish the connection for the agent.
+        /// The agent can use this template to create a device when an unknown device connects.
         /// </remarks>
         GXDeviceTemplate? DefaultDeviceTemplate { get; set; }
 
         /// <summary>
-        /// Select objects using filter.
+        /// Returns supported entities that match the supplied filter.
         /// </summary>
-        /// <typeparam name="T">Object type</typeparam>
-        /// <param name="filter">Filter</param>
-        /// <returns>Found object or null if not found.</returns>
+        /// <typeparam name="T">Supported AMI entity type, such as a device, task or log entry.</typeparam>
+        /// <param name="filter">Entity containing the filter fields or identifier used by the repository.</param>
+        /// <returns>The matching entities.</returns>
         IEnumerable<T> Select<T>(T filter);
 
         /// <summary>
-        /// Select objects using filter.
+        /// Returns supported entities that match the supplied filter.
         /// </summary>
-        /// <typeparam name="T">Object type</typeparam>
-        /// <param name="filter">Filter</param>
+        /// <typeparam name="T">Supported AMI entity type, such as a device, task or log entry.</typeparam>
+        /// <param name="filter">Entity containing the filter fields or identifier used by the repository.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Found object or null if not found.</returns>
+        /// <returns>A task whose result contains the matching entities.</returns>
         Task<IEnumerable<T>> SelectAsync<T>(T filter, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Get single object.
+        /// Reads a supported entity using its identifier or, for devices and gateways, its filter.
         /// </summary>
-        /// <typeparam name="T">Object type</typeparam>
-        /// <param name="filter">Filter</param>
-        /// <returns>Found object or null if not found.</returns>
+        /// <typeparam name="T">Supported AMI entity type, such as a device, task or log entry.</typeparam>
+        /// <param name="filter">Entity containing the filter fields or identifier used by the repository.</param>
+        /// <returns>The entity, or null when no entity is found. Device and gateway filters must match exactly one entity.</returns>
         T? SingleOrDefault<T>(T filter);
 
         /// <summary>
-        /// Get single object.
+        /// Reads a supported entity using its identifier or, for devices and gateways, its filter.
         /// </summary>
-        /// <typeparam name="T">Object type</typeparam>
-        /// <param name="filter">Filter</param>
+        /// <typeparam name="T">Supported AMI entity type, such as a device, task or log entry.</typeparam>
+        /// <param name="filter">Entity containing the filter fields or identifier used by the repository.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Found object or null if not found.</returns>
+        /// <returns>A task whose result is the entity, or null when no entity is found. Device and gateway filters must match exactly one entity.</returns>
         Task<T?> SingleOrDefaultAsync<T>(T filter, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Adds new value for the database.
+        /// Persists a supported entity or collection through its repository.
         /// </summary>
-        /// <param name="value">Added value.</param>
+        /// <param name="value">Entity or collection to persist.</param>
         void Add(object value);
 
         /// <summary>
-        /// Adds new value for the database.
+        /// Persists a supported entity or collection through its repository.
         /// </summary>
-        /// <param name="value">Added value.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="value">Entity or collection to persist.</param>
+        /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
+        /// <returns>A task representing the repository operation.</returns>
         Task AddAsync(object value, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Adds new device for the database.
+        /// Persists a device and updates its identifier from the repository result.
         /// </summary>
         /// <param name="value">Added device.</param>
-        /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
+        /// <param name="lateBinding">True to defer creating device objects until they are read from the meter.</param>
         void AddDevice(GXDevice value, bool lateBinding);
 
         /// <summary>
-        /// Adds new device for the database.
+        /// Persists a device and updates its identifier from the repository result.
         /// </summary>
         /// <param name="value">Added device.</param>
-        /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="lateBinding">True to defer creating device objects until they are read from the meter.</param>
+        /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
+        /// <returns>A task representing the repository operation.</returns>
         Task AddDeviceAsync(GXDevice value, bool lateBinding, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Remove value from the database.
+        /// Removes supported entities, or closes log entries, through their repository.
         /// </summary>
-        /// <param name="value">Removed value.</param>
-        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="value">Supported entity or collection to remove, or log entries to close.</param>
+        /// <param name="delete">True to permanently delete entities where supported by the repository; false to mark them as removed. Ignored for log entries and tasks.</param>
+        /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
+        /// <returns>A task representing the repository operation.</returns>
         Task RemoveAsync(object value, bool delete, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Remove value from the database.
+        /// Removes supported entities, or closes log entries, through their repository.
         /// </summary>
-        /// <param name="value">Removed value.</param>
-        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        /// <param name="value">Supported entity or collection to remove, or log entries to close.</param>
+        /// <param name="delete">True to permanently delete entities where supported by the repository; false to mark them as removed. Ignored for log entries and tasks.</param>
         void Remove(object value, bool delete);
 
         /// <summary>
-        /// Clear values from the database.
+        /// Clears log records through the log repository.
         /// </summary>
         /// <remarks>
-        /// Only errors and logs can be cleared. 
-        /// It's not possible to clear for example users or devices for security reasons.
+        /// The default implementation supports GXLog only and clears all log records;
+        /// it does not use the supplied items to restrict the operation.
         /// </remarks>
+        /// <typeparam name="T">Log entity type.</typeparam>
+        /// <param name="items">Optional entries; ignored by the default implementation.</param>
+        /// <returns>A task representing the log clearing operation.</returns>
         Task ClearAsync<T>(IEnumerable<T>? items);
 
         /// <summary>
-        /// Clear values from the database.
+        /// Clears log records through the log repository.
         /// </summary>
         /// <remarks>
-        /// Only errors and logs can be cleared. 
-        /// It's not possible to clear for example users or devices for security reasons.
+        /// The default implementation supports GXLog only and clears all log records;
+        /// it does not use the supplied items to restrict the operation.
         /// </remarks>
+        /// <typeparam name="T">Log entity type.</typeparam>
+        /// <param name="items">Optional entries; ignored by the default implementation.</param>
         void Clear<T>(IEnumerable<T>? items);
 
         /// <summary>
-        /// Updates the content of the value for the database.
+        /// Persists a supported entity or collection using the same repository dispatch as Add.
         /// </summary>
-        /// <param name="value">Added value.</param>
+        /// <param name="value">Entity or collection to persist.</param>
         void Update(object value);
 
         /// <summary>
-        /// Updates the content of the value for the database.
+        /// Persists a supported entity or collection using the same repository dispatch as Add.
         /// </summary>
-        /// <param name="value">Added value.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="value">Entity or collection to persist.</param>
+        /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
+        /// <returns>A task representing the repository operation.</returns>
         Task UpdateAsync(object value, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Get required service by type.
+        /// Resolves an optional application service by its runtime type.
         /// </summary>
         /// <param name="type">Required service type.</param>
-        /// <returns>Required service or null if not found.</returns>
+        /// <returns>The registered service, or null if the service is not registered.</returns>
         object? GetService(Type type);
 
         /// <summary>
-        /// Get required service.
+        /// Resolves an optional application service by its generic type.
         /// </summary>
         /// <typeparam name="T">Service type.</typeparam>
-        /// <returns>Required service or null if not found.</returns>
+        /// <returns>The registered service, or null if the service is not registered.</returns>
         T? GetService<T>();
     }
 }

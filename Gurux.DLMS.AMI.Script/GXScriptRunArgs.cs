@@ -35,32 +35,40 @@ using System.Runtime.Loader;
 namespace Gurux.DLMS.AMI.Script
 {
     /// <summary>
-    /// Script run arguments.
+    /// Specifies the compiled script, entry method and arguments used for one invocation.
     /// </summary>
     public class GXScriptRunArgs
     {
         /// <summary>
-        /// (COFF)-based image containing an emitted assembly.
+        /// Gets or sets the emitted assembly image used when no assembly is already loaded. Defaults to an empty array.
         /// </summary>
         public byte[] ByteAssembly { get; set; } = [];
 
         /// <summary>
-        /// Invoked method name.
+        /// Gets or sets the public script method to invoke. Defaults to "Run".
         /// </summary>
         public string MethodName { get; set; } = "Run";
 
         /// <summary>
-        /// Is the function called asyncronously.
+        /// Gets or sets whether reflection invokes the method on a thread pool thread. Defaults to false.
         /// </summary>
+        /// <remarks>
+        /// This controls where invocation runs; it does not await a task returned by the script method.
+        /// </remarks>
         public bool Asyncronous { get; set; }
         /// <summary>
-        /// Return AssemblyLoadContext so script can be unload when not needed.
+        /// Gets or sets the context whose first loaded assembly is reused for execution.
         /// </summary>
+        /// <remarks>
+        /// If null or empty, the runner replaces this value with a new collectible context and loads
+        /// <see cref="ByteAssembly"/> into it. The caller is responsible for requesting unloading when finished.
+        /// </remarks>
         public AssemblyLoadContext? AssemblyLoadContext { get; set; }
 
         /// <summary>
-        /// Script parameters.
+        /// Gets or sets the positional arguments passed to the method. Null invokes a parameterless method.
         /// </summary>
+        /// <remarks>The number, order and types must match the selected method's parameters.</remarks>
         public object?[]? Parameters { get; set; }
     }
 }

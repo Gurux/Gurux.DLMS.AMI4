@@ -55,11 +55,13 @@ using System.Threading;
 namespace Gurux.DLMS.AMI.Script
 {
     /// <summary>
-    /// This class implements Roslyn scripting engine.
+    /// Compiles and invokes AMI scripts and exposes supported repository operations to them.
     /// </summary>
     /// <remarks>
-    /// Constructor.
+    /// Scripts receive this instance through their constructor as an <see cref="IGXAmi"/>.
+    /// Repository operations require the corresponding AMI repositories to be registered in dependency injection.
     /// </remarks>
+    /// <param name="serviceProvider">Service provider used to resolve repositories and script services.</param>
     public class GXAmiScript(IServiceProvider serviceProvider) : IGXAmi
     {
         object? _sender;
@@ -105,7 +107,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is GXDeviceGroup dg)
             {
                 IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                await repository.UpdateAsync([dg], null, cancellationToken);
+                await repository.UpsertAsync([dg], null, cancellationToken);
             }
             else if (value is GXDevice d)
             {
@@ -114,7 +116,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is GXObject o)
             {
                 IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
-                await repository.UpdateAsync([o], null, cancellationToken);
+                await repository.UpsertAsync([o], null, cancellationToken);
             }
             else if (value is GXValue v)
             {
@@ -135,32 +137,32 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is GXAgentGroup ag)
             {
                 IAgentGroupRepository repository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
-                await repository.UpdateAsync([ag], null, cancellationToken);
+                await repository.UpsertAsync([ag], null, cancellationToken);
             }
             else if (value is GXAgent a)
             {
                 IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
-                await repository.UpdateAsync([a], null, cancellationToken);
+                await repository.UpsertAsync([a], null, cancellationToken);
             }
             else if (value is GXUserGroup ug)
             {
                 IUserGroupRepository repository = scope.ServiceProvider.GetRequiredService<IUserGroupRepository>();
-                await repository.UpdateAsync([ug], null, cancellationToken);
+                await repository.UpsertAsync([ug], null, cancellationToken);
             }
             else if (value is GXUser u)
             {
                 IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                await repository.UpdateAsync([u], null, cancellationToken);
+                await repository.UpsertAsync([u], null, cancellationToken);
             }
             else if (value is GXScheduleGroup sg)
             {
                 IScheduleGroupRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                await repository.UpdateAsync([sg], null, cancellationToken);
+                await repository.UpsertAsync([sg], null, cancellationToken);
             }
             else if (value is GXSchedule s)
             {
                 IScheduleRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
-                await repository.UpdateAsync([s], null, cancellationToken);
+                await repository.UpsertAsync([s], null, cancellationToken);
             }
 
 
@@ -173,7 +175,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is IEnumerable<GXDeviceGroup> dgList)
             {
                 IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                var ret = await repository.UpdateAsync(dgList, null, cancellationToken);
+                var ret = await repository.UpsertAsync(dgList, null, cancellationToken);
                 for (int pos = 0; pos < ret.Count(); ++pos)
                 {
                     dgList.ElementAt(pos).Id = ret.ElementAt(pos);
@@ -182,7 +184,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is IEnumerable<GXDevice> dList)
             {
                 IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                var ret = await repository.UpdateAsync(dList, default);
+                var ret = await repository.UpsertAsync(dList, default);
                 for (int pos = 0; pos < ret.Count(); ++pos)
                 {
                     dList.ElementAt(pos).Id = ret.ElementAt(pos);
@@ -191,7 +193,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is IEnumerable<GXObject> oList)
             {
                 IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
-                await repository.UpdateAsync(oList, null, cancellationToken);
+                await repository.UpsertAsync(oList, null, cancellationToken);
             }
             else if (value is IEnumerable<GXValue> vList)
             {
@@ -212,39 +214,39 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is IEnumerable<GXAgentGroup> agList)
             {
                 IAgentGroupRepository repository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
-                await repository.UpdateAsync(agList, null, cancellationToken);
+                await repository.UpsertAsync(agList, null, cancellationToken);
             }
             else if (value is IEnumerable<GXAgent> aList)
             {
                 IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
-                await repository.UpdateAsync(aList, null, cancellationToken);
+                await repository.UpsertAsync(aList, null, cancellationToken);
             }
             else if (value is IEnumerable<GXUserGroup> ugList)
             {
                 IUserGroupRepository repository = scope.ServiceProvider.GetRequiredService<IUserGroupRepository>();
-                await repository.UpdateAsync(ugList, null, cancellationToken);
+                await repository.UpsertAsync(ugList, null, cancellationToken);
             }
             else if (value is IEnumerable<GXUser> uList)
             {
                 IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                await repository.UpdateAsync(uList, null, cancellationToken);
+                await repository.UpsertAsync(uList, null, cancellationToken);
             }
             else if (value is IEnumerable<GXScheduleGroup> sgList)
             {
                 IScheduleGroupRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                await repository.UpdateAsync(sgList, null, cancellationToken);
+                await repository.UpsertAsync(sgList, null, cancellationToken);
             }
             else if (value is IEnumerable<GXSchedule> sList)
             {
                 IScheduleRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
-                await repository.UpdateAsync(sList, null, cancellationToken);
+                await repository.UpsertAsync(sList, null, cancellationToken);
             }
 
 
             else if (value is IEnumerable<GXGatewayGroup> gwgList)
             {
                 IGatewayGroupRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
-                var ret = await repository.UpdateAsync(gwgList, null, cancellationToken);
+                var ret = await repository.UpsertAsync(gwgList, null, cancellationToken);
                 for (int pos = 0; pos < ret.Count(); ++pos)
                 {
                     gwgList.ElementAt(pos).Id = ret.ElementAt(pos);
@@ -260,7 +262,7 @@ namespace Gurux.DLMS.AMI.Script
                     }
                 }
                 IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
-                var ret = await repository.UpdateAsync(gwList, null, cancellationToken);
+                var ret = await repository.UpsertAsync(gwList, null, cancellationToken);
                 for (int pos = 0; pos < ret.Count(); ++pos)
                 {
                     gwList.ElementAt(pos).Id = ret.ElementAt(pos);
@@ -273,7 +275,7 @@ namespace Gurux.DLMS.AMI.Script
                     gw.Agent = new GXAgent() { Id = agent.Id };
                 }
                 IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
-                gw.Id = (await repository.UpdateAsync([gw], null, cancellationToken)).First();
+                gw.Id = (await repository.UpsertAsync([gw], null, cancellationToken)).First();
             }
 
             else
@@ -424,14 +426,19 @@ namespace Gurux.DLMS.AMI.Script
         }
 
         /// <summary>
-        /// This method generates byte assembly from the given script.
+        /// Emits a script assembly using references from assemblies currently loaded in the application domain.
         /// </summary>
-        /// <param name="scriptLanguage">Script language.</param>
-        /// <param name="fileName">File name.</param>
-        /// <param name="script">The source code of the script.</param>
-        /// <param name="errors">Errors of the source code.</param>
-        /// <param name="methods">Methods of the source code.</param>
-        /// <returns>(COFF)-based image containing an emitted assembly.</returns>
+        /// <remarks>
+        /// References are collected from loaded, non-dynamic assemblies with a file location.
+        /// The source must contain a complete class declaration, rather than top-level script statements.
+        /// Source parsing currently uses C# syntax even when the Visual Basic compiler is selected.
+        /// </remarks>
+        /// <param name="scriptLanguage">Selects the C# compiler or, for other values, the Visual Basic compiler.</param>
+        /// <param name="fileName">Assembly name; no file is written to disk.</param>
+        /// <param name="script">The complete source code to compile.</param>
+        /// <param name="errors">Receives compilation errors appended in source line order; existing entries are retained.</param>
+        /// <param name="methods">Optional list replaced with all C# method declarations after successful compilation.</param>
+        /// <returns>The emitted assembly image, or null when compilation reports errors.</returns>
         public static byte[]? Generate(
             ScriptLanguage scriptLanguage,
             string fileName,
@@ -496,10 +503,18 @@ namespace Gurux.DLMS.AMI.Script
         }
 
         /// <summary>
-        /// This method creates a instance from the byte assembly and runs the given method and returns the result of the script.
+        /// Creates a generated script instance and invokes the requested public method.
         /// </summary>
+        /// <remarks>
+        /// The assembly must define <c>Gurux.DLMS.AMI.GeneratedScript.GXAmiScript</c> with a public
+        /// constructor accepting this runner, typically through <see cref="IGXAmi"/>.
+        /// A new instance is created for each invocation. The first assembly in an existing load context
+        /// is reused; otherwise, a collectible context is created and stored in
+        /// <see cref="GXScriptRunArgs.AssemblyLoadContext"/> for the caller to unload.
+        /// </remarks>
         /// <param name="args">Script run arguments.</param>
-        /// <returns>The return value of the invoked method.</returns>
+        /// <returns>The reflected return value, or null for a void method. A task returned by the script is not awaited.</returns>
+        /// <exception cref="ArgumentException">The expected script type or named public method cannot be found.</exception>
         public async Task<object?> RunAsync(GXScriptRunArgs args)
         {
             Assembly? asm = null;
@@ -881,7 +896,7 @@ namespace Gurux.DLMS.AMI.Script
             }
             using IServiceScope scope = _serviceProvider.CreateScope();
             IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-            value.Id = (await repository.UpdateAsync([value], cancellationToken, null, lateBinding)).First();
+            value.Id = (await repository.UpsertAsync([value], cancellationToken, null, lateBinding)).First();
         }
     }
 }
