@@ -45,6 +45,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -77,6 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             Properties = [];
             Favorites = [];
             Tasks = [];
+            Notifications = [];
         }
 
         /// <summary>User identifier.</summary>
@@ -439,6 +441,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Filter(FilterType.Contains)]
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXTask>? Tasks { get; set; }
+
+        /// <summary>
+        /// Executed tasks.
+        /// </summary>
+        [Description("User notifications.")]
+        [DataMember]
+        [ForeignKey(typeof(GXNotification))]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXNotification>? Notifications { get; set; }
 
         /// <summary>
         /// Schedules.

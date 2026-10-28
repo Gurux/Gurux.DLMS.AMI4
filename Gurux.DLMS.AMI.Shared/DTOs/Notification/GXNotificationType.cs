@@ -29,6 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
@@ -64,23 +65,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [Description("Notification type name.")]
         [DataMember]
         [StringLength(128)]
-        [Index(true)]
         [Filter(FilterType.Contains)]
         public string? Name { get; set; }
 
         /// <summary>
-        /// Normalized type name.
+        /// Code is a unique normalized type name used in the API and database. 
+        /// It is derived from the Name property and is 
+        /// typically converted to kebab-case (lowercase with hyphens).
         /// </summary>
         /// <remarks>
         /// Name is converted to kebab-case.
         /// </remarks>
-        [Description("Normalized type name.")]
+        [Description("Code is a unique normalized type name used in the API and database. ")]
         [DataMember]
         [StringLength(128)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
+        [Index(true)]
         [IsRequired]
-        public string? NormalizedName { get; set; }
+        public string? Code { get; set; }
 
         /// <summary>Time when the record was created.</summary>
         [Description("Time when the record was created.")]
@@ -107,6 +110,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [StringLength(36)]
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
+
+        /// <summary>
+        /// The creator of the notification type.
+        /// </summary>
+        [Description("The creator of the notification type.")]
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public GXUser? Creator { get; set; }
+
+        /// <summary>
+        /// Description of the notification.
+        /// </summary>
+        [DataMember]
+        [StringLength(256)]
+        [Description("Description of the notification.")]
+        //Filter uses default value.
+        [DefaultValue(null)]
+        public string? Description { get; set; }
 
         /// <summary>
         /// Named visibility policy; empty means public within the surrounding resource.

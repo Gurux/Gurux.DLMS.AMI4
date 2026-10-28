@@ -93,7 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
         nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups),
             nameof(GXDeviceGroup.Gateways), nameof(GXDeviceGroup.Keys),
-            nameof(GXDeviceGroup.Parameters))]
+            nameof(GXDeviceGroup.Properties))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [ExcludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Description), nameof(GXDeviceGroup.ConcurrencyStamp))]
         public GXDeviceGroup? Filter { get; set; }
@@ -158,7 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
         nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups),
             nameof(GXDeviceGroup.Gateways), nameof(GXDeviceGroup.Keys),
-            nameof(GXDeviceGroup.Parameters))]
+            nameof(GXDeviceGroup.Properties))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public IEnumerable<GXDeviceGroup>? DeviceGroups { get; set; }
 

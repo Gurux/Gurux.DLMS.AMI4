@@ -64,7 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         {
             Name = name;
             Enabled = true;
-            Parameters = [];
+            Properties = [];
             Objects = [];
             TraceLevel = System.Diagnostics.TraceLevel.Verbose;
             Actions = [];
@@ -266,13 +266,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public DeviceStatus? Status { get; set; }
 
         /// <summary>
-        /// Device parameters.
+        /// Device properties.
         /// </summary>
-        [Description("Device parameters.")]
+        [Description("Device properties.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceProperty>? Parameters { get; set; }
+        public List<GXDeviceProperty>? Properties { get; set; }
 
         /// <summary>Time when the record was marked as removed.</summary>
         [Description("Time when the record was marked as removed.")]

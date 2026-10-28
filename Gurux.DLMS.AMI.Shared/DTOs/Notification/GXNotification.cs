@@ -60,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         {
             Enabled = true;
             Name = name;
+            Properties = [];
         }
 
         /// <summary>Notification identifier.</summary>
@@ -125,12 +126,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         public string? Sources { get; set; }
 
 
-        /// <summary>Delivery destination, such as email addresses or a network address, interpreted by the selected channel.</summary>
-        [Description("Delivery destination, such as email addresses or a network address, interpreted by the selected channel.")]
+        /// <summary>
+        /// Notification properties.
+        /// </summary>
+        [Description("Notification properties.")]
         [DataMember]
-        [DefaultValue(null)]
+        [ForeignKey]
         [Filter(FilterType.Contains)]
-        public string? Destination { get; set; }
+        public List<GXNotificationProperty>? Properties { get; set; }
 
         /// <summary>Time when the record was created.</summary>
         [Description("Time when the record was created.")]
@@ -154,7 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [Description("Time when the notification was last sent.")]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
-        public DateTimeOffset? Detected { get; set; }
+        public DateTimeOffset? LastSentAt { get; set; }
 
         /// <summary>Minimum interval between notification deliveries, in seconds.</summary>
         [Description("Minimum interval between notification deliveries, in seconds.")]

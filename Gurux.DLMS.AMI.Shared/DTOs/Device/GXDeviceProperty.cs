@@ -40,42 +40,6 @@ using Gurux.Service.Orm.Common.Enums;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
     /// <summary>
-    /// Common identity, value and version contract for named properties associated with resources.
-    /// </summary>
-    [Description("Common identity, value and version contract for named properties associated with resources.")]
-    public interface IGXProperty : IUnique<Guid>
-    {
-        /// <summary>Writable property identifier.</summary>
-        [Description("Writable property identifier.")]
-        new Guid Id { get; set; }
-
-        /// <summary>
-        /// Module settings unique name.
-        /// </summary>
-        [Description("Module settings unique name.")]
-        public string? Name { get; set; }
-
-
-        /// <summary>
-        /// The module whose settings these are.
-        /// </summary>
-        [Description("The module whose settings these are.")]
-        public GXModule? Module { get; set; }
-
-        /// <summary>
-        /// Module settings.
-        /// </summary>
-        [Description("Module settings.")]
-        public string? Value { get; set; }
-
-        /// <summary>
-        /// Version expected by optimistic updates and deletes.
-        /// </summary>
-        [Description("Version expected by optimistic updates and deletes.")]
-        public string? ConcurrencyStamp { get; set; }
-    }
-
-    /// <summary>
     /// A module property associated with a device.
     /// </summary>
     [Description("A module property associated with a device.")]

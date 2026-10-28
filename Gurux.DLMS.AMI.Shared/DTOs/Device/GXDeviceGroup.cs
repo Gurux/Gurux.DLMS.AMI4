@@ -67,7 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
             UserGroups = [];
             AgentGroups = [];
             Keys = [];
-            Parameters = [];
+            Properties = [];
             Gateways = [];
             Enabled = true;
         }
@@ -100,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Device group name.
         /// </summary>
 		[Description("Device group name.")]
-		[DataMember]
+        [DataMember]
         [DefaultValue(null)]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
@@ -156,12 +156,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
-        /// Device group parameters.
+        /// Device group properties.
         /// </summary>
-        [Description("Device group parameters.")]
+        [Description("Device group properties.")]
         [DataMember]
         [ForeignKey]
-        public List<GXDeviceGroupProperty>? Parameters { get; set; }
+        public List<GXDeviceGroupProperty>? Properties { get; set; }
 
         /// <summary>
         /// List of key managements.

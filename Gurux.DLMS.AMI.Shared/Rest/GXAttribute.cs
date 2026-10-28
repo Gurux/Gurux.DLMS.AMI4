@@ -126,7 +126,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Template),
             nameof(GXAttribute.Tasks),
             nameof(GXAttribute.Errors),
-            nameof(GXAttribute.Parameters),
+            nameof(GXAttribute.Properties),
             nameof(GXAttribute.Values))]
         [ExcludeOpenApi(typeof(GXAttribute),
             nameof(GXAttribute.Settings), nameof(GXAttribute.Modified), nameof(GXAttribute.ConcurrencyStamp),
@@ -213,7 +213,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Object),
             nameof(GXAttribute.Tasks),
             nameof(GXAttribute.Errors),
-            nameof(GXAttribute.Parameters),
+            nameof(GXAttribute.Properties),
             nameof(GXAttribute.Values))]
         [IncludeOpenApi(typeof(GXAttributeTemplate),
             nameof(GXAttributeTemplate.Id),
@@ -268,7 +268,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Tasks),
             nameof(GXAttribute.Errors),
             nameof(GXAttribute.Values),
-            nameof(GXAttribute.Parameters))]
+            nameof(GXAttribute.Properties))]
         [IncludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.Id))]
         [ExcludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.CreationTime), nameof(GXAttribute.Updated))]

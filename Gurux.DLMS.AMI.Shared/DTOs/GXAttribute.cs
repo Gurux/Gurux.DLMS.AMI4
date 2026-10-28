@@ -55,7 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public GXAttribute(GXAttributeTemplate? template)
         {
             Template = template;
-            Parameters = [];
+            Properties = [];
             Values = [];
             Tasks = [];
             Errors = [];
@@ -73,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
                 Index = index,
             };
             Value = value;
-            Parameters = [];
+            Properties = [];
             Values = [];
             Tasks = [];
             Errors = [];
@@ -198,13 +198,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
-        /// Attribute parameters.
+        /// Attribute properties.
         /// </summary>
-        [Description("Attribute parameters.")]
+        [Description("Attribute properties.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXAttributeProperty>? Parameters { get; set; }
+        public List<GXAttributeProperty>? Properties { get; set; }
 
         /// <summary>
         /// Attribute historical values.

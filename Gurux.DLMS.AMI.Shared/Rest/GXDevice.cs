@@ -151,7 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("Optional criteria used to filter devices.")]
         [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.DeviceGroups),
-                nameof(GXDevice.Creator), nameof(GXDevice.Parameters),
+                nameof(GXDevice.Creator), nameof(GXDevice.Properties),
             nameof(GXDevice.Objects), nameof(GXDevice.Actions), nameof(GXDevice.Errors),
             nameof(GXDevice.Tasks), nameof(GXDevice.Traces)
             , nameof(GXDevice.ProfilePicture)
@@ -234,7 +234,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [Description("List of devices.")]
         [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.DeviceGroups)
-            , nameof(GXDevice.Parameters), nameof(GXDevice.Objects)
+            , nameof(GXDevice.Properties), nameof(GXDevice.Objects)
             , nameof(GXDevice.Actions), nameof(GXDevice.Errors),
             nameof(GXDevice.Tasks), nameof(GXDevice.Keys), nameof(GXDevice.Traces))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]

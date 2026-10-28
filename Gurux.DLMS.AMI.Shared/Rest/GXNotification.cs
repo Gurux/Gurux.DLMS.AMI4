@@ -151,9 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id), nameof(GXManufacturer.Name))]
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
         [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
-        [ExcludeOpenApi(typeof(GXNotification),
-            nameof(GXNotification.Description), nameof(GXNotification.MinimumDeliveryTime), nameof(GXNotification.TraceLevel),
-            nameof(GXNotification.ConcurrencyStamp))]
+        [ExcludeOpenApi(typeof(GXNotification), nameof(GXNotification.MinimumDeliveryTime), nameof(GXNotification.TraceLevel), nameof(GXNotification.ConcurrencyStamp))]
         public GXNotification? Filter { get; set; }
 
         /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
