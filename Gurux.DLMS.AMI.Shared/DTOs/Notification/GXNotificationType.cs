@@ -108,6 +108,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [ConcurrencyCheck]
         public string? ConcurrencyStamp { get; set; }
 
+        /// <summary>
+        /// Named visibility policy; empty means public within the surrounding resource.
+        /// </summary>
+        [Description("Named visibility policy; empty means public within the surrounding resource.")]
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
+
         /// <summary>Time when the record was marked as removed.</summary>
         [Description("Time when the record was marked as removed.")]
         [DataMember]
