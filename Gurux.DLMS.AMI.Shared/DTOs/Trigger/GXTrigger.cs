@@ -29,18 +29,18 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Service.Orm.Common;
-using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
 {
@@ -55,6 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         }
 
         /// <summary>Initializes a new instance of GXTrigger.</summary>
+        /// <param name="name">Display name of the trigger, or null when not assigned.</param>
         [Description("Initializes a new instance of GXTrigger.")]
         public GXTrigger(string? name)
         {
@@ -62,8 +63,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
             Activities = [];
             TriggerGroups = [];
             Schedules = [];
+            Properties = [];
             Name = name;
-            ClassName = "";
         }
 
         /// <summary>
@@ -74,6 +75,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
+
+        /// <summary>Additional access policies; empty retains existing permissions, otherwise any assigned policy must pass.</summary>
+        [Description("Additional access policies; empty retains existing permissions, otherwise any assigned policy must pass.")]
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
 
         /// <summary>
         /// The creator of the trigger.
@@ -189,10 +195,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         public List<GXTriggerGroup>? TriggerGroups { get; set; }
 
         /// <summary>
-        /// Trigger settings.
+        /// Trigger properties.
         /// </summary>
-        [Description("Trigger settings.")]
-        public string? Settings { get; set; }
+        [Description("Trigger properties.")]
+        [DataMember]
+        [ForeignKey]
+        [Filter(FilterType.Contains)]
+        public List<GXTriggerProperty>? Properties { get; set; }
 
         /// <summary>Time when the record was created.</summary>
         [Description("Time when the record was created.")]

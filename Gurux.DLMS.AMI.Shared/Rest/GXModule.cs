@@ -212,7 +212,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXModule.Creator))]
         [ExcludeOpenApi(typeof(GXModule),
             nameof(GXModule.Policies), nameof(GXModule.Icon), nameof(GXModule.RuntimeState),
-            nameof(GXModule.Path), nameof(GXModule.Settings), nameof(GXModule.TraceLevel),
+            nameof(GXModule.Path), nameof(GXModule.Properties), nameof(GXModule.TraceLevel),
             nameof(GXModule.ConcurrencyStamp), nameof(GXModule.ReleaseVersion))]
         public GXModule? Filter { get; set; }
 

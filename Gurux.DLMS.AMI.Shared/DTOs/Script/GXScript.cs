@@ -30,13 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Shared.DTOs.Log;
-using Gurux.Service.Orm.Common;
-using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -69,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
             Workflows = [];
             Methods = [];
             Logs = [];
+            Properties = [];
             TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
 
@@ -88,6 +89,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [IsRequired]
         public bool? Enabled { get; set; }
 
+        /// <summary>Additional access policies; empty retains existing permissions, otherwise any assigned policy must pass.</summary>
+        [Description("Additional access policies; empty retains existing permissions, otherwise any assigned policy must pass.")]
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
+
+        /// <summary>
+        /// Script properties.
+        /// </summary>
+        [Description("Script properties.")]
+        [DataMember]
+        [ForeignKey]
+        [Filter(FilterType.Contains)]
+        public List<GXScriptProperty>? Properties { get; set; }
 
         /// <summary>
         /// Script name.

@@ -74,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="properties">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to insert new agent properties or update existing ones.</returns>
         [System.ComponentModel.Description("Inserts new agent properties or updates existing ones.")]
         Task UpsertAsync(
             IEnumerable<GXAgentProperty> properties,
@@ -85,6 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="ids">Agent properties to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete agent properties.</returns>
         [System.ComponentModel.Description("Delete agent properties.")]
         Task DeleteAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }

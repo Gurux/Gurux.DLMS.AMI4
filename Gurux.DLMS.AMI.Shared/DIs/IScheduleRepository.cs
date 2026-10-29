@@ -76,6 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="schedulers">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new schedules or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXSchedule> schedulers,
@@ -86,6 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete schedules.</returns>
         [System.ComponentModel.Description("Delete schedules.")]
         Task DeleteAsync(IEnumerable<Guid> schedulers, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -93,7 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this scheduler.
         /// </summary>
         /// <param name="scheduleId">Schedule id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this scheduler.")]
         Task<List<string>> GetUsersAsync(Guid? scheduleId, CancellationToken cancellationToken = default);
@@ -102,7 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access schedulers.
         /// </summary>
         /// <param name="Ids">Schedule ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access schedulers.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
@@ -112,6 +114,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="schedule">Schedule to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to update schedule execution start time.</returns>
         [System.ComponentModel.Description("Update schedule execution start time.")]
         Task UpdateExecutionTimeAsync(GXSchedule schedule, CancellationToken cancellationToken = default);
 
@@ -120,6 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Schedule id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to run the schedule.</returns>
         [System.ComponentModel.Description("Run the schedule.")]
         Task RunAsync(
             Guid id, CancellationToken cancellationToken = default);
@@ -139,6 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="settings">Module settings to the schedule.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to update module settings for the schedule.</returns>
         [System.ComponentModel.Description("Update module settings for the schedule.")]
         Task UpdateModuleSettingsAsync(
             GXScheduleModule? settings, CancellationToken cancellationToken = default);

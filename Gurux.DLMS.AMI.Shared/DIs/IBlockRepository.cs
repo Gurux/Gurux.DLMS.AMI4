@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Block id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested block.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read block.")]
         Task<GXBlock> ReadAsync(Guid id, Expression<Func<GXBlock, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -71,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="blocks">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new blocks or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXBlock> blocks,
@@ -81,12 +82,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete blocks.</returns>
         [System.ComponentModel.Description("Delete blocks.")]
         Task DeleteAsync(IEnumerable<Guid> blocks, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>Close blocks.</summary>
         /// <param name="blocks">Blocks to close.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to close blocks.</returns>
         [System.ComponentModel.Description("Close blocks.")]
         Task CloseAsync(IEnumerable<Guid>? blocks, CancellationToken cancellationToken = default);
 
@@ -94,7 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this block.
         /// </summary>
         /// <param name="blockId">Block id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this block.")]
         Task<List<string>> GetUsersAsync(Guid? blockId, CancellationToken cancellationToken = default);
@@ -103,17 +106,22 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access blocks.
         /// </summary>
         /// <param name="blockIds">Block ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access blocks.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockIds, CancellationToken cancellationToken = default);
 
         /// <summary>Ensure missing defaults exist without changing existing resources.</summary>
+        /// <returns>A task representing completion of the request to ensure missing defaults exist without changing existing resources.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Ensure missing defaults exist without changing existing resources.")]
         Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>Reset selected existing built-in resources in place, preserving identity and references.
         /// The selection must be nonempty and every target must be valid before any writes.</summary>
+        /// <returns>A task representing completion of the request to reset selected existing built-in resources in place, preserving identity and references. The selection must be nonempty and every target must be valid before any writes.</returns>
+        /// <param name="ids">Identifiers of existing built-in resources to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Reset selected existing built-in resources in place, preserving identity and references. The selection must be nonempty and every target must be valid before any writes.")]
         Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }

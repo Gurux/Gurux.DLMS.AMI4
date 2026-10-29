@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Policy id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested policy.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read policy.")]
         Task<GXPolicy> ReadAsync(Guid id, Expression<Func<GXPolicy, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -69,7 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read by policy name.
         /// </summary>
         /// <param name="name">Policy name.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the policy with the requested name.</returns>
         [System.ComponentModel.Description("Read by policy name.")]
         Task<GXPolicy> ReadByNameAsync(string name);
 
@@ -78,21 +78,28 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="policies">The records to insert or update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new policies or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXPolicy> policies, CancellationToken cancellationToken = default);
 
-        /// <summary>Delete policys.</summary>
+        /// <summary>Delete policies.</summary>
         /// <param name="policies">Policy(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        [System.ComponentModel.Description("Delete policys.")]
+        /// <returns>A task representing completion of the request to delete policies.</returns>
+        [System.ComponentModel.Description("Delete policies.")]
         Task DeleteAsync(IEnumerable<Guid> policies, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Asynchronously restores the default policies.
-        /// </summary>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-        /// <returns>true if the refresh succeeds; otherwise, false.</returns>
-        [System.ComponentModel.Description("Asynchronously restores the default policies.")]
-        Task<bool> RestoreDefaultPolicies(CancellationToken cancellationToken = default);
+        /// <summary>Add missing built-in defaults while preserving existing rows.</summary>
+        /// <returns>A task representing completion of the request to add missing built-in defaults while preserving existing rows.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [System.ComponentModel.Description("Add missing built-in defaults while preserving existing rows.")]
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>Reset selected built-ins while preserving identity and assignments.</summary>
+        /// <returns>A task representing completion of the request to reset selected built-ins while preserving identity and assignments.</returns>
+        /// <param name="policyIds">Identifiers of existing built-in policies to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [System.ComponentModel.Description("Reset selected built-ins while preserving identity and assignments.")]
+        Task ResetToDefaultsAsync(IEnumerable<Guid> policyIds, CancellationToken cancellationToken = default);
     }
 }

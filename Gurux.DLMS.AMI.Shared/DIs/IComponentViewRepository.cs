@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Component view ID.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested component view.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read component view.")]
         Task<GXComponentView> ReadAsync(Guid id, Expression<Func<GXComponentView, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="componentviews">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new component views or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXComponentView> componentviews,
@@ -82,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete component views.</returns>
         [System.ComponentModel.Description("Delete component views.")]
         Task DeleteAsync(IEnumerable<Guid> componentviews, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -89,7 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this component view.
         /// </summary>
         /// <param name="componentViewId">Component view id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this component view.")]
         Task<List<string>> GetUsersAsync(Guid? componentViewId, CancellationToken cancellationToken = default);
@@ -98,13 +100,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access component views.
         /// </summary>
         /// <param name="Ids">Component view ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access component views.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>Refresh component views.</summary>
         /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>A task whose result is <see langword="true"/> when new component view definitions were inserted; otherwise, <see langword="false"/>.</returns>
         [System.ComponentModel.Description("Refresh component views.")]
         Task<bool> RefrestAsync(CancellationToken cancellationToken);
     }

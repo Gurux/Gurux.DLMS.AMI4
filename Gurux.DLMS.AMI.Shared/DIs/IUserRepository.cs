@@ -73,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="users">Updated users.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new users or updates existing ones.")]
         Task<IEnumerable<string>> UpsertAsync(
             IEnumerable<GXUser> users,
@@ -83,6 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete users.</returns>
         [System.ComponentModel.Description("Delete users.")]
         Task DeleteAsync(IEnumerable<string> users, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -90,7 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Return users that are in the given role.
         /// </summary>
         /// <param name="roles">Searched roles.</param>
-        /// <returns>List of used IDs.</returns>
+        /// <returns>Identifiers of the users assigned to the requested roles.</returns>
         [System.ComponentModel.Description("Return users that are in the given role.")]
         Task<List<string>> GetUserIdsInRoleAsync(IEnumerable<string> roles);
     }

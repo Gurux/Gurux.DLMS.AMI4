@@ -51,7 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get settings from the database as JSON string.
         /// </summary>
         /// <param name="configuration">Configuration key.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result is the stored configuration serialized as JSON.</returns>
         [System.ComponentModel.Description("Get settings from the database as JSON string.")]
         Task<string> GetSettingsAsJsonAsync(string configuration);
 
@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="configuration">Configuration key.</param>
         /// <param name="value">Configuration value to persist.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task that completes when the configuration settings have been saved.</returns>
         [System.ComponentModel.Description("Save settings to the database.")]
         Task SaveSettingsAsync(string configuration, object value);
     }

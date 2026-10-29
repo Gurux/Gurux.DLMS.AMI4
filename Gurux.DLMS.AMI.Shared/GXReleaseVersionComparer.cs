@@ -153,6 +153,8 @@ public sealed partial class GXReleaseVersionComparer : IComparer<string?>
         return aa.Length.CompareTo(ba.Length);
     }
 
+    /// <summary>Matches supported release versions and separates numeric, prerelease, and build components.</summary>
+    /// <returns>The cached, culture-invariant regular expression generated for release-version parsing.</returns>
     [GeneratedRegex(@"^[vV]?(?<core>\d+(?:\.\d+){1,3})(?:-(?<pre>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$", RegexOptions.CultureInvariant)]
     private static partial Regex MyRegex();
 }

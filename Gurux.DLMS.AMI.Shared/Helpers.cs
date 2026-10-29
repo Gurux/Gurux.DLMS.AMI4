@@ -114,6 +114,9 @@ namespace Gurux.DLMS.AMI.Shared
             public IDictionary<string, object?> Extensions { get; set; } = new Dictionary<string, object?>(StringComparer.Ordinal);
         }
 
+        /// <summary>Appends readable validation errors from a problem-details extension value.</summary>
+        /// <param name="sb">Buffer receiving the error lines.</param>
+        /// <param name="element">An error object with arrays of messages, or a scalar value to append directly.</param>
         private static void GetErrors(StringBuilder sb, JsonElement element)
         {
             if (element.ValueKind != JsonValueKind.Object)

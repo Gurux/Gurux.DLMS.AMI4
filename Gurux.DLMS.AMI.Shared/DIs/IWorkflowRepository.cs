@@ -63,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="id">Workflow id.</param>
         /// <param name="includeScripts">Are script byte assemblies included.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested workflow.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read workflow.")]
         Task<GXWorkflow> ReadAsync(
@@ -77,6 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="workflows">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new workflows or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXWorkflow> workflows,
@@ -87,6 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete workflows.</returns>
         [System.ComponentModel.Description("Delete workflows.")]
         Task DeleteAsync(IEnumerable<Guid> workflows, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -119,6 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Workflow id.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to run the workflow.</returns>
         [System.ComponentModel.Description("Run the workflow.")]
         Task RunAsync(Guid id, CancellationToken cancellationToken = default);
     }

@@ -48,7 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(128)]
         [DataMember(Name = "LoginProvider")]
         [Filter(FilterType.Exact)]
-        public string Id { get; set; } = default!;
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// Gets or sets the unique identifier for the authentication provider.

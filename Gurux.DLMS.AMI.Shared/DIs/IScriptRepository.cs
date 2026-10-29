@@ -85,7 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Script id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested script.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read script details.")]
         Task<GXScript> ReadAsync(Guid id, Expression<Func<GXScript, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -96,6 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="scripts">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new scripts or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXScript> scripts,
@@ -106,6 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, users are notified about the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete scripts.</returns>
         [System.ComponentModel.Description("Delete scripts.")]
         Task DeleteAsync(
             IEnumerable<Guid> scripts,
@@ -144,6 +146,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="scripts">Rebuild script IDs.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task that completes when the selected scripts have been rebuilt.</returns>
         [System.ComponentModel.Description("Rebuild scripts.")]
         public Task RebuildAsync(IEnumerable<Guid>? scripts, CancellationToken cancellationToken = default);
     }

@@ -64,7 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Menu id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested menu.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read menu.")]
         Task<GXMenu> ReadAsync(Guid id, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Menu name.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested menu.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read menu by name.")]
         Task<GXMenu> ReadAsync(string id, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -85,6 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="menus">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new menus or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXMenu> menus,
@@ -95,6 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete menus.</returns>
         [System.ComponentModel.Description("Delete menus.")]
         Task DeleteAsync(IEnumerable<Guid> menus, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -102,7 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this menu.
         /// </summary>
         /// <param name="menuId">Menu id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this menu.")]
         Task<List<string>> GetUsersAsync(Guid? menuId, CancellationToken cancellationToken = default);
@@ -111,16 +113,23 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access menus.
         /// </summary>
         /// <param name="menuIds">Menu ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access menus.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? menuIds, CancellationToken cancellationToken = default);
 
         /// <summary>Inserts missing built-in menus of the requested kind, preserving existing rows.</summary>
+        /// <returns>A task representing completion of the request to insert missing built-in menus of the requested kind, preserving existing rows.</returns>
+        /// <param name="kind">The menu kind whose built-in definitions are used.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Inserts missing built-in menus of the requested kind, preserving existing rows.")]
         Task EnsureDefaultsAsync(MenuKind kind, CancellationToken cancellationToken = default);
 
         /// <summary>Resets selected built-in menus in place. An empty selection is rejected.</summary>
+        /// <returns>A task representing completion of the request to reset selected built-in menus in place. An empty selection is rejected.</returns>
+        /// <param name="kind">The menu kind whose built-in definitions are used.</param>
+        /// <param name="menus">Identifiers of existing built-in menus to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Resets selected built-in menus in place. An empty selection is rejected.")]
         Task ResetToDefaultsAsync(MenuKind kind, IEnumerable<Guid> menus, CancellationToken cancellationToken = default);
     }

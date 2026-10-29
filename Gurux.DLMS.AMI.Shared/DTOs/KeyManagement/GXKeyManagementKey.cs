@@ -98,6 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         public DateTimeOffset? Updated { get; set; }
 
         /// <summary>Returns a detached metadata object without bytes or nested secret lists.</summary>
+        /// <returns>A new key record with no key bytes and, when present, only the parent key-management identity and provider references.</returns>
         [Description("Returns a detached metadata object without bytes or nested secret lists.")]
         public GXKeyManagementKey ToMetadata()
         {

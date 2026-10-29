@@ -63,7 +63,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Description("Stable application identifier of the policy. It cannot be renamed after creation.")]
         [DataMember]
         [Index(Unique = true)]
-        [Required]
         [StringLength(128)]
         [Filter(FilterType.Equals)]
         [IsRequired]

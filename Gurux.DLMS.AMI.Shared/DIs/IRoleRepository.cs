@@ -62,7 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Role id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested role.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read role.")]
         Task<GXRole> ReadAsync(string id, Expression<Func<GXRole, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -71,7 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read by role name.
         /// </summary>
         /// <param name="name">Role name.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the role with the requested name.</returns>
         [System.ComponentModel.Description("Read by role name.")]
         Task<GXRole> ReadByNameAsync(string name);
 
@@ -80,21 +80,28 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="roles">The records to insert or update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new roles or updates existing ones.")]
         Task<IEnumerable<string>> UpsertAsync(IEnumerable<GXRole> roles, CancellationToken cancellationToken = default);
 
         /// <summary>Delete roles.</summary>
         /// <param name="roles">Role(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete roles.</returns>
         [System.ComponentModel.Description("Delete roles.")]
         Task DeleteAsync(IEnumerable<string> roles, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Asynchronously restores the default roles.
-        /// </summary>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-        /// <returns>true if the refresh succeeds; otherwise, false.</returns>
-        [System.ComponentModel.Description("Asynchronously restores the default roles.")]
-        Task<bool> RestoreDefaultRoles(CancellationToken cancellationToken);
+        /// <summary>Add missing built-in defaults while preserving existing rows.</summary>
+        /// <returns>A task representing completion of the request to add missing built-in defaults while preserving existing rows.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [System.ComponentModel.Description("Add missing built-in defaults while preserving existing rows.")]
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>Reset selected built-ins while preserving identity and assignments.</summary>
+        /// <returns>A task representing completion of the request to reset selected built-ins while preserving identity and assignments.</returns>
+        /// <param name="roleIds">Identifiers of existing built-in roles to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [System.ComponentModel.Description("Reset selected built-ins while preserving identity and assignments.")]
+        Task ResetToDefaultsAsync(IEnumerable<string> roleIds, CancellationToken cancellationToken = default);
     }
 }

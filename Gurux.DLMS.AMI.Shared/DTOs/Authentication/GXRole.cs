@@ -52,7 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public string Id { get; set; } = default!;
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// Name of the role.
@@ -92,15 +92,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? Default { get; set; }
-
-        /// <summary>
-        /// Notify users when content associated with this role changes.
-        /// </summary>
-        [Description("Notify users when content associated with this role changes.")]
-        [DataMember]
-        [DefaultValue(false)]
-        [IsRequired]
-        public bool? NotifyOnContentChange { get; set; }
 
         /// <summary>
         /// Role description.

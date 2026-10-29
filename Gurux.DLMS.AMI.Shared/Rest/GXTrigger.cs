@@ -93,7 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [ExcludeOpenApi(typeof(GXTrigger),
             nameof(GXTrigger.ClassName), nameof(GXTrigger.Icon), nameof(GXTrigger.ConfigurationUI),
-            nameof(GXTrigger.Settings), nameof(GXTrigger.ConcurrencyStamp), nameof(GXTrigger.ExecutionTime))]
+            nameof(GXTrigger.Properties), nameof(GXTrigger.ConcurrencyStamp), nameof(GXTrigger.ExecutionTime))]
         public GXTrigger? Filter { get; set; }
         /// <summary>
         /// Admin user can access triggers from all users.
@@ -245,25 +245,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Refresh triggers.
+    /// Add missing registered trigger defaults.
     /// </summary>
-    [Description("Refresh triggers.")]
+    [Description("Add missing registered trigger defaults.")]
     [DataContract]
-    public class RefreshTrigger : IGXRequest<RefreshTriggerResponse>
+    public class EnsureTriggerDefaults : IGXRequest<EnsureTriggerDefaultsResponse>
     {
     }
 
     /// <summary>
-    /// Reply from refresh triggers.
+    /// Reply after ensuring registered trigger defaults.
     /// </summary>
-    [Description("Reply from refresh triggers.")]
+    [Description("Reply after ensuring registered trigger defaults.")]
     [DataContract]
-    public class RefreshTriggerResponse
+    public class EnsureTriggerDefaultsResponse
     {
-        /// <summary>
-        /// True, if there are new triggers available.
-        /// </summary>
-        [Description("True, if there are new triggers available.")]
-        public bool NewItems { get; set; }
     }
 }

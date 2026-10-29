@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Agent id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested agent.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read agent.")]
         Task<GXAgent> ReadAsync(Guid id,
@@ -74,6 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="agents">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new agents or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAgent> agents,
@@ -85,6 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete agents.</returns>
         [System.ComponentModel.Description("Delete agents.")]
         Task DeleteAsync(IEnumerable<Guid> agents, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -92,7 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this agent.
         /// </summary>
         /// <param name="agentId">Agent id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this agent.")]
         Task<List<string>> GetUsersAsync(Guid? agentId, CancellationToken cancellationToken = default);
@@ -101,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access agents.
         /// </summary>
         /// <param name="agentIds">Agent ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access agents.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds, CancellationToken cancellationToken = default);
@@ -114,6 +116,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="status">Agent status</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="data">Optional data. List of available serial ports.</param>
+        /// <returns>A task representing completion of the request to update the agent status.</returns>
         [System.ComponentModel.Description("Agent updates the status.")]
         Task UpdateStatusAsync(Guid agentId, string? connectionInfo, AgentStatus status, string? data, CancellationToken cancellationToken = default);
 
@@ -122,6 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="agents">Upgraded agents.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to upgrade agent version.</returns>
         [System.ComponentModel.Description("Upgrade agent version.")]
         Task UpgradeAsync(IEnumerable<GXAgent> agents, CancellationToken cancellationToken = default);
 
@@ -146,6 +150,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="Ids">Agent IDs.</param>
         /// <param name="names">Cache names to clear</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to clear agents' cache.</returns>
         [System.ComponentModel.Description("Clear agents' cache.")]
         Task ClearCache(IEnumerable<Guid>? Ids, IEnumerable<string> names,
             CancellationToken cancellationToken = default);

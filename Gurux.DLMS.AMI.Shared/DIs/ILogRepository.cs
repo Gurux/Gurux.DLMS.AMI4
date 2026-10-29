@@ -53,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Log type source, name, or public identifier.</param>
         /// <param name="error">Exception whose message and stack trace are recorded.</param>
         /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>A task whose result is the recorded exception log entry.</returns>
         [System.ComponentModel.Description("Adds an exception as a log entry.")]
         async Task<GXLog> AddAsync(string type, Exception error, CancellationToken cancellationToken = default)
         {
@@ -66,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="owner">Source entity associated with the exception.</param>
         /// <param name="error">Exception whose message and stack trace are recorded.</param>
         /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>A task whose result is the recorded exception log entry.</returns>
         [System.ComponentModel.Description("Adds an exception associated with the specified source entity.")]
         async Task<GXLog> AddAsync(string type, object owner, Exception error, CancellationToken cancellationToken = default)
         {
@@ -93,6 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>Deletes the specified log entries.</summary>
         /// <param name="logs">Log entries to delete, identified by their public identifiers.</param>
         /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>A task representing completion of the request to delete the specified log entries.</returns>
         [System.ComponentModel.Description("Deletes the specified log entries.")]
         Task DeleteAsync(IEnumerable<GXLog> logs, CancellationToken cancellationToken = default)
             => DeleteAsync(logs.Select(log => log.PublicId), cancellationToken: cancellationToken);
@@ -102,6 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Log type.</param>
         /// <param name="logs">Log entries to add.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the added records.</returns>
         [System.ComponentModel.Description("Add logs.")]
         Task<IEnumerable<Guid>> AddAsync(
             string type,
@@ -127,7 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="id">Public identifier of the log entry to read.</param>
         /// <param name="columns">Read columns.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested log.</returns>
         [System.ComponentModel.Description("Read log entry.")]
         Task<GXLog> ReadAsync(Guid id,
             Expression<Func<GXLog, object>>? columns = null,
@@ -140,6 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete log entries.</returns>
         [System.ComponentModel.Description("Delete log entries.")]
         Task DeleteAsync(IEnumerable<Guid>? logs, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
@@ -149,6 +154,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="logs">Public identifiers of the log entries to close.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to close log entries.</returns>
         [System.ComponentModel.Description("Close log entries.")]
         Task CloseAsync(IEnumerable<Guid>? logs, CancellationToken cancellationToken = default);
 
@@ -157,6 +163,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="request">Source identifiers whose logs are cleared.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to clear all log entries.</returns>
         [System.ComponentModel.Description("Clear all log entries.")]
         Task ClearAsync(ClearLog? request = null, CancellationToken cancellationToken = default);
     }

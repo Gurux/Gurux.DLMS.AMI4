@@ -62,6 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="token">Token details to create.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task whose result is the newly generated personal access token value.</returns>
         [System.ComponentModel.Description("Add new personal access token.")]
         Task<string> AddPersonalTokenAsync(GXPersonalToken token, CancellationToken cancellationToken = default);
 
@@ -70,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Removed token ID</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task whose result describes the removed personal access token.</returns>
         [System.ComponentModel.Description("Remove personal token.")]
         Task<GXPersonalToken> RemovePersonalTokenAsync(string id, CancellationToken cancellationToken = default);
     }

@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Device activity id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested device trace.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Reads a device communication trace by identifier.")]
         Task<GXDeviceTrace> ReadAsync(Guid id, Expression<Func<GXDeviceTrace, object>>? columns = null,
@@ -73,15 +73,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Device trace type.</param>
         /// <param name="deviceTraces">Added device traces.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to add device traces.</returns>
         [System.ComponentModel.Description("Add device traces.")]
         Task AddAsync(string type, IEnumerable<GXDeviceTrace> deviceTraces, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Clear all device activitys.
+        /// Clear all device activities.
         /// </summary>
         /// <param name="devices">List of device Ids whoes activities are cleared.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        [System.ComponentModel.Description("Clear all device activitys.")]
+        /// <returns>A task representing completion of the request to clear all device activities.</returns>
+        [System.ComponentModel.Description("Clear all device activities.")]
         Task ClearAsync(IEnumerable<Guid>? devices, CancellationToken cancellationToken);
     }
 }

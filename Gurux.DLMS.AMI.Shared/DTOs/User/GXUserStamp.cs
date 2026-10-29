@@ -111,7 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Description("Target type.")]
         [Filter(FilterType.Equals)]
         [StringLength(32)]
-        [Required]
+        [IsRequired]
         public string? TargetType { get; set; }
 
         /// <summary>

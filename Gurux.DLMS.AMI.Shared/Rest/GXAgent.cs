@@ -74,8 +74,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             , nameof(GXAgent.CreationTime), nameof(GXAgent.Updated))]
         [IncludeOpenApi(typeof(GXAgentVersion), nameof(GXAgentVersion.Id))]
         [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
-        [Required]
         [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Properties))]
+        [Required]
         public IEnumerable<GXAgent> Agents { get; set; } = default!;
     }
 

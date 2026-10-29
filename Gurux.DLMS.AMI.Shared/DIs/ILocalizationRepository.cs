@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Language id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested language.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read language.")]
         Task<GXLanguage> ReadAsync(Guid id, Expression<Func<GXLanguage, object>>? columns = null,
@@ -88,6 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="languages">Languages to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to update active state of the cultures.</returns>
         [System.ComponentModel.Description("Update active state of the cultures.")]
         Task UpdateCulturesAsync(IEnumerable<GXLanguage> languages, CancellationToken cancellationToken = default);
 
@@ -106,6 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="languages">Languages to update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to refresh Localized strings.</returns>
         [System.ComponentModel.Description("Refresh Localized strings.")]
         Task RefreshLocalizationsAsync(IEnumerable<GXLanguage>? languages, CancellationToken cancellationToken = default);
     }

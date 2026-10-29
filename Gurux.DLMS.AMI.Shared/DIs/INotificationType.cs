@@ -47,6 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the matching notification types.</returns>
         [System.ComponentModel.Description("List notification types.")]
         Task<IEnumerable<GXNotificationType>> ListAsync(
             ListNotificationType? request = null,
@@ -59,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="id">Notification type id.</param>
         /// <param name="columns">Read columns.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the requested notification type.</returns>
         [System.ComponentModel.Description("Read notification type details.")]
         Task<GXNotificationType> ReadAsync(Guid id, Expression<Func<GXNotificationType, object>>? columns = null,
             CancellationToken cancellationToken = default);
@@ -69,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="list">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new notification types or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXNotificationType> list,
@@ -82,15 +85,21 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, items are deleted permanently instead of being soft-deleted.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete notification types.</returns>
         [System.ComponentModel.Description("Delete notification types.")]
         Task DeleteAsync(IEnumerable<Guid> list, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
 
         /// <summary>Create missing built-in notification types without modifying existing rows.</summary>
+        /// <returns>A task representing completion of the request to create missing built-in notification types without modifying existing rows.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Create missing built-in notification types without modifying existing rows.")]
         Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>Restore selected built-ins in place. Empty selections are rejected.</summary>
+        /// <returns>A task representing completion of the request to restore selected built-ins in place. Empty selections are rejected.</returns>
+        /// <param name="ids">Identifiers of existing built-in resources to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Restore selected built-ins in place. Empty selections are rejected.")]
         Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }

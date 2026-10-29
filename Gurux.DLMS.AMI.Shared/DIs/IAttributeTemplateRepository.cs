@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="templates">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new attribute templates or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAttributeTemplate> templates,
@@ -82,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, attribute templates are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete attribute templates.</returns>
         [System.ComponentModel.Description("Delete attribute templates.")]
         Task DeleteAsync(IEnumerable<Guid> templates, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 

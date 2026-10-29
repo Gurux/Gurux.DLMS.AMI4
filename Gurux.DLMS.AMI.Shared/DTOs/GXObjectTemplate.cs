@@ -50,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Initializes a new instance of GXObjectTemplate.</summary>
+        /// <param name="name">Display name of the object template, or null when not assigned.</param>
         [Description("Initializes a new instance of GXObjectTemplate.")]
         public GXObjectTemplate(string? name)
         {

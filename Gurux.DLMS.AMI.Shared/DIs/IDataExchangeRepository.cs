@@ -67,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="filter">Exported filter.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the exported data and export response metadata.</returns>
         [System.ComponentModel.Description("Exported data.")]
         Task<GXExportDataResponse> ExportDataAsync(
             GXExportData filter,

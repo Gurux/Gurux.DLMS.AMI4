@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
@@ -49,7 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
 {
     /// <summary>An executable workflow composed of script methods, modules, and execution conditions.</summary>
     [Description("An executable workflow composed of script methods, modules, and execution conditions.")]
-    public class GXWorkflow : GXTableBase, IUnique<Guid>
+    public partial class GXWorkflow : GXTableBase, IUnique<Guid>
     {
         /// <summary>Initializes a new instance of GXWorkflow.</summary>
         [Description("Initializes a new instance of GXWorkflow.")]
@@ -70,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
             WorkflowGroups = [];
             Logs = [];
             Modules = [];
+            Properties = [];
             TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
 
@@ -81,6 +83,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
+
+        /// <summary>Additional access policies; empty retains existing permissions, otherwise any assigned policy must pass.</summary>
+        [Description("Additional access policies; empty retains existing permissions, otherwise any assigned policy must pass.")]
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
 
         /// <summary>
         /// Workflow name.
@@ -117,6 +124,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [IsRequired]
         public GXUser? Creator { get; set; }
 
+        /// <summary>
+        /// Workflow properties.
+        /// </summary>
+        [Description("Workflow properties.")]
+        [DataMember]
+        [ForeignKey]
+        [Filter(FilterType.Contains)]
+        public List<GXWorkflowProperty>? Properties { get; set; }
+
 
         /// <summary>
         /// Trigger that invokes the work flow.
@@ -126,6 +142,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [ForeignKey(typeof(GXTriggerActivity))]
         public GXTriggerActivity? TriggerActivity { get; set; }
 
+        /// <summary>The single trigger phase to handle. Existing workflows run After.</summary>
+        [DataMember, Description("Selected trigger execution phase.")]
+        [DefaultValue(TriggerPhase.After), IsRequired]
+        [Filter(FilterType.Exact)]
+        public TriggerPhase Phase { get; set; } = TriggerPhase.After;
         /// <summary>
         /// Trigger condition script method that workflow uses.
         /// </summary>
@@ -165,6 +186,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXDeviceGroup? DeviceGroup { get; set; }
+
+
+        /// <summary>Identity used by automatic executions. Manual executions use the caller.</summary>
+        [DataMember, Description("Identity used by automatic workflow executions.")]
+        [DefaultValue(GXWorkflowExecutionIdentity.ServiceAccount), IsRequired]
+        [Filter(FilterType.Exact)]
+        public GXWorkflowExecutionIdentity ExecutionIdentity { get; set; } = GXWorkflowExecutionIdentity.ServiceAccount;
+
+        /// <summary>Explicit service account identifier; an absent account never implies the owner or administrator.</summary>
+        [DataMember, Description("Explicit service account identifier for automatic workflow executions.")]
+        [StringLength(64), DefaultValue(null)]
+        [Filter(FilterType.Exact)]
+        public string? ExecutionUserId { get; set; }
 
         /// <summary>
         /// Executed script methods.

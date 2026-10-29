@@ -29,14 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Service.Orm.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-
+using Gurux.Service.Orm.Common;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -205,6 +204,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [Description("Response to deleting the selected log types.")]
     [DataContract]
     public class RemoveLogTypeResponse
+    {
+    }
+
+    /// <summary>
+    /// Regenerate log type.
+    /// </summary>
+    [Description("Regenerate log type.")]
+    [DataContract]
+    public class RegenerateLogType : IGXRequest<RegenerateLogTypeResponse>
+    {
+        /// <summary>Existing identifiers to reset to built-in defaults. Null or empty adds only missing defaults and preserves existing records.</summary>
+        [Description("Existing identifiers to reset to built-in defaults. Null or empty adds only missing defaults and preserves existing records.")]
+        [DataMember]
+        public IEnumerable<Guid>? Ids { get; set; }
+    }
+
+    /// <summary>
+    /// Regenerate log types response.
+    /// </summary>
+    [Description("Regenerate log types response.")]
+    [DataContract]
+    public class RegenerateLogTypeResponse
     {
     }
 }

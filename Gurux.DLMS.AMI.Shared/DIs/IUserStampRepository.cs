@@ -60,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="userStamps">User stamps.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete user stamps.</returns>
         [System.ComponentModel.Description("Delete user stamps.")]
         Task DeleteAsync(IEnumerable<Guid> userStamps, CancellationToken cancellationToken = default);
 
@@ -68,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="userStamps">The user stamps to insert or refresh, matched by target type for the current user.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to insert new user stamps or refresh existing stamps for the current user.</returns>
         [System.ComponentModel.Description("Inserts new user stamps or refreshes existing stamps for the current user.")]
         Task UpsertAsync(IEnumerable<GXUserStamp> userStamps, CancellationToken cancellationToken = default);
     }

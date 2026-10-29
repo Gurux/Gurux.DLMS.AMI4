@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Favorite id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested favorite.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read Favorite.")]
         Task<GXFavorite> ReadAsync(Guid id, Expression<Func<GXFavorite, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="favorites">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new favorites or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
 
@@ -81,6 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>Delete Favorites.</summary>
         /// <param name="favorites">Favorite(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete Favorites.</returns>
         [System.ComponentModel.Description("Delete Favorites.")]
         Task DeleteAsync(IEnumerable<Guid> favorites, CancellationToken cancellationToken = default);
     }

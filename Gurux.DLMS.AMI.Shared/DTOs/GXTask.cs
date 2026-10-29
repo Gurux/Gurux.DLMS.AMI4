@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -56,6 +56,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
+
+        /// <summary>Correlates tasks created by one workflow or schedule invocation.</summary>
+        [DataMember]
+        [DefaultValue(null)]
+        public Guid? WorkflowOperationId { get; set; }
+        /// <summary>Initiating user for a manually started scheduled invocation; null for machine events.</summary>
+        [DataMember]
+        [DefaultValue(null)]
+        [StringLength(450)]
+        public string? WorkflowActorId { get; set; }
 
         /// <summary>
         /// The creator of the task.
@@ -288,6 +298,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [Description("Start execution time.")]
         [DataMember]
+        [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
         public DateTimeOffset? Start { get; set; }

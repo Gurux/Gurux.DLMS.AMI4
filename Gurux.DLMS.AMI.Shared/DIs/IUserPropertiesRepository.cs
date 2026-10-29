@@ -73,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="settings">The user properties to insert or update, matched by owner and name. Module-owned properties must be saved through the module interface.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to insert new user properties or update existing ones.</returns>
         [System.ComponentModel.Description("Inserts new user properties or updates existing ones.")]
         Task UpsertAsync(
             IEnumerable<GXUserProperty> settings,
@@ -83,6 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="ids">User settings to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete user settings.</returns>
         [System.ComponentModel.Description("Delete user settings.")]
         Task DeleteAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }

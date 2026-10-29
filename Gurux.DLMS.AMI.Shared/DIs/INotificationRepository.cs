@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Notification id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested notification.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read notification.")]
         Task<GXNotification> ReadAsync(Guid id, Expression<Func<GXNotification, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="notifications">Updated notification(s).</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new notifications or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXNotification> notifications,
@@ -82,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete notifications.</returns>
         [System.ComponentModel.Description("Delete notifications.")]
         Task DeleteAsync(IEnumerable<Guid> notifications, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
@@ -90,9 +92,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Refresh notifications.
         /// </summary>
         /// <param name="user">User for whom the notifications are being refreshed.</param>
-        /// <param name="delete">If true, exists notifications are deleted and the new ones are generated.</param>
+        /// <param name="delete">If true, existing notifications are deleted and the new ones are generated.</param>
         /// <param name="notify">If true, notifications are sent for the refresh.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the generated notifications.</returns>
         [System.ComponentModel.Description("Refresh notifications.")]
         Task<IEnumerable<Guid>> RefreshAsync(GXUser? user, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);

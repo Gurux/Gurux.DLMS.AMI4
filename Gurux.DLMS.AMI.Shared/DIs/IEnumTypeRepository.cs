@@ -41,6 +41,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     [System.ComponentModel.Description("Provides persistence and lookup operations for enumeration type definitions.")]
     public interface IEnumTypeRepository
     {
+        /// <summary>Add missing built-in enumeration definitions without changing existing entries. Requires administrator role.</summary>
+        /// <returns>A task representing completion of the request to add missing built-in enumeration definitions without changing existing entries. Requires administrator role.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>Restore the values of selected known defaults while preserving their identifiers. Requires administrator role.</summary>
+        /// <returns>A task representing completion of the request to restore the values of selected known defaults while preserving their identifiers. Requires administrator role.</returns>
+        /// <param name="ids">Identifiers of existing built-in resources to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        Task ResetToDefaultsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Get the enum type. The new type is added if it's not found.
         /// </summary>
@@ -71,6 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="request">The request parameters.</param>
         /// <param name="response">The response parameters.</param>
+        /// <returns>A task whose result contains the matching enumeration types.</returns>
         [System.ComponentModel.Description("Get available enum types.")]
         Task<IEnumerable<GXEnumType>> ListAsync(ListEnumTypes? request = null,
             ListEnumTypesResponse? response = null,
@@ -81,6 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="type">Enumeration type name whose definitions are deleted.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete enum type.</returns>
         [System.ComponentModel.Description("Delete enum type.")]
         Task DeleteAsync(string type,
             CancellationToken cancellationToken = default);

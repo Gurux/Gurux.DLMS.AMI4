@@ -49,6 +49,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Initializes a new instance of GXAppearance.</summary>
+        /// <param name="type">Numeric resource type used to classify the appearance.</param>
+        /// <param name="name">Resource name used for display and symbolic lookup.</param>
+        /// <param name="description">Human-readable description of the resource.</param>
         [Description("Initializes a new instance of GXAppearance.")]
         public GXAppearance(byte type, string name, string description)
         {
@@ -58,6 +61,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Initializes a new instance of GXAppearance.</summary>
+        /// <param name="type">Numeric resource type used to classify the appearance.</param>
+        /// <param name="name">Resource name used for display and symbolic lookup.</param>
+        /// <param name="description">Human-readable description of the resource.</param>
+        /// <param name="value">Resource contents or reference, interpreted according to its type.</param>
         [Description("Initializes a new instance of GXAppearance.")]
         public GXAppearance(byte type, string name, string description, string value)
         {
@@ -78,7 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
 
         /// <summary>Unique, editable resource name used for symbolic resource lookups.</summary>
         [Description("Unique, editable resource name used for symbolic resource lookups.")]
-        [DataMember, StringLength(64), IsRequired, Required]
+        [DataMember, StringLength(64), IsRequired]
         [Index(Unique = true)]
         [Filter(FilterType.Contains)]
         public string Name { get; set; } = "";

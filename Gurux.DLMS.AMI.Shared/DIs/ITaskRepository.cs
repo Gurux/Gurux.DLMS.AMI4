@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Task id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested task.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read task details.")]
         Task<GXTask> ReadAsync(Guid id, Expression<Func<GXTask, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -71,30 +71,44 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="tasks">Updated task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the added records.</returns>
         [System.ComponentModel.Description("Add new tasks.")]
         Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken);
 
         /// <summary>Delete tasks.</summary>
         /// <param name="tasks">Deleted task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete tasks.</returns>
         [System.ComponentModel.Description("Delete tasks.")]
         Task DeleteAsync(IEnumerable<Guid> tasks, CancellationToken cancellationToken = default);
 
-        /// <summary>Mark tasks to complete.</summary>
-        /// <param name="tasks">Completed task(s).</param>
+        /// <summary>Records task completion and finishes the corresponding workflow operations.</summary>
+        /// <param name="tasks">Completed tasks with their identifiers, original claim Start timestamps, and optional Result errors and Data.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        [System.ComponentModel.Description("Mark tasks to complete.")]
+        /// <remarks>
+        /// The caller must have access to the assigned agent. Stale or missing claim timestamps are rejected.
+        /// An empty Result denotes success. The first persisted result is retained across repeated reports.
+        /// Task and operation state are committed together before registered lifecycle events are published.
+        /// </remarks>
+        /// <returns>A task representing completion of the request to record task completion and finish the corresponding workflow operations.</returns>
+        [System.ComponentModel.Description("Records task completion and finishes the corresponding workflow operations.")]
         Task DoneAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken = default);
 
         /// <summary>Restart tasks.</summary>
         /// <param name="tasks">Restarted task(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to restart tasks.</returns>
         [System.ComponentModel.Description("Restart tasks.")]
         Task RestartAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Claim all pending tasks for one idle meter, preferring mapped meters before the oldest unmapped meter.
         /// </summary>
+        /// <remarks>
+        /// Claiming sets Start and OperatingAgent and creates a workflow operation in the same transaction.
+        /// Registered start events publish after commit. Start identifies task allocation, not physical device communication.
+        /// Completion reports must return the unchanged Start timestamp.
+        /// </remarks>
         /// <param name="connectionInfo">Connection information.</param>
         /// <param name="agentId">Agent ID.</param>
         /// <param name="DeviceId">Device Id</param>
@@ -111,9 +125,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             bool listener, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Clear tasks.
-        /// <param name="cancellationToken">The cancellation token.</param>
+        /// Clears the selected tasks.
         /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to clear tasks.</returns>
         [System.ComponentModel.Description("Clear tasks. The cancellation token.")]
         Task ClearAsync(CancellationToken cancellationToken = default);
     }

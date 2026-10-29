@@ -69,7 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.UrlAlias
         /// Opaque resource identifier. May be a GUID, user identifier, or extension-defined string.
         /// </summary>
         [Description("Opaque resource identifier. May be a GUID, user identifier, or extension-defined string.")]
-        [DataMember, Required, IsRequired, StringLength(256)]
+        [DataMember, IsRequired, StringLength(256)]
         [DefaultValue("")]
         [Filter(FilterType.Equals)]
         public string TargetId { get; set; } = string.Empty;

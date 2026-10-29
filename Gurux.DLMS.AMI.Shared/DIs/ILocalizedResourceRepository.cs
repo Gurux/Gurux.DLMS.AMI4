@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Localized resource id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested localized resource.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read localized resource.")]
         Task<GXLocalizedResource> ReadAsync(Guid id,
@@ -73,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="lang">Language identifier.</param>
         /// <param name="hash">Hash of localized resource.</param>
         /// <param name="text">Localized text.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested localized resource, or <see langword="null"/> when no match is available.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read localized resource.")]
         Task<GXLocalizedResource?> ReadAsync(string lang, string hash, string? text, CancellationToken cancellationToken = default);
@@ -83,18 +83,21 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="localizedResources">The records to insert or update.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new localized resources or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXLocalizedResource> localizedResources, CancellationToken cancellationToken = default);
 
         /// <summary>Delete localized resources.</summary>
         /// <param name="localizedResources">Localized resource(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete localized resources.</returns>
         [System.ComponentModel.Description("Delete localized resources.")]
         Task DeleteAsync(IEnumerable<Guid> localizedResources, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// When the localized resource was last changed.
         /// </summary>
+        /// <returns>A task whose result is the latest resource change timestamp, or <see langword="null"/> when no version is available.</returns>
         [System.ComponentModel.Description("When the localized resource was last changed.")]
         Task<DateTimeOffset?> LastChanged();
     }

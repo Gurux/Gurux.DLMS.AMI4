@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,6 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
@@ -60,6 +61,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [IsRequired]
         public string? Name { get; set; }
 
+        /// <summary>Action permission required by the registered trigger event.</summary>
+        [DataMember, StringLength(128)]
+        [Description("Action permission required by the registered trigger event.")]
+        public string? Permission { get; set; }
+
+        /// <summary>Phases that this activity can publish. Existing activities publish After only.</summary>
+        [DataMember, Description("Supported trigger execution phases.")]
+        [DefaultValue(TriggerPhase.After), IsRequired]
+        [Filter(FilterType.Exact)]
+        public TriggerPhase SupportedPhases { get; set; } = TriggerPhase.After;
         /// <summary>
         /// Parent trigger.
         /// </summary>

@@ -32,9 +32,9 @@
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.Service.Orm.Common;
-using System.Runtime.Serialization;
-
 using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -180,6 +180,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [Description("Response to deleting policy.")]
     [DataContract]
     public class PolicyDeleteResponse
+    {
+    }
+
+    /// <summary>
+    /// Regenerate policy.
+    /// </summary>
+    [Description("Regenerate policy.")]
+    [DataContract]
+    public class RegeneratePolicy : IGXRequest<RegeneratePolicyResponse>
+    {
+        /// <summary>
+        /// Existing identifiers to reset to built-in defaults. Null or empty adds only missing defaults and preserves existing records.
+        /// </summary>
+        [Description("Existing identifiers to reset to built-in defaults. Null or empty adds only missing defaults and preserves existing records.")]
+        [DataMember]
+        public IEnumerable<Guid>? Ids { get; set; }
+    }
+
+    /// <summary>
+    /// Regenerate policies response.
+    /// </summary>
+    [Description("Regenerate policies response.")]
+    [DataContract]
+    public class RegeneratePolicyResponse
     {
     }
 }

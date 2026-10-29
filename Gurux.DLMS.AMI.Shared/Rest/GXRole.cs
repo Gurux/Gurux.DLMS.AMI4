@@ -32,9 +32,9 @@
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.Service.Orm.Common;
-using System.Runtime.Serialization;
-
 using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -99,7 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXModule.Id),
             nameof(GXModule.Name))]
         [ExcludeOpenApi(typeof(GXRole),
-            nameof(GXRole.NormalizedName), nameof(GXRole.ConcurrencyStamp), nameof(GXRole.NotifyOnContentChange),
+            nameof(GXRole.NormalizedName), nameof(GXRole.ConcurrencyStamp),
             nameof(GXRole.Description))]
         public GXRole? Filter { get; set; }
 
@@ -185,6 +185,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [Description("Response to deleting role.")]
     [DataContract]
     public class RoleDeleteResponse
+    {
+    }
+
+    /// <summary>
+    /// Regenerate role.
+    /// </summary>
+    [Description("Regenerate role.")]
+    [DataContract]
+    public class RegenerateRole : IGXRequest<RegenerateRoleResponse>
+    {
+        /// <summary>Existing identifiers to reset to built-in defaults. Null or empty adds only missing defaults and preserves existing records.</summary>
+        [Description("Existing identifiers to reset to built-in defaults. Null or empty adds only missing defaults and preserves existing records.")]
+        [DataMember]
+        public IEnumerable<string>? Ids { get; set; }
+    }
+
+    /// <summary>
+    /// Regenerate roles response.
+    /// </summary>
+    [Description("Regenerate roles response.")]
+    [DataContract]
+    public class RegenerateRoleResponse
     {
     }
 }

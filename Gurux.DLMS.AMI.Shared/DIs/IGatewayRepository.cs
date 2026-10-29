@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Gateway id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested gateway.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read gateway.")]
         Task<GXGateway> ReadAsync(Guid id, Expression<Func<GXGateway, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="gateways">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new gateways or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXGateway> gateways,
@@ -82,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete gateways.</returns>
         [System.ComponentModel.Description("Delete gateways.")]
         Task DeleteAsync(IEnumerable<Guid> gateways, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -89,7 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this gateway.
         /// </summary>
         /// <param name="gatewayId">Gateway id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this gateway.")]
         Task<List<string>> GetUsersAsync(Guid? gatewayId, CancellationToken cancellationToken = default);
@@ -98,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access gateways.
         /// </summary>
         /// <param name="Ids">Gateway ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access gateways.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
@@ -109,6 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="gatewayId">Gateway ID.</param>
         /// <param name="status">Gateway status</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to update the gateway status.</returns>
         [System.ComponentModel.Description("Gateway updates the status.")]
         Task UpdateStatusAsync(Guid gatewayId, GatewayStatus status, CancellationToken cancellationToken = default);
 
@@ -117,6 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="gateways">Resetted gateway(s).</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to reset gateways to offline.</returns>
         [System.ComponentModel.Description("Reset gateways to offline.")]
         Task ResetAsync(IEnumerable<Guid> gateways, CancellationToken cancellationToken = default);
     }

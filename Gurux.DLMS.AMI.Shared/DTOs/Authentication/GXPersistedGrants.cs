@@ -46,7 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(200)]
         [DataMember(Name = "Key")]
         [Filter(FilterType.Exact)]
-        public string Id { get; set; } = default!;
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// Gets or sets the entity type.

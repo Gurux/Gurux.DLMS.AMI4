@@ -51,6 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Initializes a new instance of GXObject.</summary>
+        /// <param name="template">Template associated with the object, or null when not assigned.</param>
         [Description("Initializes a new instance of GXObject.")]
         public GXObject(GXObjectTemplate? template)
         {
@@ -62,6 +63,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Initializes a new instance of GXObject.</summary>
+        /// <param name="objectType">COSEM interface class identifier for the new object template.</param>
+        /// <param name="logicalName">Logical name in OBIS notation, or null when not assigned.</param>
         [Description("Initializes a new instance of GXObject.")]
         public GXObject(int objectType, string? logicalName)
         {

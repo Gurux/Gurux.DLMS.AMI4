@@ -281,11 +281,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class TaskDone
     {
         /// <summary>
-        /// Executed tasks.
+        /// Executed tasks with their identifiers, original Start timestamps, and optional Result errors and Data.
         /// </summary>
-        [Description("Executed tasks.")]
+        [Description("Executed tasks with their identifiers, original Start timestamps, and optional Result errors and Data.")]
         [DataMember]
-        [IncludeOpenApi(typeof(GXTask), nameof(GXTask.Id))]
+        [IncludeOpenApi(typeof(GXTask), nameof(GXTask.Id), nameof(GXTask.Start), nameof(GXTask.Result), nameof(GXTask.Data))]
         public IEnumerable<GXTask>? Tasks { get; set; }
     }
 

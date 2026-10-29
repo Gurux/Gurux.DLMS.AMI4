@@ -134,6 +134,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="processorId">Lease owner.</param>
         /// <param name="leaseToken">Current connection lease token.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the request to complete a closed connection after its device updates have been persisted.</returns>
         [System.ComponentModel.Description("Completes a closed connection after its device updates have been persisted.")]
         Task DoneAsync(Guid processorId, Guid leaseToken, CancellationToken cancellationToken = default);
 
@@ -148,6 +149,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="error">Processing error description.</param>
         /// <param name="nextAttempt">Optional automatic retry time.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the request to record a processing failure and release the entire connection lease.</returns>
         [System.ComponentModel.Description("Records a processing failure and releases the entire connection lease.")]
         Task FailAsync(Guid processorId, Guid leaseToken, string error, DateTimeOffset? nextAttempt = null,
             CancellationToken cancellationToken = default);
@@ -160,18 +162,21 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </remarks>
         /// <param name="notifications">Identifiers selecting connections to restart.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the request to requeue failed or expired connections for an explicit retry.</returns>
         [System.ComponentModel.Description("Requeues failed or expired connections for an explicit retry.")]
         Task RestartAsync(IEnumerable<Guid> notifications, CancellationToken cancellationToken = default);
 
         /// <summary>Deletes selected connections, rejecting any with an active lease.</summary>
         /// <param name="notifications">Identifiers selecting entire connections to delete.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete selected connections, rejecting any with an active lease.</returns>
         [System.ComponentModel.Description("Deletes selected connections, rejecting any with an active lease.")]
         Task DeleteAsync(IEnumerable<Guid> notifications, CancellationToken cancellationToken = default);
 
         /// <summary>Deletes only completed connections processed before the retention cutoff.</summary>
         /// <param name="processedBefore">Exclusive UTC retention cutoff.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete only completed connections processed before the retention cutoff.</returns>
         [System.ComponentModel.Description("Deletes only completed connections processed before the retention cutoff.")]
         Task ClearAsync(DateTimeOffset processedBefore, CancellationToken cancellationToken = default);
     }

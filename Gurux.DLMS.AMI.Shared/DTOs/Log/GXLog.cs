@@ -102,6 +102,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Log
         [Filter(FilterType.Exact)]
         public string? SourceId { get; set; }
 
+        /// <summary>Correlates entries produced by the same execution; unrelated logs leave it null.</summary>
+        [DataMember, Description("Identifier shared by logs from a single execution.")]
+        [Filter(FilterType.Exact), Index(false)]
+        public Guid? ExecutionId { get; set; }
         /// <summary>Optional diagnostic stack trace.</summary>
         [Description("Optional diagnostic stack trace.")]
         [DataMember]

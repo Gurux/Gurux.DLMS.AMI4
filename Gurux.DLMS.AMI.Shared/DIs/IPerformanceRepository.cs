@@ -63,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">The user performing the operation.</param>
         /// <param name="performances">Added performances.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the added records.</returns>
         [System.ComponentModel.Description("Add new performances.")]
         Task<IEnumerable<Guid>> AddAsync(ClaimsPrincipal User, IEnumerable<GXPerformance> performances,
             CancellationToken cancellationToken = default);
@@ -71,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">The user performing the operation.</param>
         /// <param name="performances">Performance(s) to delete.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete performances.</returns>
         [System.ComponentModel.Description("Delete performances.")]
         Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> performances, CancellationToken cancellationToken = default);
 
@@ -79,6 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">The user performing the operation.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to clear performances.</returns>
         [System.ComponentModel.Description("Clear performances.")]
         Task ClearAsync(ClaimsPrincipal User, CancellationToken cancellationToken = default);
 

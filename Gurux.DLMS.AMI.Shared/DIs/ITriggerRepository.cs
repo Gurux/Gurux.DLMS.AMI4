@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -61,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">Trigger id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested trigger.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read trigger.")]
         Task<GXTrigger> ReadAsync(Guid id, Expression<Func<GXTrigger, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -72,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="triggers">The records to insert or update.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new triggers or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXTrigger> triggers,
@@ -82,6 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete triggers.</returns>
         [System.ComponentModel.Description("Delete triggers.")]
         Task DeleteAsync(IEnumerable<Guid> triggers, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -89,7 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this trigger.
         /// </summary>
         /// <param name="triggerId">Trigger id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this trigger.")]
         Task<List<string>> GetUsersAsync(Guid? triggerId, CancellationToken cancellationToken = default);
@@ -98,15 +99,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access triggers.
         /// </summary>
         /// <param name="Ids">Trigger ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access triggers.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
-        /// <summary>Refresh triggerss.</summary>
-        /// <returns>True, if there are new triggers.</returns>
+        /// <summary>Add missing registered built-in defaults while preserving existing rows.</summary>
         /// <param name="cancellationToken">The cancellation token.</param>
-        [System.ComponentModel.Description("Refresh triggerss.")]
-        Task<bool> RefrestAsync(CancellationToken cancellationToken = default);
+        /// <returns>A task representing completion of the request to add missing registered built-in defaults while preserving existing rows.</returns>
+        [System.ComponentModel.Description("Add missing registered built-in defaults while preserving existing rows.")]
+        Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
     }
 }

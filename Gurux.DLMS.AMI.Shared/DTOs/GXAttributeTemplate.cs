@@ -49,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>Initializes a new instance of GXAttributeTemplate.</summary>
+        /// <param name="name">Display name of the attribute template, or null when not assigned.</param>
         [Description("Initializes a new instance of GXAttributeTemplate.")]
         public GXAttributeTemplate(string? name)
         {

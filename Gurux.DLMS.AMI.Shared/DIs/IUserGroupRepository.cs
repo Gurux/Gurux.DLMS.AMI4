@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">User group id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested user group.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read user group details.")]
         Task<GXUserGroup> ReadAsync(Guid id, Expression<Func<GXUserGroup, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated user groups.</param>
         /// <param name="columns">The properties to include when updating existing records, or <see langword="null"/> to use the repository's default update selection. Repository-managed and read-only properties may be excluded.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task whose result contains the identifiers of the inserted or updated records.</returns>
         [System.ComponentModel.Description("Inserts new user groups or updates existing ones.")]
         Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXUserGroup> groups,
@@ -82,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete user groups.</returns>
         [System.ComponentModel.Description("Delete user groups.")]
         Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -89,7 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this user group. 
         /// </summary>
         /// <param name="groupId">User group ID.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this user group.")]
         Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
@@ -98,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access user groups. 
         /// </summary>
         /// <param name="groupId">User group IDs.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access user groups.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId, CancellationToken cancellationToken = default);
@@ -108,6 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="userId">User ID.</param>
         /// <param name="groups">Group ID of the group where the user is added.</param>
+        /// <returns>A task representing completion of the request to add user to user groups.</returns>
         [System.ComponentModel.Description("Add user to user groups.")]
         Task AddUserToGroupsAsync(string userId, IEnumerable<Guid> groups);
 
@@ -115,7 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Returns list from user groups where user belongs.
         /// </summary>
         /// <param name="userId">User ID</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the user groups to which the specified user belongs.</returns>
         [System.ComponentModel.Description("Returns list from user groups where user belongs.")]
         Task<List<GXUserGroup>> GetJoinedUserGroupsAsync(string userId);
 

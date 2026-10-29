@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">View id.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested view.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read View.")]
         Task<GXView> ReadAsync(Guid id, Expression<Func<GXView, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -70,7 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="id">View name.</param>
         /// <param name="columns">Read columns.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the requested view.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Read View by name.")]
         Task<GXView> ReadAsync(string id, Expression<Func<GXView, object>>? columns = null, CancellationToken cancellationToken = default);
@@ -92,6 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         /// <param name="notify">If true, notifications are sent for the deletion.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A task representing completion of the request to delete Views.</returns>
         [System.ComponentModel.Description("Delete Views.")]
         Task DeleteAsync(IEnumerable<Guid> Views, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
@@ -99,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this View.
         /// </summary>
         /// <param name="ViewId">View id.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access this View.")]
         Task<List<string>> GetUsersAsync(Guid? ViewId, CancellationToken cancellationToken = default);
@@ -108,18 +109,23 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access Views.
         /// </summary>
         /// <param name="ViewIds">View ids.</param>
-        /// <returns>Operation result.</returns>
+        /// <returns>A task whose result contains the identifiers of users with access to the specified resources.</returns>
         /// <param name="cancellationToken">The cancellation token.</param>
         [System.ComponentModel.Description("Get all users that can access Views.")]
         Task<List<string>> GetUsersAsync(IEnumerable<Guid>? ViewIds, CancellationToken cancellationToken = default);
 
         /// <summary>Ensure component-defined defaults remain available without changing persisted overrides.
         /// Built-in views use virtual defaults and require no database rows.</summary>
+        /// <returns>A task representing completion of the request to ensure component-defined defaults remain available without changing persisted overrides. Built-in views use virtual defaults and require no database rows.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Ensure component-defined defaults remain available without changing persisted overrides. Built-in views use virtual defaults and require no database rows.")]
         Task EnsureDefaultsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>Reset selected existing built-in resources in place, preserving identity and references.
         /// The selection must be nonempty and every target must be valid before any writes.</summary>
+        /// <returns>A task representing completion of the request to reset selected existing built-in resources in place, preserving identity and references. The selection must be nonempty and every target must be valid before any writes.</returns>
+        /// <param name="ids">Identifiers of existing built-in resources to reset. The selection must not be empty.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [System.ComponentModel.Description("Reset selected existing built-in resources in place, preserving identity and references. The selection must be nonempty and every target must be valid before any writes.")]
         Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     }

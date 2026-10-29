@@ -45,6 +45,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Notifies clients that one or more target entities were created or updated.
         /// </summary>
         /// <param name="items">Updated target entities.</param>
+        /// <returns>A task representing delivery of the entity update callback.</returns>
         [System.ComponentModel.Description("Notifies clients that one or more target entities were created or updated.")]
         Task OnUpdate(IEnumerable<GXTarget> items);
 
@@ -52,6 +53,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Notifies clients that one or more user stamps were created or updated.
         /// </summary>
         /// <param name="stamps">Updated user stamps.</param>
+        /// <returns>A task representing delivery of the user-stamp update callback.</returns>
         [System.ComponentModel.Description("Notifies clients that one or more user stamps were created or updated.")]
         Task StampUpdate(IEnumerable<GXUserStamp> stamps);
     }

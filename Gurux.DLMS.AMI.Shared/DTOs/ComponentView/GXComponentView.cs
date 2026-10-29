@@ -49,6 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         }
 
         /// <summary>Initializes a new instance of GXComponentView.</summary>
+        /// <param name="name">Name identifying the component view, or null when not assigned.</param>
         [Description("Initializes a new instance of GXComponentView.")]
         public GXComponentView(string? name)
         {

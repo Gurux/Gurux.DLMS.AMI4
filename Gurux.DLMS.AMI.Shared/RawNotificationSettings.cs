@@ -92,6 +92,7 @@ namespace Gurux.DLMS.AMI.Shared
         public Guid? ScriptId { get; set; }
 
         /// <summary>Returns readable settings for diagnostics without including the script binary.</summary>
+        /// <returns>The diagnostic property values, excluding the compiled parser script.</returns>
         [System.ComponentModel.Description("Returns readable settings for diagnostics without including the script binary.")]
         public override string ToString()
         {
