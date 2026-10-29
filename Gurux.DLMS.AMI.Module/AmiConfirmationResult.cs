@@ -33,4 +33,6 @@
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>The user's decision. Permanent deletion is valid only for an approved dialog that offers it.</summary>
+/// <param name="Confirm">Whether the user approved the requested action.</param>
+/// <param name="Delete">Whether the user selected permanent deletion instead of disabling the item.</param>
 public readonly record struct AmiConfirmationResult(bool Confirm, bool Delete = false);

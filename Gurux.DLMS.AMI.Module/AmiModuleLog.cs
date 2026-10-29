@@ -42,4 +42,8 @@ namespace Gurux.DLMS.AMI.Module;
 /// <param name="Duration">Optional operation duration in milliseconds.</param>
 /// <param name="CreationTime">Optional event time; the host supplies the time when omitted.</param>
 public sealed record AmiModuleLog(string Category, string? UserId, string Message, string? Data = null,
-    int Level = 4, bool Closable = true, int? Duration = null, DateTimeOffset? CreationTime = null);
+    int Level = 4, bool Closable = true, int? Duration = null, DateTimeOffset? CreationTime = null)
+{
+    /// <summary>Optional identifier correlating entries from one workflow execution.</summary>
+    public Guid? ExecutionId { get; init; }
+}

@@ -41,7 +41,7 @@ namespace Gurux.DLMS.AMI.Module;
 /// <summary>Declarations collected before a module becomes active.</summary>
 /// <param name="moduleId">Unique identifier of the module being configured.</param>
 /// <param name="configuration">Host configuration exposed during module configuration.</param>
-/// <param name="settings">Host-provided serialized module settings.</param>
+    /// <param name="settings">Host-provided snapshot for reading module configuration and durable state.</param>
 public sealed partial class AmiModuleBuilder(string moduleId, IConfiguration configuration, IAmiModuleSettingsSnapshot settings)
 {
     /// <summary>Unique module identifier.</summary>
@@ -162,10 +162,12 @@ public sealed partial class AmiModuleBuilder(string moduleId, IConfiguration con
         return endpoint;
     }
     /// <summary>Registers module middleware with the specified execution order.</summary>
-    /// <param name="handler">Asynchronous handler executed for the matched HTTP request.</param>
-    /// <param name="order">Execution or display order; lower values are processed first.</param>
+    /// <param name="handler">Middleware receiving the module request, the next request delegate, and cancellation token.</param>
+    /// <param name="order">Middleware execution order; lower values run first.</param>
     public void Use(Func<AmiModuleRequest, RequestDelegate, CancellationToken, Task> handler, int order = 0)
         => Middleware.Add(new(order, handler));
+    /// <summary>Matches a single page route segment starting with a letter or digit.</summary>
+    /// <returns>The generated route validator allowing letters, digits, underscores, and hyphens.</returns>
     [System.Text.RegularExpressions.GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9_-]*$")]
     private static partial System.Text.RegularExpressions.Regex MyRegex();
 }

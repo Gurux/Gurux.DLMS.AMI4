@@ -30,11 +30,19 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Globalization;
+
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Validated host operations on AMI-owned resources, bound to one module.</summary>
 public interface IAmiModuleResources
 {
+    /// <summary>Returns the translated text, or the original text when no translation is available.</summary>
+    /// <param name="cultureInfo">Culture used to select the translation language.</param>
+    /// <param name="name">Original resource text.</param>
+    /// <returns>The localized text.</returns>
+    Task<string> GetLocalizedTextAsync(CultureInfo cultureInfo, string name);
+
     /// <summary>Creates missing capture policy, log type and menu defaults without overwriting user edits.</summary>
     /// <param name="definition">Policy, log type and menu defaults to ensure for this module.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
@@ -59,5 +67,8 @@ public interface IAmiModuleResources
     /// <returns>A task that completes when the operation has finished.</returns>
     Task EnsureNotificationDefaultsAsync(CancellationToken cancellationToken = default);
     /// <summary>Removes only the notification channel created by this module and its subscriptions.</summary>
+    /// <remarks>The default implementation completes without removing resources.</remarks>
+    /// <param name="cancellationToken">Token used to cancel removal.</param>
+    /// <returns>A task that completes when notification defaults have been removed.</returns>
     Task RemoveNotificationDefaultsAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

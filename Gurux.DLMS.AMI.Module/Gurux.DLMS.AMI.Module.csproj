@@ -1,45 +1,49 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <OutputType>Library</OutputType>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <Company>Gurux Ltd</Company>
-    <Authors>Gurux Ltd</Authors>
-    <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
-    <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
-    <Description>Gurux.DLMS.AMI.Module offers module support for Gurux DLMS AMI v4.</Description>
-    <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
-    <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance> 
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
-    <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
-    <PackageId>Gurux.DLMS.AMI.Module</PackageId>
-    <ApplicationIcon>gurux_dlms_ami.ico</ApplicationIcon> 
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
-    <PackageIcon>gurux_dlms_ami.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-  </PropertyGroup>
- <PropertyGroup>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-  </PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <OutputType>Library</OutputType>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <Company>Gurux Ltd</Company>
+        <Authors>Gurux Ltd</Authors>
+        <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
+        <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
+        <Description>Gurux.DLMS.AMI.Module offers module support for Gurux DLMS AMI v4.</Description>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
+        <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
+        <PackageId>Gurux.DLMS.AMI.Module</PackageId>
+        <ApplicationIcon>gurux_dlms_ami.ico</ApplicationIcon>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageIcon>gurux_dlms_ami.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    <PropertyGroup>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.14" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.14" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    </ItemGroup>
 
- <ItemGroup>
-    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
-    <None Update="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
+        <None Update="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Token\" />
+    </ItemGroup>
 </Project>
