@@ -48,13 +48,16 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <summary>
         /// Creates and opens a new database connection.
         /// </summary>
-        /// <returns>An open <see cref="DbConnection"/> instance.</returns>
+        /// <returns>A task whose result is a new open connection that the caller must dispose.</returns>
         Task<DbConnection> CreateOpenConnectionAsync();
 
-        /// <inheritdoc cref="IDbConnection.BeginTransaction()"/>
+        /// <summary>Begins a transaction on this database instance's connection.</summary>
+        /// <returns>The transaction to use for subsequent operations on this instance.</returns>
         IDbTransaction BeginTransaction();
 
-        /// <inheritdoc cref="IDbConnection.BeginTransaction(IsolationLevel)"/>
+        /// <summary>Begins a transaction with the requested isolation level on this instance's connection.</summary>
+        /// <param name="isolationLevel">The isolation level requested from the database provider.</param>
+        /// <returns>The transaction to use for subsequent operations on this instance.</returns>
         IDbTransaction BeginTransaction(IsolationLevel isolationLevel);
 
         /// <summary>
@@ -103,6 +106,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// Drops the table for the specified entity type asynchronously.
         /// </summary>
         /// <typeparam name="T">Entity type mapped to a table.</typeparam>
+        /// <returns>A task representing completion of the table removal.</returns>
         Task DropTableAsync<T>();
 
         /// <summary>
@@ -139,6 +143,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <typeparam name="T">Entity type.</typeparam>
         /// <param name="value">Entity instance to delete.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the entity deletion.</returns>
         Task DeleteAsync<T>(T value, CancellationToken cancellationToken = default);
 
 
@@ -156,7 +161,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <typeparam name="T">Entity type.</typeparam>
         /// <param name="transaction">Optional transaction to use for the query.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>List of entities.</returns>
+        /// <returns>A task whose result contains all entities selected by the query.</returns>
         Task<List<T>> SelectAllAsync<T>(IDbTransaction? transaction = default, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -185,7 +190,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="columns">Expression that defines selected columns.</param>
         /// <param name="where">Expression that defines filter conditions.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>List of matching entities.</returns>
+        /// <returns>A task whose result contains the matching entities with the selected columns populated.</returns>
         Task<List<T>> SelectAsync<T>(Expression<Func<T, object>> columns, Expression<Func<T, bool>> where, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -196,7 +201,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="columns">Expression that defines selected columns.</param>
         /// <param name="where">Expression that defines filter conditions.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>List of matching entities.</returns>
+        /// <returns>A task whose result contains the matching entities with the selected columns populated.</returns>
         Task<List<T>> SelectAsync<T>(IDbTransaction transaction, Expression<Func<T, object>> columns, Expression<Func<T, bool>> where, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -230,7 +235,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="columns">Optional expression that defines selected columns.</param>
         /// <param name="where">Optional expression that defines filter conditions.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>A matching entity or the default value of <typeparamref name="T"/>.</returns>
+        /// <returns>A task whose result is a matching entity or the default value of <typeparamref name="T"/>.</returns>
         Task<T> SingleOrDefaultAsync<T>(Expression<Func<T, object>>? columns = default,
             Expression<Func<T, bool>>? where = default,
             CancellationToken cancellationToken = default);
@@ -244,7 +249,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="columns">Optional expression that defines selected columns.</param>
         /// <param name="where">Optional expression that defines filter conditions.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>A matching entity or the default value of <typeparamref name="T"/>.</returns>
+        /// <returns>A task whose result is a matching entity or the default value of <typeparamref name="T"/>.</returns>
         Task<T> SingleOrDefaultAsync<T>(IDbTransaction? transaction,
         Expression<Func<T, object>>? columns = default,
         Expression<Func<T, bool>>? where = default,
@@ -271,6 +276,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <typeparam name="T">Entity type.</typeparam>
         /// <param name="value">Entity instance to insert.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the entity insertion.</returns>
         Task InsertAsync<T>(T value, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -280,6 +286,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="transaction">Transaction to use for the insert operation.</param>
         /// <param name="value">Entity instance to insert.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the entity insertion.</returns>
         Task InsertAsync<T>(IDbTransaction transaction, T value, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -306,6 +313,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="value">Entity instance containing updated values.</param>
         /// <param name="columns">Optional expression that defines columns to update.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the entity update.</returns>
         Task UpdateAsync<T>(T value, Expression<Func<T, object>>? columns = default, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -316,6 +324,7 @@ namespace Gurux.DLMS.AMI.Services.Database
         /// <param name="value">Entity instance containing updated values.</param>
         /// <param name="columns">Expression that defines columns to update.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing completion of the entity update.</returns>
         Task UpdateAsync<T>(IDbTransaction transaction, T value, Expression<Func<T, object>> columns, CancellationToken cancellationToken = default);
 
         /// <summary>

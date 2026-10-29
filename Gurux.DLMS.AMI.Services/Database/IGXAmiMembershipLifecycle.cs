@@ -42,5 +42,6 @@ public interface IGXAmiMembershipLifecycle
     /// <param name="transaction">Host transaction in which membership cleanup must run.</param>
     /// <param name="groupIds">Identifiers of the user groups being deleted.</param>
     /// <param name="cancellationToken">Token used to cancel cleanup.</param>
+    /// <returns>A task that completes when module-owned references to the deleted groups have been removed.</returns>
     Task UserGroupsDeletingAsync(IGXDatabase database, IDbTransaction transaction, IReadOnlyList<Guid> groupIds, CancellationToken cancellationToken);
 }
