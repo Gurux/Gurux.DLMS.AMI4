@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -41,10 +41,20 @@ namespace Gurux.DLMS.AMI.Script
     /// </summary>
     /// <remarks>
     /// Supported entity types depend on the operation. The default implementation dispatches to
-    /// repositories resolved from dependency injection and provides synchronous wrappers for asynchronous calls.
+    /// repositories resolved from dependency injection. Synchronous wrappers block until the asynchronous
+    /// operation completes and can wrap failures in AggregateException. Unsupported entity types cause
+    /// ArgumentException; missing repository registrations cause InvalidOperationException.
+    /// Asynchronous repository operations combine their supplied token with the current invocation token.
     /// </remarks>
     public interface IGXAmi
     {
+        /// <summary>Gets the cooperative cancellation token for the current invocation.</summary>
+        /// <remarks>
+        /// Scripts should observe this token during long-running work. The interface default returns
+        /// a token that cannot be canceled; the runner exposes the linked invocation tokens.
+        /// </remarks>
+        CancellationToken CancellationToken => default;
+
         /// <summary>
         /// Gets or sets the object that triggered execution, or null when there is no sender.
         /// Assigning a user as the sender also sets User in the default implementation.
@@ -77,8 +87,9 @@ namespace Gurux.DLMS.AMI.Script
         /// </summary>
         /// <typeparam name="T">Supported AMI entity type, such as a device, task or log entry.</typeparam>
         /// <param name="filter">Entity containing the filter fields or identifier used by the repository.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="cancellationToken">Token combined with the current invocation token to request cancellation.</param>
         /// <returns>A task whose result contains the matching entities.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task<IEnumerable<T>> SelectAsync<T>(T filter, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -94,8 +105,9 @@ namespace Gurux.DLMS.AMI.Script
         /// </summary>
         /// <typeparam name="T">Supported AMI entity type, such as a device, task or log entry.</typeparam>
         /// <param name="filter">Entity containing the filter fields or identifier used by the repository.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="cancellationToken">Token combined with the current invocation token to request cancellation.</param>
         /// <returns>A task whose result is the entity, or null when no entity is found. Device and gateway filters must match exactly one entity.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task<T?> SingleOrDefaultAsync<T>(T filter, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -110,6 +122,7 @@ namespace Gurux.DLMS.AMI.Script
         /// <param name="value">Entity or collection to persist.</param>
         /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
         /// <returns>A task representing the repository operation.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task AddAsync(object value, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -126,6 +139,7 @@ namespace Gurux.DLMS.AMI.Script
         /// <param name="lateBinding">True to defer creating device objects until they are read from the meter.</param>
         /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
         /// <returns>A task representing the repository operation.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task AddDeviceAsync(GXDevice value, bool lateBinding, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -135,6 +149,7 @@ namespace Gurux.DLMS.AMI.Script
         /// <param name="delete">True to permanently delete entities where supported by the repository; false to mark them as removed. Ignored for log entries and tasks.</param>
         /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
         /// <returns>A task representing the repository operation.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task RemoveAsync(object value, bool delete, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -154,6 +169,7 @@ namespace Gurux.DLMS.AMI.Script
         /// <typeparam name="T">Log entity type.</typeparam>
         /// <param name="items">Optional entries; ignored by the default implementation.</param>
         /// <returns>A task representing the log clearing operation.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task ClearAsync<T>(IEnumerable<T>? items);
 
         /// <summary>
@@ -179,6 +195,7 @@ namespace Gurux.DLMS.AMI.Script
         /// <param name="value">Entity or collection to persist.</param>
         /// <param name="cancellationToken">Token used to request cancellation of the repository operation.</param>
         /// <returns>A task representing the repository operation.</returns>
+        /// <exception cref="OperationCanceledException">The operation or current invocation token is canceled.</exception>
         Task UpdateAsync(object value, CancellationToken cancellationToken = default);
 
         /// <summary>

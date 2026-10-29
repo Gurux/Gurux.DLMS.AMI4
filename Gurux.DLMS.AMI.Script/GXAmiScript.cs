@@ -66,6 +66,21 @@ namespace Gurux.DLMS.AMI.Script
     {
         object? _sender;
         private readonly IServiceProvider? _serviceProvider = serviceProvider;
+        private readonly AsyncLocal<CancellationToken> _runCancellation = new();
+
+        /// <inheritdoc />
+        public CancellationToken CancellationToken => _runCancellation.Value;
+
+        /// <summary>Links an operation token with the current script invocation token after checking both.</summary>
+        /// <param name="token">Cancellation token supplied for the repository operation.</param>
+        /// <returns>A linked source that the caller must dispose after the operation completes.</returns>
+        /// <exception cref="OperationCanceledException">Either token has already been canceled.</exception>
+        private CancellationTokenSource GetOperationCancellation(CancellationToken token)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested();
+            return CancellationTokenSource.CreateLinkedTokenSource(token, CancellationToken);
+        }
 
         /// <inheritdoc/>
         public object? Sender
@@ -93,6 +108,8 @@ namespace Gurux.DLMS.AMI.Script
         /// <inheritdoc />
         public async Task AddAsync(object value, CancellationToken cancellationToken)
         {
+            using var operationCancellation = GetOperationCancellation(cancellationToken);
+            cancellationToken = operationCancellation.Token;
             if (_serviceProvider == null)
             {
                 throw new ArgumentException(nameof(_serviceProvider));
@@ -287,12 +304,16 @@ namespace Gurux.DLMS.AMI.Script
         /// <inheritdoc />
         public async Task UpdateAsync(object value, CancellationToken cancellationToken)
         {
+            using var operationCancellation = GetOperationCancellation(cancellationToken);
+            cancellationToken = operationCancellation.Token;
             await AddAsync(value, cancellationToken);
         }
 
         /// <inheritdoc />
         public async Task RemoveAsync(object value, bool delete, CancellationToken cancellationToken)
         {
+            using var operationCancellation = GetOperationCancellation(cancellationToken);
+            cancellationToken = operationCancellation.Token;
             if (_serviceProvider == null)
             {
                 throw new ArgumentException(nameof(_serviceProvider));
@@ -511,58 +532,115 @@ namespace Gurux.DLMS.AMI.Script
         /// A new instance is created for each invocation. The first assembly in an existing load context
         /// is reused; otherwise, a collectible context is created and stored in
         /// <see cref="GXScriptRunArgs.AssemblyLoadContext"/> for the caller to unload.
+        /// Task and ValueTask results are awaited and their generic result values are returned.
+        /// Cancellation uses the token in <paramref name="args"/> and remains cooperative; the returned
+        /// task tracks script completion even when running code does not observe cancellation.
         /// </remarks>
-        /// <param name="args">Script run arguments.</param>
-        /// <returns>The reflected return value, or null for a void method. A task returned by the script is not awaited.</returns>
+        /// <param name="args">Compiled assembly, entry method, positional arguments and cooperative cancellation token.</param>
+        /// <returns>The completed result, or null for void and non-generic asynchronous methods.</returns>
         /// <exception cref="ArgumentException">The expected script type or named public method cannot be found.</exception>
-        public async Task<object?> RunAsync(GXScriptRunArgs args)
+        /// <exception cref="InvalidOperationException">The selected method is async void and cannot be tracked to completion.</exception>
+        /// <exception cref="OperationCanceledException">The invocation cancellation token is canceled.</exception>
+        public Task<object?> RunAsync(GXScriptRunArgs args) => RunAsync(args, args.CancellationToken);
+
+        /// <summary>Invokes the requested script method and awaits synchronous, Task or ValueTask results.</summary>
+        /// <remarks>
+        /// Uses the generated type and constructor described by <see cref="RunAsync(GXScriptRunArgs)"/>.
+        /// The supplied token is linked with <see cref="GXScriptRunArgs.CancellationToken"/> and exposed
+        /// to script code through <see cref="CancellationToken"/>. Cancellation is cooperative: it does
+        /// not terminate running user code, and this task tracks its completion before checking cancellation again.
+        /// Invocation uses a thread pool thread when either token can be canceled or
+        /// <see cref="GXScriptRunArgs.Asyncronous"/> is true. Task and ValueTask results are always awaited;
+        /// generic asynchronous results are unwrapped. Script exceptions propagate without their reflection wrapper.
+        /// </remarks>
+        /// <param name="args">Compiled assembly, entry method, positional arguments and invocation context.</param>
+        /// <param name="cancellationToken">Additional token used to request cooperative cancellation.</param>
+        /// <returns>A task containing the method result, or null for void, Task and ValueTask methods without a result.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="args"/> is null.</exception>
+        /// <exception cref="ArgumentException">The expected script type or named public method cannot be found.</exception>
+        /// <exception cref="InvalidOperationException">The selected method is async void and cannot be tracked to completion.</exception>
+        /// <exception cref="OperationCanceledException">Either invocation token is canceled.</exception>
+        public async Task<object?> RunAsync(GXScriptRunArgs args, CancellationToken cancellationToken)
         {
-            Assembly? asm = null;
-            if (args.AssemblyLoadContext != null)
-            {
-                asm = args.AssemblyLoadContext.Assemblies.FirstOrDefault();
-            }
-            if (asm == null)
-            {
-                try
-                {
-                    args.AssemblyLoadContext = new AssemblyLoadContext("Gurux.DLMS.AMI.GeneratedScript", true);
-                    using var ms = new MemoryStream();
-                    ms.Write(args.ByteAssembly);
-                    ms.Position = 0;
-                    asm = args.AssemblyLoadContext.LoadFromStream(ms);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-            }
-            Type? amiMacroType = asm.GetType("Gurux.DLMS.AMI.GeneratedScript.GXAmiScript");
-            if (amiMacroType == null || amiMacroType.FullName == null)
-            {
-                throw new ArgumentException("Failed to load the AMI script type.");
-            }
-            var instance = asm.CreateInstance(amiMacroType.FullName, false, BindingFlags.Instance | BindingFlags.Public, null, [this], null, null);
-            MethodInfo? entryPoint = amiMacroType.GetMethod(args.MethodName) ?? throw new ArgumentException(string.Format("Invalid method name {0}.", args.MethodName));
+            ArgumentNullException.ThrowIfNull(args);
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(args.CancellationToken, cancellationToken);
+            var token = linked.Token;
+            token.ThrowIfCancellationRequested();
+            var previous = _runCancellation.Value;
+            _runCancellation.Value = token;
             try
             {
-                if (args.Asyncronous)
+                Assembly? asm = null;
+                if (args.AssemblyLoadContext != null)
                 {
-                    return await Task.Run(() =>
+                    asm = args.AssemblyLoadContext.Assemblies.FirstOrDefault();
+                }
+                if (asm == null)
+                {
+                    try
                     {
-                        return entryPoint.Invoke(instance, args.Parameters);
-                    });
+                        args.AssemblyLoadContext = new AssemblyLoadContext("Gurux.DLMS.AMI.GeneratedScript", true);
+                        using var ms = new MemoryStream();
+                        ms.Write(args.ByteAssembly);
+                        ms.Position = 0;
+                        asm = args.AssemblyLoadContext.LoadFromStream(ms);
+                    }
+                    catch (Exception)
+                    {
+                        throw;
+                    }
                 }
-                return entryPoint.Invoke(instance, args.Parameters);
-            }
-            catch (Exception ex)
-            {
-                if (ex.InnerException == null)
+                Type? amiMacroType = asm.GetType("Gurux.DLMS.AMI.GeneratedScript.GXAmiScript");
+                if (amiMacroType == null || amiMacroType.FullName == null)
                 {
-                    throw;
+                    throw new ArgumentException("Failed to load the AMI script type.");
                 }
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                return null;
+                MethodInfo? entryPoint = amiMacroType.GetMethod(args.MethodName) ?? throw new ArgumentException(string.Format("Invalid method name {0}.", args.MethodName));
+                if (entryPoint.ReturnType == typeof(void) &&
+                    entryPoint.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null)
+                    throw new InvalidOperationException("Async void script methods cannot be tracked. Return Task instead.");
+                object? Invoke()
+                {
+                    token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        var instance = asm.CreateInstance(amiMacroType.FullName, false, BindingFlags.Instance | BindingFlags.Public, null, [this], null, null);
+                        token.ThrowIfCancellationRequested();
+                        return entryPoint.Invoke(instance, args.Parameters);
+                    }
+                    catch (TargetInvocationException ex) when (ex.InnerException != null)
+                    {
+                        ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                        throw;
+                    }
+                }
+                // A worker thread keeps synchronous user code off the scheduler. It cannot terminate
+                // non-cooperative code; this task continues to track the script's actual completion.
+                object? result = args.Asyncronous || cancellationToken.CanBeCanceled || args.CancellationToken.CanBeCanceled
+                    ? await Task.Run(Invoke, token).ConfigureAwait(false) : Invoke();
+                if (result is Task task)
+                {
+                    await task.ConfigureAwait(false);
+                    result = entryPoint.ReturnType.IsGenericType ? task.GetType().GetProperty("Result")?.GetValue(task) : null;
+                }
+                else if (result is ValueTask valueTask)
+                {
+                    await valueTask.ConfigureAwait(false);
+                    result = null;
+                }
+                else if (result != null && result.GetType().IsGenericType &&
+                    result.GetType().GetGenericTypeDefinition() == typeof(ValueTask<>))
+                {
+                    var taskResult = (Task)result.GetType().GetMethod("AsTask")!.Invoke(result, null)!;
+                    await taskResult.ConfigureAwait(false);
+                    result = taskResult.GetType().GetProperty("Result")!.GetValue(taskResult);
+                }
+                token.ThrowIfCancellationRequested();
+                return result;
+                }
+            finally
+            {
+                _runCancellation.Value = previous;
             }
         }
 
@@ -595,6 +673,8 @@ namespace Gurux.DLMS.AMI.Script
         /// <inheritdoc />
         public async Task<IEnumerable<T>> SelectAsync<T>(T filter, CancellationToken cancellationToken = default)
         {
+            using var operationCancellation = GetOperationCancellation(cancellationToken);
+            cancellationToken = operationCancellation.Token;
             if (_serviceProvider == null)
             {
                 throw new ArgumentException(nameof(_serviceProvider));
@@ -736,6 +816,8 @@ namespace Gurux.DLMS.AMI.Script
         /// <inheritdoc />
         public async Task<T?> SingleOrDefaultAsync<T>(T value, CancellationToken cancellationToken = default)
         {
+            using var operationCancellation = GetOperationCancellation(cancellationToken);
+            cancellationToken = operationCancellation.Token;
             if (_serviceProvider == null)
             {
                 throw new ArgumentException(nameof(_serviceProvider));
@@ -857,6 +939,7 @@ namespace Gurux.DLMS.AMI.Script
         /// <inheritdoc />
         public async Task ClearAsync<T>(IEnumerable<T>? items)
         {
+            CancellationToken.ThrowIfCancellationRequested();
             if (_serviceProvider == null)
             {
                 throw new ArgumentException(nameof(_serviceProvider));
@@ -865,7 +948,7 @@ namespace Gurux.DLMS.AMI.Script
             if (typeof(T) == typeof(GXLog))
             {
                 ILogRepository repository = scope.ServiceProvider.GetRequiredService<ILogRepository>();
-                await repository.ClearAsync(null, default);
+                await repository.ClearAsync(null, CancellationToken);
             }
 
 
@@ -890,6 +973,8 @@ namespace Gurux.DLMS.AMI.Script
         /// <inheritdoc />
         public async Task AddDeviceAsync(GXDevice value, bool lateBinding, CancellationToken cancellationToken = default)
         {
+            using var operationCancellation = GetOperationCancellation(cancellationToken);
+            cancellationToken = operationCancellation.Token;
             if (_serviceProvider == null)
             {
                 throw new ArgumentException(nameof(_serviceProvider));

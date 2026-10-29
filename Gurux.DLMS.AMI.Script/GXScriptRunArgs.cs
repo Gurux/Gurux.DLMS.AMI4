@@ -39,6 +39,13 @@ namespace Gurux.DLMS.AMI.Script
     /// </summary>
     public class GXScriptRunArgs
     {
+        /// <summary>Gets or sets the cooperative cancellation token for this invocation.</summary>
+        /// <remarks>
+        /// The runner links this token with the token passed to RunAsync and exposes the result through
+        /// <see cref="IGXAmi.CancellationToken"/>. Canceling it does not forcibly terminate script code.
+        /// </remarks>
+        public CancellationToken CancellationToken { get; set; }
+
         /// <summary>
         /// Gets or sets the emitted assembly image used when no assembly is already loaded. Defaults to an empty array.
         /// </summary>
@@ -47,13 +54,17 @@ namespace Gurux.DLMS.AMI.Script
         /// <summary>
         /// Gets or sets the public script method to invoke. Defaults to "Run".
         /// </summary>
+        /// <remarks>
+        /// The method can return a synchronous value, Task or ValueTask, including generic forms.
+        /// The runner rejects async void methods because their completion cannot be awaited.
+        /// </remarks>
         public string MethodName { get; set; } = "Run";
 
         /// <summary>
         /// Gets or sets whether reflection invokes the method on a thread pool thread. Defaults to false.
         /// </summary>
         /// <remarks>
-        /// This controls where invocation runs; it does not await a task returned by the script method.
+        /// Asynchronous results are always awaited. Cancellable invocations also use a thread pool thread.
         /// </remarks>
         public bool Asyncronous { get; set; }
         /// <summary>

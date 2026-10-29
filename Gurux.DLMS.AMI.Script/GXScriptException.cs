@@ -70,7 +70,8 @@ namespace Gurux.DLMS.AMI.Script
             Message = "";
         }
 
-        /// <inheritdoc/>
+        /// <summary>Formats the diagnostic identifier, zero-based line and message for display.</summary>
+        /// <returns>The diagnostic in the form "ID: identifier Line: line, message".</returns>
         public override string ToString()
         {
             return string.Format("ID: {0} Line: {1}, {2}", Id, Line, Message);
