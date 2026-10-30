@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37824.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gurux.DLMS.AMI.Http", "Gurux.DLMS.AMI.Http.csproj", "{2E560569-29C6-2E0D-3E80-ED782AFACFFE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E560569-29C6-2E0D-3E80-ED782AFACFFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E560569-29C6-2E0D-3E80-ED782AFACFFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E560569-29C6-2E0D-3E80-ED782AFACFFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E560569-29C6-2E0D-3E80-ED782AFACFFE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5E660DB5-F5BD-48FC-8205-D5B676E7BF08}
+	EndGlobalSection
+EndGlobal
