@@ -340,38 +340,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     {
     }
 
-    /// <summary>Creates missing Automatic notification defaults for a user.</summary>
-    [Description("Creates missing Automatic notification defaults for a user.")]
+    /// <summary>Adds missing defaults, or restores the selected automatic notification defaults.</summary>
+    [Description("Adds missing defaults, or restores the selected automatic notification defaults.")]
     [DataContract]
-    public class EnsureNotificationDefaults : IGXRequest<NotificationDefaultsResponse>
+    public class RegenerateNotification : IGXRequest<RegenerateNotificationResponse>
     {
-        /// <summary>
-        /// Target user, or null for the signed-in user.
-        /// </summary>
-        [Description("Target user, or null for the signed-in user.")]
+        /// <summary>Selected defaults to restore. Empty or null adds only missing defaults.</summary>
         [DataMember]
-        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXUser? User { get; set; }
-
-    }
-
-    /// <summary>Restores Automatic notification defaults while preserving other subscriptions.</summary>
-    [Description("Restores Automatic notification defaults while preserving other subscriptions.")]
-    [DataContract]
-    public class ResetNotificationDefaults : IGXRequest<NotificationDefaultsResponse>
-    {
-        /// <summary>Target user, or null for the signed-in user.</summary>
-        [DataMember, IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXUser? User { get; set; }
-
-        /// <summary>Existing automatic notification defaults selected for restoration.</summary>
-        [DataMember]
-        public IEnumerable<Guid> Ids { get; set; } = [];
+        public IEnumerable<Guid>? Ids { get; set; } = [];
     }
 
     /// <summary>Identifiers of created or restored notification defaults.</summary>
     [DataContract]
-    public class NotificationDefaultsResponse
+    public class RegenerateNotificationResponse
     {
         /// <summary>
         /// Notification identifiers.
