@@ -139,6 +139,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.ScheduleGroups), nameof(GXUser.ProfilePicture), nameof(GXUser.TimeZone))]
         public GXUser? Filter { get; set; }
 
+        /// <summary>Gets or sets inclusive date and time ranges for properties of the filter type.</summary>
+        /// <remarks>
+        /// Ranges are combined with each other and with <see cref="Filter"/> using AND.
+        /// Specify a public date and time property name. Null or an empty collection
+        /// applies no additional date restrictions. Filtering precedes counting and paging.
+        /// </remarks>
+        [DataMember]
+        [Description("Inclusive date and time ranges combined with the other filters using AND.")]
+        public IEnumerable<GXDateTimeFilter>? DateFilters { get; set; }
+
 
         /// <summary>
         /// Admin user can access all users.

@@ -104,6 +104,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAgentProperty.Name), nameof(GXAgentProperty.Value), nameof(GXAgentProperty.ConcurrencyStamp))]
         public GXAgentProperty? Filter { get; set; }
 
+        /// <summary>Gets or sets inclusive date and time ranges for properties of the filter type.</summary>
+        /// <remarks>
+        /// Ranges are combined with each other and with <see cref="Filter"/> using AND.
+        /// Specify a public date and time property name. Null or an empty collection
+        /// applies no additional date restrictions. Filtering precedes counting and paging.
+        /// </remarks>
+        [DataMember]
+        [Description("Inclusive date and time ranges combined with the other filters using AND.")]
+        public IEnumerable<GXDateTimeFilter>? DateFilters { get; set; }
+
         /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
         /// This is reserved for later use.
