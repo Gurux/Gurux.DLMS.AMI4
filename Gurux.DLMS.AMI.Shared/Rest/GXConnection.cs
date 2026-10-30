@@ -50,7 +50,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public GXConnectionInfo? Filter { get; set; }
 
 
-
         /// <summary>
         /// Whether to request connections for all users as an administrator.
         /// </summary>
