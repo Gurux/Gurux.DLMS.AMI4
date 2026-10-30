@@ -101,6 +101,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IsRequired]
         public GXUser? Creator { get; set; }
 
+        /// <summary>Whether access is restricted to the owner and administrators.</summary>
+        public bool IsPrivate { get; set; }
+
         /// <summary>Whether the appearance is enabled.</summary>
         [Description("Whether the appearance is enabled.")]
         [DefaultValue(false)]
