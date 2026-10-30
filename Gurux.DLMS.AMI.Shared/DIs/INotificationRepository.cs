@@ -88,16 +88,20 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task DeleteAsync(IEnumerable<Guid> notifications, bool delete = true, bool notify = true,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Refresh notifications.
-        /// </summary>
-        /// <param name="user">User for whom the notifications are being refreshed.</param>
-        /// <param name="delete">If true, existing notifications are deleted and the new ones are generated.</param>
-        /// <param name="notify">If true, notifications are sent for the refresh.</param>
+        /// <summary>Creates missing Automatic notification defaults without changing existing subscriptions.</summary>
+        /// <param name="user">Target user, or null for the caller. Only administrators can target another user.</param>
+        /// <param name="notify">Whether to publish committed changes.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A task whose result contains the identifiers of the generated notifications.</returns>
-        [System.ComponentModel.Description("Refresh notifications.")]
-        Task<IEnumerable<Guid>> RefreshAsync(GXUser? user, bool delete = true, bool notify = true,
+        /// <returns>Identifiers of newly created defaults.</returns>
+        Task<IEnumerable<Guid>> EnsureDefaultsAsync(GXUser? user = null, bool notify = true,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>Restores Automatic defaults in place and creates missing ones, preserving user-created Single and Multiple subscriptions.</summary>
+        /// <param name="user">Target user, or null for the caller. Only administrators can target another user.</param>
+        /// <param name="notify">Whether to publish committed changes.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Identifiers of created or restored defaults.</returns>
+        Task<IEnumerable<Guid>> ResetToDefaultsAsync(GXUser? user = null, bool notify = true,
             CancellationToken cancellationToken = default);
     }
 }

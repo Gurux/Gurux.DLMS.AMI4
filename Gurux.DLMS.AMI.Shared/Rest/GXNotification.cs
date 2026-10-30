@@ -340,41 +340,40 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     {
     }
 
-    /// <summary>
-    /// Refresh user notifications.
-    /// </summary>
-    [Description("Refresh user notifications.")]
+    /// <summary>Creates missing Automatic notification defaults for a user.</summary>
+    [Description("Creates missing Automatic notification defaults for a user.")]
     [DataContract]
-    public class RefreshNotification : IGXRequest<RefreshNotificationResponse>
+    public class EnsureNotificationDefaults : IGXRequest<NotificationDefaultsResponse>
     {
         /// <summary>
-        /// User for whom the notifications are being refreshed.
+        /// Target user, or null for the signed-in user.
         /// </summary>
-        [Description("User for whom the notifications are being refreshed.")]
+        [Description("Target user, or null for the signed-in user.")]
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUser? User { get; set; }
 
-        /// <summary>
-        /// If true, existing notifications are removed.
-        /// </summary>
-        [Description("If true, existing notifications are removed.")]
-        [DataMember]
-        public bool Delete { get; set; }
     }
 
-    /// <summary>
-    /// Refresh user notifications response.
-    /// </summary>
-    [Description("Refresh user notifications response.")]
+    /// <summary>Restores Automatic notification defaults while preserving other subscriptions.</summary>
+    [Description("Restores Automatic notification defaults while preserving other subscriptions.")]
     [DataContract]
-    public class RefreshNotificationResponse
+    public class ResetNotificationDefaults : IGXRequest<NotificationDefaultsResponse>
+    {
+        /// <summary>Target user, or null for the signed-in user.</summary>
+        [DataMember, IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXUser? User { get; set; }
+    }
+
+    /// <summary>Identifiers of created or restored notification defaults.</summary>
+    [DataContract]
+    public class NotificationDefaultsResponse
     {
         /// <summary>
         /// Notification identifiers.
         /// </summary>
         [Description("Notification identifiers.")]
         [DataMember]
-        public IEnumerable<Guid> Ids { get; set; } = default!;
+        public IEnumerable<Guid> Ids { get; set; } = [];
     }
 }

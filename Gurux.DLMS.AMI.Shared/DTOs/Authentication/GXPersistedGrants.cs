@@ -112,9 +112,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         public DateTime ConsumedTime { get; set; } = default!;
 
         /// <summary>
-        /// Data. This is the actual data of the token, which can be a JSON string or any other format depending on the implementation. It contains the information needed to validate and use the token, such as claims, scopes, and other relevant details.
+        /// Serialized grant data. Personal access token records contain only permission metadata, never the token value or signature.
         /// </summary>
-        [System.ComponentModel.Description("Data. This is the actual data of the token, which can be a JSON string or any other format depending on the implementation. It contains the information needed to validate and use the token, such as claims, scopes, and other relevant details.")]
+        [System.ComponentModel.Description("Serialized grant data. Personal access token records contain only permission metadata, never the token value or signature.")]
         [DataMember]
         public string Data { get; set; } = default!;
     }
