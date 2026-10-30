@@ -44,7 +44,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../Gurux.DLMS.AMI.Http/Gurux.DLMS.AMI.Http.csproj" />
         <Folder Include="Token\" />
     </ItemGroup>
 </Project>

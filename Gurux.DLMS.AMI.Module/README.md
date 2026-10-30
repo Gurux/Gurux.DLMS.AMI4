@@ -30,14 +30,6 @@ Lightweight .NET library containing AMI (Advanced Metering Infrastructure) exten
 
 ## Usage
 
-For HTTP response validation and JSON requests, use `Gurux.DLMS.AMI.Http`, which is a dependency of this package. HTTP-only modules do not need an AMI Shared reference:
-
-```csharp
-using Gurux.DLMS.AMI.Http;
-
-await response.EnsureSuccessAsync(cancellationToken);
-```
-
 Reference the assembly or project and use the types in the `Gurux.DLMS.AMI.Module` namespace. Example:
 
 
