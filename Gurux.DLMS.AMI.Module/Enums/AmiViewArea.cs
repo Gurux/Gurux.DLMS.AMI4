@@ -82,5 +82,23 @@ public enum AmiViewArea
     /// <summary>Additional views in the notification editor, scoped to its delivery module.</summary>
     Notification,
     /// <summary>The details view for an agent. Appended to preserve existing serialized area values.</summary>
-    Agent
+    Agent,
+    /// <summary>Application-wide appended views, such as module notices.</summary>
+    Application,
+    /// <summary>The details view for a device template.</summary>
+    DeviceTemplate,
+    /// <summary>The details view for a device template group.</summary>
+    DeviceTemplateGroup,
+    /// <summary>The details view for an agent group.</summary>
+    AgentGroup,
+    /// <summary>The details view for a gateway.</summary>
+    Gateway,
+    /// <summary>The details view for a gateway group.</summary>
+    GatewayGroup,
+    /// <summary>The details view for a manufacturer.</summary>
+    Manufacturer,
+    /// <summary>The details view for a workflow.</summary>
+    Workflow,
+    /// <summary>The details view for a script.</summary>
+    Script
 }
