@@ -136,6 +136,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public string? Settings { get; set; }
 
         /// <summary>
+        /// GXAppearance image used as the device's profile picture; null means no picture.
+        /// </summary>
+        [Description("GXAppearance image used as the device's profile picture; null means no picture.")]
+        [DataMember, ForeignKey(OnDelete = ForeignKeyDelete.Restrict)]
+        [DefaultValue(null)]
+        public GXAppearance? ProfilePicture { get; set; }
+
+        /// <summary>
         /// Media type.
         /// </summary>
         [Description("Media type.")]

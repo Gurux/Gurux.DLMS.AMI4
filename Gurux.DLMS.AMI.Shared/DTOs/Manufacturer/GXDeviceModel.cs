@@ -29,6 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
@@ -63,6 +65,36 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
+
+        /// <summary>
+        /// The creator of the device model.
+        /// </summary>
+        [Description("The creator of the device model.")]
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator { get; set; }
+
+        /// <summary>
+        /// Gets or sets who can view the device model.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the device model.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
+
+        /// <summary>
+        /// GXAppearance image used as the manufacturer's profile picture; null means no picture.
+        /// </summary>
+        [Description("GXAppearance image used as the manufacturer's profile picture; null means no picture.")]
+        [DataMember, ForeignKey(OnDelete = ForeignKeyDelete.Restrict)]
+        [DefaultValue(null)]
+        public GXAppearance? ProfilePicture { get; set; }
 
         /// <summary>
         /// Manufacturer who owns this model.

@@ -69,26 +69,34 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         public Guid Id { get; set; }
 
         /// <summary>
-        /// The creator of the management.
+        /// The creator of the manufacturer.
         /// </summary>
-        [Description("The creator of the management.")]
+        [Description("The creator of the manufacturer.")]
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator { get; set; }
 
         /// <summary>
-        /// Gets or sets who can view the resource.
+        /// Gets or sets who can view the manufacturer.
         /// </summary>
         /// <remarks>
         /// Modification, deletion and operation permissions are evaluated separately.
         /// </remarks>
-        [Description("Gets or sets who can view the resource.")]
+        [Description("Gets or sets who can view the manufacturer.")]
         [DataMember]
         [DefaultValue(ResourceVisibility.Inherit)]
         [IsRequired]
         public ResourceVisibility? AccessVisibility { get; set; }
+
+        /// <summary>
+        /// GXAppearance image used as the manufacturer's profile picture; null means no picture.
+        /// </summary>
+        [Description("GXAppearance image used as the manufacturer's profile picture; null means no picture.")]
+        [DataMember, ForeignKey(OnDelete = ForeignKeyDelete.Restrict)]
+        [DefaultValue(null)]
+        public GXAppearance? ProfilePicture { get; set; }
 
         /// <summary>
         /// Manufacturer Name.

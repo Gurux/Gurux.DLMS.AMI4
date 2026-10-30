@@ -121,8 +121,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// <summary>
         /// Installed device template.
         /// </summary>
+        /// <remarks>
+        /// Deletion cascades through Version. This reference does not cascade,
+        /// avoiding multiple cascade paths in SQL Server.
+        /// </remarks>
         [Description("Installed device template.")]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DataMember]
         public GXDeviceTemplate? Template { get; set; }

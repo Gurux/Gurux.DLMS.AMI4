@@ -128,6 +128,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         public string? Description { get; set; }
 
         /// <summary>
+        /// GXAppearance image used as the device profile's profile picture; null means no picture.
+        /// </summary>
+        [Description("GXAppearance image used as the device profile's profile picture; null means no picture.")]
+        [DataMember, ForeignKey(OnDelete = ForeignKeyDelete.Restrict)]
+        [DefaultValue(null)]
+        public GXAppearance? ProfilePicture { get; set; }
+
+        /// <summary>
         /// Creation time.
         /// Date and time when the device group was created.
         /// </summary>
