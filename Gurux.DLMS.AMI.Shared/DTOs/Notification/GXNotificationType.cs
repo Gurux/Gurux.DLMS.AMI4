@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
@@ -84,6 +85,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [Index(true)]
         [IsRequired]
         public string? Code { get; set; }
+
+        /// <summary>
+        /// Creation mode defines how notifications are created for a user. 
+        /// It can be Single, Automatic, or Multiple.
+        /// </summary>
+        [Description("Creation mode defines how notifications are created for a user.")]
+        [DataMember]
+        [DefaultValue(NotificationCreationMode.Single)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public NotificationCreationMode? CreationMode { get; set; }
 
         /// <summary>Time when the record was created.</summary>
         [Description("Time when the record was created.")]
