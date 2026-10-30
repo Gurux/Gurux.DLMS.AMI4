@@ -87,10 +87,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task DeleteAsync(IEnumerable<string> users, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Return users that are in the given role.
+        /// Returns distinct identifiers of non-removed users assigned to any requested, non-removed role.
         /// </summary>
-        /// <param name="roles">Searched roles.</param>
-        /// <returns>Identifiers of the users assigned to the requested roles.</returns>
+        /// <remarks>
+        /// Administrators can query any role. Other callers can query only roles assigned to them.
+        /// Role names are matched without regard to case.
+        /// </remarks>
+        /// <param name="roles">Role names to look up. An empty collection returns no users.</param>
+        /// <returns>Distinct identifiers of the users assigned to accessible requested roles.</returns>
         [System.ComponentModel.Description("Return users that are in the given role.")]
         Task<List<string>> GetUserIdsInRoleAsync(IEnumerable<string> roles);
     }
