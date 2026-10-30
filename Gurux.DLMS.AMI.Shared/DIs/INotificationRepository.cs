@@ -96,12 +96,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<IEnumerable<Guid>> EnsureDefaultsAsync(GXUser? user = null, bool notify = true,
             CancellationToken cancellationToken = default);
 
-        /// <summary>Restores Automatic defaults in place and creates missing ones, preserving user-created Single and Multiple subscriptions.</summary>
+        /// <summary>Restores selected Automatic defaults in place, preserving all unselected subscriptions.</summary>
         /// <param name="user">Target user, or null for the caller. Only administrators can target another user.</param>
+        /// <param name="ids">Identifiers of the existing automatic notification defaults to restore.</param>
         /// <param name="notify">Whether to publish committed changes.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>Identifiers of created or restored defaults.</returns>
-        Task<IEnumerable<Guid>> ResetToDefaultsAsync(GXUser? user = null, bool notify = true,
+        /// <returns>Identifiers of restored defaults.</returns>
+        Task<IEnumerable<Guid>> ResetToDefaultsAsync(GXUser? user, IEnumerable<Guid> ids, bool notify = true,
             CancellationToken cancellationToken = default);
     }
 }

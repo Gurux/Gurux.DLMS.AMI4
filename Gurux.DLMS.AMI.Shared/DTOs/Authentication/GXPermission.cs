@@ -62,15 +62,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         public bool? Default { get; set; }
 
         /// <summary>
-        /// Notify users when content associated with this permission changes.
-        /// </summary>
-        [Description("Notify users when content associated with this permission changes.")]
-        [DataMember]
-        [DefaultValue(false)]
-        [IsRequired]
-        public bool? NotifyOnContentChange { get; set; }
-
-        /// <summary>
         /// Name of the permission.
         /// </summary>
         [Description("Name of the permission.")]
@@ -132,7 +123,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
                 SystemDefined = SystemDefined,
                 Name = Name,
                 Description = Description,
-                NotifyOnContentChange = NotifyOnContentChange,
             };
             return item;
         }

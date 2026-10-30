@@ -363,6 +363,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>Target user, or null for the signed-in user.</summary>
         [DataMember, IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUser? User { get; set; }
+
+        /// <summary>Existing automatic notification defaults selected for restoration.</summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = [];
     }
 
     /// <summary>Identifiers of created or restored notification defaults.</summary>
