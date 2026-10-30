@@ -37,6 +37,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Module
 {
@@ -81,11 +82,24 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [DefaultValue(null)]
         public GXUser? Creator { get; set; }
 
+
+        /// <summary>
+        /// Gets or sets who can view the resource.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the resource.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Private)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
+
         /// <summary>
         /// Name of the module group.
         /// </summary>
 		[Description("Name of the module group.")]
-		[DataMember]
+        [DataMember]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
         public string? Name { get; set; }
@@ -94,7 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// Module group description.
         /// </summary>
 		[Description("Module group description.")]
-		[DataMember]
+        [DataMember]
         public string? Description { get; set; }
 
         /// <summary>Time when the record was created.</summary>

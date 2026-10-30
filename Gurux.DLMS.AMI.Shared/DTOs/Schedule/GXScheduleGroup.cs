@@ -29,10 +29,11 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -82,6 +83,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets who can view the resource.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the resource.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Private)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
 
         /// <summary>
         /// Name of the schedule group.

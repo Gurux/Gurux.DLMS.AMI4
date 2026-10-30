@@ -156,6 +156,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         //ForeignKeyDelete is None because Template will handle the deletion.
         public GXUser? Creator { get; set; }
 
+        /// <summary>
+        /// Gets or sets who can view the device.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the device.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
+
         /// <summary>Template used to define this device's default settings and objects.</summary>
         [Description("Template used to define this device's default settings and objects.")]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]

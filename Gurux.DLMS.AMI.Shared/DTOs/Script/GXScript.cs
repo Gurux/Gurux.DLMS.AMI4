@@ -187,6 +187,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         public GXUser? Creator { get; set; }
 
         /// <summary>
+        /// Gets or sets who can view the schedule.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the schedule.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
+
+        /// <summary>
         /// The module that created this script.
         /// </summary>
         [Description("The module that created this script.")]

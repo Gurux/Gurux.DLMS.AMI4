@@ -30,19 +30,20 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Shared.DTOs.Log;
-using Gurux.Service.Orm.Common;
-using Gurux.Service.Orm.Common.Enums;
-using System.ComponentModel;
-using System.Runtime.Serialization;
-using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using System.Text.Json.Serialization;
-using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
@@ -87,6 +88,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
+
+        /// <summary>
+        /// The creator of the schedule.
+        /// </summary>
+        [Description("The creator of the schedule.")]
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets who can view the schedule.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the schedule.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
 
         /// <summary>Whether the schedule is enabled.</summary>
         [Description("Whether the schedule is enabled.")]
@@ -199,17 +223,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Description("Schedule logs.")]
         [DataMember, Ignore(IgnoreType.Db)]
         public List<GXLog>? Logs { get; set; }
-
-        /// <summary>
-        /// The creator of the schedule.
-        /// </summary>
-        [Description("The creator of the schedule.")]
-        [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Filter(FilterType.Exact)]
-        [IsRequired]
-        public GXUser? Creator { get; set; }
-
 
         /// <summary>
         /// Schedule name.

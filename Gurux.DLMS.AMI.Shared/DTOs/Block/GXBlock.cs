@@ -84,6 +84,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         public GXUser? Creator { get; set; }
 
         /// <summary>
+        /// Gets or sets who can view the block.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the block.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
+
+        /// <summary>
         /// Block Title.
         /// </summary>
         [Description("Block Title.")]

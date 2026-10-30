@@ -131,6 +131,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         public GXUser? Creator { get; set; }
 
         /// <summary>
+        /// Gets or sets who can view the agent.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the agent.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
+
+        /// <summary>
         /// Agent template settings are used to shown download information.
         /// </summary>
         [Description("Agent template settings are used to shown download information.")]

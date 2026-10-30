@@ -29,13 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Service.Orm.Common;
-using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -88,6 +89,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator { get; set; }
+
+        /// <summary>
+        /// Gets or sets who can view the device group.
+        /// </summary>
+        /// <remarks>
+        /// Modification, deletion and operation permissions are evaluated separately.
+        /// </remarks>
+        [Description("Gets or sets who can view the device group.")]
+        [DataMember]
+        [DefaultValue(ResourceVisibility.Inherit)]
+        [IsRequired]
+        public ResourceVisibility? AccessVisibility { get; set; }
 
         /// <summary>Whether the device group is enabled.</summary>
         [Description("Whether the device group is enabled.")]
