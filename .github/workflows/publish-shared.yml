@@ -219,3 +219,14 @@ jobs:
             --skip-duplicate
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "Published $env:PROJECT_ID version $env:BUILD_BUILDNUMBER" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Create version tag
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = "$env:PROJECT_ID/v$env:BUILD_BUILDNUMBER"
+
+          git tag $tag $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          git push origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
