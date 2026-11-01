@@ -116,14 +116,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         public GXNotificationType? Type { get; set; }
 
         /// <summary>
-        /// Notification sources. E.g. agent, user, system log, etc.
+        /// Selected event types or resource prefixes, stored as separate source rows.
         /// </summary>
-        [Description("Notification sources. E.g. agent, user, system log, etc.")]
-        [DataMember]
-        [DefaultValue(null)]
-        [Filter(FilterType.Contains)]
-        [IsRequired]
-        public string? Sources { get; set; }
+        [Description("Selected event types or resource prefixes, each at most 128 characters.")]
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Sources { get; set; } = [];
 
 
         /// <summary>
