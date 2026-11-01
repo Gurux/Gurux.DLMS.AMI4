@@ -35,28 +35,29 @@ using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Notification;
 
-/// <summary>A selected event source belonging to a notification subscription.</summary>
-[Description("A selected event source belonging to a notification subscription.")]
+/// <summary>A globally unique event source owned by the framework or a module.</summary>
+[Description("A globally unique event source owned by the framework or a module.")]
 [DataContract, Serializable]
-[IndexCollection(true, nameof(NotificationId), nameof(Source))]
-public class GXNotificationSource : IUnique<Guid>
+public class GXNotificationSource : IUnique<int>
 {
     /// <summary>Source row identifier used by the ORM.</summary>
     [Description("Source row identifier used by the ORM.")]
-    [DataMember, IsRequired, Key]
-    public Guid Id { get; set; }
+    [DataMember, IsRequired, Key, AutoIncrement]
+    public int Id { get; set; }
 
-    /// <summary>Parent notification identifier.</summary>
-    [Description("Parent notification identifier.")]
-    [DataMember, IsRequired]
-    [ForeignKey(typeof(GXNotification), OnDelete = ForeignKeyDelete.Cascade)]
-    public Guid NotificationId { get; set; }
+    /// <summary>Owning module identifier; null for framework sources.</summary>
+    [Description("Owning module identifier; null for framework sources.")]
+    [DataMember, StringLength(64)]
+    // Module cleanup is explicit to avoid multiple cascade paths through module/notification creators on SQL Server.
+    [ForeignKey(typeof(GXModule))]
+    public string? ModuleId { get; set; }
 
     /// <summary>Exact event type or resource prefix, independent of the permission catalog.</summary>
     [Description("Exact event type or resource prefix, independent of the permission catalog.")]
-    [DataMember, IsRequired, Required, StringLength(128)]
+    [DataMember, IsRequired, Required, StringLength(128), Index(Unique = true)]
     public string Source { get; set; } = string.Empty;
 }

@@ -8,6 +8,7 @@
     <Company>Gurux Ltd</Company>
     <Authors>Gurux Ltd</Authors>
     <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
     <Description>Gurux.DLMS.AMI.Shared implements interfaces that are needed for Gurux DLMS AMI v4.</Description>
     <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
@@ -37,4 +38,7 @@
   <ItemGroup>
     <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
   </ItemGroup>
+<ItemGroup>
+  <None Update="README.md" Pack="true" PackagePath="\" />
+</ItemGroup>
 </Project>
