@@ -1,0 +1,221 @@
+name: Publish AMI NuGet packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Gurux.DLMS.AMI.Shared/**'
+      - 'Gurux.DLMS.AMI.Http/**'
+      - 'Gurux.DLMS.AMI.Services/**'
+      - 'Gurux.DLMS.AMI.Module/**'
+      - 'Gurux.DLMS.AMI.Agent.Shared/**'
+      - 'Gurux.DLMS.AMI.Script/**'
+      - 'Gurux.DLMS.AMI.Agent.Worker/**'
+      - 'Gurux.DLMS.AMI.Agent/**'
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Project to publish'
+        required: true
+        type: choice
+        options:
+          - Gurux.DLMS.AMI.Shared
+          - Gurux.DLMS.AMI.Http
+          - Gurux.DLMS.AMI.Services
+          - Gurux.DLMS.AMI.Module
+          - Gurux.DLMS.AMI.Agent.Shared
+          - Gurux.DLMS.AMI.Script
+          - Gurux.DLMS.AMI.Agent.Worker
+          - Gurux.DLMS.AMI.Agent
+      version:
+        description: 'Optional version override, e.g. 4.1.2611.101; blank = automatic'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize releases, including pushes and manual releases.
+concurrency:
+  group: ami-nuget-releases
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  detect:
+    if: github.repository == 'Gurux/Gurux.DLMS.AMI4' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      has_changes: ${{ steps.detect.outputs.has_changes }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Select changed projects
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          SELECTED_PROJECT: ${{ inputs.project }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $projects = @(
+            'Gurux.DLMS.AMI.Shared',
+            'Gurux.DLMS.AMI.Http',
+            'Gurux.DLMS.AMI.Services',
+            'Gurux.DLMS.AMI.Module',
+            'Gurux.DLMS.AMI.Agent.Shared',
+            'Gurux.DLMS.AMI.Script',
+            'Gurux.DLMS.AMI.Agent.Worker',
+            'Gurux.DLMS.AMI.Agent'
+          )
+          if ($env:EVENT_NAME -eq 'workflow_dispatch') {
+            if ($projects -notcontains $env:SELECTED_PROJECT) {
+              throw 'Unknown project.'
+            }
+            $selected = @($env:SELECTED_PROJECT)
+          } else {
+            if ($env:BEFORE_SHA -match '^0+$') {
+              $files = @(git ls-tree -r --name-only $env:AFTER_SHA)
+            } else {
+              $files = @(git diff --name-only --no-renames $env:BEFORE_SHA $env:AFTER_SHA)
+            }
+            if ($LASTEXITCODE -ne 0) { throw 'Could not determine changed files.' }
+            $selected = @($projects | Where-Object {
+              $prefix = "$_/"
+              @($files | Where-Object { $_.StartsWith($prefix) }).Count -gt 0
+            })
+          }
+          $include = @($selected | ForEach-Object { @{ project = $_ } })
+          $matrix = @{ include = $include } | ConvertTo-Json -Depth 5 -Compress
+          "matrix=$matrix" >> $env:GITHUB_OUTPUT
+          "has_changes=$($selected.Count -gt 0)" >> $env:GITHUB_OUTPUT
+          Write-Host "Selected projects: $($selected -join ', ')"
+
+  publish:
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'True'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PROJECT_ID: ${{ matrix.project }}
+      BUILD_CONFIGURATION: Release
+      MAJOR_VERSION: '4'
+      MINOR_VERSION: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Determine this package's version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_USER)) {
+            throw 'Set the NUGET_USER GitHub Actions variable first.'
+          }
+          $project = "$env:PROJECT_ID/$env:PROJECT_ID.csproj"
+          if (-not (Test-Path $project)) { throw "Project missing: $project" }
+          [xml]$xml = Get-Content $project -Raw
+          $packageId = $xml.SelectSingleNode('/Project/PropertyGroup/PackageId')
+          if ($null -eq $packageId -or $packageId.InnerText -ne $env:PROJECT_ID) {
+            throw 'Unexpected PackageId.'
+          }
+
+          $version = $env:REQUESTED_VERSION.Trim()
+          if ([string]::IsNullOrEmpty($version)) {
+            $now = [DateTime]::UtcNow
+            $prefix = "$env:MAJOR_VERSION.$env:MINOR_VERSION.$($now.ToString('yyMM'))"
+            $revision = $now.Day * 100 + 1
+            $url = "https://api.nuget.org/v3-flatcontainer/$($env:PROJECT_ID.ToLowerInvariant())/index.json"
+            $versions = @()
+            try {
+              $response = Invoke-RestMethod $url -MaximumRetryCount 3 -RetryIntervalSec 5
+              $versions = @($response.versions)
+            } catch {
+              if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+            }
+            $stable = @($versions | Where-Object { $_ -match '^\d+\.\d+\.\d+(\.\d+)?$' } |
+              ForEach-Object { [version]$_ } | Sort-Object -Descending)
+            if ($stable.Count -gt 0) {
+              $latest = $stable[0]
+              $candidate = [version]"$prefix.$revision"
+              if ($latest.Major -gt $candidate.Major -or
+                  ($latest.Major -eq $candidate.Major -and $latest.Minor -gt $candidate.Minor) -or
+                  ($latest.Major -eq $candidate.Major -and $latest.Minor -eq $candidate.Minor -and $latest.Build -gt $candidate.Build)) {
+                throw "Latest version is $latest. Update MAJOR_VERSION/MINOR_VERSION or enter a manual version."
+              }
+              if ($latest.Major -eq $candidate.Major -and $latest.Minor -eq $candidate.Minor -and $latest.Build -eq $candidate.Build) {
+                $revision = [Math]::Max($revision, $latest.Revision + 1)
+              }
+            }
+            $version = "$prefix.$revision"
+          }
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+            throw 'Use a four-part numeric version, for example 4.1.2611.101.'
+          }
+          foreach ($part in $version.Split('.')) {
+            $number = 0
+            if (-not [int]::TryParse($part, [ref]$number) -or $number -gt 65534) {
+              throw 'Version components must be between 0 and 65534.'
+            }
+          }
+          "BUILD_BUILDNUMBER=$version" >> $env:GITHUB_ENV
+          "PACKAGE_OUTPUT=$env:GITHUB_WORKSPACE/artifacts/packages" >> $env:GITHUB_ENV
+          Write-Host "$env:PROJECT_ID version $version"
+
+      - name: Restore, build and pack selected project
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $project = "$env:PROJECT_ID/$env:PROJECT_ID.csproj"
+          # Existing PackageReference versions are intentionally left unchanged.
+          dotnet restore $project
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build $project --configuration "$env:BUILD_CONFIGURATION" `
+            --no-restore `
+            "-p:Version=$env:BUILD_BUILDNUMBER" `
+            "-p:PackageVersion=$env:BUILD_BUILDNUMBER" `
+            "-p:PackageOutputPath=$env:PACKAGE_OUTPUT" `
+            '-p:GeneratePackageOnBuild=true' `
+            '-p:SignAssembly=false' `
+            '-p:SignManifests=false' `
+            '-p:ContinuousIntegrationBuild=true'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $package = Join-Path $env:PACKAGE_OUTPUT "$env:PROJECT_ID.$env:BUILD_BUILDNUMBER.nupkg"
+          if (-not (Test-Path $package)) { throw "Package missing: $package" }
+          "PACKAGE_PATH=$package" >> $env:GITHUB_ENV
+
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Publish selected package
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          # The adjacent .snupkg is also pushed when present.
+          dotnet nuget push "$env:PACKAGE_PATH" `
+            --api-key "$env:NUGET_API_KEY" `
+            --source https://api.nuget.org/v3/index.json `
+            --skip-duplicate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "Published $env:PROJECT_ID version $env:BUILD_BUILDNUMBER" >> $env:GITHUB_STEP_SUMMARY
