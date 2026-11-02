@@ -118,6 +118,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public long Count { get; set; }
     }
 
+    /// <summary>Requests a later expiration for an active owned personal access token.</summary>
+    [DataContract, Description("Requests a later expiration for an active owned personal access token.")]
+    public class ExtendToken : IGXRequest<ExtendTokenResponse>
+    {
+        /// <summary>The identifier of the token to extend.</summary>
+        [DataMember, Description("The identifier of the token to extend.")]
+        public string? Id { get; set; }
+
+        /// <summary>The new expiration instant, including the local UTC offset.</summary>
+        [DataMember, Description("The new expiration instant, including the local UTC offset.")]
+        public DateTimeOffset? Expiration { get; set; }
+    }
+
+    /// <summary>The updated metadata of the extended token; contains no token secret.</summary>
+    [DataContract, Description("The updated metadata of the extended token; contains no token secret.")]
+    public class ExtendTokenResponse
+    {
+        /// <summary>The updated token metadata.</summary>
+        [DataMember, Description("The updated token metadata.")]
+        public GXPersonalToken? Item { get; set; }
+    }
+
     /// <summary>Requests deletion of the selected tokens.</summary>
     [DataContract]
     [Description("Requests deletion of the selected tokens.")]

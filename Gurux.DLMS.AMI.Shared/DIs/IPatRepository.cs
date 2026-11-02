@@ -74,5 +74,9 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>A task whose result describes the removed personal access token.</returns>
         [System.ComponentModel.Description("Remove personal token.")]
         Task<GXPersonalToken> RemovePersonalTokenAsync(string id, CancellationToken cancellationToken = default);
+
+        /// <summary>Extends an active owned token's expiration without changing its value or permissions.</summary>
+        [System.ComponentModel.Description("Extends an active owned token's expiration without changing its value or permissions.")]
+        Task<GXPersonalToken> ExtendPersonalTokenAsync(string id, DateTimeOffset expiration, CancellationToken cancellationToken = default);
     }
 }
