@@ -51,12 +51,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>        
         [Description("The requested history item.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
-        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
-        [IncludeOpenApi(typeof(GXRole), nameof(GXRole.Id))]
         public GXChangeHistoryItem? Item { get; set; }
     }
 
@@ -79,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Optional criteria used to filter history items.
         /// </summary>
         [Description("Optional criteria used to filter history items.")]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXChangeHistoryItem? Filter { get; set; }
 
         /// <summary>Gets or sets inclusive date and time ranges for properties of the filter type.</summary>
@@ -149,10 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of history items.")]
         [DataMember]
-        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
         public IEnumerable<GXChangeHistoryItem>? Items { get; set; }
 
         /// <summary>
