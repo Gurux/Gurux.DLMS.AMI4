@@ -34,13 +34,12 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using Gurux.Service.Orm.Common;
-using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Notification;
 
-/// <summary>A globally unique event source owned by the framework or a module.</summary>
-[Description("A globally unique event source owned by the framework or a module.")]
+/// <summary>A registered event source with a globally unique name and a server-wide delivery setting, owned by the framework or a module.</summary>
+[Description("A registered event source with a globally unique name and a server-wide delivery setting, owned by the framework or a module.")]
 [DataContract, Serializable]
 public class GXNotificationSource : IUnique<int>
 {
@@ -49,15 +48,21 @@ public class GXNotificationSource : IUnique<int>
     [DataMember, IsRequired, Key, AutoIncrement]
     public int Id { get; set; }
 
+    /// <summary>Gets or sets whether the server permits notification delivery for this source.</summary>
+    /// <remarks>Does not grant recipient permissions or enable user subscriptions or delivery channels. Persisted sources must have an explicit value; null can represent an unspecified list filter.</remarks>
+    [Description("Gets or sets whether the server permits notification delivery for this source.")]
+    [DataMember, IsRequired]
+    [DefaultValue(true)]
+    public bool? Enabled { get; set; }
+
     /// <summary>Owning module identifier; null for framework sources.</summary>
     [Description("Owning module identifier; null for framework sources.")]
     [DataMember, StringLength(64)]
-    // Module cleanup is explicit to avoid multiple cascade paths through module/notification creators on SQL Server.
-    [ForeignKey(typeof(GXModule))]
+    [ForeignKey(typeof(GXModule), OnDelete = Service.Orm.Common.Enums.ForeignKeyDelete.Cascade)]
     public string? ModuleId { get; set; }
 
-    /// <summary>Exact event type or resource prefix, independent of the permission catalog.</summary>
-    [Description("Exact event type or resource prefix, independent of the permission catalog.")]
+    /// <summary>Gets or sets the globally unique event name or resource prefix, independent of the permission catalog.</summary>
+    [Description("Gets or sets the globally unique event name or resource prefix, independent of the permission catalog.")]
     [DataMember, IsRequired, Required, StringLength(128), Index(Unique = true)]
     public string Source { get; set; } = string.Empty;
 }

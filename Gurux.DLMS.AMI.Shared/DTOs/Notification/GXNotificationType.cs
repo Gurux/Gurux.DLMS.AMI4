@@ -150,8 +150,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Notification
         [DataMember, Ignore(IgnoreType.Db)]
         public List<string>? Policies { get; set; }
 
-        /// <summary>Time when the record was marked as removed.</summary>
-        [Description("Time when the record was marked as removed.")]
+        /// <summary>Time when the notification type was marked as removed.</summary>
+        [Description("Time when the notification type was marked as removed.")]
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
