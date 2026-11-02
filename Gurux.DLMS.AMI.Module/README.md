@@ -1,51 +1,221 @@
-﻿# Gurux.DLMS.AMI4
+# Gurux.DLMS.AMI.Module
 
-Lightweight .NET library containing AMI (Advanced Metering Infrastructure) extensions for the Gurux DLMS/COSEM framework.
+Contracts and helpers for extending Gurux DLMS AMI with server functionality and
+Blazor UI components. Modules declare their services, HTTP endpoints, views,
+pages, dependencies and owned tables; the AMI host manages their activation,
+scopes, authorization and shutdown.
 
-## Features
+The library targets .NET 10 and does not reference the AMI Server or Client
+projects. Modules run as trusted extensions inside the host process.
 
-- AMI-specific module interfaces and helpers under the `Gurux.DLMS.AMI.Module` namespace
-- Designed to integrate with the Gurux Device Framework
-- Open source (GPLv2)
+## Contents
 
-## Requirements
+- [Getting started](#getting-started)
+- [Contracts and namespaces](#contracts-and-namespaces)
+- [Lifecycle and services](#lifecycle-and-services)
+- [HTTP endpoints](#http-endpoints)
+- [Module authentication](#module-authentication)
+- [Module views](#module-views)
+- [Settings and persistence](#settings-and-persistence)
+- [Application logs](#application-logs)
+- [Host confirmation dialog](#host-confirmation-dialog)
+- [Deployment](#deployment)
 
-- .NET 9 SDK
-- C# 13
-- __Visual Studio 2022__ or later (or `dotnet` CLI)
+## Getting started
 
-## Quick start
+Install the .NET 10 SDK and reference the `Gurux.DLMS.AMI.Module` NuGet package
+or the `Gurux.DLMS.AMI.Module.csproj` project. Use a version compatible with your
+AMI host and its other contract assemblies.
 
-1. Clone the repository:
+Derive from `GXAmiModuleBase` and give the module a stable, unique identifier:
 
-
-   git clone https://github.com/Gurux/Gurux.DLMS.AMI4.git
-   cd Gurux.DLMS.AMI4
-
-
-2. Open the solution in __Visual Studio 2022__ or use the CLI:
-
-- In Visual Studio: File > Open > Project/Solution, open the `.sln` file, then use __Build > Build Solution__.
-- CLI: `dotnet restore` then `dotnet build`.
-
-## Usage
-
-Reference the assembly or project and use the types in the `Gurux.DLMS.AMI.Module` namespace. Example:
-
-
+```csharp
 using Gurux.DLMS.AMI.Module;
+using Microsoft.AspNetCore.Http;
 
-public class MyModule : GXAmiModuleBase
+public sealed class ExampleModule : GXAmiModuleBase
 {
-    public override string Id => "MyModule";
-    public override string Name => "My module";
-    public override string Description => "Adds attribute settings.";
+    public override string Id => "Example";
+    public override string Name => "Example module";
+    public override string Description => "Exposes a module status endpoint.";
+
     public override void Configure(AmiModuleBuilder builder)
     {
-        builder.AddView<MyAttributeSettings>(AmiViewArea.AttributeSettings, "module.edit");
+        builder.MapGet("status", async (request, cancellationToken) =>
+        {
+            await request.HttpContext.Response.WriteAsJsonAsync(
+                new { Module = request.Module.ModuleId, Status = "Ready" },
+                cancellationToken: cancellationToken);
+        });
     }
 }
+```
 
+The AMI host publishes this endpoint at `GET /api/extensions/Example/status`.
+It requires authentication and the host's module access checks. Load the module
+through the host's module management; this contract library does not run or
+install a host application.
+
+## Contracts and namespaces
+
+| Contract | Location |
+| --- | --- |
+| Module lifecycle, builder, requests, views, authentication and service dispatch | `Gurux.DLMS.AMI.Module` |
+| `AmiModuleState`, `AmiModuleDependencyKind`, `AmiViewArea`, `AmiViewDisplay`, `AmiAuthenticationStatus` | `Gurux.DLMS.AMI.Module.Enums` |
+| `AmiModuleDependency` | Declared by this assembly in `Gurux.DLMS.AMI.Shared.DTOs.Module` |
+| `AmiModuleManifest` | AMI Client assembly; not part of this library |
+| `IGXDatabase` and database query abstractions | Separate `Gurux.DLMS.AMI.Services` project, namespace `Gurux.DLMS.AMI.Services.Database` |
+| Domain repository interfaces such as `ILogRepository` | Separate Shared assembly, namespace `Gurux.DLMS.AMI.Shared.DIs` |
+
+An assembly's name and a type's namespace are separate: using
+`AmiModuleDependency` does not require this project to reference Shared.
+Reference Services or Shared explicitly when your module uses their APIs.
+
+## Lifecycle and services
+
+`Configure` declares services and features before activation. Perform asynchronous
+initialization in lifecycle methods rather than starting work from `Configure`.
+The base class supplies empty hooks and defaults to no dependencies and no
+scheduled execution.
+
+| Hook | Purpose |
+| --- | --- |
+| `InstallAsync` | Create initial module defaults and resources. |
+| `UpdateAsync` | Migrate resources from `previousVersion`. |
+| `StartAsync` | Start active module operations. |
+| `SettingsChangedAsync` | Apply updated configuration. |
+| `ExecuteAsync` | Execute scheduled work when `CanSchedule` is `true`. |
+| `StopAsync` | Stop module operations and release resources. |
+| `UninstallAsync` | Remove resources according to `context.UninstallOptions`. |
+
+`AmiModuleContext` provides the module's `ModuleId`, module-scoped `Services`,
+`HostServices`, `Settings`, `Resources`, `UserSettings`, `JsonOptions` and current
+`CancellationToken`. Use `PackageDirectory` for package files instead of assuming
+that the loaded assembly has an on-disk location. `Own(IDisposable)` registers a
+resource for disposal when the module stops. Honor cancellation in ongoing work
+and do not retain a request or scoped service after its operation ends.
+
+Register dependencies through `builder.Services`. `AddHostSingleton<TService>()`
+shares a host-owned singleton without transferring disposal ownership.
+To expose a service to other modules, register its implementation and call
+`builder.Export<TService>()`. Exported service contracts must be interfaces from
+a shared, non-collectible assembly. Consumers use `IAmiModuleServices.InvokeAsync`
+and finish using the service inside the callback; never cache the implementation
+or return objects that retain its module scope. `IsAvailable<TService>()` is a
+point-in-time check, not a reservation.
+
+Declare mandatory dependencies by overriding `Dependencies` with
+`AmiModuleDependency` values. `AmiModuleDependencyKind` distinguishes host
+assemblies, other modules and exported services. Minimum versions are inclusive;
+maximum versions are exclusive.
+
+## HTTP endpoints
+
+`MapGet`, `MapPost` and `MapMethods` take a route relative to
+`/api/extensions/{moduleId}/` and return an `AmiEndpointDefinition`.
+Use `RequirePolicy` to add operation-specific access policies:
+
+```csharp
+builder.MapPost("refresh", RefreshAsync).RequirePolicy("device.edit");
+```
+
+Here `RefreshAsync` is the module's handler with signature
+`Task RefreshAsync(AmiModuleRequest request, CancellationToken cancellationToken)`.
+Policies must exist in the host. A builder endpoint without an explicit policy
+still requires an authenticated user and passes host module access checks.
+
+The handler receives `HttpContext` and its scoped `AmiModuleContext` through
+`AmiModuleRequest`. Use `request.Module.Services` for module services and
+`request.Module.HostServices` for host services. The supplied token combines
+request cancellation and module shutdown.
+
+For framework integrations that supply endpoints, register their source in
+`builder.Services` and declare it with `builder.AddEndpointSource<TSource>()`.
+The host validates and publishes the module-owned endpoints. `builder.Use(...)`
+registers module middleware; middleware is separate from the authentication
+extension described below.
+
+## Module authentication
+
+Most modules use the host's existing cookie or bearer authentication. A module
+that validates another credential format can register one scoped authenticator:
+
+```csharp
+builder.Services.AddScoped<IExampleTokenValidator, ExampleTokenValidator>();
+builder.AddAuthenticator<ExampleAuthenticator>();
+```
+
+`IExampleTokenValidator` and `ExampleTokenValidator` in this example are
+module-specific services; implement them for your protocol. The validator must
+return a validated `ClaimsPrincipal`, or `null` for invalid credentials.
+
+```csharp
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using Gurux.DLMS.AMI.Module;
+
+public interface IExampleTokenValidator
+{
+    Task<ClaimsPrincipal?> ValidateAsync(string token, CancellationToken cancellationToken);
+}
+
+public sealed class ExampleAuthenticator(IExampleTokenValidator tokens)
+    : IAmiModuleAuthenticator
+{
+    public async Task<AmiAuthenticationResult> AuthenticateAsync(
+        AmiModuleRequest request, CancellationToken cancellationToken)
+    {
+        var authorization = request.HttpContext.Request.Headers.Authorization.ToString();
+        if (string.IsNullOrWhiteSpace(authorization))
+            return AmiAuthenticationResult.NotHandled;
+        if (!AuthenticationHeaderValue.TryParse(authorization, out var header))
+            return AmiAuthenticationResult.Rejected;
+        if (!string.Equals(header.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+            return AmiAuthenticationResult.NotHandled;
+        if (string.IsNullOrWhiteSpace(header.Parameter))
+            return AmiAuthenticationResult.Rejected;
+
+        var principal = await tokens.ValidateAsync(header.Parameter, cancellationToken);
+        return principal?.Identities.Any(identity => identity.IsAuthenticated) == true
+            ? AmiAuthenticationResult.Authenticated(principal)
+            : AmiAuthenticationResult.Rejected;
+    }
+}
+```
+
+This example takes responsibility for all bearer credentials on the module's
+endpoints. If a module also accepts host bearer tokens, its credential validation
+must distinguish the supported token formats without falling back after an
+applicable token fails validation.
+
+| Result | Host behavior |
+| --- | --- |
+| `NotHandled` | Use normal host cookie or bearer authentication. Return this only when credentials are absent or do not apply. |
+| `Rejected` | Return HTTP 401 without authentication fallback, even for an anonymous endpoint or a request with a valid cookie. |
+| `Authenticated(principal)` | Validate the mapped host user and apply normal authorization using the restricted principal. |
+
+Validate credentials on every request: signature, issuer, audience, expiry and
+revocation as applicable. Include the host user identifier as
+`ClaimTypes.NameIdentifier` or `sub`; all supplied identifier values must agree.
+The mapped user must be approved and not removed. The host intersects supplied
+roles and `Permission` claims with current host grants; it does not add grants
+absent from the credential. Never put credentials in claims, logs or exceptions.
+Do not write a response body or retain the request from the authenticator.
+
+Authentication runs only for endpoints owned by the registering module,
+including module-owned endpoint sources. Ownership is bound to the selected
+endpoint and module generation, not a URL prefix. A stale endpoint cannot use a
+replacement module's authenticator or fall back after the module stops. The host
+copies returned claims before releasing the authentication scope. Authentication
+and endpoint handling use separate module scopes, so pass identity through the
+returned principal rather than an authenticator instance.
+
+Use the host's default authentication scheme on these endpoints. Explicitly
+selecting a different ASP.NET authentication scheme bypasses default module
+selection. Ordinary authorization policies and module access checks still apply.
+The extension is protocol-independent: an MCP module can implement OAuth/token
+validation without adding MCP-specific contracts to Server. This library does
+not supply an OAuth server or an MCP token validator.
 
 ## Policy editor
 
@@ -55,44 +225,6 @@ Client and module pages bind `List<string>?` policy names with `@bind-Value`.
 The host supplies `HttpClient`, `IGXNotificationService`, and `IGXProgress` through
 DI. Loading uses `api/Policy/Available`; failures use the notification service
 and loading can be cancelled through the progress service.
-
-## Deployment packages
-
-Module projects in `Gurux.DLMS.AMI.Modules` share `Directory.Build.targets`, which
-excludes assemblies supplied by the AMI host from publish output and ZIP files.
-This covers Microsoft/System references present in the host and the shared Gurux
-contracts. Unknown Microsoft/System packages and module-private libraries remain
-included, along with native dependencies and static resources. Development builds
-keep CopyLocal dependencies. Reused publish folders are cleaned before ZIP creation.
-
-Use `AmiModuleHostProject` to select another host project, or
-`AmiModuleExcludeHostAssemblies=false` to publish without filtering.
-`AmiModuleArchiveDirectory` selects the ZIP output directory. The verification
-script `scripts/Test-AmiModulePublish.ps1` checks ZIP contents and loads the module
-against host assemblies without initializing its application services.
-
-## Contributing
-
-Please follow the repository's coding guidelines and the project's `__CONTRIBUTING.md__` and `.editorconfig` files. Open issues and pull requests against the `main` branch. Keep changes small and focused, and include unit tests where appropriate.
-
-## License
-
-This code is licensed under the GNU General Public License v2 (GPL-2.0). See http://www.gnu.org/licenses/gpl-2.0.txt for details.
-
-## Contact
-
-Repository: [Gurux.DLMS.AMI4 GitHub](https://github.com/Gurux/Gurux.DLMS.AMI4)
-
-For questions or support, open an issue on the repository.
-
-## Module metadata
-
-AmiModuleManifest is defined in Gurux.DLMS.AMI.Client and used by the Blazor client
-and its host. AmiModuleView and AmiModulePage are defined in Gurux.DLMS.AMI.Module
-for module builders. AmiModuleDependency stays in Gurux.DLMS.AMI.Shared.DTOs.Module;
-AmiModuleState and AmiModuleDependencyKind stay in Gurux.DLMS.AMI.Shared.Enums.
-Module and Shared do not reference Client. Runtime exceptions and integration
-interfaces in AmiModuleIntegrations.cs remain in Gurux.DLMS.AMI.Module.
 
 ## Module views
 
@@ -144,7 +276,7 @@ their corresponding responses. Read a record using
 The former source-specific repository interfaces and API controllers have been
 removed; modules using them must update their references and rebuild.
 
-### Database contracts
+## Settings and persistence
 
 Modules must change AMI-owned resources through domain interfaces rather than
 writing their tables directly. Use `context.Resources` (`IAmiModuleResources`,
@@ -177,11 +309,12 @@ shared module or user settings cannot represent the data. Do not insert `GXPolic
 resource policy memberships, `GXLogType`, `GXMenuLink`, `GXEnumType`, `GXLog`
 or notification defaults directly from a module.
 
-Database abstractions, query descriptions and table ownership declarations are
-in the `Database` folder and `Gurux.DLMS.AMI.Services.Database` namespace.
-Use `using Gurux.DLMS.AMI.Services.Database;` for `IGXDatabase`, `AmiSelect`,
-`AmiSelectQuery<T>`, and module table registrations. The Module project has no
-project dependency on Shared.
+Database abstractions and query descriptions such as `IGXDatabase`, `AmiSelect`
+and `AmiSelectQuery<T>` are in the separate Services project under
+`Gurux.DLMS.AMI.Services.Database`. Table ownership declarations belong to this
+Module library: register them with `builder.OwnTable<T>()` and select an
+`AmiModuleTableKind` where needed. Uninstall defaults to preserving module data;
+read `context.UninstallOptions` when implementing data removal.
 
 Module settings are exposed as `IAmiModuleSettingsSnapshot` through the context,
 builder and module DI scope. `Value` and `Read<T>()` are read-only; the host owns
@@ -223,7 +356,7 @@ Use the `Version` returned by `ListAsync<T>` with `DeleteIfUnchangedAsync` when
 removing stale data after an external operation. WebPush uses this to prevent a
 late 410 response from deleting a browser subscription refreshed during sending.
 
-### Host confirmation dialog
+## Host confirmation dialog
 
 Browser module views can inject `IAmiConfirmation` from the Module contract:
 
@@ -265,3 +398,32 @@ if (answer.Confirm)
 Disabling is selected initially for every dialog. `Delete` is true only when the
 user approves permanent deletion in a dialog that offers that choice. Selected
 item names are copied when queued and displayed as encoded text.
+
+## Deployment
+
+Build and publish the module project using a .NET 10 SDK, for example:
+
+```shell
+dotnet publish MyModule.csproj -c Release
+```
+
+Deployment packaging belongs to the module project or its repository's build
+tooling. This library does not create a module ZIP or install the module.
+Package the module assembly, module-private managed and native dependencies,
+and required static resources. Keep host-provided shared contracts compatible
+with the target AMI installation; avoid shipping conflicting copies of those
+assemblies. Follow the target host's module installation and update workflow.
+
+## Contributing
+
+Follow the repository's coding guidelines and `.editorconfig` where provided.
+Keep changes focused, document public contracts and verify examples against the
+current API. Include tests for changes to registration, authorization or lifecycle
+behavior.
+
+## License and support
+
+Licensed under the GNU General Public License v2 (GPL-2.0).
+See [the license text](https://www.gnu.org/licenses/gpl-2.0.txt).
+
+Source and issues: [Gurux.DLMS.AMI4](https://github.com/Gurux/Gurux.DLMS.AMI4).

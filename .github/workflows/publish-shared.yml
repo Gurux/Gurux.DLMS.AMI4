@@ -220,6 +220,30 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "Published $env:PROJECT_ID version $env:BUILD_BUILDNUMBER" >> $env:GITHUB_STEP_SUMMARY
 
+      # Optional fast path. Daily polling in the target remains the fallback.
+      - name: Notify AMI modules of published dependency
+        if: success() && (env.PROJECT_ID == 'Gurux.DLMS.AMI.Shared' || env.PROJECT_ID == 'Gurux.DLMS.AMI.Module')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.AMI_MODULES_DISPATCH_TOKEN }}
+          AMI_MODULES_REPOSITORY: ${{ vars.AMI_MODULES_REPOSITORY || 'Gurux/Gurux.DLMS.AMI.Modules' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
+            Write-Warning 'AMI_MODULES_DISPATCH_TOKEN is not configured; daily dependency polling remains enabled.'
+            exit 0
+          }
+          $payload = @{
+            event_type = 'ami-dependency-published'
+            client_payload = @{
+              package = $env:PROJECT_ID
+              version = $env:BUILD_BUILDNUMBER
+            }
+          } | ConvertTo-Json -Depth 3 -Compress
+          $payload | gh api --method POST "repos/$env:AMI_MODULES_REPOSITORY/dispatches" `
+            --header 'Accept: application/vnd.github+json' --input -
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency dispatch failed; NuGet publication already succeeded.' }
+
       - name: Create version tag
         run: |
           $ErrorActionPreference = 'Stop'
