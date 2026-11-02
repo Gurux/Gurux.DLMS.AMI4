@@ -77,6 +77,25 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             GXChangeHistoryItem history,
             CancellationToken cancellationToken = default);
 
+        /// <summary>Permanently deletes history items recorded strictly before the specified cutoff.</summary>
+        /// <remarks>
+        /// Requires administrator access and the history deletion permission. Applies to all users.
+        /// Deletion uses bounded batches; cancellation does not undo previously committed batches.
+        /// Entity revision clocks and links on retained history items are preserved.
+        /// </remarks>
+        /// <param name="cutoff">Exclusive cutoff instant; items recorded at this instant or later are retained.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The number of history items deleted by this operation.</returns>
+        [System.ComponentModel.Description("Permanently deletes history items older than an exclusive cutoff while preserving entity revision clocks.")]
+        Task<long> DeleteOlderThanAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
+
+        /// <summary>Reads the target entity's current configuration revision for an accessible history item.</summary>
+        /// <param name="historyItemId">The identifier of an accessible history item for the target entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The current entity revision to supply as the expected revision during restoration.</returns>
+        [System.ComponentModel.Description("Reads the current entity revision independently of the selected historical version.")]
+        Task<long> GetCurrentRevisionAsync(Guid historyItemId, CancellationToken cancellationToken = default);
+
         /// <summary>Restores the target entity to the selected history item's saved state as a new latest revision.</summary>
         /// <remarks>
         /// Uses <see cref="GXChangeHistoryItem.AfterJson"/> from the selected history item as the restoration source.

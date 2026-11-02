@@ -52,6 +52,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [Description("The requested history item.")]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXChangeHistoryItem? Item { get; set; }
+
+        /// <summary>Gets or sets the target entity's current revision, independently of the selected history item's revision.</summary>
+        [Description("Current target entity revision to supply when restoring a saved version.")]
+        public long CurrentRevision { get; set; }
+
     }
 
     /// <summary>Requests a list of history items.</summary>
@@ -183,5 +188,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [Description("Identifier of the new history item created by the restoration.")]
         [DataMember]
         public Guid Id { get; set; }
+    }
+    /// <summary>Requests permanent deletion of history items recorded strictly before a cutoff.</summary>
+    [Description("Requests permanent deletion of history items recorded strictly before a cutoff.")]
+    [DataContract]
+    public class DeleteHistoryOlderThan : IGXRequest<DeleteHistoryOlderThanResponse>
+    {
+        /// <summary>Gets or sets the exclusive cutoff instant. History at this instant or later is retained.</summary>
+        [Description("Exclusive cutoff instant; history at this instant or later is retained.")]
+        [DataMember(IsRequired = true), Required]
+        public DateTimeOffset? Cutoff { get; set; }
+    }
+
+    /// <summary>Reports the number of expired history items permanently deleted.</summary>
+    [Description("Reports the number of expired history items permanently deleted.")]
+    [DataContract]
+    public class DeleteHistoryOlderThanResponse
+    {
+        /// <summary>Gets or sets the number of history items deleted by the operation.</summary>
+        [Description("Number of history items deleted by the operation.")]
+        [DataMember]
+        public long Count { get; set; }
     }
 }

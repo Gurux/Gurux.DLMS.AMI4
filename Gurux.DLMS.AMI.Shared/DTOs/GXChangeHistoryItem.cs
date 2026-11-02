@@ -39,20 +39,24 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>Records an entity change with JSON snapshots for comparison and restoration.</summary>
     [System.ComponentModel.Description("Records an entity change with JSON snapshots for comparison and restoration.")]
+    [IndexCollection(true, nameof(EntityType), nameof(EntityId), nameof(Revision))]
     public sealed class GXChangeHistoryItem : IUnique<Guid>
     {
         /// <summary>Gets or sets the unique identifier of this history item.</summary>
         [System.ComponentModel.Description("Gets or sets the unique identifier of this history item.")]
+        [Key]
         public Guid Id { get; set; }
 
         /// <summary>Gets or sets the stable type identifier of the changed entity, such as Device or User.</summary>
         [System.ComponentModel.Description("Gets or sets the stable type identifier of the changed entity, such as Device or User.")]
         [IsRequired]
+        [StringLength(128), Index(false)]
         public string? EntityType { get; set; }
 
         /// <summary>Gets or sets the identifier of the changed entity as a string.</summary>
         [System.ComponentModel.Description("Gets or sets the identifier of the changed entity as a string.")]
         [IsRequired]
+        [StringLength(512), Index(false)]
         public string? EntityId { get; set; }
 
         /// <summary>Gets or sets the operation performed on the entity.</summary>
@@ -63,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>Gets or sets the date and time of the change.</summary>
         [System.ComponentModel.Description("Gets or sets the date and time of the change.")]
         [IsRequired]
+        [Index(false)]
         public DateTimeOffset? ChangedAt { get; set; }
 
         /// <summary>Gets or sets the user responsible for the change.</summary>
@@ -74,6 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>Gets or sets the identifier grouping changes made by the same operation.</summary>
         [System.ComponentModel.Description("Gets or sets the identifier grouping changes made by the same operation.")]
         [IsRequired]
+        [Index(false)]
         public Guid? ChangeSetId { get; set; }
 
         /// <summary>Gets or sets the type of source that initiated the change.</summary>
