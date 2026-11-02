@@ -58,7 +58,7 @@ public class GXNotificationSource : IUnique<int>
     /// <summary>Owning module identifier; null for framework sources.</summary>
     [Description("Owning module identifier; null for framework sources.")]
     [DataMember, StringLength(64)]
-    [ForeignKey(typeof(GXModule), OnDelete = Service.Orm.Common.Enums.ForeignKeyDelete.Cascade)]
+    [ForeignKey(typeof(GXModule), OnDelete = Service.Orm.Common.Enums.ForeignKeyDelete.None)]
     public string? ModuleId { get; set; }
 
     /// <summary>Gets or sets the globally unique event name or resource prefix, independent of the permission catalog.</summary>
