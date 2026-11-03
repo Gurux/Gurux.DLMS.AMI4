@@ -35,10 +35,10 @@ using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.History
 {
-    /// <summary>Records an entity change with JSON snapshots for comparison and restoration.</summary>
-    [System.ComponentModel.Description("Records an entity change with JSON snapshots for comparison and restoration.")]
+    /// <summary>Records a change to an entity identified by its history type and entity identifier, with JSON snapshots for comparison and restoration.</summary>
+    [System.ComponentModel.Description("Records a change to an entity identified by its history type and entity identifier, with JSON snapshots for comparison and restoration.")]
     [IndexCollection(true, nameof(EntityType), nameof(EntityId), nameof(Revision))]
     public sealed class GXChangeHistoryItem : IUnique<Guid>
     {
@@ -47,14 +47,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Key]
         public Guid Id { get; set; }
 
-        /// <summary>Gets or sets the stable type identifier of the changed entity, such as Device or User.</summary>
-        [System.ComponentModel.Description("Gets or sets the stable type identifier of the changed entity, such as Device or User.")]
+        /// <summary>Gets or sets the entity type referenced by its stable GUID in GXChangeHistoryType.</summary>
+        /// <remarks>The reference uses <see cref="GXChangeHistoryType.Id"/>; the type name is not the key.</remarks>
+        [System.ComponentModel.Description("Gets or sets the entity type referenced by its stable GUID in GXChangeHistoryType.")]
         [IsRequired]
-        [StringLength(128), Index(false)]
-        public string? EntityType { get; set; }
+        [Index(false)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        public GXChangeHistoryType? EntityType { get; set; }
 
-        /// <summary>Gets or sets the identifier of the changed entity as a string.</summary>
-        [System.ComponentModel.Description("Gets or sets the identifier of the changed entity as a string.")]
+        /// <summary>Gets or sets the canonical string identifier of the changed entity within EntityType.</summary>
+        [System.ComponentModel.Description("Gets or sets the canonical string identifier of the changed entity within EntityType.")]
         [IsRequired]
         [StringLength(512), Index(false)]
         public string? EntityId { get; set; }
@@ -93,8 +95,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(512)]
         public string? SourceId { get; set; }
 
-        /// <summary>Gets or sets the revision number of the entity after this change.</summary>
-        [System.ComponentModel.Description("Gets or sets the revision number of the entity after this change.")]
+        /// <summary>Gets or sets the revision number after this change for the entity identified by EntityType and EntityId.</summary>
+        [System.ComponentModel.Description("Gets or sets the revision number after this change for the entity identified by EntityType and EntityId.")]
         [IsRequired]
         public long? Revision { get; set; }
 

@@ -33,6 +33,7 @@
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.History;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.Service.Orm.Common;
@@ -44,13 +45,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>Response containing the requested history information.</summary>
     [Description("Response containing the requested history information.")]
-    public class GetHistoryResponse
+    public class GetChangeHistoryResponse
     {
         /// <summary>
         /// The requested history item.
         /// </summary>        
         [Description("The requested history item.")]
-        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName), nameof(GXUser.GivenName), nameof(GXUser.Surname))]
         public GXChangeHistoryItem? Item { get; set; }
 
         /// <summary>Gets or sets the target entity's current revision, independently of the selected history item's revision.</summary>
@@ -62,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>Requests a list of history items.</summary>
     [Description("Requests a list of history items.")]
     [DataContract]
-    public class ListHistoryItems : IGXRequest<ListHistoryItemsResponse>
+    public class ListChangeHistoryItems : IGXRequest<ListChangeHistoryItemsResponse>
     {
         /// <summary>Zero-based index of the first item to retrieve. Use 0 to start from the first item.</summary>
         [DefaultValue(0)]
@@ -78,7 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Optional criteria used to filter history items.
         /// </summary>
         [Description("Optional criteria used to filter history items.")]
-        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName), nameof(GXUser.GivenName), nameof(GXUser.Surname))]
         public GXChangeHistoryItem? Filter { get; set; }
 
         /// <summary>Gets or sets inclusive date and time ranges for properties of the filter type.</summary>
@@ -142,14 +143,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>Response containing the requested history items.</summary>
     [Description("Response containing the requested history items.")]
     [DataContract]
-    public class ListHistoryItemsResponse
+    public class ListChangeHistoryItemsResponse
     {
         /// <summary>
         /// List of history items.
         /// </summary>
         [Description("List of history items.")]
         [DataMember]
-        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName), nameof(GXUser.GivenName), nameof(GXUser.Surname))]
         public IEnumerable<GXChangeHistoryItem>? Items { get; set; }
 
         /// <summary>
@@ -163,7 +164,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>Requests restoration of a saved entity state as a new latest revision, preserving existing history.</summary>
     [Description("Requests restoration of a saved entity state as a new latest revision, preserving existing history.")]
     [DataContract]
-    public class RestoreHistoryItem : IGXRequest<RestoreHistoryItemResponse>
+    public class RestoreChangeHistoryItem : IGXRequest<RestoreChangeHistoryItemResponse>
     {
         /// <summary>Gets or sets the identifier of the history item containing the saved entity state to restore.</summary>
         [Description("Identifier of the history item containing the saved entity state to restore.")]
@@ -179,12 +180,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public long ExpectedRevision { get; set; }
     }
 
-    /// <summary>Response containing the identifier of the new history item created by the restoration.</summary>
-    [Description("Response containing the identifier of the new history item created by the restoration.")]
+    /// <summary>Response containing the new history item identifier, or Guid.Empty when restoration succeeds with history recording disabled.</summary>
+    [Description("Response containing the new history item identifier, or Guid.Empty when restoration succeeds with history recording disabled.")]
     [DataContract]
-    public class RestoreHistoryItemResponse
+    public class RestoreChangeHistoryItemResponse
     {
-        /// <summary>Gets or sets the identifier of the new history item created by the restoration.</summary>
+        /// <summary>Gets or sets the new history item identifier, or Guid.Empty when restoration succeeds with history recording disabled.</summary>
         [Description("Identifier of the new history item created by the restoration.")]
         [DataMember]
         public Guid Id { get; set; }
@@ -192,7 +193,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>Requests permanent deletion of history items recorded strictly before a cutoff.</summary>
     [Description("Requests permanent deletion of history items recorded strictly before a cutoff.")]
     [DataContract]
-    public class DeleteHistoryOlderThan : IGXRequest<DeleteHistoryOlderThanResponse>
+    public class DeleteChangeHistoryOlderThan : IGXRequest<DeleteChangeHistoryOlderThanResponse>
     {
         /// <summary>Gets or sets the exclusive cutoff instant. History at this instant or later is retained.</summary>
         [Description("Exclusive cutoff instant; history at this instant or later is retained.")]
@@ -203,7 +204,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// <summary>Reports the number of expired history items permanently deleted.</summary>
     [Description("Reports the number of expired history items permanently deleted.")]
     [DataContract]
-    public class DeleteHistoryOlderThanResponse
+    public class DeleteChangeHistoryOlderThanResponse
     {
         /// <summary>Gets or sets the number of history items deleted by the operation.</summary>
         [Description("Number of history items deleted by the operation.")]

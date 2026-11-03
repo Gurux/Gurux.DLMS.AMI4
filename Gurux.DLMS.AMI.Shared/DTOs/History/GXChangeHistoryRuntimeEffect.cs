@@ -1,4 +1,3 @@
-//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -34,16 +33,16 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Gurux.Service.Orm.Common;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs;
+namespace Gurux.DLMS.AMI.Shared.DTOs.History;
 
 /// <summary>Private durable runtime-cache update awaiting delivery after a configuration transaction commits.</summary>
 /// <remarks>This outbox is not user-visible change history. Its runtime payload is removed after delivery and must not be returned by history APIs.</remarks>
 [Description("Private durable runtime-cache update awaiting delivery after a configuration transaction commits.")]
-public sealed class GXHistoryRuntimeEffect : IUnique<string>
+public sealed class GXChangeHistoryRuntimeEffect : IUnique<Guid>
 {
     /// <summary>Gets or sets the deterministic key identifying the runtime resource family and target.</summary>
-    [Key, StringLength(64)]
-    public string Id { get; set; } = string.Empty;
+    [Key]
+    public Guid Id { get; set; }
 
     /// <summary>Gets or sets the runtime resource family, Script or Workflow.</summary>
     [IsRequired, StringLength(16)]

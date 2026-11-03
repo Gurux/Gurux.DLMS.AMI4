@@ -33,7 +33,6 @@
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using System.Linq.Expressions;
-using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {

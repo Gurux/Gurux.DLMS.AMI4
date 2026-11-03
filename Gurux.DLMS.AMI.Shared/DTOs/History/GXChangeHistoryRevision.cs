@@ -30,23 +30,26 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using Gurux.Service.Orm.Common;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs;
+namespace Gurux.DLMS.AMI.Shared.DTOs.History;
 
 /// <summary>Persistent configuration revision clock independent of user-owned history.</summary>
 [Description("Persistent configuration revision clock independent of user-owned history.")]
-public sealed class GXHistoryRevision : IUnique<string>
+[IndexCollection(true, nameof(EntityType), nameof(EntityId))]
+public sealed class GXChangeHistoryRevision : IUnique<Guid>
 {
-    /// <summary>Gets or sets the deterministic identifier of the entity revision clock.</summary>
-    [Key, StringLength(64)]
-    public string Id { get; set; } = string.Empty;
+    /// <summary>Gets or sets the unique GUID of this entity revision record.</summary>
+    [Key]
+    public Guid Id { get; set; }
 
-    /// <summary>Gets or sets the stable entity type name.</summary>
-    [IsRequired, StringLength(128)]
-    public string? EntityType { get; set; }
+    /// <summary>Gets or sets the entity type referenced by its stable GUID in GXChangeHistoryType.</summary>
+    [IsRequired]
+    [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+    public GXChangeHistoryType? EntityType { get; set; }
 
     /// <summary>Gets or sets the canonical entity identifier.</summary>
     [IsRequired, StringLength(512)]
