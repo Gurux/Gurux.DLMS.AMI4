@@ -39,6 +39,14 @@ namespace Gurux.DLMS.AMI.Http
     /// <summary>Sends JSON requests using the common AMI response validation contract.</summary>
     public static class GXHttpClientExtensions
     {
+        private static readonly JsonSerializerOptions DefaultRequestOptions = CreateDefaultRequestOptions();
+
+        private static JsonSerializerOptions CreateDefaultRequestOptions()
+        {
+            var options = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+            options.MakeReadOnly(populateMissingResolver: true);
+            return options;
+        }
         /// <summary>
         /// Sends a JSON-encoded request to the specified URI and reads the response as a specified type.
         /// </summary>
@@ -50,12 +58,14 @@ namespace Gurux.DLMS.AMI.Http
         /// <returns>The deserialized response content of type RET.</returns>
         /// <exception cref="Exception">Thrown when the response content is null.</exception>
         [System.ComponentModel.Description("Sends a JSON-encoded request to the specified URI and reads the response as a specified type.")]
-        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object? value, CancellationToken cancellationToken = default)
+        public static Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object? value, CancellationToken cancellationToken = default)
+            => PostAsJson<RET>(client, requestUri, value, cancellationToken, null);
+
+        /// <summary>Sends JSON using custom request serialization settings. Response parsing uses web defaults.</summary>
+        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object? value,
+            CancellationToken cancellationToken, JsonSerializerOptions? options)
         {
-            JsonSerializerOptions options = new()
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
-            };
+            options ??= DefaultRequestOptions;
             using HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
             await response.EnsureSuccessAsync(cancellationToken);
             var ret = await response.Content.ReadFromJsonAsync<RET>(cancellationToken: cancellationToken) ?? throw new Exception("Invalid reply.");
@@ -71,12 +81,14 @@ namespace Gurux.DLMS.AMI.Http
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Server reply.</returns>
         [System.ComponentModel.Description("Post object as JSON to the server.")]
-        public static async Task PostAsJson(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+        public static Task PostAsJson(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+            => PostAsJson(client, requestUri, value, cancellationToken, null);
+
+        /// <summary>Sends JSON using custom request serialization settings without reading a reply.</summary>
+        public static async Task PostAsJson(this HttpClient client, string requestUri, object value,
+            CancellationToken cancellationToken, JsonSerializerOptions? options)
         {
-            JsonSerializerOptions options = new()
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
-            };
+            options ??= DefaultRequestOptions;
             using HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
             await response.EnsureSuccessAsync(cancellationToken);
         }
@@ -101,3 +113,4 @@ namespace Gurux.DLMS.AMI.Http
 
     }
 }
+
