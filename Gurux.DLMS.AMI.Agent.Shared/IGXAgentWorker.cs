@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -37,38 +37,55 @@ namespace Gurux.DLMS.AMI.Agent.Shared
     /// <summary>
     /// Defines initialization, registration, and lifecycle operations for an agent worker.
     /// </summary>
-    public interface IGXAgentWorker
+    public interface IGXAgentWorker : IAsyncDisposable
     {
         /// <summary>
-        /// Initializes the agent worker with services, settings, and change signals.
+        /// Registers worker dependencies before the host builds its service provider. Call once per service collection.
         /// </summary>
         /// <param name="services">The service collection used to configure worker dependencies.</param>
-        /// <param name="options">The connection and worker settings for the agent.</param>
-        /// <param name="newVersion">The event signaled when a new agent version is available.</param>
-        /// <param name="updated">The event signaled when agent settings change.</param>
-        void Init(IServiceCollection services,
-            AgentOptions options,
-            AutoResetEvent newVersion,
-            AutoResetEvent updated);
+        void ConfigureServices(IServiceCollection services);
+
+        /// <summary>Initializes one worker instance exactly once. The provider and notifications remain owned by the host.</summary>
+        /// <param name="services">The host-owned service provider.</param>
+        /// <param name="options">Validated configuration; an empty Id is permitted until registration.</param>
+        /// <param name="notifications">Host change notifications.</param>
+        /// <remarks>ConfigureServices and Init are sequential host setup; finish initialization before invoking lifecycle operations.</remarks>
+        void Init(IServiceProvider services, GXAgentOptions options, IGXAgentHostNotifications notifications);
+
+        /// <summary>Gets discovered runtime capabilities, separate from persisted configuration.</summary>
+        GXAgentCapabilities Capabilities { get; }
+
+        /// <summary>Gets the currently published validated configuration. Available after initialization.</summary>
+        GXAgentOptionsSnapshot Configuration { get; }
+
+        /// <summary>Gets the worker lifecycle state, independently of server connectivity.</summary>
+        GXAgentWorkerState State { get; }
+
+        /// <summary>Gets the server notification connection state.</summary>
+        GXAgentConnectionState ConnectionState { get; }
 
         /// <summary>
         /// Registers a new agent with the server.
         /// </summary>
         /// <param name="name">The name of the agent to register.</param>
+        /// <param name="cancellationToken">Cancels registration.</param>
         /// <returns>A task whose result is the identifier of the registered agent.</returns>
-        Task<Guid> AddAgentAsync(string name);
+        Task<Guid> AddAgentAsync(string name, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Starts the agent worker.
         /// </summary>
         /// <returns>A task that represents the asynchronous start operation.</returns>
-        Task StartAsync();
+        /// <param name="cancellationToken">Cancels startup and the active worker lifetime.</param>
+        /// <remarks>The first call supplies the lifetime token. Later calls share startup and their tokens cancel only their own waits.</remarks>
+        Task StartAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Stops the agent worker.
         /// </summary>
         /// <returns>A task that represents the asynchronous stop operation.</returns>
-        Task StopAsync();
+        /// <param name="cancellationToken">Limits how long the caller waits for shutdown. Cleanup continues if this wait is canceled.</param>
+        Task StopAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets or sets whether the agent polls the server for tasks.
