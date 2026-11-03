@@ -207,7 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// <summary>Workflows that invoke this module.</summary>
         [Description("Workflows that invoke this module.")]
         [DataMember]
-        [ForeignKey(typeof(GXWorkflow))]
+        [ForeignKey(typeof(GXWorkflow), typeof(GXWorkflowModule))]
         public List<GXWorkflow>? Workflows { get; set; }
 
         /// <summary>
