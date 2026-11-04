@@ -55,8 +55,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
-        [ExcludeOpenApi(typeof(GXObjectParameter),
-            nameof(GXObjectParameter.Object), nameof(GXObjectParameter.Module))]
+        [ExcludeOpenApi(typeof(GXObjectProperty),
+            nameof(GXObjectProperty.Object), nameof(GXObjectProperty.Module))]
         public GXObject? Item { get; set; }
     }
 
@@ -77,11 +77,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXObject.Errors))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [ExcludeOpenApi(typeof(GXObjectParameter),
-            nameof(GXObjectParameter.Object),
-            nameof(GXObjectParameter.Module))]
+        [ExcludeOpenApi(typeof(GXObjectProperty),
+            nameof(GXObjectProperty.Object),
+            nameof(GXObjectProperty.Module))]
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.CreationTime), nameof(GXObject.Updated))]
-        [ExcludeOpenApi(typeof(GXObjectParameter), nameof(GXObjectParameter.CreationTime), nameof(GXObjectParameter.Updated))]
+        [ExcludeOpenApi(typeof(GXObjectProperty), nameof(GXObjectProperty.CreationTime), nameof(GXObjectProperty.Updated))]
         public IEnumerable<GXObject>? Objects { get; set; }
     }
 
@@ -122,7 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks),
             nameof(GXObject.Template),
             nameof(GXObject.Errors), nameof(GXObject.Device),
-            nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
+            nameof(GXObject.Attributes), nameof(GXObject.Properties))]
         [ExcludeOpenApi(typeof(GXObject),
             nameof(GXObject.Latebind), nameof(GXObject.ConcurrencyStamp), nameof(GXObject.LastErrorMessage))]
         public GXObject? Filter { get; set; }
@@ -214,7 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of COSEM objects.")]
         [DataMember]
-        [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
+        [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Properties))]
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [ExcludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.ObjectTemplate))]
         [ExcludeOpenApi(typeof(GXAttributeListItem), nameof(GXAttributeListItem.Template))]

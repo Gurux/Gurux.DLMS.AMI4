@@ -57,7 +57,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             Template = template;
             Attributes = [];
-            Parameters = [];
+            Properties = [];
             Tasks = [];
             Errors = [];
         }
@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
                 ObjectType = objectType,
             };
             Attributes = [];
-            Parameters = [];
+            Properties = [];
             Tasks = [];
             Errors = [];
         }
@@ -150,13 +150,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
-        /// Object parameters.
+        /// Object properties.
         /// </summary>
-        [Description("Object parameters.")]
+        [Description("Object properties.")]
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXObjectParameter>? Parameters { get; set; }
+        public List<GXObjectProperty>? Properties { get; set; }
 
         /// <summary>Time when the object attributes were last read.</summary>
         [DataMember]

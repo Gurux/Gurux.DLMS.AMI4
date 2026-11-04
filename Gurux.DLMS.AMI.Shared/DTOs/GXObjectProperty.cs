@@ -40,23 +40,23 @@ using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
-    /// <summary>A module parameter associated with a COSEM object.</summary>
-    [Description("A module parameter associated with a COSEM object.")]
-    [DataContract(Name = nameof(GXObjectParameter)), Serializable]
+    /// <summary>A module property associated with a COSEM object.</summary>
+    [Description("A module property associated with a COSEM object.")]
+    [DataContract(Name = nameof(GXObjectProperty)), Serializable]
     [IndexCollection(true, nameof(Object), nameof(Module), nameof(Name))]
-    public class GXObjectParameter : IUnique<Guid>, IGXProperty
+    public class GXObjectProperty : IUnique<Guid>, IGXProperty
     {
         /// <summary>
-        /// Parameter identifier.
+        /// Object property identifier.
         /// </summary>
-        [Description("Parameter identifier.")]
+        [Description("Object property identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id { get; set; }
 
-        /// <summary>COSEM object that owns this parameter.</summary>
-        [Description("COSEM object that owns this parameter.")]
+        /// <summary>COSEM object that owns this property.</summary>
+        [Description("COSEM object that owns this property.")]
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]

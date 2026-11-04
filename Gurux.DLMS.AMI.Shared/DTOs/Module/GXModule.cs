@@ -238,28 +238,28 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         public List<GXModuleVersion>? Versions { get; set; }
 
         /// <summary>
-        /// List of device parameters that are using this module.
+        /// List of device properties that are using this module.
         /// </summary>
-        [Description("List of device parameters that are using this module.")]
+        [Description("List of device properties that are using this module.")]
         [DataMember]
         [ForeignKey(typeof(GXDeviceProperty))]
-        public List<GXDeviceProperty>? DeviceParameters { get; set; }
+        public List<GXDeviceProperty>? DeviceProperties { get; set; }
 
         /// <summary>
-        /// List of object parameters that are using this module.
+        /// List of object properties that are using this module.
         /// </summary>
-        [Description("List of object parameters that are using this module.")]
+        [Description("List of object properties that are using this module.")]
         [DataMember]
-        [ForeignKey(typeof(GXObjectParameter))]
-        public List<GXObjectParameter>? ObjectParameters { get; set; }
+        [ForeignKey(typeof(GXObjectProperty))]
+        public List<GXObjectProperty>? ObjectProperties { get; set; }
 
         /// <summary>
-        /// List of attribute template parameters that are using this module.
+        /// List of attribute template properties that are using this module.
         /// </summary>
-        [Description("List of attribute template parameters that are using this module.")]
+        [Description("List of attribute template properties that are using this module.")]
         [DataMember]
         [ForeignKey(typeof(GXAttributeProperty))]
-        public List<GXAttributeProperty>? AttributeParameters { get; set; }
+        public List<GXAttributeProperty>? AttributeProperties { get; set; }
 
         /// <summary>
         /// Module active version number.
@@ -339,9 +339,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
             Versions = [];
             Scripts = [];
             Assemblies = [];
-            DeviceParameters = [];
-            ObjectParameters = [];
-            AttributeParameters = [];
+            DeviceProperties = [];
+            ObjectProperties = [];
+            AttributeProperties = [];
             Schedules = [];
             Workflows = [];
             Properties = [];

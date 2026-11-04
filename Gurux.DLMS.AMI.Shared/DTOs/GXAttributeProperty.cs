@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -40,16 +39,16 @@ using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
-    /// <summary>A module parameter associated with a COSEM attribute.</summary>
-    [Description("A module parameter associated with a COSEM attribute.")]
+    /// <summary>A module property associated with a COSEM attribute.</summary>
+    [Description("A module property associated with a COSEM attribute.")]
     [DataContract(Name = nameof(GXAttributeProperty)), Serializable]
     [IndexCollection(true, nameof(Attribute), nameof(Module), nameof(Name))]
     public class GXAttributeProperty : IUnique<Guid>, IGXProperty
     {
         /// <summary>
-        /// Attribute parameter identifier.
+        /// Attribute property identifier.
         /// </summary>
-        [Description("Attribute parameter identifier.")]
+        [Description("Attribute property identifier.")]
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]

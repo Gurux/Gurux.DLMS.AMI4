@@ -55,8 +55,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.UserGroups),
             nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
             nameof(GXModule.Versions), nameof(GXModule.Scripts),
-            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
-            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceProperties),
+            nameof(GXModule.ObjectProperties), nameof(GXModule.AttributeProperties),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
             nameof(GXModule.Creator))]
         public GXModule? Item { get; set; }
@@ -75,8 +75,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.Logs)
-            , nameof(GXModule.ObjectParameters), nameof(GXModule.DeviceParameters)
-            , nameof(GXModule.AttributeParameters))]
+            , nameof(GXModule.ObjectProperties), nameof(GXModule.DeviceProperties)
+            , nameof(GXModule.AttributeProperties))]
         [IncludeOpenApi(typeof(GXModuleAssembly), nameof(GXModuleAssembly.Id))]
         [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
         [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
@@ -88,7 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [ExcludeOpenApi(typeof(GXDeviceProperty), nameof(GXDeviceProperty.Module))]
-        [ExcludeOpenApi(typeof(GXObjectParameter), nameof(GXObjectParameter.Module))]
+        [ExcludeOpenApi(typeof(GXObjectProperty), nameof(GXObjectProperty.Module))]
         [ExcludeOpenApi(typeof(GXAttributeProperty), nameof(GXAttributeProperty.Module))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
 
@@ -152,8 +152,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.Logs)
-            , nameof(GXModule.ObjectParameters), nameof(GXModule.DeviceParameters)
-            , nameof(GXModule.AttributeParameters))]
+            , nameof(GXModule.ObjectProperties), nameof(GXModule.DeviceProperties)
+            , nameof(GXModule.AttributeProperties))]
         [IncludeOpenApi(typeof(GXModuleAssembly), nameof(GXModuleAssembly.Id))]
         [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
         [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
@@ -165,7 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [ExcludeOpenApi(typeof(GXDeviceProperty), nameof(GXDeviceProperty.Module))]
-        [ExcludeOpenApi(typeof(GXObjectParameter), nameof(GXObjectParameter.Module))]
+        [ExcludeOpenApi(typeof(GXObjectProperty), nameof(GXObjectProperty.Module))]
         [ExcludeOpenApi(typeof(GXAttributeProperty), nameof(GXAttributeProperty.Module))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.CreationTime), nameof(GXModule.Updated))]
@@ -206,8 +206,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.UserGroups),
             nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
             nameof(GXModule.Versions), nameof(GXModule.Scripts),
-            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
-            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceProperties),
+            nameof(GXModule.ObjectProperties), nameof(GXModule.AttributeProperties),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
             nameof(GXModule.Creator))]
         [ExcludeOpenApi(typeof(GXModule),
@@ -300,8 +300,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.UserGroups),
             nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
             nameof(GXModule.Versions), nameof(GXModule.Scripts),
-            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
-            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceProperties),
+            nameof(GXModule.ObjectProperties), nameof(GXModule.AttributeProperties),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
             nameof(GXModule.Creator))]
         public IEnumerable<GXModule>? Modules { get; set; }
