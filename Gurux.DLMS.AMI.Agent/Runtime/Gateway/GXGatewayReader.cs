@@ -102,6 +102,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Gateway
                 _media.OnTrace += MediaOnTrace;
                 _media.Trace = TraceLevel.Verbose;
             }
+            _logger?.LogDebug(new EventId(1001, "GatewayReceiverReady"), "Gateway receiver ready for {Connection}", info);
         }
 
         private void MediaOnTrace(object sender, TraceEventArgs e)
