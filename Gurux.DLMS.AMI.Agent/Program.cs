@@ -1,308 +1,448 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Agent.Shared;
 using Gurux.DLMS.AMI.Agent.Worker;
-using Gurux.DLMS.AMI.Shared;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.Loader;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
-namespace Gurux.DLMS.AMI.Agent
-{
-    class Program
-    {
-        const string settingsFile = "settings.json";
-        static ILogger? _logger;
-        static IGXAgentWorker? worker = null;
+namespace Gurux.DLMS.AMI.Agent;
 
-        /// <summary>
-        /// Register the agent.
-        /// </summary>
-        /// <returns></returns>
-        public static async Task RegisterAgent(
-            IServiceCollection services,
-            AutoResetEvent newVersion,
-            AutoResetEvent updated,
-            IGXAgentWorker worker,
-            AgentOptions options)
+internal static class Program
+{
+    private static string settingsFile = "settings.json";
+    private static ILogger? _logger;
+    private static IGXAgentWorker? worker;
+    private static ServiceProvider? workerServices;
+    private static bool workerInitialized;
+    private static readonly SemaphoreSlim consoleInput = new(1, 1);
+
+    internal static async Task<GXAgentOptions> ReadReplacementTokenAsync(GXAgentOptions options, bool interactive,
+        Func<CancellationToken, Task<string>> readSecret, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (!interactive)
         {
+            throw new InvalidOperationException("AMI authentication failed (HTTP 401). The saved PAT has been retained. Start the agent interactively under the same account to replace its PAT. Use Configure only to register a new agent.");
+        }
+        Console.WriteLine("AMI authentication failed (HTTP 401). The saved PAT will be retained until a replacement connects successfully.");
+        Console.WriteLine("Enter a new Personal Access Token (Enter to exit):");
+        string value = await readSecret(token);
+        token.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new OperationCanceledException("PAT replacement cancelled; the saved PAT has been retained.");
+        }
+        var replacement = GXAgentOptionsSnapshot.Capture(options).ToOptions();
+        replacement.Token = value;
+        replacement.Validate();
+        return replacement;
+    }
+
+    private static async Task<ServiceProvider> InitializeWorkerAsync(IGXAgentWorker target,
+        IServiceCollection services, GXAgentOptions options, IGXAgentHostNotifications notifications)
+    {
+        ServiceProvider? provider = null;
+        try
+        {
+            target.ConfigureServices(services);
+            provider = services.BuildServiceProvider();
+            target.Init(provider, options, notifications);
+            return provider;
+        }
+        catch
+        {
+            await target.DisposeAsync();
+            if (provider != null)
+                {
+                await provider.DisposeAsync();
+            }
+            throw;
+        }
+    }
+
+    public static async Task RegisterAgent(IServiceCollection services, IGXAgentHostNotifications notifications,
+        IGXAgentWorker worker, GXAgentOptions options, CancellationToken cancellationToken = default)
+    {
+        ServiceProvider? provider = null;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             string name = System.Net.Dns.GetHostName();
             Console.WriteLine("Welcome to use Gurux.DLMS.AMI.");
-            Console.WriteLine(string.Format("Gurux.DLMS.AMI address: [{0}]", options.Address));
-            string? tmp = Console.ReadLine();
-            if (!string.IsNullOrEmpty(tmp))
-            {
-                options.Address = tmp;
+            Console.WriteLine($"Gurux.DLMS.AMI address: [{options.Address}]");
+            string? value = await ReadLineAsync(cancellationToken);
+            if (!string.IsNullOrEmpty(value))
+                {
+                options.Address = value;
             }
-            Console.WriteLine(string.Format("Enter agent name: [{0}]", name));
-            tmp = Console.ReadLine();
-            if (!string.IsNullOrEmpty(tmp))
-            {
-                name = tmp;
+            Console.WriteLine($"Enter agent name: [{name}]");
+            value = await ReadLineAsync(cancellationToken);
+            if (!string.IsNullOrEmpty(value))
+                {
+                name = value;
             }
             Console.WriteLine("Enter Personal Access Token:");
-            options.Token = Console.ReadLine();
-            if (options.Token == null || options.Token.Length < 64)
-            {
-                throw new ArgumentException("Invalid token.");
-            }
-            worker.Init(services, options, newVersion, updated);
-            options.Id = await worker.AddAgentAsync(name);
-            if (options.Id == Guid.Empty)
-            {
+            options.Token = await ReadSecretAsync(cancellationToken);
+            options.Validate(requireAgentId: false);
+            provider = await InitializeWorkerAsync(worker, services, options, notifications);
+            var id = await worker.AddAgentAsync(name, cancellationToken);
+            if (id == Guid.Empty)
+                {
                 throw new ArgumentException("Invalid agent Id.");
             }
-            File.WriteAllText(settingsFile, JsonSerializer.Serialize(options));
+            options = worker.Configuration.ToOptions();
+            options.Id = id;
+            await SaveSettingsAsync(options, cancellationToken);
             Console.WriteLine("Connection succeeded.");
         }
-
-        static async Task<int> Main(string[] args)
+        finally
         {
-            AssemblyLoadContext alc;
-            AutoResetEvent newVersion = new AutoResetEvent(true);
-            AutoResetEvent updated = new AutoResetEvent(false);
-            //Show file version info.
-            Assembly asm = Assembly.GetExecutingAssembly();
-            FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
-            Console.WriteLine(string.Format("starting Gurux.DLMS.Agent version {0}", string.Join(";", info.FileVersion)));
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-            //User cancels the application.
-            var cts = new CancellationTokenSource();
-            Console.CancelKeyPress += async (s, e) =>
-            {
-                Console.WriteLine("Canceling...");
-                cts.Cancel();
-                Environment.Exit(0);
-            };
-
-            try
-            {
-                var config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .Build();
-                using var loggerFactory = LoggerFactory.Create(builder =>
+            using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await worker.StopAsync(shutdown.Token);
+            await worker.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
+            if (provider != null)
                 {
-                    builder.AddConfiguration(config.GetSection("Logging"))
-                    .AddConsole();
-                });
-                _logger = loggerFactory.CreateLogger<Program>();
-
-                AgentOptions options = new AgentOptions();
-                //Default docker address.
-                options.Address = "https://localhost:8001";
-                Settings settings = new Settings();
-                ////////////////////////////////////////
-                //Handle command line parameters.
-                int ret = Settings.GetParameters(args, settings);
-                if (ret != 0)
-                {
-                    return ret;
-                }
-                if (!string.IsNullOrEmpty(settings.Host))
-                {
-                    options.Address = settings.Host;
-                }
-                if (!File.Exists(settingsFile) || args.Contains("Configure"))
-                {
-                    alc = new AssemblyLoadContext("tmp");
-                    asm = alc.LoadFromAssemblyPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Gurux.DLMS.AMI.Agent.Worker.dll"));
-                    IGXAgentWorker? worker = (IGXAgentWorker?)asm.CreateInstance(typeof(GXAgentWorker).FullName);
-                    IServiceCollection services = new ServiceCollection();
-                    services.AddLogging(builder =>
-                    {
-                        builder.AddConfiguration(config.GetSection("Logging"))
-                        .AddConsole();
-                    });
-                    await RegisterAgent(services, newVersion, updated, worker, options);
-                    await worker.StopAsync();
-                    worker = null;
-                }
-                options = JsonSerializer.Deserialize<AgentOptions>(File.ReadAllText(settingsFile));
-                if (string.IsNullOrEmpty(options?.Token))
-                {
-                    throw new ArgumentException("Invalid token.");
-                }
-                if (options.Id == Guid.Empty)
-                {
-                    throw new ArgumentException("Invalid agent Id.");
-                }
-                if (info.ProductVersion != null && !info.ProductVersion.Contains("-local"))
-                {
-                    options.Version = info.ProductVersion;
-                }
-                else
-                {
-                    options.Version = null;
-                }
-
-                Task t = Task.Run(() => ClosePoller(cts));
-                alc = new AssemblyLoadContext("Agent.Worker", true);
-                //Current agent version is returned if update fails.
-                string? currentVersion = options.Version;
-                bool update = newVersion.WaitOne(0);
-                do
-                {
-                    if (update)
-                    {
-                        if (worker != null)
-                        {
-                            //Save new agent version info.
-                            File.WriteAllText(settingsFile, JsonSerializer.Serialize(options));
-                            await worker.StopAsync();
-                            worker = null;
-                            alc.Unload();
-                            alc = new AssemblyLoadContext("Agent.Worker", true);
-                        }
-                        //Start the new app and exit.
-                        string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                        if (path != null && !string.IsNullOrEmpty(options.Version))
-                        {
-                            path = Path.Combine(path, "bin" + options.Version);
-                            if (!Directory.Exists(path))
-                            {
-                                path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                            }
-                        }
-                        try
-                        {
-                            asm = alc.LoadFromAssemblyPath(Path.Combine(path, "Gurux.DLMS.AMI.Agent.Worker.dll"));
-                            worker = (IGXAgentWorker)asm.CreateInstance(typeof(GXAgentWorker).FullName);
-                            IServiceCollection services = new ServiceCollection();
-                            services.AddLogging(builder =>
-                            {
-                                builder.AddConfiguration(config.GetSection("Logging"))
-                                                    .AddConsole();
-                            });
-                            worker.Init(services, options, newVersion, updated);
-                            await worker.StartAsync();
-                            currentVersion = options.Version;
-                        }
-                        catch (UnauthorizedAccessException)
-                        {
-                            _logger.LogError("Failed to connect to the server. Invalid personal access token.");
-                            break;
-                        }
-                        catch (GXAmiNotFoundException)
-                        {
-                            _logger.LogError("Failed to connect to the server. Unknown agent.");
-                            break;
-                        }
-                        catch (HttpRequestException ex)
-                        {
-                            _logger.LogError("Get next task failed. " + ex.Message);
-                            //Server is closed. Wait 10 seconds before next attempt.
-                            cts.Token.WaitHandle.WaitOne(10000);
-                            newVersion.Set();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError("Get next task failed. " + ex.Message);
-                            //Save previous agent version info.
-                            options.Version = currentVersion;
-                            File.WriteAllText(settingsFile, JsonSerializer.Serialize(options));
-                            newVersion.Set();
-                        }
-                    }
-                    //Wait until application is closed or a new version is released.
-                    int wait = AutoResetEvent.WaitAny([cts.Token.WaitHandle, newVersion, updated]);
-                    if (wait == 0)
-                    {
-                        //App is closed.
-                        break;
-                    }
-                    else if (wait == 1)
-                    {
-                        //New version is available.
-                        update = true;
-                    }
-                    else if (wait == 2)
-                    {
-                        //Agent Settings are updated.
-                        File.WriteAllText(settingsFile, JsonSerializer.Serialize(options));
-                        update = false;
-                    }
-                }
-                while (true);
+                await provider.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
             }
-            catch (Exception ex)
+        }
+    }
+
+    private static Task<string?> ReadLineAsync(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        return Task.Run(Console.ReadLine).WaitAsync(token);
+    }
+
+    private static async Task<string> ReadSecretAsync(CancellationToken token)
+    {
+        if (Console.IsInputRedirected)
             {
-                _logger?.LogError(ex.Message);
+            return await ReadLineAsync(token) ?? "";
+        }
+        var secret = new System.Text.StringBuilder();
+        while (true)
+        {
+            token.ThrowIfCancellationRequested();
+            if (!Console.KeyAvailable)
+            { await Task.Delay(50, token); continue; }
+            var key = Console.ReadKey(intercept: true);
+            if (key.Key == ConsoleKey.Enter)
+            { Console.WriteLine(); return secret.ToString(); }
+            if (key.Key == ConsoleKey.Backspace)
+            { if (secret.Length != 0) {
+                --secret.Length;
+            } }
+            else if (!char.IsControl(key.KeyChar))
+                {
+                secret.Append(key.KeyChar);
+            }
+        }
+    }
+
+    private static async Task<int> Main(string[] args)
+    {
+        try
+        { return await RunAsync(args); }
+        catch (Exception error) { Console.Error.WriteLine($"Agent failed: {error.Message}"); return 1; }
+    }
+
+    private static async Task<int> RunAsync(string[] args)
+    {
+        using var cancellation = new CancellationTokenSource();
+        using var notifications = new GXAgentHostNotifications();
+        GXAgentInstanceLock? settingsLock = null, identityLock = null;
+        ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
+        Console.CancelKeyPress += cancel;
+        using var sigterm = OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()
+            ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; cancellation.Cancel(); }) : null;
+        try
+        {
+            var config = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.default.json", optional: true, reloadOnChange: false)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false).AddEnvironmentVariables().Build();
+            using var configLifetime = config as IDisposable;
+            using var logging = LoggerFactory.Create(builder => builder.AddConfiguration(config.GetSection("Logging")).AddConsole());
+            _logger = logging.CreateLogger("Gurux.DLMS.AMI.Agent");
+            string? version = AgentRuntimeVersion.Resolve(AppContext.BaseDirectory, null, FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion);
+            _logger.LogInformation("Starting Gurux.DLMS.AMI.Agent {Version}", version);
+            var commandLine = new Settings();
+            if (Settings.GetParameters(args.Where(a => a != "Configure").ToArray(), commandLine) != 0)
+                {
                 return 1;
             }
-            return 0;
-        }
-
-        /// <summary>
-        /// Get existed tasks.
-        /// </summary>
-        /// <returns></returns>
-        private static void ClosePoller(CancellationTokenSource cts)
-        {
-            Console.WriteLine("----------------------------------------------------------");
-            ConsoleKey k;
-            while ((k = Console.ReadKey().Key) != ConsoleKey.Escape)
+            var updaterOptions = GXAgentUpdaterOptions.Read(config);
+            settingsFile = updaterOptions.SettingsPath;
+            settingsLock = GXAgentInstanceLock.Acquire(settingsFile);
+            GXAgentSettingsStore.ProtectExisting(settingsFile);
+            var completionOptions = GXCompletionOutboxOptions.Read(config);
+            IServiceCollection Services()
             {
-                if (k == ConsoleKey.Delete)
+                var services = new ServiceCollection();
+                services.AddSingleton(updaterOptions);
+                services.AddSingleton(completionOptions);
+                services.AddLogging(builder => builder.AddConfiguration(config.GetSection("Logging")).AddConsole());
+                return services;
+            }
+            string? settingsJson = File.Exists(settingsFile)
+                ? await File.ReadAllTextAsync(settingsFile, cancellation.Token)
+                : null;
+            if (string.IsNullOrWhiteSpace(settingsJson) || args.Contains("Configure"))
+            {
+                await RegisterAgent(Services(), notifications, new GXAgentWorker(),
+                    new GXAgentOptions { Address = commandLine.Host ?? "https://localhost:8001", Version = version }, cancellation.Token);
+                settingsJson = await File.ReadAllTextAsync(settingsFile, cancellation.Token);
+            }
+            var options = JsonSerializer.Deserialize<GXAgentOptions>(settingsJson!)
+                ?? throw new InvalidOperationException("Agent settings are empty.");
+            if (!string.IsNullOrEmpty(commandLine.Host))
                 {
-                    Console.Clear();
+                options.Address = commandLine.Host;
+            }
+            // A saved or legacy bin<version> selection can never override the executable actually running.
+            options.Version = version;
+            options.Validate();
+            identityLock = GXAgentInstanceLock.AcquireIdentity(options.Address, options.Id);
+            async Task ReplaceTokenAsync()
+            {
+                await consoleInput.WaitAsync(cancellation.Token);
+                try
+                {
+                    options = await ReadReplacementTokenAsync(options, Environment.UserInteractive && !Console.IsInputRedirected,
+                        ReadSecretAsync, cancellation.Token);
                 }
-                Console.WriteLine("Press Esc to close application or delete clear the console.");
+                finally
+                {
+                    consoleInput.Release();
+                }
             }
-            cts.Cancel();
-        }
-
-        private static async Task Disconnect()
-        {
-            if (worker != null)
+            async Task StartRuntimeAsync()
             {
-                var tmp = worker;
-                worker = null;
-                await tmp.StopAsync();
+                int failedAttempts = 0;
+                while (true)
+                {
+                    cancellation.Token.ThrowIfCancellationRequested();
+                    worker = new GXAgentWorker();
+                    workerInitialized = false;
+                    try
+                    {
+                        workerServices = await InitializeWorkerAsync(worker, Services(), options, notifications);
+                        workerInitialized = true;
+                        await worker.StartAsync(cancellation.Token);
+                        if (worker is GXAgentWorker active && active.AuthenticationRejected)
+                        {
+                            throw new HttpRequestException("AMI authentication failed (HTTP 401).", null, System.Net.HttpStatusCode.Unauthorized);
+                        }
+                        options = worker.Configuration.ToOptions();
+                        await SaveSettingsAsync(options, cancellation.Token);
+                        break;
+                    }
+                    catch (GXMaintenanceException error)
+                    {
+                        await DisconnectWithDeadlineAsync();
+                        _logger?.LogWarning("Server maintenance: {Message}", error.Message);
+                        await GXMaintenanceRetry.WaitAsync(error, cancellation.Token);
+                    }
+                    catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        await DisconnectAfterDrainAsync();
+                        await ReplaceTokenAsync();
+                    }
+                    catch (HttpRequestException error)
+                    {
+                        await DisconnectWithDeadlineAsync();
+                        _logger?.LogWarning(error, "Server unavailable; retrying agent startup");
+                        var delay = GXRetryBackoff.GetDelay(++failedAttempts, TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(5));
+                        _logger?.LogInformation("Retrying startup in {DelaySeconds} seconds", delay.TotalSeconds);
+                        await Task.Delay(delay, cancellation.Token);
+                    }
+                }
             }
-        }
-
-        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
-        {
-            // Start the worker task.
-            if (worker != null)
+            await StartRuntimeAsync();
+            if (Environment.UserInteractive && !Console.IsInputRedirected)
             {
-                Task t = Task.Run(() => Disconnect());
-                t.Wait();
+                _ = Task.Run(() => ClosePoller(cancellation));
+            }
+            while (true)
+            {
+                var change = await notifications.WaitForChangeAsync(cancellation.Token);
+                if (change.HasFlag(GXAgentHostChange.AuthenticationRequired) && worker is GXAgentWorker active && active.AuthenticationRejected)
+                {
+                    options = worker.Configuration.ToOptions();
+                    await DisconnectAfterDrainAsync();
+                    await ReplaceTokenAsync();
+                    await StartRuntimeAsync();
+                    continue;
+                }
+                if (workerInitialized)
+                    {
+                    options = worker!.Configuration.ToOptions();
+                }
+                await SaveSettingsAsync(options, cancellation.Token);
+                if (!change.HasFlag(GXAgentHostChange.VersionAvailable))
+                    {
+                    continue;
+                }
+                var updater = workerServices!.GetRequiredService<IGXAgentUpdateService>();
+                if (updater.PendingUpdate == null)
+                    {
+                    continue;
+                }
+                // All tasks, completion reporting, listeners and scripts finish before handing over installation.
+                bool handedOff = await TryHandoffUpdateAsync(updater, Environment.ProcessId, async () =>
+                {
+                    updaterOptions.RetryAfter = DateTimeOffset.UtcNow.AddMinutes(5);
+                    await StartRuntimeAsync();
+                }, cancellation.Token);
+                if (!handedOff)
+                    {
+                    continue;
+                }
+                _logger.LogInformation("Application update handed to Gurux.Updater; exiting current agent");
+                return 0;
             }
         }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return 0; }
+        catch (OperationCanceledException error)
+        {
+            _logger?.LogInformation("{Message}", error.Message);
+            return 1;
+        }
+        catch (GXAgentOptionsValidationException error)
+        {
+            foreach (var item in error.Errors)
+                {
+                _logger?.LogError("Invalid configuration: {Code} at {Path}: {Message}", item.Code, item.PropertyPath, item.Message);
+            }
+            return 1;
+        }
+        finally
+        {
+            Console.CancelKeyPress -= cancel;
+            try
+            { await DisconnectAfterDrainAsync(); }
+            finally { identityLock?.Dispose(); settingsLock?.Dispose(); }
+        }
+    }
+
+    internal static async Task HandoffUpdateAsync(IGXAgentUpdateService updater, int processId, CancellationToken token)
+    {
+        await DisconnectAfterDrainAsync();
+        await updater.LaunchAsync(processId, token);
+    }
+    internal static async Task<bool> TryHandoffUpdateAsync(IGXAgentUpdateService updater, int processId,
+        Func<Task> recover, CancellationToken token)
+    {
+        // A failed shutdown must never create a second runtime alongside an incompletely stopped one.
+        await DisconnectAfterDrainAsync();
+        token.ThrowIfCancellationRequested();
+        try
+        {
+            await updater.LaunchAsync(processId, token);
+            return true;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+        catch (Exception error)
+        {
+            _logger?.LogError(error, "Updater could not start; restoring the installed runtime with a five-minute update cooldown");
+            await recover();
+            return false;
+        }
+    }
+    private static async Task SaveSettingsAsync(GXAgentOptions options, CancellationToken token)
+    {
+        await GXAgentSettingsStore.SaveAsync(settingsFile, JsonSerializer.Serialize(options), token);
+    }
+
+    private static async Task DisconnectWithDeadlineAsync()
+    {
+        if (worker == null)
+            {
+            return;
+        }
+        using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        await worker.StopAsync(shutdown.Token);
+        await worker.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
+        if (workerServices != null)
+            {
+            await workerServices.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
+        }
+        workerServices = null;
+        worker = null;
+        workerInitialized = false;
+    }
+
+    private static async Task DisconnectAfterDrainAsync()
+    {
+        while (true)
+        {
+            try { await DisconnectWithDeadlineAsync(); return; }
+            catch (OperationCanceledException)
+            {
+                _logger?.LogWarning("Shutdown is still draining; keeping the process and instance locks alive until cleanup and result persistence finish");
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+        }
+    }
+
+    private static void ClosePoller(CancellationTokenSource cancellation)
+    {
+        try
+        {
+            while (!cancellation.IsCancellationRequested)
+            {
+                consoleInput.Wait(cancellation.Token);
+                try
+                {
+                    if (Console.KeyAvailable)
+                    {
+                        var key = Console.ReadKey(true).Key;
+                        if (key == ConsoleKey.Escape)
+                        {
+                            cancellation.Cancel();
+                        }
+                        else if (key == ConsoleKey.Delete)
+                        {
+                            Console.Clear();
+                        }
+                    }
+                }
+                finally
+                {
+                    consoleInput.Release();
+                }
+                Thread.Sleep(100);
+            }
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+        catch (InvalidOperationException) { /* Console input can be detached while shutting down. */ }
     }
 }

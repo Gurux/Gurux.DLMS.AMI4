@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/.vs/
+.git/
+.svn/
+artifacts/
+**/TestResults/
+**/node_modules/
+Gurux.DLMS.AMI.Agent/settings.json
+Gurux.DLMS.AMI.Agent/appsettings.json

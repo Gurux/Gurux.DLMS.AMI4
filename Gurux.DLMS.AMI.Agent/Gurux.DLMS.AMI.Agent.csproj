@@ -1,51 +1,77 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-   <Company>Gurux Ltd</Company>
-    <Authors>Gurux Ltd</Authors>
-    <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
-    <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
-    <Description>Gurux.DLMS.AMI.Agent implements agent support for Gurux DLMS AMI v4.</Description>
-    <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
-    <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance> 
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
-    <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
-    <PackageId>Gurux.DLMS.AMI.Agent</PackageId>
-    <ApplicationIcon>gurux_dlms_ami.ico</ApplicationIcon> 
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
-    <PackageIcon>gurux_dlms_ami.png</PackageIcon>
-  </PropertyGroup>
- <PropertyGroup>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>.</DockerfileContext>
-  </PropertyGroup>
- <ItemGroup>
-   <None Remove="appsettings.json" />
- </ItemGroup>
- <ItemGroup>
-   <Content Include="appsettings.json">
-     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-   </Content>
- </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Gurux.DLMS" Version="9.0.2603.3001" />
-    <PackageReference Include="Gurux.DLMS.AMI.Agent.Worker" Version="4.0.2604.201" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
-  </ItemGroup>
- <ItemGroup>
-    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Company>Gurux Ltd</Company>
+        <Authors>Gurux Ltd</Authors>
+        <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
+        <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
+        <Description>Gurux.DLMS.AMI.Agent implements agent support for Gurux DLMS AMI v4.</Description>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+        <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
+        <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
+        <PackageId>Gurux.DLMS.AMI.Agent</PackageId>
+        <ApplicationIcon>agent.ico</ApplicationIcon>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+        <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+        <PackageIcon>agent.png</PackageIcon>
+    </PropertyGroup>
+    <PropertyGroup>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <DockerfileContext>..</DockerfileContext>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Remove="appsettings.default.json" />
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="appsettings.default.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
+        <PackageReference Include="Gurux.DLMS.AMI.Http" Version="4.1.2611.301" />
+        <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.1.2611.401" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="agent.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
+    <ItemGroup>
+    </ItemGroup>
+    <ItemGroup>
+        <None Update="Install-Agent.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+        <Content Include="$(UpdaterPayloadDirectory)/**/*" Condition="'$(UpdaterPayloadDirectory)' != ''" Link="setup/updater/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+    <Target Name="ValidateUpdaterPayload" BeforeTargets="Publish" Condition="'$(UpdaterPayloadDirectory)' != ''">
+        <Error Condition="!Exists('$(UpdaterPayloadDirectory)/updater-payload.json')" Text="Prepared updater payload manifest is missing." />
+    </Target>
+    <Target Name="ZipPublish" AfterTargets="Publish">
+        <PropertyGroup>
+            <_AgentPackageRuntimeSuffix Condition="'$(RuntimeIdentifier)' != ''">-$(RuntimeIdentifier)</_AgentPackageRuntimeSuffix>
+        </PropertyGroup>
+        <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ProjectDir)bin/$(Configuration)/Gurux.DLMS.AMI.Agent-$(Version)$(_AgentPackageRuntimeSuffix).zip" Overwrite="true" />
+    </Target>
+    <ItemGroup>
+        <Using Include="Gurux.DLMS.AMI.Http" />
+        <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.1.2611.301" />
+        <PackageReference Include="Gurux.Net" Version="8.4.2604.201" />
+        <PackageReference Include="Gurux.Serial" Version="8.4.2503.603" />
+        <PackageReference Include="Gurux.Terminal" Version="8.4.2503.602" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
+        <PackageReference Include="System.Runtime.Caching" Version="10.0.14" />
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Update="Runtime/Properties/Resources.resx" LogicalName="Gurux.DLMS.AMI.Agent.Worker.Properties.Resources.resources" />
+    </ItemGroup>
 </Project>
