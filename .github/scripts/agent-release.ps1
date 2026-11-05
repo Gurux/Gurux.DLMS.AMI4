@@ -156,12 +156,23 @@ function Publish-AgentRelease {
         '--notes-file', (Join-Path $Directory 'notes.md'), '--draft=false', '--latest=false') | Out-Host
 }
 
+function Get-AgentCatalogToken {
+    $catalogToken = ([string]$env:CATALOG_TOKEN).Trim()
+    if ([string]::IsNullOrEmpty($catalogToken)) {
+        throw 'Configure CATALOG_DISPATCH_TOKEN for Gurux.AMI.Catalog Contents: write.'
+    }
+    if ($catalogToken -match '[^\x21-\x7E]') {
+        throw 'CATALOG_DISPATCH_TOKEN must contain a single-line token without internal whitespace, invisible characters, or a Bearer prefix. Update the GitHub Actions secret.'
+    }
+    return $catalogToken
+}
+
 function Send-AgentCatalogNotification {
     param($Manifest)
-    if ([string]::IsNullOrWhiteSpace($env:CATALOG_TOKEN)) { throw 'Configure CATALOG_DISPATCH_TOKEN for Gurux.AMI.Catalog Contents: write.' }
+    $catalogToken = Get-AgentCatalogToken
     $token = $env:GH_TOKEN
     try {
-        $env:GH_TOKEN = $env:CATALOG_TOKEN
+        $env:GH_TOKEN = $catalogToken
         $product = if ($Manifest.product) { $Manifest.product } else { 'Gurux.DLMS.AMI.Agent' }
         $eventType = if ($product -eq 'Gurux.DLMS.AMI') { 'application-release' } else { 'agent-release' }
         $payload = @{ event_type = $eventType; client_payload = @{
@@ -178,7 +189,7 @@ function Initialize-AgentRelease {
     $sha = $env:GITHUB_SHA
     $repository = $env:GITHUB_REPOSITORY
     if ($sha -notmatch '^[0-9a-f]{40}$' -or $repository -cne 'Gurux/Gurux.DLMS.AMI4') { throw 'Unexpected release repository or commit.' }
-    if (-not $env:CATALOG_TOKEN) { throw 'Configure CATALOG_DISPATCH_TOKEN before publishing an agent release.' }
+    $null = Get-AgentCatalogToken
     git fetch --tags origin
     if ($LASTEXITCODE -ne 0) { throw 'Could not refresh release tags.' }
     $prefix = "$ProductId/v"

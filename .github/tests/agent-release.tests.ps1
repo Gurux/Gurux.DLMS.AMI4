@@ -88,6 +88,7 @@ function gh {
     } elseif ($args[0] -eq 'release' -and $args[1] -eq 'edit') {
         $script:remoteRelease.draft = $false
     } elseif ($args[0] -eq 'api' -and $args -contains 'POST') {
+        $script:dispatchToken = $env:GH_TOKEN
         if ($script:failDispatch) { $global:LASTEXITCODE = 1 }
     } else { throw "Unexpected GitHub operation: $args" }
 }
@@ -123,6 +124,20 @@ try {
     $script:failDispatch = $false
     Send-AgentCatalogNotification -Manifest $manifest
     Check $env:GH_TOKEN 'source-repository-token'
+    $env:CATALOG_TOKEN = " `t`r`ncatalog-test-token`r`n "
+    Send-AgentCatalogNotification -Manifest $manifest
+    Check $script:dispatchToken 'catalog-test-token'
+    Check $env:GH_TOKEN 'source-repository-token'
+    foreach ($invalidToken in @("catalog-canary`ninvalid", 'Bearer catalog-canary', ('catalog-canary' + [char]1 + 'invalid'), ('catalog-canary' + [char]0xFEFF))) {
+        $env:CATALOG_TOKEN = $invalidToken
+        $before = $script:calls.Count
+        $failure = $null
+        try { Send-AgentCatalogNotification -Manifest $manifest } catch { $failure = $_ }
+        if ($null -eq $failure -or $script:calls.Count -ne $before) { throw 'Malformed catalog token reached GitHub CLI.' }
+        if ($failure.Exception.Message.Contains('catalog-canary')) { throw 'Invalid token validation exposed credentials.' }
+        Check $env:GH_TOKEN 'source-repository-token'
+    }
+    $env:CATALOG_TOKEN = 'catalog-test-token'
     $script:remoteRelease.assets = @()
     Reject { Publish-AgentRelease -Manifest $manifest -Directory $testDirectory }
     $manifest | Add-Member NoteProperty releaseManifest 'agent.zip.manifest.json'
