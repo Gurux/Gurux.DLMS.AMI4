@@ -93,4 +93,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         'Latest' { Publish-AgentDockerLatest -Version $Version -Commit $Commit -Image $Image }
         default { throw 'Choose Inspect or Latest.' }
     }
+    # A missing manifest is a handled result. Do not leak Docker's nonzero
+    # LASTEXITCODE into GitHub's pwsh wrapper after this script succeeds.
+    exit 0
 }

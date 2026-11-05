@@ -83,3 +83,50 @@ try {
     Check $script:images['guruxorg/dlms-ami:latest']['org.opencontainers.image.version'] $version
     Write-Host 'Docker registry failure, version ownership, initial latest and old-rerun checks passed.'
 } finally { Remove-Item Function:\docker }
+
+# GitHub's pwsh wrapper exits with LASTEXITCODE after the script returns.
+# Run the actual entry point in a child process so a handled missing manifest
+# cannot leak Docker's exit code into the otherwise successful workflow step.
+$processTestRoot = Join-Path ([IO.Path]::GetTempPath()) ('gurux-docker-exit-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $processTestRoot | Out-Null
+$wrapperPath = Join-Path $processTestRoot 'github-wrapper.ps1'
+$wrapper = @'
+param([string]$ScriptPath, [string]$OutputPath, [string]$Image, [switch]$RegistryFailure)
+$ErrorActionPreference = 'Stop'
+$env:GITHUB_OUTPUT = $OutputPath
+function docker {
+    $global:LASTEXITCODE = 1
+    if ($RegistryFailure) {
+        return 'unauthorized: authentication required'
+    }
+    return "no such manifest: docker.io/$($args[2])"
+}
+& $ScriptPath -Action Inspect -Image $Image -Version '4.1.2611.301' -Commit '1234567890123456789012345678901234567890'
+if (Test-Path variable:LASTEXITCODE) {
+    exit $LASTEXITCODE
+}
+'@
+[IO.File]::WriteAllText($wrapperPath, ($wrapper -replace '\r?\n', "`r`n"), [Text.UTF8Encoding]::new($false))
+$pwshPath = (Get-Process -Id $PID).Path
+$scriptPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../scripts/agent-docker.ps1'))
+try {
+    foreach ($image in @('guruxorg/dlms-ami-agent', 'guruxorg/dlms-ami')) {
+        $outputPath = Join-Path $processTestRoot (($image.Split('/')[-1]) + '.output')
+        $childOutput = @(& $pwshPath -NoProfile -File $wrapperPath -ScriptPath $scriptPath -OutputPath $outputPath -Image $image 2>&1)
+        Check $LASTEXITCODE 0
+        Check ([IO.File]::ReadAllText($outputPath).Trim()) 'exists=false'
+    }
+    $outputPath = Join-Path $processTestRoot 'unauthorized.output'
+    $childOutput = @(& $pwshPath -NoProfile -File $wrapperPath -ScriptPath $scriptPath -OutputPath $outputPath -Image 'guruxorg/dlms-ami-agent' -RegistryFailure 2>&1)
+    if ($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath $outputPath)) {
+        throw 'Registry authentication failures must fail without reporting a missing image.'
+    }
+    Write-Host 'GitHub pwsh exit-code checks passed for both image repositories and authentication failures.'
+}
+finally {
+    Remove-Item -LiteralPath $wrapperPath
+    foreach ($file in Get-ChildItem -LiteralPath $processTestRoot -File -Filter '*.output') {
+        Remove-Item -LiteralPath $file.FullName
+    }
+    Remove-Item -LiteralPath $processTestRoot
+}

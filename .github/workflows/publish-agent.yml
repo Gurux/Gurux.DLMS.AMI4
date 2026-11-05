@@ -141,7 +141,7 @@ jobs:
         run: .github/scripts/agent-release.ps1 -Action Publish
       - name: Create version tag
         run: .github/scripts/publish-source-release.ps1 -PackageId Gurux.DLMS.AMI.Agent -Version ${{ steps.release.outputs.version }} -Commit $env:GITHUB_SHA
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: agent-release-manifest
           path: artifacts/agent/release.json
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: agent-release-manifest
           path: artifacts/agent
