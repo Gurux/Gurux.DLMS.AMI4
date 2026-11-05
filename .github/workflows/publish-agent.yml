@@ -1,0 +1,231 @@
+name: Publish AMI agent release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Gurux.DLMS.AMI.Agent/**'
+      - 'Gurux.DLMS.AMI.Shared/**'
+      - 'Gurux.DLMS.AMI.Http/**'
+      - 'Tests/AgentProfileHistory/**'
+      - 'Tests/AgentMaintenance/**'
+      - 'Tests/AgentApplication/**'
+      - 'Tests/AgentWorkerReliability/**'
+      - '.github/scripts/prepare-agent-updater.ps1'
+      - '.github/tests/agent-install.tests.ps1'
+      - '.github/tests/agent-package.tests.ps1'
+      - '.github/tests/agent-updater-payload.tests.ps1'
+      - '.github/scripts/agent-release.ps1'
+      - '.github/scripts/sign-agent-package.ps1'
+      - '.github/tests/agent-release.tests.ps1'
+      - '.github/tests/agent-signing.tests.ps1'
+      - '.github/scripts/agent-docker.ps1'
+      - '.github/tests/agent-docker.tests.ps1'
+      - '.github/workflows/publish-agent.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional four-part version; blank allocates from agent release tags'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+# One release per push, even when that push contains several commits.
+concurrency:
+  group: ami-agent-releases
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  installer-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test offline installer and payload preparation on Linux
+        shell: pwsh
+        run: |
+          & .github/tests/agent-install.tests.ps1
+          & .github/tests/agent-updater-payload.tests.ps1
+          & .github/tests/agent-package.tests.ps1
+
+  publish:
+    needs: installer-linux
+    if: github.repository == 'Gurux/Gurux.DLMS.AMI4' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check source release automation
+        shell: pwsh
+        run: .github/tests/source-release.tests.ps1
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test release automation and maintenance behavior
+        run: |
+          & .github/tests/agent-release.tests.ps1
+          & .github/tests/agent-package.tests.ps1
+          & .github/tests/agent-signing.tests.ps1
+          & .github/tests/agent-install.tests.ps1
+          & .github/tests/agent-updater-payload.tests.ps1
+          & .github/tests/agent-docker.tests.ps1
+          dotnet run --project Tests/AgentMaintenance/AgentMaintenance.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent maintenance checks failed.' }
+          dotnet run --project Tests/AgentApplication/AgentApplication.Checks.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent application checks failed.' }
+          dotnet run --project Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/KeyManagement/Agent/KeyManagement.Agent.Checks.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent device key checks failed.' }
+          dotnet run --project Tests/AgentWorkerReliability/AgentWorkerReliability.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent reliability checks failed.' }
+          dotnet run --project Tests/AgentProfileHistory/AgentProfileHistory.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent profile history checks failed.' }
+      - name: Reserve version and check for an already published release
+        id: release
+        env:
+          CATALOG_TOKEN: ${{ secrets.CATALOG_DISPATCH_TOKEN }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: .github/scripts/agent-release.ps1 -Action Prepare -RequestedVersion $env:REQUESTED_VERSION
+      - name: Publish portable agent ZIP and checksum
+        if: steps.release.outputs.published != 'true'
+        env:
+          AGENT_RELEASE_SIGNING_KEY_PEM: ${{ secrets.AGENT_RELEASE_SIGNING_KEY_PEM }}
+          UPDATER_TOOL_VERSION: ${{ vars.GURUX_UPDATER_TOOL_VERSION || '1.0.2611.303' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = Get-Content artifacts/agent/release.json -Raw | ConvertFrom-Json
+          $publishDir = Join-Path $env:RUNNER_TEMP "ami-agent-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $updaterPayload = Join-Path $env:RUNNER_TEMP "ami-updater-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          & .github/scripts/prepare-agent-updater.ps1 -OutputDirectory $updaterPayload -Version $env:UPDATER_TOOL_VERSION
+          dotnet publish Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj --configuration Release --output $publishDir `
+            --self-contained false '-p:UseAppHost=false' '-p:GeneratePackageOnBuild=false' `
+            "-p:Version=$($release.version)" '-p:ContinuousIntegrationBuild=true' `
+            "-p:UpdaterPayloadDirectory=$updaterPayload" `
+            '-p:IncludeSourceRevisionInInformationalVersion=false'
+          if ($LASTEXITCODE -ne 0) { throw 'Agent publish failed.' }
+          $archive = "Gurux.DLMS.AMI.Agent/bin/Release/$($release.package)"
+          if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw 'Agent ZIP was not generated.' }
+          $productVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $publishDir 'Gurux.DLMS.AMI.Agent.dll')).ProductVersion
+          if ($productVersion -cne $release.version) { throw 'Agent runtime version must match the catalog version exactly.' }
+          $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $archive).Path)
+          try {
+            foreach ($name in @('Gurux.DLMS.AMI.Agent.dll', 'Gurux.DLMS.AMI.Shared.dll',
+                'Gurux.DLMS.AMI.Http.dll', 'Gurux.DLMS.AMI.Agent.deps.json', 'Gurux.DLMS.AMI.Agent.runtimeconfig.json', 'appsettings.default.json', 'Install-Agent.ps1',
+                'setup/updater/Gurux.Updater.Tool.dll', 'setup/updater/Gurux.Updater.Tool.deps.json',
+                'setup/updater/Gurux.Updater.Tool.runtimeconfig.json', 'setup/updater/updater-payload.json')) {
+              if (-not $zip.GetEntry($name)) { throw "Agent ZIP is missing $name" }
+            }
+            if ($zip.GetEntry('Gurux.DLMS.AMI.Agent.Worker.dll') -or $zip.GetEntry('Gurux.DLMS.AMI.Agent.Shared.dll')) { throw 'Agent ZIP contains obsolete split application DLLs.' }
+            if ($zip.GetEntry('settings.json') -or $zip.GetEntry('appsettings.json')) { throw 'Agent deployment/registration settings must not be shipped.' }
+          } finally { $zip.Dispose() }
+          Copy-Item -LiteralPath $archive -Destination (Join-Path artifacts/agent $release.package)
+          $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  $($release.package)" | Set-Content -LiteralPath (Join-Path artifacts/agent $release.checksum) -Encoding ascii
+          & .github/scripts/sign-agent-package.ps1 -Package (Join-Path artifacts/agent $release.package) -Version $release.version
+      - name: Create or resume agent GitHub Release
+        run: .github/scripts/agent-release.ps1 -Action Publish
+      - name: Create version tag
+        run: .github/scripts/publish-source-release.ps1 -PackageId Gurux.DLMS.AMI.Agent -Version ${{ steps.release.outputs.version }} -Commit $env:GITHUB_SHA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-release-manifest
+          path: artifacts/agent/release.json
+          if-no-files-found: error
+          overwrite: true
+
+  docker:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AGENT_VERSION: ${{ needs.publish.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check Docker Hub credentials
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo 'Configure DOCKERHUB_TOKEN with push access to guruxorg/dlms-ami-agent.' >&2
+            exit 1
+          fi
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || 'guruxorg' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+      - name: Reuse an already published version image
+        id: image
+        shell: pwsh
+        run: .github/scripts/agent-docker.ps1 -Action Inspect -Version $env:AGENT_VERSION -Commit $env:GITHUB_SHA
+      - name: Download and verify the published agent package
+        if: steps.image.outputs.exists != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/docker
+          gh release download "Gurux.DLMS.AMI.Agent/v$AGENT_VERSION" --repo "$GITHUB_REPOSITORY" \
+            --pattern "Gurux.DLMS.AMI.Agent-$AGENT_VERSION.zip*" --dir artifacts/docker
+          cd artifacts/docker
+          sha256sum --check "Gurux.DLMS.AMI.Agent-$AGENT_VERSION.zip.sha256"
+          unzip -q "Gurux.DLMS.AMI.Agent-$AGENT_VERSION.zip" -d app
+      - name: Build agent image for testing
+        if: steps.image.outputs.exists != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: artifacts/docker
+          file: Gurux.DLMS.AMI.Agent/Dockerfile.release
+          platforms: linux/amd64
+          load: true
+          tags: guruxorg/dlms-ami-agent:${{ needs.publish.outputs.version }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.publish.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/Gurux/Gurux.DLMS.AMI4
+            org.opencontainers.image.title=Gurux DLMS AMI Agent
+      - name: Test container permissions and runtime
+        if: steps.image.outputs.exists != 'true'
+        shell: bash
+        run: |
+          docker run --rm --entrypoint sh "guruxorg/dlms-ami-agent:$AGENT_VERSION" -c \
+            'test "$(id -u)" != 0 && test -w /app && test -r /app/Gurux.DLMS.AMI.Agent.dll && dotnet --list-runtimes | grep -q "Microsoft.NETCore.App 10\."'
+      - name: Push the tested version image
+        if: steps.image.outputs.exists != 'true'
+        shell: bash
+        run: docker push "guruxorg/dlms-ami-agent:$AGENT_VERSION"
+      - name: Update latest without rolling back a newer version
+        shell: pwsh
+        run: .github/scripts/agent-docker.ps1 -Action Latest -Version $env:AGENT_VERSION -Commit $env:GITHUB_SHA
+
+  catalog:
+    needs: [publish, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-release-manifest
+          path: artifacts/agent
+      - name: Refresh Gurux AMI Catalog
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CATALOG_TOKEN: ${{ secrets.CATALOG_DISPATCH_TOKEN }}
+        run: .github/scripts/agent-release.ps1 -Action Notify
