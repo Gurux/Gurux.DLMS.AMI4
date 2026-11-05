@@ -71,7 +71,9 @@ try {
     git config core.autocrlf false
     git remote add origin (Join-Path $testRoot 'remote.git')
     [IO.File]::WriteAllText((Join-Path (Get-Location) '.gitattributes'), "*.cs export-subst`r`n")
-    [IO.File]::WriteAllText((Join-Path (Get-Location) 'sample.cs'), '// Commit: $Format:%H$' + "`r`n" + '// Date: $Format:%cI$' + "`r`n")
+    $commitPlaceholder = '$' + 'Format:%H$'
+    $datePlaceholder = '$' + 'Format:%cI$'
+    [IO.File]::WriteAllText((Join-Path (Get-Location) 'sample.cs'), '// Commit: ' + $commitPlaceholder + "`r`n" + '// Date: ' + $datePlaceholder + "`r`n")
     git add .
     git commit -m 'Local archive test' | Out-Null
     if ($LASTEXITCODE -ne 0) {
@@ -95,7 +97,7 @@ try {
         $zip.Dispose()
     }
     Assert-SourceTest ($text.Contains($commit) -and $text.Contains($date) -and -not $text.Contains('$Format:')) 'Archive placeholders were not substituted.'
-    Assert-SourceTest ((Get-Content sample.cs -Raw).Contains('$Format:%H$')) 'Archive generation changed repository placeholders.'
+    Assert-SourceTest ((Get-Content sample.cs -Raw).Contains($commitPlaceholder)) 'Archive generation changed repository placeholders.'
     [IO.File]::WriteAllText((Join-Path $testRoot 'uploaded.zip'), 'different existing asset')
     $rejected = $false
     try {
