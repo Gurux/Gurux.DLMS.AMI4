@@ -3,3 +3,9 @@
 
 #Ignore source code from the release.
 Gurux.DLMS.AMI.Agent export-ignore
+*.ps1 export-subst
+*.cs export-subst
+*.razor export-subst
+*.css export-subst
+*.js export-subst
+*.html export-subst

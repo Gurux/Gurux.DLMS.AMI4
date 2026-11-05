@@ -1,0 +1,11 @@
+[*.{cs,razor}]
+csharp_prefer_braces = true:warning
+dotnet_diagnostic.IDE0011.severity = warning
+csharp_new_line_before_open_brace = all
+csharp_preserve_single_line_blocks = true
+csharp_preserve_single_line_statements = false
+
+[*.cs]
+# Public AMI namespaces follow API responsibilities, including legacy and
+# ASP.NET extension namespaces, rather than mirroring physical folders.
+dotnet_style_namespace_match_folder = false
