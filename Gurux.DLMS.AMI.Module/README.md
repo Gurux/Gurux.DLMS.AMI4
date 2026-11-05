@@ -124,6 +124,20 @@ Here `RefreshAsync` is the module's handler with signature
 Policies must exist in the host. A builder endpoint without an explicit policy
 still requires an authenticated user and passes host module access checks.
 
+A module can explicitly request public access using
+`builder.MapPost("submissions", SubmitAsync).AllowAnonymous()`. The host operator
+must additionally list the exact HTTP method and absolute route in
+`Modules:AnonymousEndpoints`, for example
+`POST /api/extensions/Gurux.DLMS.AMI.DeviceProfiles/submissions`.
+Without that opt-in, authentication and module access checks still apply.
+Anonymous declarations cannot require policies. Only builder endpoints support
+this opt-in; module-owned framework endpoints are unchanged. The runtime rechecks
+the leased endpoint declaration and the current host allowlist on dispatch, so
+retained routing metadata cannot bypass revocation. Restart the module after
+enabling a route to refresh authorization metadata. Public handlers must implement
+their own bounded input, rate limits and private storage; do not expose review,
+download or administrative operations anonymously.
+
 The handler receives `HttpContext` and its scoped `AmiModuleContext` through
 `AmiModuleRequest`. Use `request.Module.Services` for module services and
 `request.Module.HostServices` for host services. The supplied token combines

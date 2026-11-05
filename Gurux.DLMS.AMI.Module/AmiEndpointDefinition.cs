@@ -47,12 +47,29 @@ public sealed class AmiEndpointDefinition(string pattern, string[] methods, Func
     public Func<AmiModuleRequest, CancellationToken, Task> Handler { get; } = handler;
     /// <summary>Authorization policies required by the endpoint; initially empty.</summary>
     public List<string> Policies { get; } = [];
+    /// <summary>Requests anonymous access, subject to an exact host configuration opt-in.</summary>
+    public bool IsAnonymous { get; private set; }
+
+    /// <summary>Declares a public endpoint. The host must separately allow its method and route.</summary>
+    public AmiEndpointDefinition AllowAnonymous()
+    {
+        if (Policies.Count != 0)
+        {
+            throw new InvalidOperationException("An anonymous endpoint cannot require authorization policies.");
+        }
+        IsAnonymous = true;
+        return this;
+    }
     /// <summary>Adds a required access policy and returns this endpoint.</summary>
     /// <param name="policy">Access policy required to use the endpoint or view.</param>
     /// <returns>The endpoint definition for further configuration.</returns>
     public AmiEndpointDefinition RequirePolicy(string policy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(policy);
+        if (IsAnonymous)
+        {
+            throw new InvalidOperationException("An anonymous endpoint cannot require authorization policies.");
+        }
         Policies.Add(policy);
         return this;
     }
