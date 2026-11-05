@@ -10,6 +10,7 @@ on:
       - 'Tests/AgentProfileHistory/**'
       - 'Tests/AgentMaintenance/**'
       - 'Tests/AgentApplication/**'
+      - 'Tests/AgentDeviceKeys/**'
       - 'Tests/AgentWorkerReliability/**'
       - '.github/scripts/prepare-agent-updater.ps1'
       - '.github/tests/agent-install.tests.ps1'
@@ -88,7 +89,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Agent maintenance checks failed.' }
           dotnet run --project Tests/AgentApplication/AgentApplication.Checks.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent application checks failed.' }
-          dotnet run --project Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/KeyManagement/Agent/KeyManagement.Agent.Checks.csproj --configuration Release
+          dotnet run --project Tests/AgentDeviceKeys/AgentDeviceKeys.Checks.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent device key checks failed.' }
           dotnet run --project Tests/AgentWorkerReliability/AgentWorkerReliability.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent reliability checks failed.' }
