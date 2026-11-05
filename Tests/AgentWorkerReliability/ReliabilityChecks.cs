@@ -34,6 +34,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
@@ -354,7 +355,14 @@ internal static class ReliabilityChecks
 
     private static async Task IdentificationCallbackShutdown()
     {
-        var entered = Signal(); var release = Signal();
+        var entered = Signal(); var release = Signal(); var receiverReady = Signal();
+        using var logs = new CallbackLogger(id =>
+        {
+            if (id.Name == "GatewayReceiverReady")
+            {
+                receiverReady.TrySetResult();
+            }
+        });
         var methodId = Guid.NewGuid(); var scriptId = Guid.NewGuid();
         var code = """
             using System;
@@ -395,19 +403,21 @@ internal static class ReliabilityChecks
             if (request.RequestUri.AbsolutePath == "/api/Value/Add") { entered.TrySetResult(); await release.Task; return Json(new { Ids = new[] { Guid.NewGuid() } }); }
             return Json(new { });
         }), configure: options => options.GatewaySettings = new()
-        { Enabled = true, MediaSettings = media.Settings, IdentifyWaitTime = 3600, ScriptMethod = methodId, TraceLevel = TraceLevel.Verbose });
+        { Enabled = true, MediaSettings = media.Settings, IdentifyWaitTime = 3600, ScriptMethod = methodId, TraceLevel = TraceLevel.Verbose }, logs: logs);
         var service = host.Provider.GetRequiredService<GXGatewayService>();
         await service.StartAsync(CancellationToken.None);
         using var client = new TcpClient(); await client.ConnectAsync(IPAddress.Loopback, port);
+        await receiverReady.Task.WaitAsync(Deadline);
         await client.GetStream().WriteAsync(new byte[] { 1 });
         await entered.Task.WaitAsync(Deadline);
         release.TrySetResult();
         var reply = new byte[1];
         Assert(await client.GetStream().ReadAsync(reply).AsTask().WaitAsync(Deadline) == 1 && reply[0] == 0x42, "Async identification Send deadlocked verbose tracing.");
         await service.StopAsync(CancellationToken.None).WaitAsync(Deadline);
-        entered = Signal(); release = Signal();
+        entered = Signal(); release = Signal(); receiverReady = Signal();
         await service.StartAsync(CancellationToken.None);
         using var blockedClient = new TcpClient(); await blockedClient.ConnectAsync(IPAddress.Loopback, port);
+        await receiverReady.Task.WaitAsync(Deadline);
         await blockedClient.GetStream().WriteAsync(new byte[] { 1 });
         await entered.Task.WaitAsync(Deadline);
         using var caller = new CancellationTokenSource();
@@ -432,17 +442,36 @@ internal static class ReliabilityChecks
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) => send(request, token);
     }
+    private sealed class CallbackLogger(Action<EventId> callback) : ILoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName) => new Logger(callback);
+        public void Dispose() { }
+        private sealed class Logger(Action<EventId> callback) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+            public bool IsEnabled(LogLevel level) => true;
+            public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> formatter)
+                => callback(id);
+        }
+    }
     private sealed class Host : IAsyncDisposable
     {
         internal readonly HttpClient Http;
         internal readonly GXAgentWorker Worker;
         internal readonly ServiceProvider Provider;
         private readonly GXAgentHostNotifications notifications = new();
-        internal Host(HttpMessageHandler? handler = null, string address = "https://agent.test/", string token = "test-token", Action<GXAgentOptions>? configure = null)
+        internal Host(HttpMessageHandler? handler = null, string address = "https://agent.test/", string token = "test-token", Action<GXAgentOptions>? configure = null, ILoggerProvider? logs = null)
         {
             Http = new HttpClient(handler ?? new Handler((_, _) => Task.FromResult(Json(new { }))));
             Worker = new GXAgentWorker(Http);
-            var services = new ServiceCollection().AddLogging(); Worker.ConfigureServices(services);
+            var services = new ServiceCollection().AddLogging(builder =>
+            {
+                if (logs != null)
+                {
+                    builder.SetMinimumLevel(LogLevel.Debug).AddProvider(logs);
+                }
+            });
+            Worker.ConfigureServices(services);
             Provider = services.BuildServiceProvider();
             var options = new GXAgentOptions { Id = Guid.NewGuid(), Address = address, Token = token };
             configure?.Invoke(options); Worker.Init(Provider, options, notifications);
