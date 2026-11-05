@@ -9,3 +9,8 @@ Gurux.DLMS.AMI.Agent export-ignore
 *.css export-subst
 *.js export-subst
 *.html export-subst
+*.sh export-subst
+*.sql export-subst
+*.cjs export-subst
+Dockerfile export-subst
+Dockerfile.release export-subst
