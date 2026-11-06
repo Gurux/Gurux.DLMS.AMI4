@@ -12,7 +12,6 @@ on:
       - 'Tests/AgentApplication/**'
       - 'Tests/AgentDeviceKeys/**'
       - 'Tests/AgentWorkerReliability/**'
-      - 'Tests/AgentScriptExecution/**'
       - '.github/scripts/prepare-agent-updater.ps1'
       - '.github/tests/agent-install.tests.ps1'
       - '.github/tests/agent-package.tests.ps1'
@@ -101,7 +100,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Agent profile history checks failed.' }
           dotnet run --project Gurux.DLMS.AMI.Agent/Tests/AgentRawDelivery/AgentRawDelivery.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent raw delivery checks failed.' }
-          dotnet run --project Tests/AgentScriptExecution/AgentScriptExecution.csproj --configuration Release
+          dotnet run --project Gurux.DLMS.AMI.Agent/Tests/AgentScriptExecution/AgentScriptExecution.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent script execution checks failed.' }
       - name: Reserve version and check for an already published release
         id: release
