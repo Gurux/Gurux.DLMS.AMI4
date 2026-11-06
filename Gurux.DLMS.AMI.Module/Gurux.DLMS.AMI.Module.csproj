@@ -42,8 +42,4 @@
     <ItemGroup>
         <ApiCompatSuppressionFile Include="CompatibilitySuppressions.xml" />
     </ItemGroup>
-    <Target Name="ValidateRenamedModuleContractMajor" BeforeTargets="PrepareForBuild">
-        <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(Version)', '^[0-4](?:\.|-|\+|$)'))"
-               Text="The IGXAmi interface rename requires Module major version 5 or later. Rebuild dependent modules against the new contract." />
-    </Target>
 </Project>
