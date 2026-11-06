@@ -8,10 +8,7 @@ on:
       - 'Gurux.DLMS.AMI.Http/**'
       - 'Gurux.DLMS.AMI.Services/**'
       - 'Gurux.DLMS.AMI.Module/**'
-      - 'Gurux.DLMS.AMI.Agent.Shared/**'
       - 'Gurux.DLMS.AMI.Script/**'
-      - 'Gurux.DLMS.AMI.Agent.Worker/**'
-      - 'Gurux.DLMS.AMI.Agent/**'
   workflow_dispatch:
     inputs:
       project:
@@ -23,10 +20,7 @@ on:
           - Gurux.DLMS.AMI.Http
           - Gurux.DLMS.AMI.Services
           - Gurux.DLMS.AMI.Module
-          - Gurux.DLMS.AMI.Agent.Shared
           - Gurux.DLMS.AMI.Script
-          - Gurux.DLMS.AMI.Agent.Worker
-          - Gurux.DLMS.AMI.Agent
       version:
         description: 'Optional version override, e.g. 4.1.2611.101; blank = automatic'
         required: false
@@ -69,10 +63,7 @@ jobs:
             'Gurux.DLMS.AMI.Http',
             'Gurux.DLMS.AMI.Services',
             'Gurux.DLMS.AMI.Module',
-            'Gurux.DLMS.AMI.Agent.Shared',
-            'Gurux.DLMS.AMI.Script',
-            'Gurux.DLMS.AMI.Agent.Worker',
-            'Gurux.DLMS.AMI.Agent'
+            'Gurux.DLMS.AMI.Script'
           )
           if ($env:EVENT_NAME -eq 'workflow_dispatch') {
             if ($projects -notcontains $env:SELECTED_PROJECT) {
@@ -118,6 +109,9 @@ jobs:
       MINOR_VERSION: '1'
     steps:
       - uses: actions/checkout@v5
+      - name: Check source release automation
+        shell: pwsh
+        run: .github/tests/source-release.tests.ps1
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
@@ -142,7 +136,13 @@ jobs:
           $version = $env:REQUESTED_VERSION.Trim()
           if ([string]::IsNullOrEmpty($version)) {
             $now = [DateTime]::UtcNow
-            $prefix = "$env:MAJOR_VERSION.$env:MINOR_VERSION.$($now.ToString('yyMM'))"
+            $major = $env:MAJOR_VERSION
+            $minor = $env:MINOR_VERSION
+            if ($env:PROJECT_ID -eq 'Gurux.DLMS.AMI.Module') {
+              $major = '5'
+              $minor = '0'
+            }
+            $prefix = "$major.$minor.$($now.ToString('yyMM'))"
             $revision = $now.Day * 100 + 1
             $url = "https://api.nuget.org/v3-flatcontainer/$($env:PROJECT_ID.ToLowerInvariant())/index.json"
             $versions = @()
@@ -220,37 +220,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "Published $env:PROJECT_ID version $env:BUILD_BUILDNUMBER" >> $env:GITHUB_STEP_SUMMARY
 
-      # Optional fast path. Daily polling in the target remains the fallback.
-      - name: Notify AMI modules of published dependency
-        if: success() && (env.PROJECT_ID == 'Gurux.DLMS.AMI.Shared' || env.PROJECT_ID == 'Gurux.DLMS.AMI.Module')
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.AMI_MODULES_DISPATCH_TOKEN }}
-          AMI_MODULES_REPOSITORY: ${{ vars.AMI_MODULES_REPOSITORY || 'Gurux/Gurux.DLMS.AMI.Modules' }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
-            Write-Warning 'AMI_MODULES_DISPATCH_TOKEN is not configured; daily dependency polling remains enabled.'
-            exit 0
-          }
-          $payload = @{
-            event_type = 'ami-dependency-published'
-            client_payload = @{
-              package = $env:PROJECT_ID
-              version = $env:BUILD_BUILDNUMBER
-            }
-          } | ConvertTo-Json -Depth 3 -Compress
-          $payload | gh api --method POST "repos/$env:AMI_MODULES_REPOSITORY/dispatches" `
-            --header 'Accept: application/vnd.github+json' --input -
-          if ($LASTEXITCODE -ne 0) { throw 'Dependency dispatch failed; NuGet publication already succeeded.' }
-
       - name: Create version tag
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $tag = "$env:PROJECT_ID/v$env:BUILD_BUILDNUMBER"
-
-          git tag $tag $env:GITHUB_SHA
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          git push origin "refs/tags/$tag"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/publish-source-release.ps1 -PackageId $env:PROJECT_ID -Version $env:BUILD_BUILDNUMBER -Commit $env:GITHUB_SHA
