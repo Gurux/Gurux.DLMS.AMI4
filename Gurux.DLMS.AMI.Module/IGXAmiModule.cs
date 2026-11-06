@@ -53,10 +53,6 @@ public interface IGXAmiModule
     {
         get;
     }
-    /// <summary>Loads the module help on demand.</summary>
-    /// <param name="cancellationToken">Token used to cancel loading.</param>
-    /// <returns>The help content, or null when the module has no help.</returns>
-    Task<AmiModuleHelp?> GetHelpAsync(CancellationToken cancellationToken);
 
     /// <summary>Module icon, if available.</summary>
     string? Icon
