@@ -35,7 +35,7 @@ namespace Gurux.DLMS.AMI.GeneratedScript
             await Task.Delay(Timeout.Infinite, ami.CancellationToken);
             return 1;
         }
-        public async Task<int> Cancel(ManualResetEventSlim entered, ManualResetEventSlim stopped)
+        public async Task<int> Cancel(ManualResetEventSlim entered, ManualResetEventSlim stopped, ManualResetEventSlim completionRelease)
         {
             entered.Set();
             try
@@ -45,6 +45,7 @@ namespace Gurux.DLMS.AMI.GeneratedScript
             finally
             {
                 stopped.Set();
+                completionRelease.Wait();
             }
             return 1;
         }
@@ -91,7 +92,7 @@ var blockingArgs = Args("Blocking", entered, release);
 var unloaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 blockingArgs.AssemblyLoadContext!.Unloading += _ => unloaded.TrySetResult();
 var blocking = scripts.RunPreparedAsync(new GXAmiScript(services), blockingArgs);
-if (!entered.Wait(TimeSpan.FromSeconds(5)))
+if (!await WaitSignalAsync(entered))
 {
     throw new Exception("Blocking script did not start.");
 }
@@ -120,14 +121,16 @@ catch (InvalidOperationException)
 scripts.ReleaseRunArgs(blockedArgs);
 release.Set();
 await unloaded.Task.WaitAsync(TimeSpan.FromSeconds(5));
+await WaitUntilAsync(() => scripts.CanExecute, "Script cleanup did not release execution ownership.");
 Console.WriteLine("PASS synchronous entry deadline, fail-closed admission and deferred unload");
 
 using var cancel = new CancellationTokenSource();
 using var cancelEntered = new ManualResetEventSlim();
 using var cancelStopped = new ManualResetEventSlim();
-var cancelArgs = Args("Cancel", cancelEntered, cancelStopped);
+using var cancelCompletionRelease = new ManualResetEventSlim();
+var cancelArgs = Args("Cancel", cancelEntered, cancelStopped, cancelCompletionRelease);
 var cancelled = scripts.RunPreparedAsync(new GXAmiScript(services), cancelArgs, cancel.Token);
-if (!cancelEntered.Wait(TimeSpan.FromSeconds(5)))
+if (!await WaitSignalAsync(cancelEntered))
 {
     throw new Exception("Cooperative script did not start.");
 }
@@ -141,10 +144,19 @@ catch (OperationCanceledException)
 {
 }
 scripts.ReleaseRunArgs(cancelArgs);
-if (!cancelStopped.Wait(TimeSpan.FromSeconds(5)))
+try
 {
-    throw new Exception("Script did not receive cooperative cancellation.");
+    await WaitUntilAsync(() => cancelStopped.IsSet, "Script did not receive cooperative cancellation.");
+    if (scripts.CanExecute)
+    {
+        throw new Exception("Cancellation released admission before the script finally block finished.");
+    }
 }
+finally
+{
+    cancelCompletionRelease.Set();
+}
+await WaitUntilAsync(() => scripts.CanExecute, "Cancelled script did not release execution ownership.");
 Console.WriteLine("PASS script cancellation reaches cooperative runner");
 
 try
@@ -165,7 +177,7 @@ using var callbackRelease = new ManualResetEventSlim();
 using var callbackCancellation = new CancellationTokenSource();
 var callbackArgs = Args("Callback", callbackStarted, callbackEntered, callbackRelease);
 var callbackWork = scripts.RunPreparedAsync(new GXAmiScript(services), callbackArgs, callbackCancellation.Token);
-if (!callbackStarted.Wait(TimeSpan.FromSeconds(5)))
+if (!await WaitSignalAsync(callbackStarted))
 {
     throw new Exception("Callback script did not start.");
 }
@@ -178,7 +190,7 @@ try
 catch (OperationCanceledException)
 {
 }
-if (!callbackEntered.Wait(TimeSpan.FromSeconds(5)) || scripts.CanExecute)
+if (!await WaitSignalAsync(callbackEntered) || scripts.CanExecute)
 {
     callbackRelease.Set();
     throw new Exception("Blocked cancellation callback did not retain execution ownership.");
@@ -203,7 +215,7 @@ cleanupArgs.AssemblyLoadContext!.Unloading += _ =>
     unloadRelease.Wait();
 };
 var releaseCall = Task.Run(() => scripts.ReleaseRunArgs(cleanupArgs));
-if (!unloadEntered.Wait(TimeSpan.FromSeconds(5)))
+if (!await WaitSignalAsync(unloadEntered))
 {
     throw new Exception("Cleanup callback did not start.");
 }
@@ -253,6 +265,34 @@ await using (var raw = new Gurux.DLMS.AMI.Agent.Worker.Notifier.GXRawNotificatio
 }
 Console.WriteLine("PASS raw claims pause and resume with script admission");
 
+static async Task<bool> WaitSignalAsync(ManualResetEventSlim signal)
+{
+    try
+    {
+        await WaitUntilAsync(() => signal.IsSet, "Script test signal was not set.");
+        return true;
+    }
+    catch (TimeoutException)
+    {
+        return false;
+    }
+}
+
+static async Task WaitUntilAsync(Func<bool> ready, string message)
+{
+    using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+    try
+    {
+        while (!ready())
+        {
+            await Task.Delay(10, deadline.Token);
+        }
+    }
+    catch (OperationCanceledException) when (deadline.IsCancellationRequested)
+    {
+        throw new TimeoutException(message);
+    }
+}
 sealed class ProbeHandler : HttpMessageHandler
 {
     internal int Calls;
