@@ -59,7 +59,7 @@ internal sealed class GXAgentUpdaterOptions
         ApplicationPath = config["Updater:ApplicationPath"],
         HealthUrl = config["Updater:HealthUrl"],
         VersionUrl = config["Updater:VersionUrl"],
-        PublicKeyPem = config["Updater:PublicKeyPem"] ?? "",
+        PublicKeyPem = ReadPublicKey(config),
         DownloadTimeout = TimeSpan.Parse(config["Updater:DownloadTimeout"] ?? "00:10:00", System.Globalization.CultureInfo.InvariantCulture),
         MaxPackageBytes = long.Parse(config["Updater:MaxPackageBytes"] ?? "536870912", System.Globalization.CultureInfo.InvariantCulture),
         MaxExpandedBytes = long.Parse(config["Updater:MaxExpandedBytes"] ?? "2147483648", System.Globalization.CultureInfo.InvariantCulture),
@@ -67,6 +67,19 @@ internal sealed class GXAgentUpdaterOptions
         SettingsPath = Path.GetFullPath(config["Agent:SettingsPath"] ?? Environment.GetEnvironmentVariable("GURUX_AGENT_SETTINGS") ?? GXAgentSettingsStore.DefaultPath),
         StagingDirectory = config["Updater:StagingDirectory"] ?? new GXAgentUpdaterOptions().StagingDirectory
     };
+
+    private static string ReadPublicKey(IConfiguration config)
+    {
+        var configured = config["Updater:PublicKeyPem"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+        using var stream = typeof(GXAgentUpdaterOptions).Assembly.GetManifestResourceStream("Gurux.DLMS.AMI.Agent.agent-release-public.pem")
+            ?? throw new InvalidOperationException("The bundled agent release public key is missing.");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
 }
 
 /// <summary>Describes a verified application package staged for external installation.</summary>

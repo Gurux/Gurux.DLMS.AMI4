@@ -42,6 +42,9 @@ using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using DeviceSettings = Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Agent.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
@@ -59,6 +62,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
         //Notify wait push, events or notifies from the meters.
         GXNet? notify;
         private GXRawNotificationSender? rawSender;
+        private int disposeStarted;
+        private CancellationTokenSource scriptLifetime = new();
 
         /// <summary>
         /// Each client has own message queue.
@@ -71,12 +76,19 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
         /// <inheritdoc/>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposeStarted) != 0, this);
             await lifecycle.WaitAsync(cancellationToken);
             try
             {
                 if (notify != null)
                 {
                     return;
+                }
+
+                if (scriptLifetime.IsCancellationRequested)
+                {
+                    scriptLifetime.Dispose();
+                    scriptLifetime = new CancellationTokenSource();
                 }
 
                 if (worker.RuntimeOptions.NotifySettings != null)
@@ -101,7 +113,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                         notify = new GXNet((NetworkType)net.Protocol, net.Port);
                         if (settings.PassThroughData)
                         {
-                            rawSender = new GXRawNotificationSender(worker.client, worker.RuntimeOptions.Id, settings.Interface, _logger);
+                            rawSender = new GXRawNotificationSender(worker.client, worker.RuntimeOptions.Id, settings.Interface, _logger, options: _serviceProvider.GetService<IOptions<GXRawDeliveryOptions>>()?.Value);
                         }
 
                         notify.OnReceived += OnNotifyReceived;
@@ -197,7 +209,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             // Forward before constructing a DLMS client, loading keys or executing a parser script.
             if (currentSettings.PassThroughData)
             {
-                rawSender?.Receive(e.SenderInfo, (byte[])e.Data, notify?.Protocol == NetworkType.Udp);
+                try
+                {
+                    rawSender?.Receive(e.SenderInfo, (byte[])e.Data, notify?.Protocol == NetworkType.Udp);
+                }
+                catch (OperationCanceledException) when (rawSender?.IsIntakeStopped == true)
+                {
+                    _logger.LogDebug("Raw receiver stopped while waiting for local storage capacity.");
+                }
                 return;
             }
             try
@@ -299,7 +318,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                             };
                             //Run script.
                             worker.Scripts.RunAsync(tmp, selectedScript,
-                                [e.SenderInfo, device, reply.Notify.Time, reply.Notify.Value]).GetAwaiter().GetResult();
+                                [e.SenderInfo, device, reply.Notify.Time, reply.Notify.Value], scriptLifetime.Token).GetAwaiter().GetResult();
                         }
                     }
                     catch (Exception ex)
@@ -409,6 +428,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             await lifecycle.WaitAsync(cancellationToken);
             try
             {
+                rawSender?.StopIntake();
+                await scriptLifetime.CancelAsync();
                 if (notify != null)
                 {
                     notify.OnReceived -= OnNotifyReceived;
@@ -461,6 +482,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref disposeStarted, 1) != 0)
+            {
+                return;
+            }
+            rawSender?.StopIntake();
+            scriptLifetime.Cancel();
+            scriptLifetime.Dispose();
             if (notify != null)
             {
                 notify.OnReceived -= OnNotifyReceived;

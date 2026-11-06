@@ -80,6 +80,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         private IDisposable? taskSubscription;
         private System.Threading.Tasks.Task? taskPoller;
         private GXTaskCompletionOutbox? completionOutbox;
+        private readonly GXAgentRuntimeMetrics runtimeMetrics = new();
         private CancellationTokenSource lifetime = new();
         private readonly SemaphoreSlim settingsGate = new(1, 1);
         private readonly SemaphoreSlim updateGate = new(1, 1);
@@ -102,7 +103,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
 
         public HttpClient client { get; }
         private readonly HttpClient? suppliedClient;
-        internal GXAgentScripts Scripts { get; }
+        internal GXAgentScripts Scripts { get; private set; }
 
         ActionBlock<GXActionBlock> _meterReads;
 
@@ -116,6 +117,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             public IGXMedia? Media;
             public Guid? GatewayId;
             public CancellationToken CancellationToken;
+            internal long QueuedAt;
+            internal int QueueCounted;
         }
 
         /// <summary>
@@ -136,7 +139,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         {
             authentication = new GXAuthenticationState(() => _hostNotifications?.NotifyAuthenticationRequired());
             suppliedClient = httpClient;
-            client = new HttpClient(new GXAuthenticationHandler(transport, authentication));
+            client = new HttpClient(new GXAgentHttpMetricsHandler(new GXAuthenticationHandler(transport, authentication), runtimeMetrics));
             if (httpClient != null)
             {
                 client.BaseAddress = httpClient.BaseAddress;
@@ -157,6 +160,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             ObjectDisposedException.ThrowIf(disposed, this);
             services.TryAddSingleton(new GXAgentUpdaterOptions());
             services.TryAddSingleton(new GXCompletionOutboxOptions());
+            services.TryAddSingleton(new GXScriptExecutionOptions());
+            services.TryAddSingleton(new GXRawDeliveryOptions());
             services.TryAddSingleton<IGXAgentUpdateService, GXAgentUpdateService>();
             services.AddSingleton(this);
             services.AddSingleton(client);
@@ -189,6 +194,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             cancellationToken = lifetime.Token;
 
             Scripts.Clear();
+            Scripts = new GXAgentScripts(client, services.GetService<GXScriptExecutionOptions>(), lifetime.Token);
             Notification = new GXAgentNotification();
             _meterReads.Complete();
             _meterReads = CreateMeterReads(RuntimeOptions.ReaderSettings?.Threads ?? 1);
@@ -650,14 +656,22 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         {
             using var readLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, action.CancellationToken);
             action.CancellationToken = readLifetime.Token;
+            if (Interlocked.Exchange(ref action.QueueCounted, 0) != 0)
+            {
+                runtimeMetrics.QueueRemoved();
+            }
+            long started = runtimeMetrics.ReadStarted(action.QueuedAt);
+            string outcome = "error";
             try
             {
                 action.CancellationToken.ThrowIfCancellationRequested();
-                return await ReadMeterCore(action, autoConnect, listenerSettings);
+                var result = await ReadMeterCore(action, autoConnect, listenerSettings);
+                outcome = action.Tasks.Any(t => !string.IsNullOrEmpty(t.Result)) ? "error" : "success";
+                return result;
             }
             catch (OperationCanceledException)
             {
-
+                outcome = "cancelled";
                 var pending = action.Tasks.Where(t => t.Ready == null).ToArray();
                 foreach (var task in pending)
                     {
@@ -687,6 +701,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             finally
             {
+                runtimeMetrics.ReadFinished(started, outcome);
                 action.NewTask?.Set();
             }
         }
@@ -886,7 +901,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         cl.ServerAddressSize = 4;
                     }
                     GXDLMSReader.ApplyDeviceKeys(cl, settings);
-                    cl.UseUtc2NormalTime = templateSettings.UtcTimeZone;
+                    GXDLMSReader.ApplyDateTimeSettings(cl, templateSettings);
                     cl.Standard = (Standard)templateSettings.Standard;
                     cl.Ciphering.SystemTitle = settings.ClientSystemTitle;
                     if (cl.Ciphering.SystemTitle != null && cl.Ciphering.SystemTitle.Length == 0)
@@ -937,14 +952,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 while (session.Pending.TryDequeue(out var task))
                 {
                     action.CancellationToken.ThrowIfCancellationRequested();
+                    long taskStarted = Stopwatch.GetTimestamp();
+                    string taskOutcome = "error";
                     try
-                    { await ExecuteTasks(dev, reader, cl, task, action.CancellationToken); }
-                    catch (OperationCanceledException) { throw; }
+                    {
+                        await ExecuteTasks(dev, reader, cl, task, action.CancellationToken);
+                        taskOutcome = string.IsNullOrEmpty(task.Result) ? "success" : "error";
+                    }
+                    catch (OperationCanceledException) { taskOutcome = "cancelled"; throw; }
                     catch (Exception error)
                     {
                         GXTaskFailure.Record(task, dev, error.Message);
                         await ReportDeviceException(dev, error, "Failed to execute task " + task);
                     }
+                    finally { runtimeMetrics.TaskFinished(taskStarted, taskOutcome); }
                     task.Ready = DateTimeOffset.UtcNow;
                     await ReportDone([task]);
                     await CheckConnectedMeterTasksAsync(dev.Id, session, action, listenerSettings != null);

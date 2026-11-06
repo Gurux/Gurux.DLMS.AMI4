@@ -32,6 +32,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Diagnostics;
 using System.Threading.Tasks.Dataflow;
 
 namespace Gurux.DLMS.AMI.Agent.Worker;
@@ -91,15 +92,29 @@ public partial class GXAgentWorker
 
     internal async Task QueueMeterReadAsync(GXActionBlock action, CancellationToken token)
     {
-        await meterQueueGate.WaitAsync(token);
+        action.QueuedAt = Stopwatch.GetTimestamp();
+        Interlocked.Exchange(ref action.QueueCounted, 1);
+        runtimeMetrics.Queued();
         try
         {
-            if (!await _meterReads.SendAsync(action, token))
+            await meterQueueGate.WaitAsync(token);
+            try
+            {
+                if (!await _meterReads.SendAsync(action, token))
                 {
-                throw new InvalidOperationException("The meter read queue did not accept the task batch.");
+                    throw new InvalidOperationException("The meter read queue did not accept the task batch.");
+                }
             }
+            finally { meterQueueGate.Release(); }
         }
-        finally { meterQueueGate.Release(); }
+        catch
+        {
+            if (Interlocked.Exchange(ref action.QueueCounted, 0) != 0)
+            {
+                runtimeMetrics.QueueRemoved();
+            }
+            throw;
+        }
     }
     private static bool SameSettings<T>(T previous, T candidate) =>
         JsonSerializer.Serialize(previous) == JsonSerializer.Serialize(candidate);

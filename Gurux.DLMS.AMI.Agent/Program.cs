@@ -204,11 +204,17 @@ internal static class Program
             settingsLock = GXAgentInstanceLock.Acquire(settingsFile);
             GXAgentSettingsStore.ProtectExisting(settingsFile);
             var completionOptions = GXCompletionOutboxOptions.Read(config);
+            var scriptOptions = GXScriptExecutionOptions.Read(config);
+            var rawDeliveryOptions = new GXRawDeliveryOptions();
+            config.GetSection("RawDelivery").Bind(rawDeliveryOptions);
+            rawDeliveryOptions.Validate();
             IServiceCollection Services()
             {
                 var services = new ServiceCollection();
                 services.AddSingleton(updaterOptions);
                 services.AddSingleton(completionOptions);
+                services.AddSingleton(scriptOptions);
+                services.AddSingleton(rawDeliveryOptions);
                 services.AddLogging(builder => builder.AddConfiguration(config.GetSection("Logging")).AddConsole());
                 return services;
             }

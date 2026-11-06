@@ -41,11 +41,11 @@ internal sealed class GXRawNotificationService(IServiceProvider services, ILogge
     private GXRawNotificationHandler? handler;
     private readonly SemaphoreSlim lifecycle = new(1, 1);
     internal Guid? ScriptId { get; private set; }
-    private sealed class ScriptSession(GXAmiScript runner, GXScriptRunArgs args) : IDisposable
+    private sealed class ScriptSession(GXAgentScripts scripts, GXAmiScript runner, GXScriptRunArgs args) : IDisposable
     {
         internal readonly GXAmiScript Runner = runner;
         internal readonly GXScriptRunArgs Args = args;
-        public void Dispose() => Args.AssemblyLoadContext?.Unload();
+        public void Dispose() => scripts.ReleaseRunArgs(Args);
     }
     private readonly ConcurrentDictionary<(Guid Receiver, Guid Connection, Guid Lease), Lazy<Task<ScriptSession>>> sessions = new();
     private static (Guid, Guid, Guid) Key(GXRawNotification n) => (n.Agent?.Id ?? Guid.Empty, n.ConnectionId, n.LeaseToken ?? Guid.Empty);
@@ -81,20 +81,11 @@ internal sealed class GXRawNotificationService(IServiceProvider services, ILogge
                 {
                     // Capture only once for this lease: a hot update applies to the next connection.
                     var snapshot = worker.Scripts.Current(method)!;
-                    return new ScriptSession(new GXAmiScript(services) { Sender = new GXAgent { Id = worker.RuntimeOptions.Id }, DefaultDeviceTemplate = settings.DefaultDeviceTemplate is Guid template ? new GXDeviceTemplate { Id = template } : null }, await worker.Scripts.CreateRunArgsAsync(snapshot, [record], cancellation));
+                    return new ScriptSession(worker.Scripts, new GXAmiScript(services) { Sender = new GXAgent { Id = worker.RuntimeOptions.Id }, DefaultDeviceTemplate = settings.DefaultDeviceTemplate is Guid template ? new GXDeviceTemplate { Id = template } : null }, await worker.Scripts.CreateRunArgsAsync(snapshot, [record], cancellation));
                 }));
                 var current = await pending.Value;
                 current.Args.Parameters = [record];
-                // Await the returned script Task too: RunAsync returns reflection's result as an object.
-                var result = await current.Runner.RunAsync(current.Args);
-                if (result is Task task)
-                {
-                    await task;
-                }
-                else if (result is ValueTask valueTask)
-                {
-                    await valueTask;
-                }
+                await worker.Scripts.RunPreparedAsync(current.Runner, current.Args, cancellation);
 
                 cancellation.ThrowIfCancellationRequested();
             }, logger, connectionFinished: record =>
@@ -103,7 +94,7 @@ internal sealed class GXRawNotificationService(IServiceProvider services, ILogge
                 {
                     pending.Value.Result.Dispose();
                 }
-            });
+            }, canProcess: () => worker.Scripts.CanExecute);
             await handler.StartAsync(token);
         }
         finally

@@ -361,7 +361,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             Sender = new GXAgent() { Id = RuntimeOptions.Id }
                         };
                         //Run script.
-                        var ret = worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [e.SenderInfo, _media, _notify.Array()]).GetAwaiter().GetResult();
+                        var ret = worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [e.SenderInfo, _media, _notify.Array()], cancellationToken).GetAwaiter().GetResult();
                         if ((_gatewayId == null || _gatewayId == Guid.Empty))
                         {
                             if (ret is GXGateway gw && gw.Id != Guid.Empty)
@@ -452,7 +452,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         }
                         // Run the prepared script version pinned for this connection.
                         var ret = worker.Scripts.RunAsync(tmp, _autoConnectionIdentificationScript,
-                            [e.SenderInfo, _media, args.Data]).GetAwaiter().GetResult();
+                            [e.SenderInfo, _media, args.Data], cancellationToken).GetAwaiter().GetResult();
                         if (_deviceId == null || _deviceId == Guid.Empty)
                         {
                             if (ret is Guid id)

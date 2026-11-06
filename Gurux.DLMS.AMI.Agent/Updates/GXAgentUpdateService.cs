@@ -65,10 +65,20 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
     }
 
-    private string ApplicationPath => Path.GetFullPath(options.ApplicationPath ?? Path.Combine(options.InstallationDirectory,
-        string.IsNullOrWhiteSpace(options.ServiceName)
-            ? (OperatingSystem.IsWindows() ? "Gurux.DLMS.AMI.Agent.exe" : "Gurux.DLMS.AMI.Agent")
-            : "Gurux.DLMS.AMI.Agent.dll"));
+    private string ApplicationPath
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(options.ApplicationPath))
+            {
+                return Path.GetFullPath(options.ApplicationPath);
+            }
+            string executable = Path.Combine(options.InstallationDirectory,
+                OperatingSystem.IsWindows() ? "Gurux.DLMS.AMI.Agent.exe" : "Gurux.DLMS.AMI.Agent");
+            return Path.GetFullPath(string.IsNullOrWhiteSpace(options.ServiceName) && File.Exists(executable)
+                ? executable : Path.Combine(options.InstallationDirectory, "Gurux.DLMS.AMI.Agent.dll"));
+        }
+    }
 
     private static bool Under(string path, string directory)
     {
@@ -127,10 +137,6 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         if (!Under(ApplicationPath, options.InstallationDirectory) || !File.Exists(ApplicationPath))
             {
             throw new InvalidOperationException("Configure Updater:ApplicationPath with the installed agent application.");
-        }
-        if (string.IsNullOrWhiteSpace(options.ServiceName) && Path.GetExtension(ApplicationPath).Equals(".dll", StringComparison.OrdinalIgnoreCase))
-            {
-            throw new InvalidOperationException("Portable DLL installations require Updater:ServiceName; standalone automatic restart requires a published executable.");
         }
     }
 
@@ -251,7 +257,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
         if (string.IsNullOrWhiteSpace(options.ServiceName) && !entries.ContainsKey(Path.GetFileName(ApplicationPath)))
             {
-            throw new InvalidDataException("Standalone update package must include its launchable agent executable.");
+            throw new InvalidDataException("Standalone update package must include its agent application entry point.");
         }
         string metadata = Path.Combine(stage, "candidate.dll");
         await using (var output = File.Create(metadata))

@@ -235,7 +235,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Gateway
                                     Sender = new GXAgent() { Id = RuntimeOptions.Id }
                                 };
                                 //Run script.
-                                var ret = await worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [_info, _media, null]);
+                                var ret = await worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [_info, _media, null], cancellationToken);
                                 if ((_gatewayId == null || _gatewayId == Guid.Empty))
                                 {
                                     if (ret is GXGateway gw && gw.Id != Guid.Empty)
@@ -430,7 +430,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Gateway
                             Sender = new GXAgent() { Id = RuntimeOptions.Id }
                         };
                         //Run script.
-                        var ret = worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [e.SenderInfo, _media, _notify.Array()]).GetAwaiter().GetResult();
+                        var ret = worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [e.SenderInfo, _media, _notify.Array()], cancellationToken).GetAwaiter().GetResult();
                         if ((_gatewayId == null || _gatewayId == Guid.Empty))
                         {
                             if (ret is GXGateway gw && gw.Id != Guid.Empty)

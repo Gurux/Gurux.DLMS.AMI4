@@ -75,6 +75,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         }
         private readonly ILogger? _logger;
         private readonly GXDevice? _device;
+        /// <summary>Applies the template's time-zone convention and outgoing date/time field exclusions.</summary>
+        internal static void ApplyDateTimeSettings(GXDLMSClient client, DeviceSettings settings)
+        {
+            client.UseUtc2NormalTime = settings.UtcTimeZone;
+            client.DateTimeSkips = (DateTimeSkips)settings.DateTimeSkips;
+        }
+
         // The server authorizes and fills these values when the device is fetched.
         internal static void ApplyDeviceKeys(GXDLMSSecureClient client, DeviceSettings settings)
         {

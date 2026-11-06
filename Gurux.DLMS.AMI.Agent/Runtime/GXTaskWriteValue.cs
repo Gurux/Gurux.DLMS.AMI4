@@ -39,7 +39,9 @@ internal static class GXTaskWriteValue
         // A queued clock synchronization must use execution time, not the browser's old timestamp.
         if (target is GXDLMSClock && index == 2)
         {
-            client.UpdateValue(target, index, new GXDateTime(DateTime.Now));
+            var time = new GXDateTime(DateTime.Now);
+            time.Skip |= client.DateTimeSkips;
+            client.UpdateValue(target, index, time);
             return;
         }
         // Value XML must be decoded before interpreting legacy plain date/time text.

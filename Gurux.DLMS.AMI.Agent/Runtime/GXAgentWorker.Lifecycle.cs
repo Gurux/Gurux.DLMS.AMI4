@@ -202,6 +202,8 @@ public partial class GXAgentWorker
             updateGate.Dispose();
             meterQueueGate.Dispose();
             taskClaimGate.Dispose();
+            taskRequestGate.Dispose();
+            runtimeMetrics.Dispose();
             client.Dispose();
             _services = null;
             _hostNotifications = null;

@@ -34,6 +34,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker;
 public partial class GXAgentWorker
 {
     private readonly SemaphoreSlim taskClaimGate = new(1, 1);
+    // Network claims stay serialized; session lifecycle never waits on HTTP while holding its state gate.
+    private readonly SemaphoreSlim taskRequestGate = new(1, 1);
     private readonly Dictionary<Guid, MeterTaskSession> connectedMeters = [];
 
     private sealed class MeterTaskSession
@@ -63,7 +65,7 @@ public partial class GXAgentWorker
 
     private async Task<GXActionBlock?> ClaimPolledTasksAsync(CancellationToken token)
     {
-        await taskClaimGate.WaitAsync(token);
+        await taskRequestGate.WaitAsync(token);
         try
         {
             if (!CanClaimTasks)
@@ -77,14 +79,20 @@ public partial class GXAgentWorker
                 {
                 return null;
             }
-            if (tasks[0].TargetDevice is Guid id && connectedMeters.TryGetValue(id, out var session) && !session.Closing)
+            // A successful claim belongs to this worker even if cancellation arrives now.
+            await taskClaimGate.WaitAsync();
+            try
             {
-                session.Add(tasks);
-                return null;
+                if (tasks[0].TargetDevice is Guid id && connectedMeters.TryGetValue(id, out var session) && !session.Closing)
+                {
+                    session.Add(tasks);
+                    return null;
+                }
+                return new GXActionBlock { Tasks = tasks, NewTask = _newTask };
             }
-            return new GXActionBlock { Tasks = tasks, NewTask = _newTask };
+            finally { taskClaimGate.Release(); }
         }
-        finally { taskClaimGate.Release(); }
+        finally { taskRequestGate.Release(); }
     }
 
     private async Task<bool> RegisterMeterSessionAsync(Guid id, MeterTaskSession session, CancellationToken token)
@@ -98,6 +106,7 @@ public partial class GXAgentWorker
                 if (!connectedMeters.TryGetValue(id, out var previous))
                 {
                     connectedMeters.Add(id, session);
+                    runtimeMetrics.ConnectionOpened();
                     return true;
                 }
                 if (!previous.Closing)
@@ -114,15 +123,12 @@ public partial class GXAgentWorker
 
     private async Task CheckConnectedMeterTasksAsync(Guid id, MeterTaskSession session, GXActionBlock action, bool listener)
     {
-        await taskClaimGate.WaitAsync(action.CancellationToken);
+        await taskRequestGate.WaitAsync(action.CancellationToken);
         try
         {
             if (!CanClaimTasks)
             {
-                if (session.Pending.IsEmpty)
-                    {
-                    session.Closing = true;
-                }
+                await CloseEmptySessionAsync(session);
                 return;
             }
             var response = await client.PostAsJson<GetNextTaskResponse>("/api/Task/Next", new GetNextTask
@@ -138,9 +144,27 @@ public partial class GXAgentWorker
                 {
                 throw new InvalidOperationException("The server returned a task for a different meter on an active connection.");
             }
-            session.Add(tasks);
-            if (session.Pending.IsEmpty)
+            await taskClaimGate.WaitAsync();
+            try
+            {
+                session.Add(tasks);
+                if (session.Pending.IsEmpty)
                 {
+                    session.Closing = true;
+                }
+            }
+            finally { taskClaimGate.Release(); }
+        }
+        finally { taskRequestGate.Release(); }
+    }
+
+    private async Task CloseEmptySessionAsync(MeterTaskSession session)
+    {
+        await taskClaimGate.WaitAsync();
+        try
+        {
+            if (session.Pending.IsEmpty)
+            {
                 session.Closing = true;
             }
         }
@@ -165,6 +189,7 @@ public partial class GXAgentWorker
             if (connectedMeters.TryGetValue(id, out var current) && ReferenceEquals(current, session))
                 {
                 connectedMeters.Remove(id);
+                runtimeMetrics.ConnectionClosed();
             }
             session.Closed.TrySetResult();
         }

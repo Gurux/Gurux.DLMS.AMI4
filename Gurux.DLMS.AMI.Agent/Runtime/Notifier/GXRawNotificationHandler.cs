@@ -43,6 +43,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
     private readonly ILogger logger;
     private readonly TimeSpan leaseDuration;
     private readonly Action<GXRawNotification>? connectionFinished;
+    private readonly Func<bool>? canProcess;
     private readonly SemaphoreSlim wake;
     private readonly CancellationTokenSource stop = new();
     private IDisposable? subscription;
@@ -50,7 +51,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
 
     internal GXRawNotificationHandler(HttpClient http, GXAgentNotification notification, Guid processor, int workers,
         Func<GXRawNotification, CancellationToken, Task> process, ILogger logger, TimeSpan? leaseDuration = null,
-        Action<GXRawNotification>? connectionFinished = null)
+        Action<GXRawNotification>? connectionFinished = null, Func<bool>? canProcess = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(workers, 1);
 
@@ -62,6 +63,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
         this.logger = logger;
         this.leaseDuration = leaseDuration ?? TimeSpan.FromSeconds(60);
         this.connectionFinished = connectionFinished;
+        this.canProcess = canProcess;
         wake = new SemaphoreSlim(0, workers);
     }
 
@@ -128,6 +130,10 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
                 await wake.WaitAsync(token);
                 while (!token.IsCancellationRequested)
                 {
+                    while (canProcess?.Invoke() == false)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1), token);
+                    }
                     var reply = await PostAsync<GetNextRawNotificationResponse>("Next", new GetNextRawNotification { ProcessorId = processor, LeaseDuration = leaseDuration }, token);
                     var chunks = reply.RawNotifications.ToArray();
                     if (chunks.Length == 0)

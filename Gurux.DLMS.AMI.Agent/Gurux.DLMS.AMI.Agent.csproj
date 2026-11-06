@@ -49,6 +49,8 @@
     <ItemGroup>
     </ItemGroup>
     <ItemGroup>
+        <EmbeddedResource Include="agent-release-public.pem" LogicalName="Gurux.DLMS.AMI.Agent.agent-release-public.pem" />
+        <None Update="agent-release-public.pem" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
         <None Update="Install-Agent.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
         <Content Include="$(UpdaterPayloadDirectory)/**/*" Condition="'$(UpdaterPayloadDirectory)' != ''" Link="setup/updater/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>

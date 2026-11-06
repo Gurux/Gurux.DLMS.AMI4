@@ -33,14 +33,30 @@ using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Threading.Channels;
 using Gurux.DLMS.AMI.Script;
+using Gurux.DLMS.AMI.Agent.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
 /// <summary>Prepares authorized script versions without invoking user code, then supplies isolated ready contexts.</summary>
-internal sealed class GXAgentScripts(HttpClient client)
+internal sealed class GXAgentScripts
 {
+    private readonly HttpClient client;
+    private readonly GXScriptExecution execution;
+    private readonly TimeSpan executionTimeout;
+    private readonly CancellationToken lifetime;
+
+    internal GXAgentScripts(HttpClient client, GXScriptExecutionOptions? options = null, CancellationToken lifetime = default)
+    {
+        options ??= new GXScriptExecutionOptions();
+        options.Validate();
+        this.client = client;
+        this.lifetime = lifetime;
+        executionTimeout = options.ExecutionTimeout;
+        execution = new GXScriptExecution(executionTimeout, lifetime);
+    }
+
     private readonly Lock Gate = new();
     private readonly SemaphoreSlim Updates = new(1, 1);
     private readonly Dictionary<Guid, Version> Latest = [];
@@ -133,19 +149,32 @@ internal sealed class GXAgentScripts(HttpClient client)
         };
     }
 
-    /// <summary>Invokes a prepared snapshot, awaits script Tasks and releases its temporary context.</summary>
-    internal async Task<object?> RunAsync(GXAmiScript runner, GXScriptMethod method, object?[] parameters)
+    /// <summary>Invokes a prepared snapshot with a bounded wait and retains its context until actual completion.</summary>
+    internal async Task<object?> RunAsync(GXAmiScript runner, GXScriptMethod method, object?[] parameters,
+        CancellationToken token = default)
     {
-        var args = await CreateRunArgsAsync(method, parameters);
+        execution.CheckAdmission();
+        using var preparation = CancellationTokenSource.CreateLinkedTokenSource(lifetime, token);
+        preparation.CancelAfter(executionTimeout);
+        var args = await CreateRunArgsAsync(method, parameters, preparation.Token);
         try
         {
-            return await AwaitResultAsync(await runner.RunAsync(args));
+            return await RunPreparedAsync(runner, args, token);
         }
         finally
         {
-            args.AssemblyLoadContext?.Unload();
+            ReleaseRunArgs(args);
         }
     }
+
+    /// <summary>Runs a pinned per-connection context without releasing its parser state between chunks.</summary>
+    internal Task<object?> RunPreparedAsync(GXAmiScript runner, GXScriptRunArgs args, CancellationToken token = default)
+        => execution.RunAsync(args, async cancellation => await AwaitResultAsync(await runner.RunAsync(args, cancellation)), token);
+
+    /// <summary>Defers unloading when cancelled script code still owns this context.</summary>
+    internal void ReleaseRunArgs(GXScriptRunArgs args) => execution.Release(args);
+
+    internal bool CanExecute => execution.CanExecute;
 
     internal async Task<object?> AwaitResultAsync(object? result)
     {
