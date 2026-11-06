@@ -82,6 +82,9 @@ function gh {
         $script:remoteRelease.assets = @(
             @{ name = 'agent.zip'; state = 'uploaded'; size = 17 },
             @{ name = 'agent.zip.sha256'; state = 'uploaded'; size = 76 })
+        if ($args -contains (Join-Path $testDirectory 'agent.compatibility.json')) {
+            $script:remoteRelease.assets += @{ name = 'agent.compatibility.json'; state = 'uploaded'; size = 300 }
+        }
         if ($args -contains (Join-Path $testDirectory 'agent.zip.manifest.json')) {
             $script:remoteRelease.assets += @{ name = 'agent.zip.manifest.json'; state = 'uploaded'; size = 500 }
         }
@@ -154,12 +157,35 @@ try {
     }
     $script:remoteRelease.assets = @($script:remoteRelease.assets | Where-Object name -ne 'agent.zip.manifest.json')
     Reject { Publish-AgentRelease -Manifest $manifest -Directory $testDirectory }
-    Write-Host 'Agent draft/upload/publish, immutable rerun and dispatch retry checks passed.'
+    $manifest | Add-Member NoteProperty compatibilityManifest 'agent.compatibility.json'
+    $script:remoteRelease = $null
+    Reject { Publish-AgentRelease -Manifest $manifest -Directory $testDirectory }
+    $compatibilityPath = Join-Path $testDirectory $manifest.compatibilityManifest
+    $compatibility = @{ schemaVersion = 1; id = 'Gurux.DLMS.AMI.Agent'; version = $manifest.version;
+        targetFramework = 'net10.0'; references = @(@{ name = 'Gurux.DLMS.AMI.Script.dll'; version = '1.2.3.4' }) }
+    $compatibility | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $compatibilityPath
+    $script:calls.Clear()
+    Publish-AgentRelease -Manifest $manifest -Directory $testDirectory
+    if ($script:remoteRelease.draft -or -not @($script:calls | Where-Object { $_ -like '*release upload*agent.compatibility.json*' }).Count) {
+        throw 'Script compatibility metadata must be uploaded before publishing.'
+    }
+    $script:calls.Clear()
+    Publish-AgentRelease -Manifest $manifest -Directory $testDirectory
+    if (@($script:calls | Where-Object { $_ -like 'release *' }).Count) {
+        throw 'Published compatibility metadata must remain immutable on rerun.'
+    }
+    $script:remoteRelease.assets = @($script:remoteRelease.assets | Where-Object name -ne 'agent.compatibility.json')
+    Reject { Publish-AgentRelease -Manifest $manifest -Directory $testDirectory }
+    $script:remoteRelease = $null
+    $compatibility.version = '0.0.0.1'
+    $compatibility | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $compatibilityPath
+    Reject { Publish-AgentRelease -Manifest $manifest -Directory $testDirectory }
+    Write-Host 'Agent draft/upload/publish, compatibility metadata, immutable rerun and dispatch retry checks passed.'
 } finally {
     $env:GH_TOKEN = $savedToken
     $env:CATALOG_TOKEN = $savedCatalogToken
     Remove-Item Function:\gh
-    foreach ($file in @($package, $checksum, (Join-Path $testDirectory 'notes.md'), (Join-Path $testDirectory 'agent.zip.manifest.json'))) {
+    foreach ($file in @($package, $checksum, (Join-Path $testDirectory 'notes.md'), (Join-Path $testDirectory 'agent.zip.manifest.json'), (Join-Path $testDirectory 'agent.compatibility.json'))) {
         if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file }
     }
     Remove-Item -LiteralPath $testDirectory

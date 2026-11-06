@@ -12,11 +12,15 @@ on:
       - 'Tests/AgentApplication/**'
       - 'Tests/AgentDeviceKeys/**'
       - 'Tests/AgentWorkerReliability/**'
+      - 'Tests/AgentRawDelivery/**'
+      - 'Tests/AgentScriptExecution/**'
       - '.github/scripts/prepare-agent-updater.ps1'
       - '.github/tests/agent-install.tests.ps1'
       - '.github/tests/agent-package.tests.ps1'
       - '.github/tests/agent-updater-payload.tests.ps1'
       - '.github/scripts/agent-release.ps1'
+      - '.github/scripts/agent-compatibility.ps1'
+      - '.github/tests/agent-compatibility.tests.ps1'
       - '.github/scripts/sign-agent-package.ps1'
       - '.github/tests/agent-release.tests.ps1'
       - '.github/tests/agent-signing.tests.ps1'
@@ -80,6 +84,7 @@ jobs:
       - name: Test release automation and maintenance behavior
         run: |
           & .github/tests/agent-release.tests.ps1
+          & .github/tests/agent-compatibility.tests.ps1
           & .github/tests/agent-package.tests.ps1
           & .github/tests/agent-signing.tests.ps1
           & .github/tests/agent-install.tests.ps1
@@ -95,6 +100,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Agent reliability checks failed.' }
           dotnet run --project Tests/AgentProfileHistory/AgentProfileHistory.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent profile history checks failed.' }
+          dotnet run --project Tests/AgentRawDelivery/AgentRawDelivery.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent raw delivery checks failed.' }
+          dotnet run --project Tests/AgentScriptExecution/AgentScriptExecution.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent script execution checks failed.' }
       - name: Reserve version and check for an already published release
         id: release
         env:
@@ -118,6 +127,8 @@ jobs:
             "-p:UpdaterPayloadDirectory=$updaterPayload" `
             '-p:IncludeSourceRevisionInInformationalVersion=false'
           if ($LASTEXITCODE -ne 0) { throw 'Agent publish failed.' }
+          & .github/scripts/agent-compatibility.ps1 -PublishDirectory $publishDir -Version $release.version `
+            -OutputFile (Join-Path artifacts/agent $release.compatibilityManifest)
           $archive = "Gurux.DLMS.AMI.Agent/bin/Release/$($release.package)"
           if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw 'Agent ZIP was not generated.' }
           $productVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $publishDir 'Gurux.DLMS.AMI.Agent.dll')).ProductVersion
@@ -125,7 +136,7 @@ jobs:
           $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $archive).Path)
           try {
             foreach ($name in @('Gurux.DLMS.AMI.Agent.dll', 'Gurux.DLMS.AMI.Shared.dll',
-                'Gurux.DLMS.AMI.Http.dll', 'Gurux.DLMS.AMI.Agent.deps.json', 'Gurux.DLMS.AMI.Agent.runtimeconfig.json', 'appsettings.default.json', 'Install-Agent.ps1',
+                'Gurux.DLMS.AMI.Http.dll', 'Gurux.DLMS.AMI.Agent.deps.json', 'Gurux.DLMS.AMI.Agent.runtimeconfig.json', 'appsettings.default.json', 'agent-release-public.pem', 'Install-Agent.ps1',
                 'setup/updater/Gurux.Updater.Tool.dll', 'setup/updater/Gurux.Updater.Tool.deps.json',
                 'setup/updater/Gurux.Updater.Tool.runtimeconfig.json', 'setup/updater/updater-payload.json')) {
               if (-not $zip.GetEntry($name)) { throw "Agent ZIP is missing $name" }
