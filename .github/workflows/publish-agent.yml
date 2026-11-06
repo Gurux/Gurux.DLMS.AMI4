@@ -112,7 +112,7 @@ jobs:
         if: steps.release.outputs.published != 'true'
         env:
           AGENT_RELEASE_SIGNING_KEY_PEM: ${{ secrets.AGENT_RELEASE_SIGNING_KEY_PEM }}
-          UPDATER_TOOL_VERSION: ${{ vars.GURUX_UPDATER_TOOL_VERSION || '1.0.2611.303' }}
+          UPDATER_TOOL_VERSION: ${{ vars.GURUX_UPDATER_TOOL_VERSION || '1.0.2611.601' }}
         run: |
           $ErrorActionPreference = 'Stop'
           $release = Get-Content artifacts/agent/release.json -Raw | ConvertFrom-Json
