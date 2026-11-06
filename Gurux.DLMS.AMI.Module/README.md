@@ -15,6 +15,7 @@ projects. Modules run as trusted extensions inside the host process.
 - [Lifecycle and services](#lifecycle-and-services)
 - [HTTP endpoints](#http-endpoints)
 - [Module authentication](#module-authentication)
+- [External login providers](#external-login-provider-declarations)
 - [Module views](#module-views)
 - [Settings and persistence](#settings-and-persistence)
 - [Application logs](#application-logs)
@@ -453,3 +454,41 @@ A valid commercial license is required to use the commercial licensing
 option. See [Gurux Commercial License Notice](../LICENSES/LicenseRef-Gurux-Commercial.txt).
 
 For commercial licensing inquiries, [contact Gurux Ltd](https://www.gurux.fi/).
+
+## External login provider declarations
+
+A module can declare one scoped `IGXAmiExternalLoginProvider` implementation that supplies several external login services:
+
+```csharp
+builder.AddExternalLoginProvider<CompanyLoginProvider>();
+```
+
+```csharp
+public sealed class CompanyLoginProvider : IGXAmiExternalLoginProvider
+{
+    public Task<IReadOnlyList<AmiExternalLoginDefinition>> GetProvidersAsync(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<AmiExternalLoginDefinition>>([
+            new AmiExternalLoginDefinition
+            {
+                Id = "company",
+                DisplayName = "Company login",
+                Protocol = AmiExternalLoginProtocol.OpenIdConnect,
+                Authority = new Uri("https://identity.example/"),
+                ClientId = "registered-client-id",
+                Scopes = ["openid", "profile"]
+            }
+        ]);
+    }
+}
+```
+
+`IGXAmiExternalLoginProvider` and `AmiExternalLoginDefinition` are in `Gurux.DLMS.AMI.Module`; `AmiExternalLoginProtocol` is in `Gurux.DLMS.AMI.Module.Enums`. OAuth2 definitions provide `AuthorizationEndpoint`, `TokenEndpoint` and `UserInfoEndpoint` instead of an OIDC discovery authority. Obtain real client configuration and any `ClientSecret` from the module's private server-side settings.
+
+Registration records `AmiModuleBuilder.ExternalLoginProviderType` and registers that concrete type as scoped in `builder.Services`. The host adapter resolves that type inside the owning module's service scope, as with `AddAuthenticator<T>()`; the interface is not automatically registered or exported. An existing unkeyed scoped factory is retained. Duplicate provider declarations, abstract types and existing unkeyed singleton/transient registrations are rejected. One provider source can return multiple definitions. Honor invocation and module-lifetime cancellation.
+
+Definitions are server-only runtime declarations. `ClientSecret` is excluded from System.Text.Json serialization/deserialization, and the class does not generate a value-bearing `ToString()`. It is not a persistence DTO: save secrets in private module settings. Do not expose definitions to browser APIs or log their credentials. The host must validate endpoint URIs, protocol requirements and scopes, snapshot returned collections, and namespace scheme IDs by their owning module.
+
+This API is additive and separate from `IGXAmiModuleAuthenticator`, which authenticates requests to module-owned endpoints. This increment adds declarations only: the current Server does not yet consume them or register external OAuth/OIDC schemes. The future Server adapter must manage registration and removal with module activation/reload/stop, protocol validation, callbacks, host user linking and sign-in cookies. Shared contracts are unchanged.
