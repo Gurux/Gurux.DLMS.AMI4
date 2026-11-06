@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
     <PropertyGroup>
+        <DefaultItemExcludes>$(DefaultItemExcludes);Tests/**;Testing/**</DefaultItemExcludes>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -10,10 +11,14 @@
         <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
         <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
         <Description>Gurux.DLMS.AMI.Module offers module support for Gurux DLMS AMI v4.</Description>
-        <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">5.0.2611.601-local</Version>
         <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <!-- Keep the published baseline; suppress only the documented major5 interface renames. -->
+        <EnablePackageValidation Condition="'$(Configuration)' == 'Release'">true</EnablePackageValidation>
+        <PackageValidationBaselineVersion Condition="'$(PackageValidationBaselineVersion)' == ''">4.1.2611.502</PackageValidationBaselineVersion>
+        <ApiCompatEnableRuleCannotChangeParameterName>true</ApiCompatEnableRuleCannotChangeParameterName>
         <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
         <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
         <PackageId>Gurux.DLMS.AMI.Module</PackageId>
@@ -31,11 +36,12 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.14" />
         <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.14" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.14" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.14" />
         <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ApiCompatSuppressionFile Include="Compatibility/InterfaceRenames.ApiCompat.xml" />
     </ItemGroup>
 
     <ItemGroup>
@@ -46,4 +52,8 @@
     <ItemGroup>
         <Folder Include="Token\" />
     </ItemGroup>
+    <Target Name="ValidateRenamedModuleContractMajor" BeforeTargets="PrepareForBuild">
+        <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(Version)', '^[0-4]\.'))"
+               Text="The IGXAmi interface rename requires Module major version5 or later. Rebuild dependent modules against the new contract." />
+    </Target>
 </Project>

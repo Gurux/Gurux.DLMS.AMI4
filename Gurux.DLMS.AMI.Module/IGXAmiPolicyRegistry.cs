@@ -32,7 +32,7 @@ namespace Gurux.DLMS.AMI.Module
     /// <summary>
     /// Defines methods for managing authorization policies by name.
     /// </summary>
-    public interface IAmiPolicyRegistry
+    public interface IGXAmiPolicyRegistry
     {
         /// <summary>
         /// Retrieves an authorization policy by its name.

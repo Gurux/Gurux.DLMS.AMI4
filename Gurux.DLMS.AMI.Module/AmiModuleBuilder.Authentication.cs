@@ -44,7 +44,7 @@ public sealed partial class AmiModuleBuilder
     /// </remarks>
     /// <exception cref="InvalidOperationException">An authenticator is already registered or an existing service has another lifetime.</exception>
     /// <exception cref="ArgumentException">The authenticator type cannot be instantiated.</exception>
-    public void AddAuthenticator<T>() where T : class, IAmiModuleAuthenticator
+    public void AddAuthenticator<T>() where T : class, IGXAmiModuleAuthenticator
     {
         if (AuthenticatorType is not null)
         {

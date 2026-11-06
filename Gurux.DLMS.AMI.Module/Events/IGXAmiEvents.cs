@@ -25,17 +25,17 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module.Workflow;
+namespace Gurux.DLMS.AMI.Module;
 
-/// <summary>Executes a module-defined workflow action under the host's invocation context.</summary>
-public interface IAmiWorkflowHandler
+/// <summary>Typed, in-process notifications. Registrations also support asynchronous draining.</summary>
+public interface IGXAmiEvents
 {
-    /// <summary>Stable action identifier, unique within the module.</summary>
-    string Code { get; }
-    /// <summary>Executes an action. Before is awaited inline and may reject; After cannot undo a commit.
-    /// The host supplies cancellation for shutdown and time limits. Handlers must observe it.</summary>
-    /// <param name="context">Trigger, user, target, and value snapshots for this invocation.</param>
-    /// <param name="cancellationToken">Cancels execution when the host shuts down or the invocation times out.</param>
-    /// <returns>The handler's continuation or rejection decision; rejection applies only before commit.</returns>
-    ValueTask<AmiWorkflowResult> ExecuteAsync(AmiWorkflowContext context, CancellationToken cancellationToken = default);
+    /// <summary>Registers a handler for exactly the specified event type.</summary>
+    IDisposable Subscribe<T>(Func<T, CancellationToken, Task> handler);
+
+    /// <summary>Awaits a snapshot of subscribers, isolating individual handler errors.</summary>
+    Task PublishAsync<T>(T value, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Request completion metadata without request bodies or HTTP context.</summary>
+public sealed record AmiRequestCompleted(string? UserId, string Target, byte Action, int StatusCode, TimeSpan Elapsed);

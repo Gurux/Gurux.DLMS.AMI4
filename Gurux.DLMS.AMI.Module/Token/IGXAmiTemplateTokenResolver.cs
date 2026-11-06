@@ -28,7 +28,7 @@
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Discovers template tokens and replaces bracketed tokens using registered providers.</summary>
-public interface IAmiTemplateTokenResolver
+public interface IGXAmiTemplateTokenResolver
 {
     /// <summary>Lists tokens available from registered providers in the specified context.</summary>
     /// <param name="context">User, culture and optional target used to determine available tokens.</param>

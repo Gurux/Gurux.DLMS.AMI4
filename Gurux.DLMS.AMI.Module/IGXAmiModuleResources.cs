@@ -30,7 +30,7 @@ using System.Globalization;
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Validated host operations on AMI-owned resources, bound to one module.</summary>
-public interface IAmiModuleResources
+public interface IGXAmiModuleResources
 {
     /// <summary>Returns the translated text, or the original text when no translation is available.</summary>
     /// <param name="cultureInfo">Culture used to select the translation language.</param>

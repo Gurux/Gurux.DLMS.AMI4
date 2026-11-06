@@ -34,7 +34,7 @@ namespace Gurux.DLMS.AMI.Module
     /// Provides a Blazor settings editor with JSON initialization, validation hooks, and serialized save results.
     /// </summary>
     /// <typeparam name="TSettings">Settings model with a public parameterless constructor.</typeparam>
-    public abstract class GXAMIModuleSettingsBase<TSettings> : ComponentBase, IAmiModuleSettings
+    public abstract class GXAMIModuleSettingsBase<TSettings> : ComponentBase, IGXAmiModuleSettings
         where TSettings : class, new()
     {
         /// <summary>
@@ -111,7 +111,7 @@ namespace Gurux.DLMS.AMI.Module
         /// <inheritdoc/>
         /// <summary>Validates and serializes settings once, resetting the saved flag when validation or serialization fails.</summary>
         /// <returns>Serialized settings, or null when this instance has already saved its settings or exposes no readable settings property.</returns>
-        string? IAmiModuleSettings.Save()
+        string? IGXAmiModuleSettings.Save()
         {
             try
             {
@@ -150,7 +150,7 @@ namespace Gurux.DLMS.AMI.Module
         /// <inheritdoc/>
         /// <summary>Asynchronously validates and serializes settings once, resetting the saved flag when the operation fails.</summary>
         /// <returns>A task containing serialized settings, or null when this instance has already saved its settings or exposes no readable settings property.</returns>
-        async Task<string?> IAmiModuleSettings.SaveAsync()
+        async Task<string?> IGXAmiModuleSettings.SaveAsync()
         {
             if (!_saved)
             {

@@ -25,39 +25,15 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-using System.Text.Json.Serialization;
+namespace Gurux.DLMS.AMI.Module;
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Describes a component that can be displayed inside an AMI UI block.
-    /// </summary>
-    public interface IAmiComponent
-    {
-        /// <summary>
-        /// Gets the display name of the component view.
-        /// </summary>
-        string Name
-        {
-            get;
-        }
-
-        /// <summary>
-        /// Gets the configuration component type, or <see langword="null"/> when no configuration UI is provided.
-        /// </summary>
-        [JsonIgnore]
-        Type? ConfigurationUI
-        {
-            get;
-        }
-
-        /// <summary>
-        /// Gets a CSS icon name or Base64 image, or <see langword="null"/> when no icon is provided.
-        /// </summary>
-        [JsonIgnore]
-        string? Icon
-        {
-            get;
-        }
-    }
-}
+/// <summary>Completed user action, bounded and filtered by the UserActivity module before persistence.</summary>
+/// <param name="Target">Normalized resource target.</param>
+/// <param name="Action">Shared CrudAction byte value.</param>
+/// <param name="CreationTime">Time the completed action was recorded.</param>
+/// <param name="Status">HTTP response status code.</param>
+/// <param name="Duration">Elapsed milliseconds.</param>
+/// <param name="Data">Request text, limited to 1000 characters.</param>
+/// <param name="Reply">Response text, limited to 1000 characters, or null for log-reading endpoints.</param>
+public sealed record AmiUserActivity(string Target, byte Action, DateTimeOffset CreationTime,
+    int Status, int Duration, string Data, string? Reply);

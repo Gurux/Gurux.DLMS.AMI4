@@ -30,7 +30,7 @@ namespace Gurux.DLMS.AMI.Module;
 /// <summary>
 /// Module configuration and durable server-managed state supplied by the host.
 /// </summary>
-public interface IAmiModuleSettingsSnapshot
+public interface IGXAmiModuleSettingsSnapshot
 {
     /// <summary>
     /// Current serialized settings, or <see langword="null"/> when no settings have been supplied.

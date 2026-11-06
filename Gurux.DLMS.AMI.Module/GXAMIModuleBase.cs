@@ -29,7 +29,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Module;
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Base module with no dependencies, no scheduled execution, and lifecycle hooks that complete without work.</summary>
-public abstract class GXAmiModuleBase : IAmiModule
+public abstract class GXAmiModuleBase : IGXAmiModule
 {
     /// <inheritdoc />
     /// <summary>Gets the unique module identifier used by the host.</summary>

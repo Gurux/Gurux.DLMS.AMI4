@@ -31,7 +31,7 @@ namespace Gurux.DLMS.AMI.Module;
 /// <summary>
 /// Metadata, declarations and asynchronous lifecycle of a runtime module.
 /// </summary>
-public interface IAmiModule
+public interface IGXAmiModule
 {
     /// <summary>Unique module identifier.</summary>
     string Id

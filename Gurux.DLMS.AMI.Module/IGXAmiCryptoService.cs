@@ -30,7 +30,7 @@ namespace Gurux.DLMS.AMI.Module
     /// <summary>
     /// Encrypts module secrets and decrypts values protected by the host cryptographic service.
     /// </summary>
-    public interface IAmiCryptoService
+    public interface IGXAmiCryptoService
     {
         /// <summary>
         /// Decrypts a protected byte array.

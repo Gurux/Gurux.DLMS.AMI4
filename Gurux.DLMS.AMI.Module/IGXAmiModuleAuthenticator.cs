@@ -38,7 +38,7 @@ namespace Gurux.DLMS.AMI.Module;
 /// the mapped host user and restricts permissions and roles to that user's current grants.
 /// Do not write a response body or retain the request after this method completes.
 /// </remarks>
-public interface IAmiModuleAuthenticator
+public interface IGXAmiModuleAuthenticator
 {
     /// <summary>Validates credentials for the module-owned endpoint selected for this request.</summary>
     /// <param name="request">HTTP request and scoped module services.</param>

@@ -28,7 +28,7 @@
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Provides template token definitions and values from the server or a module.</summary>
-public interface IAmiTemplateTokenProvider
+public interface IGXAmiTemplateTokenProvider
 {
     /// <summary>Lists tokens available to the user in the specified context.</summary>
     /// <param name="context">User, culture and optional target used to determine available tokens.</param>

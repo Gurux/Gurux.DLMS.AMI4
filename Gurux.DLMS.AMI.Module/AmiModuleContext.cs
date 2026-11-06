@@ -33,9 +33,9 @@ namespace Gurux.DLMS.AMI.Module;
 public sealed class AmiModuleContext
 {
     /// <summary>Validated operations on AMI-owned resources for this module.</summary>
-    public IAmiModuleResources Resources { get; init; } = null!;
+    public IGXAmiModuleResources Resources { get; init; } = null!;
     /// <summary>Host-managed user data restricted to this module.</summary>
-    public IAmiModuleUserSettings UserSettings { get; init; } = null!;
+    public IGXAmiModuleUserSettings UserSettings { get; init; } = null!;
     /// <summary>Unique module identifier.</summary>
     public required string ModuleId
     {
@@ -58,7 +58,7 @@ public sealed class AmiModuleContext
     }
 
     /// <summary>Module settings snapshot.</summary>
-    public required IAmiModuleSettingsSnapshot Settings
+    public required IGXAmiModuleSettingsSnapshot Settings
     {
         get; init;
     }
@@ -68,6 +68,15 @@ public sealed class AmiModuleContext
     {
         get; init;
     }
+
+    /// <summary>Caller cancellation only.</summary>
+    public CancellationToken RequestCancellationToken { get; init; }
+    /// <summary>Graceful shutdown requested.</summary>
+    public CancellationToken StoppingToken { get; init; }
+    /// <summary>Shutdown deadline expired.</summary>
+    public CancellationToken ForcedCancellationToken { get; init; }
+    /// <summary>Module-owned event subscriptions.</summary>
+    public IGXAmiEvents Events { get; init; } = AmiEventHub.None;
 
     /// <summary>Serializer options for the current module operation.</summary>
     public required JsonSerializerOptions JsonOptions

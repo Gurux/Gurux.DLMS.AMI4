@@ -37,7 +37,7 @@ namespace Gurux.DLMS.AMI.Module;
 /// <param name="moduleId">Unique identifier of the module being configured.</param>
 /// <param name="configuration">Host configuration exposed during module configuration.</param>
     /// <param name="settings">Host-provided snapshot for reading module configuration and durable state.</param>
-public sealed partial class AmiModuleBuilder(string moduleId, IConfiguration configuration, IAmiModuleSettingsSnapshot settings)
+public sealed partial class AmiModuleBuilder(string moduleId, IConfiguration configuration, IGXAmiModuleSettingsSnapshot settings)
 {
     /// <summary>Unique module identifier.</summary>
     public string ModuleId { get; } = moduleId;
@@ -47,7 +47,7 @@ public sealed partial class AmiModuleBuilder(string moduleId, IConfiguration con
 
     /// <summary>Module settings snapshot.</summary>
 
-    public IAmiModuleSettingsSnapshot Settings { get; } = settings;
+    public IGXAmiModuleSettingsSnapshot Settings { get; } = settings;
     /// <summary>Services registered in the module scope.</summary>
 
     public IServiceCollection Services { get; } = new ServiceCollection();

@@ -28,7 +28,7 @@
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Host-managed JSON user data, restricted to the bound module.</summary>
-public interface IAmiModuleUserSettings
+public interface IGXAmiModuleUserSettings
 {
     /// <summary>Reads a named value belonging to the specified user in this module.</summary>
     /// <param name="userId">Identifier of the user who owns the module setting.</param>

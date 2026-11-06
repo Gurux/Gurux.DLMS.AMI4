@@ -31,7 +31,7 @@ namespace Gurux.DLMS.AMI.Module
     /// Defines initialization, serialization, and cancellation operations for a module settings editor.
     /// </summary>
     /// <remarks>Save operations return serialized settings for the caller to persist.</remarks>
-    public interface IAmiModuleSettings
+    public interface IGXAmiModuleSettings
     {
         /// <summary>
         /// Initializes the component using the specified settings.

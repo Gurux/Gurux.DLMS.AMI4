@@ -28,7 +28,7 @@
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Displays the host UI confirmation dialog and awaits the user's answer.</summary>
-public interface IAmiConfirmation
+public interface IGXAmiConfirmation
 {
     /// <summary>Returns true only when the user approves; cancel and close return false.</summary>
     /// <param name="title">Title displayed by the host's confirmation dialog.</param>
