@@ -47,6 +47,9 @@
         <None Include="agent.png" Pack="true" PackagePath="\" />
     </ItemGroup>
     <ItemGroup>
+        <Compile Remove="Tests/**" />
+        <EmbeddedResource Remove="Tests/**" />
+        <None Remove="Tests/**" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="agent-release-public.pem" LogicalName="Gurux.DLMS.AMI.Agent.agent-release-public.pem" />
