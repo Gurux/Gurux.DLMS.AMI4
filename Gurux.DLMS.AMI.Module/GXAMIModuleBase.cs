@@ -51,12 +51,15 @@ public abstract class GXAmiModuleBase : IGXAmiModule
     }
     /// <summary>Gets the supported protocol description, or <see langword="null"/> by default.</summary>
     public virtual string? Protocols => null;
-    /// <summary>Gets the help reference, or <see langword="null"/> by default.</summary>
-    public virtual string? Help => null;
+    /// <inheritdoc />
+    public virtual Task<AmiModuleHelp?> GetHelpAsync(CancellationToken cancellationToken) => Task.FromResult<AmiModuleHelp?>(null);
+  
     /// <summary>Gets the module icon, or <see langword="null"/> by default.</summary>
     public virtual string? Icon => null;
+  
     /// <summary>Gets the module's mandatory dependencies; empty by default.</summary>
     public virtual IReadOnlyList<AmiModuleDependency> Dependencies => [];
+  
     /// <summary>Gets whether scheduled execution is supported; <see langword="false"/> by default.</summary>
     public virtual bool CanSchedule => false;
     /// <inheritdoc />

@@ -492,3 +492,25 @@ Registration records `AmiModuleBuilder.ExternalLoginProviderType` and registers 
 Definitions are server-only runtime declarations. `ClientSecret` is excluded from System.Text.Json serialization/deserialization, and the class does not generate a value-bearing `ToString()`. It is not a persistence DTO: save secrets in private module settings. Do not expose definitions to browser APIs or log their credentials. The host must validate endpoint URIs, protocol requirements and scopes, snapshot returned collections, and namespace scheme IDs by their owning module.
 
 This API is additive and separate from `IGXAmiModuleAuthenticator`, which authenticates requests to module-owned endpoints. This increment adds declarations only: the current Server does not yet consume them or register external OAuth/OIDC schemes. The future Server adapter must manage registration and removal with module activation/reload/stop, protocol validation, callbacks, host user linking and sign-in cookies. Shared contracts are unchanged.
+
+## Module help
+
+Override `GetHelpAsync(CancellationToken)` to return an `AmiModuleHelp` with
+`AmiModuleHelpKind.Link`, `Text` or `Markdown`. Return null when help is unavailable
+(the base implementation does this). The host should request help when the user
+opens it, rather than loading it during module discovery. `Value` contains a URL
+for Link and the actual content for Text or Markdown, never a file path.
+
+For fixed help, return `Task.FromResult<AmiModuleHelp?>(new(
+AmiModuleHelpKind.Text, "Module instructions"))`. For file content, use async I/O:
+
+```csharp
+public override async Task<AmiModuleHelp?> GetHelpAsync(CancellationToken cancellationToken)
+{
+    string text = await File.ReadAllTextAsync(helpPath, cancellationToken);
+    return new AmiModuleHelp(AmiModuleHelpKind.Markdown, text);
+}
+```
+
+The former `Help` property has been removed; modules implementing `IGXAmiModule`
+directly must implement this method. Host rendering is separate from this contract.
