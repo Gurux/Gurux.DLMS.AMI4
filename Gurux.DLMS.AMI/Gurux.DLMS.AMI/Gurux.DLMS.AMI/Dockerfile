@@ -30,6 +30,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 RUN mkdir -p /data /app/Modules && chown app:app /app /data /app/Modules
+# Set Server__Address to the externally reachable URL when starting the container.
 ENV ASPNETCORE_ENVIRONMENT=Production \
     ASPNETCORE_HTTP_PORTS=8080 \
     Database__Type=SQLite \
