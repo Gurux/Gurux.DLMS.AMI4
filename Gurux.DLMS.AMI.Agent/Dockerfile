@@ -28,23 +28,24 @@
 # Build with repository root as context: docker build -f Gurux.DLMS.AMI.Agent/Dockerfile .
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
 WORKDIR /app
+# Registration and local script compilation write beneath the application directory.
+RUN chown app:app /app
 USER $APP_UID
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj", "Gurux.DLMS.AMI.Agent/"]
-COPY ["Gurux.DLMS.AMI.Http/Gurux.DLMS.AMI.Http.csproj", "Gurux.DLMS.AMI.Http/"]
 COPY ["Gurux.DLMS.AMI.Shared/Gurux.DLMS.AMI.Shared.csproj", "Gurux.DLMS.AMI.Shared/"]
-RUN dotnet restore Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj
+COPY ["Gurux.DLMS.AMI.Script/Gurux.DLMS.AMI.Script.csproj", "Gurux.DLMS.AMI.Script/"]
+RUN --mount=type=cache,id=ami-nuget,target=/root/.nuget/packages,sharing=locked \
+    dotnet restore "Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj" -p:Configuration=$BUILD_CONFIGURATION
 COPY Gurux.DLMS.AMI.Agent/ Gurux.DLMS.AMI.Agent/
-COPY Gurux.DLMS.AMI.Http/ Gurux.DLMS.AMI.Http/
 COPY Gurux.DLMS.AMI.Shared/ Gurux.DLMS.AMI.Shared/
-RUN dotnet publish Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+COPY Gurux.DLMS.AMI.Script/ Gurux.DLMS.AMI.Script/
+RUN --mount=type=cache,id=ami-nuget,target=/root/.nuget/packages,sharing=locked \
+    dotnet publish "Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj" -c $BUILD_CONFIGURATION --no-restore -o /app/publish -p:UseAppHost=false
 
 FROM base AS final
-COPY --from=build --chown=app:app /app/publish .
-USER root
-RUN chown app:app /app
-USER $APP_UID
+COPY --from=build --chown=app:app /app/publish/ ./
 ENTRYPOINT ["dotnet", "Gurux.DLMS.AMI.Agent.dll"]

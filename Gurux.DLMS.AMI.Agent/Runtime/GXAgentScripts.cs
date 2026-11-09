@@ -32,6 +32,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Threading.Channels;
+using System.Text.Json;
 using Gurux.DLMS.AMI.Script;
 using Gurux.DLMS.AMI.Agent.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
@@ -63,6 +64,8 @@ internal sealed class GXAgentScripts
     private readonly HashSet<Guid> Denied = [];
     private ConditionalWeakTable<GXScriptMethod, Version> prepared = [];
     private int generation;
+    private sealed record Compilation(string Key, byte[] Image);
+    private readonly Dictionary<Guid, Compilation> compilations = [];
 
     /// <summary>Fetches and validates a configured method before its listener/worker is started.</summary>
     internal async Task<GXScriptMethod> LoadAsync(Guid methodId, Type?[] parameterTypes, CancellationToken token = default)
@@ -76,7 +79,7 @@ internal sealed class GXAgentScripts
                 initial = generation;
             }
 
-            var candidate = await DownloadAsync(methodId, parameterTypes, token);
+            var candidate = await DownloadAsync(methodId, parameterTypes, initial, token);
             lock (Gate)
             {
                 if (initial != generation)
@@ -216,7 +219,7 @@ internal sealed class GXAgentScripts
 
             foreach (var version in previous)
             {
-                candidates.Add(await DownloadAsync(version.Method.Id, version.Parameters, token));
+                candidates.Add(await DownloadAsync(version.Method.Id, version.Parameters, initial, token));
             }
 
             if (candidates.Select(v => v.Hash).Distinct().Skip(1).Any())
@@ -280,17 +283,76 @@ internal sealed class GXAgentScripts
         Denied.Remove(candidate.Method.Id);
     }
 
-    private async Task<Version> DownloadAsync(Guid methodId, Type?[] types, CancellationToken token)
+    private async Task<Version> DownloadAsync(Guid methodId, Type?[] types, int expectedGeneration, CancellationToken token)
     {
-        using var response = await client.PostAsJsonAsync("/api/Script/List", new ListScripts
+        var script = await FetchAsync(methodId, false, token);
+        if (script.CompilationDependencies?.Count is not > 0)
         {
-            Select = ["Assembly"],
-            Filter = new GXScript { Methods = [new GXScriptMethod { Id = methodId }] }
-        }, token);
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<ListScriptsResponse>(cancellationToken: token);
-        var script = result?.Scripts?.SingleOrDefault(s => s.Methods?.Any(m => m.Id == methodId) == true)
-            ?? throw new HttpRequestException($"Script method {methodId} is no longer accessible.", null, HttpStatusCode.Forbidden);
+            throw new InvalidOperationException("Script dependency metadata is missing. Rebuild the script on the server.");
+        }
+        if (script.ByteAssembly?.Length is not > 0)
+        {
+            throw new InvalidOperationException("A compiled script assembly is required.");
+        }
+        var localVersions = GXScriptCompiler.GetAvailableVersions();
+        // DLL and dependency rows can be read across a concurrent server rebuild.
+        // Never trust separately read metadata to authorize an incompatible image.
+        if (!GXScriptCompiler.Matches(script.CompilationDependencies, localVersions) ||
+            !GXScriptCompiler.Matches(GXScriptCompiler.ReadDependencies(script.ByteAssembly), localVersions))
+        {
+            var source = await FetchAsync(methodId, true, token);
+            if (source.Id != script.Id || string.IsNullOrEmpty(script.ConcurrencyStamp) ||
+                source.ConcurrencyStamp != script.ConcurrencyStamp ||
+                source.ByteAssembly == null || script.ByteAssembly == null ||
+                !source.ByteAssembly.SequenceEqual(script.ByteAssembly) ||
+                !SameDependencies(script.CompilationDependencies, source.CompilationDependencies))
+            {
+                throw new InvalidOperationException("The script changed while its source was downloaded. Retry preparation.");
+            }
+            if (string.IsNullOrWhiteSpace(source.SourceCode))
+            {
+                throw new InvalidOperationException("Script source is unavailable for local compilation. Rebuild the script or update the agent.");
+            }
+            var key = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new {
+                source.Id, source.SourceCode, source.Namespaces, source.Language,
+                Versions = localVersions.OrderBy(v => v.Key, StringComparer.Ordinal)
+            })));
+            byte[]? image = null;
+            lock (Gate)
+            {
+                if (compilations.TryGetValue(source.Id, out var cached) && cached.Key == key)
+                {
+                    image = cached.Image;
+                }
+            }
+            if (image == null)
+            {
+                image = await Task.Run(() =>
+                {
+                    var errors = new List<GXScriptException>();
+                    var bytes = GXScriptCompiler.Compile(source.Id.ToString(), source.Language,
+                        source.SourceCode, source.Namespaces, errors, null);
+                    if (bytes == null || errors.Count != 0)
+                    {
+                        throw new InvalidOperationException("Local script compilation failed. Update the agent if the source requires a newer API. " +
+                            string.Join("; ", errors.Select(e => $"{e.Id} (line {e.Line}): {e.Message}")));
+                    }
+                    return bytes;
+                }, token);
+                token.ThrowIfCancellationRequested();
+                lock (Gate)
+                {
+                    if (generation != expectedGeneration)
+                    {
+                        throw new OperationCanceledException("Script catalog was reset.");
+                    }
+                    compilations[source.Id] = new Compilation(key, image);
+                }
+            }
+            script = source;
+            script.ByteAssembly = image;
+            script.CompilationDependencies = GXScriptCompiler.ReadDependencies(image);
+        }
         var method = script.Methods!.Single(m => m.Id == methodId);
         if (script.ByteAssembly?.Length is not > 0 || string.IsNullOrWhiteSpace(method.Name))
         {
@@ -313,6 +375,24 @@ internal sealed class GXAgentScripts
         }
     }
 
+    private async Task<GXScript> FetchAsync(Guid methodId, bool source, CancellationToken token)
+    {
+        using var response = await client.PostAsJsonAsync("/api/Script/List", new ListScripts
+        {
+            Select = source ? ["Assembly", "SourceCode", "CompilationDependencies"] : ["Assembly", "CompilationDependencies"],
+            Filter = new GXScript { Methods = [new GXScriptMethod { Id = methodId }] }
+        }, token);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<ListScriptsResponse>(cancellationToken: token);
+        return result?.Scripts?.SingleOrDefault(s => s.Methods?.Any(m => m.Id == methodId) == true)
+            ?? throw new HttpRequestException($"Script method {methodId} is no longer accessible.", null, HttpStatusCode.Forbidden);
+    }
+
+    private static bool SameDependencies(List<GXScriptDependency> first, List<GXScriptDependency>? second)
+        => second != null && first.OrderBy(d => d.Name, StringComparer.Ordinal)
+            .Select(d => (d.Name, d.AssemblyVersion)).SequenceEqual(second.OrderBy(d => d.Name, StringComparer.Ordinal)
+                .Select(d => (d.Name, d.AssemblyVersion)));
+
     /// <summary>Releases unused contexts on worker shutdown; running contexts retain their own lifetimes.</summary>
     internal void Clear()
     {
@@ -326,6 +406,7 @@ internal sealed class GXAgentScripts
 
             prepared = [];
             Latest.Clear();
+            compilations.Clear();
             Denied.Clear();
         }
     }

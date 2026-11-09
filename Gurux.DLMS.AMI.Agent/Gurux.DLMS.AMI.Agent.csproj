@@ -37,7 +37,7 @@
     <ItemGroup>
         <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
         <PackageReference Include="Gurux.DLMS.AMI.Http" Version="4.1.2611.501" />
-        <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.1.2611.501" />
+        <ProjectReference Include="../Gurux.DLMS.AMI.Shared/Gurux.DLMS.AMI.Shared.csproj" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.14" />
@@ -46,11 +46,6 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="agent.png" Pack="true" PackagePath="\" />
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Remove="Tests/**" />
-        <EmbeddedResource Remove="Tests/**" />
-        <None Remove="Tests/**" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="agent-release-public.pem" LogicalName="Gurux.DLMS.AMI.Agent.agent-release-public.pem" />
@@ -69,7 +64,7 @@
     </Target>
     <ItemGroup>
         <Using Include="Gurux.DLMS.AMI.Http" />
-        <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.1.2611.501" />
+        <ProjectReference Include="../Gurux.DLMS.AMI.Script/Gurux.DLMS.AMI.Script.csproj" />
         <PackageReference Include="Gurux.Net" Version="8.4.2604.201" />
         <PackageReference Include="Gurux.Serial" Version="8.4.2503.603" />
         <PackageReference Include="Gurux.Terminal" Version="8.4.2503.602" />

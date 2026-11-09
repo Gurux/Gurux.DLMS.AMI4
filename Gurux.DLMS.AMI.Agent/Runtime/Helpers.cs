@@ -27,7 +27,6 @@
 
 using Gurux.DLMS.AMI.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using System.Text;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
@@ -38,67 +37,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             string script,
             string? additionalNamespaces)
         {
-            if (string.IsNullOrEmpty(script))
-            {
-                throw new ArgumentNullException(nameof(script), "Invalid script.");
-            }
-            List<GXScriptException> errors = [];
-            StringBuilder sb = new();
-            List<string> namespaces =
-            [
-                "System",
-                "System.Linq",
-                "System.Linq.Expressions",
-                "System.Collections.Generic",
-                "Gurux.Common",
-                "Gurux.DLMS.Enums",
-                "Gurux.DLMS.AMI.Script",
-                "Gurux.DLMS.AMI.Shared.DIs",
-                "Gurux.DLMS.AMI.Shared.DTOs",
-                "Gurux.DLMS.AMI.Shared.DTOs.Enums",
-                "Gurux.DLMS.AMI.Shared.DTOs.Agent",
-                "Gurux.DLMS.AMI.Shared.DTOs.Authentication",
-                "Gurux.DLMS.AMI.Shared.DTOs.Content",
-                "Gurux.DLMS.AMI.Shared.DTOs.ComponentView",
-                "Gurux.DLMS.AMI.Shared.DTOs.Device",
-                "Gurux.DLMS.AMI.Shared.DTOs.Gateway",
-                "Gurux.DLMS.AMI.Shared.DTOs.KeyManagement",
-                "Gurux.DLMS.AMI.Shared.DTOs.Manufacturer",
-                "Gurux.DLMS.AMI.Shared.DTOs.Module",
-                "Gurux.DLMS.AMI.Shared.DTOs.Schedule",
-                "Gurux.DLMS.AMI.Shared.DTOs.Script",
-                "Gurux.DLMS.AMI.Shared.DTOs.Subtotal",
-                "Gurux.DLMS.AMI.Shared.DTOs.Report",
-                "Gurux.DLMS.AMI.Shared.DTOs.Trigger",
-                "Gurux.DLMS.AMI.Shared.DTOs.User",
-                "Gurux.DLMS.AMI.Shared.DTOs.Workflow",
-            ];
-            if (!string.IsNullOrEmpty(additionalNamespaces))
-            {
-                namespaces.AddRange(additionalNamespaces.Split(';', StringSplitOptions.RemoveEmptyEntries));
-            }
-            foreach (string it in namespaces)
-            {
-                if (!string.IsNullOrEmpty(it))
-                {
-                    sb.AppendLine("using " + it + ";");
-                }
-            }
-            sb.AppendLine("namespace Gurux.DLMS.AMI.GeneratedScript");
-            sb.AppendLine("{");
-            sb.AppendLine("public class GXAmiScript");
-            sb.AppendLine("{");
-            sb.AppendLine("public GXAmiScript(IGXAmi ami)");
-            sb.AppendLine("{");
-            sb.AppendLine("Ami = ami;");
-            sb.AppendLine("}");
-            sb.AppendLine("public IGXAmi Ami{get;private set;}");
-            sb.AppendLine(script);
-            sb.AppendLine("}");
-            sb.AppendLine("}");
-
-            _ = DateTime.Now;
-            return GXAmiScript.Generate(ScriptLanguage.CSharp, Guid.NewGuid().ToString(), sb.ToString(), errors, null);
+            return GXScriptCompiler.Compile(Guid.NewGuid().ToString(), ScriptLanguage.CSharp,
+                script, additionalNamespaces, [], null);
         }
     }
 }
