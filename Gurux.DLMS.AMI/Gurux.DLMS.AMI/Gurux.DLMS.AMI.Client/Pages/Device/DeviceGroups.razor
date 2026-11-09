@@ -53,14 +53,12 @@
 
 @if (Header)
 {
-    <AuthorizeView Policy="@GXDeviceGroupPolicies.View">
-        <GXMenuControl RightCorner="true">
-            <ChildContent>
-                <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
-                <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" />
-            </ChildContent>
-        </GXMenuControl>
-    </AuthorizeView>
+    <GXMenuControl RightCorner="true">
+        <ChildContent>
+            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXDeviceGroupPolicies.Add" />
+            <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXDeviceGroupPolicies.Delete" />
+        </ChildContent>
+    </GXMenuControl>
 }
 
 <GXViewTable ViewName="Device.DeviceGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXDeviceGroupPolicies.View })"
@@ -95,10 +93,8 @@
     <MenuContent>
         @if (Menu)
         {
-            <AuthorizeView Policy="@GXDeviceGroupPolicies.View">
-                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit"></GXContextMenuItem>
-                <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"></GXContextMenuItem>
-            </AuthorizeView>
+            <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXDeviceGroupPolicies.Edit"></GXContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXDeviceGroupPolicies.Delete"></GXContextMenuItem>
         }
     </MenuContent>
     <HeaderContent>

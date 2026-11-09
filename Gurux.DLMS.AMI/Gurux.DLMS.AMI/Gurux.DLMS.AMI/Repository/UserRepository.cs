@@ -372,8 +372,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Distinct = true;
                 if (!isAdmin)
                 {
-                    //Get only users that are in the same user groups than the user.
+                    // Match ListAsync: non-administrators can read only their own identity.
+                    // Shared user groups grant resource access, not access to other profiles.
                     string callerId = ServerHelpers.GetUserId(User);
+                    arg.Where.And<GXUser>(q => q.Id == callerId);
                     arg.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
                     arg.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
                     arg.Where.And<GXUserGroup>(q => q.Removed == null);
