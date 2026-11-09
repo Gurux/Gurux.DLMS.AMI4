@@ -140,9 +140,9 @@ jobs:
       - name: Package server and Blazor client
         if: steps.release.outputs.published != 'true'
         env:
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          BUILD_BUILDNUMBER: ${{ steps.release.outputs.version }}
         run: |
-          & scripts/publish-ami.ps1 -Version $env:RELEASE_VERSION -OutputDirectory artifacts/ami `
+          & scripts/publish-ami.ps1 -Version $env:BUILD_BUILDNUMBER -OutputDirectory artifacts/ami `
             -UiSourceProject _dependencies/ui/Development/Gurux.UI.Components.csproj
       - name: Create or resume GitHub Release
         run: .github/scripts/agent-release.ps1 -Action Publish -ProductId Gurux.DLMS.AMI -Directory artifacts/ami

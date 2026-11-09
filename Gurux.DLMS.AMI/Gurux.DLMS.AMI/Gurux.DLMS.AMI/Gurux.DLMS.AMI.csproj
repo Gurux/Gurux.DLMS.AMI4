@@ -1,61 +1,63 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <!-- Installed runtime modules are loaded separately, including their static assets. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Modules/**;Tests/**</DefaultItemExcludes>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-Gurux.DLMS.AMI-8aa8ec34-67e1-4a48-9635-55bdbe88805c</UserSecretsId>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..\..</DockerfileContext>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Gurux.Service" Version="3.0.2611.501" />
-    <ProjectReference Include="..\Gurux.DLMS.AMI.Client\Gurux.DLMS.AMI.Client.csproj" />
-    <PackageReference Include="Gurux.DLMS.AMI.Services" Version="4.1.2611.501" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.14" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
-    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="4.0.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-    <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.12" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26400" />
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
-  </ItemGroup>
- 
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <!-- Installed runtime modules are loaded separately, including their static assets. -->
+        <DefaultItemExcludes>$(DefaultItemExcludes);Modules/**;Tests/**</DefaultItemExcludes>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>aspnet-Gurux.DLMS.AMI-8aa8ec34-67e1-4a48-9635-55bdbe88805c</UserSecretsId>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <DockerfileContext>..\..\..</DockerfileContext>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+        <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Gurux.Service" Version="3.0.2611.501" />
+        <ProjectReference Include="..\Gurux.DLMS.AMI.Client\Gurux.DLMS.AMI.Client.csproj" />
+        <PackageReference Include="Gurux.DLMS.AMI.Services" Version="4.1.2611.501" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
+        <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="4.0.1" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+        <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.12" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+        <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26400" />
+        <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Update="Properties\Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Hubs\Enums\" />
-  </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>PublicResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\Gurux.DLMS.AMI.Client\Pages\_Imports.razor" Link="_Imports.razor" />
-  </ItemGroup>
-  <ItemGroup>
-    <Using Include="Gurux.DLMS.AMI.Http" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(AmiReleaseBuild)' == 'true'">
-    <Content Remove="appsettings.Development*.json" />
-  </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Hubs\Enums\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\Gurux.DLMS.AMI.Client\Pages\_Imports.razor" Link="_Imports.razor" />
+    </ItemGroup>
+    <ItemGroup>
+        <Using Include="Gurux.DLMS.AMI.Http" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(AmiReleaseBuild)' == 'true'">
+        <Content Remove="appsettings.Development*.json" />
+    </ItemGroup>
 </Project>
