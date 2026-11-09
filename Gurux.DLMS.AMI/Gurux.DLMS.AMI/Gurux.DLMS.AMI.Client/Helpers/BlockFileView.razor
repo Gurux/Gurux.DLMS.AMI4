@@ -1,0 +1,90 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@inject HttpClient Http
+@implements IDisposable
+
+@if (_error)
+{
+    <p role="alert">@Properties.Resources.UnableToLoadTheBlockContentFile</p>
+}
+else if (_content != null)
+{
+    <div class="markup">@((MarkupString)_content)</div>
+}
+
+@code {
+    [Parameter]
+    public Guid BlockId { get; set; }
+
+    private Guid? _loadedId;
+    private string? _content;
+    private bool _error;
+    private CancellationTokenSource? _request;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == BlockId)
+        {
+            return;
+        }
+        _request?.Cancel();
+        _request?.Dispose();
+        var request = _request = new CancellationTokenSource();
+        var id = BlockId;
+        _loadedId = id;
+        _content = null;
+        _error = false;
+        try
+        {
+            var content = await Http.GetStringAsync($"api/Block/Content/{id}", request.Token);
+            if (!request.IsCancellationRequested && BlockId == id)
+            {
+                _content = content;
+            }
+        }
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
+        {
+        }
+        catch (HttpRequestException)
+        {
+            if (!request.IsCancellationRequested && BlockId == id)
+            {
+                _error = true;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        _request?.Cancel();
+        _request?.Dispose();
+    }
+}
+

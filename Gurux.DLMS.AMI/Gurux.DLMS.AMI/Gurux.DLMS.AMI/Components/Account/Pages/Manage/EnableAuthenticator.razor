@@ -1,4 +1,33 @@
-﻿@page "/Account/Manage/EnableAuthenticator"
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/Manage/EnableAuthenticator"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
@@ -6,57 +35,66 @@
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
 @using Gurux.DLMS.AMI.Data
+@using Gurux.DLMS.AMI.Module
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 @inject UrlEncoder UrlEncoder
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<EnableAuthenticator> Logger
+@inject IGXAmiModuleServices ModuleServices
 
-<PageTitle>Configure authenticator app</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ConfigureAuthenticatorApp</PageTitle>
 
 @if (recoveryCodes is not null)
 {
     <ShowRecoveryCodes RecoveryCodes="recoveryCodes.ToArray()" StatusMessage="@message" />
 }
+else if (!enrollmentEnabled)
+{
+    <p>@Gurux.DLMS.AMI.Properties.Resources.AuthenticatorEnrollmentHasBeenDisabledByAnAdministratorExistingAuthenticatorLoginsRem</p>
+}
 else
 {
     <StatusMessage Message="@message" />
-    <h3>Configure authenticator app</h3>
+    <h3>@Gurux.DLMS.AMI.Properties.Resources.ConfigureAuthenticatorApp</h3>
     <div>
-        <p>To use an authenticator app go through the following steps:</p>
+        <p>@Gurux.DLMS.AMI.Properties.Resources.ToUseAnAuthenticatorAppGoThroughTheFollowingSteps</p>
         <ol class="list">
             <li>
                 <p>
-                    Download a two-factor authenticator app like Microsoft Authenticator for
-                    <a href="https://go.microsoft.com/fwlink/?Linkid=825072">Android</a> and
-                    <a href="https://go.microsoft.com/fwlink/?Linkid=825073">iOS</a> or
-                    Google Authenticator for
-                    <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&amp;hl=en">Android</a> and
+                    @Gurux.DLMS.AMI.Properties.Resources.DownloadATwoFactorAuthenticatorAppLikeMicrosoftAuthenticatorFor
+                    <a href="https://go.microsoft.com/fwlink/?Linkid=825072">Android</a> @Gurux.DLMS.AMI.Properties.Resources.And
+                    <a href="https://go.microsoft.com/fwlink/?Linkid=825073">iOS</a> @Gurux.DLMS.AMI.Properties.Resources.OrGoogleAuthenticatorFor
+                    <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&amp;hl=en">Android</a> @Gurux.DLMS.AMI.Properties.Resources.And
                     <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8">iOS</a>.
                 </p>
             </li>
             <li>
-                <p>Scan the QR Code or enter this key <kbd>@sharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
-                <div class="alert alert-info">Learn how to <a href="https://go.microsoft.com/fwlink/?Linkid=852423">enable QR code generation</a>.</div>
-                <div></div>
-                <div data-url="@authenticatorUri"></div>
+                <p>@Gurux.DLMS.AMI.Properties.Resources.ScanTheQRCodeOrEnterThisKey <kbd>@sharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
+                @if (qrCodeImage is not null)
+                {
+                    <img src="@qrCodeImage" alt="@Gurux.DLMS.AMI.Properties.Resources.ScanThisQRCodeWithYourAuthenticatorApp" class="img-fluid" width="300" height="300" />
+                }
+                else
+                {
+                    <p>@Gurux.DLMS.AMI.Properties.Resources.QRCodeGenerationIsUnavailableEnterTheKeyAboveIntoYourAuthenticatorApp</p>
+                }
             </li>
             <li>
                 <p>
-                    Once you have scanned the QR code or input the key above, your two factor authentication app will provide you
-                    with a unique code. Enter the code in the confirmation box below.
+                    @Gurux.DLMS.AMI.Properties.Resources.OnceYouHaveScannedTheQRCodeOrInputTheKeyAboveYourTwoFactorAuthenticationAppWillProvid
                 </p>
-                <div class="row">
+                <div class="row mx-0">
                     <div class="col-xl-6">
-                        <EditForm Model="Input" FormName="send-code" OnValidSubmit="OnValidSubmitAsync" method="post">
+                        <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" FormName="send-code" OnValidSubmit="OnValidSubmitAsync" method="post">
                             <DataAnnotationsValidator />
                             <div class="form-floating mb-3">
-                                <InputText @bind-Value="Input.Code" id="Input.Code" class="form-control" autocomplete="off" placeholder="Enter the code" />
-                                <label for="Input.Code" class="control-label form-label">Verification Code</label>
+                                <InputText @bind-Value="Input.Code" id="Input.Code" class="form-control" autocomplete="off" placeholder="@Gurux.DLMS.AMI.Properties.Resources.EnterTheCode" />
+                                <label for="Input.Code" class="control-label form-label">@Gurux.DLMS.AMI.Properties.Resources.VerificationCode</label>
                                 <ValidationMessage For="() => Input.Code" class="text-danger" />
                             </div>
-                            <button type="submit" class="w-100 btn btn-lg btn-primary">Verify</button>
+                            <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.Verify</button>
                             <ValidationSummary class="text-danger" role="alert" />
                         </EditForm>
                     </div>
@@ -72,24 +110,37 @@ else
     private string? message;
     private ApplicationUser user = default!;
     private string? sharedKey;
-    private string? authenticatorUri;
+    private string? qrCodeImage;
+    private bool enrollmentEnabled;
     private IEnumerable<string>? recoveryCodes;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
+        HttpContext.Response.Headers.CacheControl = "no-store";
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        enrollmentEnabled = (await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted)).TotpEnrollmentEnabled;
+        if (!enrollmentEnabled)
+        {
+            return;
+        }
 
         await LoadSharedKeyAndQrCodeUriAsync(user);
     }
 
     private async Task OnValidSubmitAsync()
     {
+        // Recheck on POST: hiding the setup UI alone does not prevent enrollment.
+        if (!(await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted)).TotpEnrollmentEnabled)
+        {
+            return;
+        }
         // Strip spaces and hyphens
         var verificationCode = Input.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
 
@@ -98,7 +149,7 @@ else
 
         if (!is2faTokenValid)
         {
-            message = "Error: Verification code is invalid.";
+            message = Gurux.DLMS.AMI.Properties.Resources.ErrorVerificationCodeIsInvalid;
             return;
         }
 
@@ -106,7 +157,7 @@ else
         var userId = await UserManager.GetUserIdAsync(user);
         Logger.LogInformation("User with ID '{UserId}' has enabled 2FA with an authenticator app.", userId);
 
-        message = "Your authenticator app has been verified.";
+        message = Gurux.DLMS.AMI.Properties.Resources.YourAuthenticatorAppHasBeenVerified;
 
         if (await UserManager.CountRecoveryCodesAsync(user) == 0)
         {
@@ -131,7 +182,18 @@ else
         sharedKey = FormatKey(unformattedKey!);
 
         var email = await UserManager.GetEmailAsync(user);
-        authenticatorUri = GenerateQrCodeUri(email!, unformattedKey!);
+        var authenticatorUri = GenerateQrCodeUri(email!, unformattedKey!);
+        try
+        {
+            var png = await ModuleServices.InvokeAsync<IGXAmiQrCodeGenerator, byte[]>(
+                (generator, _) => Task.FromResult(generator.GeneratePng(authenticatorUri)), HttpContext.RequestAborted);
+            qrCodeImage = "data:image/png;base64," + Convert.ToBase64String(png);
+        }
+        catch (AmiModuleUnavailableException)
+        {
+            // Manual enrollment remains available when the optional module is stopped.
+            qrCodeImage = null;
+        }
     }
 
     private string FormatKey(string unformattedKey)
@@ -156,7 +218,7 @@ else
         return string.Format(
             CultureInfo.InvariantCulture,
             AuthenticatorUriFormat,
-            UrlEncoder.Encode("Microsoft.AspNetCore.Identity.UI"),
+            UrlEncoder.Encode("Gurux.DLMS.AMI"),
             UrlEncoder.Encode(email),
             unformattedKey);
     }
@@ -164,9 +226,9 @@ else
     private sealed class InputModel
     {
         [Required]
-        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [StringLength(7, ErrorMessageResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources), ErrorMessageResourceName = nameof(Gurux.DLMS.AMI.Properties.Resources.The0MustBeAtLeast2AndAtMax1CharactersLong), MinimumLength = 6)]
         [DataType(DataType.Text)]
-        [Display(Name = "Verification Code")]
+        [Display(Name = nameof(Gurux.DLMS.AMI.Properties.Resources.VerificationCode), ResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources))]
         public string Code { get; set; } = "";
     }
 }

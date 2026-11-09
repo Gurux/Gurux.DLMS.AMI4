@@ -1,0 +1,250 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@namespace Gurux.DLMS.AMI.Client.Pages.KeyManagement
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+<GXHelpContext Topic="KeyManagementGeneral" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting"
+                               @bind-Value="Active.Name"
+                               class="form-control" />
+                    <ValidationMessage For="@(() => Active.Name)" />
+                </div>
+                <div class="form-group">
+                    <GXInputHexAscii Disabled="@(Action == CrudAction.Delete)"
+                                   @bind-Value="Active.SystemTitle"
+                                   Title="@Properties.Resources.SystemTitle">
+                    </GXInputHexAscii>
+                    <ValidationMessage For="@(() => Active.SystemTitle)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Device</label>
+                    <GXDropdownSearch class="form-control"
+                                    Id="KeyManagement.device"
+                                    Formatter="@((GXDevice e) => e.Name)"
+                                    RememberValue="true"
+                                    @bind-Value="Device"
+                                    ItemsProvider="@GetItems">
+                    </GXDropdownSearch>
+                </div>
+                <KeyManagementKeys Parent="this"></KeyManagementKeys>
+                <div class="form-group">
+                    <label>@Properties.Resources.KeyStorage</label>
+                    <GXInputDropdown @bind-Value="Active.ProviderId" Disabled="@(Active.Id != Guid.Empty)" RememberValue="false" Items="@(new[] { string.Empty, "KmipClient" })" Formatter="@(value => value == "KmipClient" ? Properties.Resources.KMIPServer : Properties.Resources.LocalEncryptedStorage)" />
+                </div>
+                @if (Active.ProviderId == "KmipClient")
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.KMIPConnectionName</label>
+                        <InputText @bind-Value="Active.ProviderConnectionId" disabled="@(Active.Id != Guid.Empty)" />
+                    </div>
+                }
+                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                    Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                @if (Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+
+    private GXDevice Device
+    {
+        get
+        {
+            if (Active?.Device == null)
+            {
+                //Return empty device.
+                return new GXDevice() { Name = Properties.Resources.Default };
+            }
+            return Active.Device;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Device = value;
+            }
+        }
+    }
+    [CascadingParameter] public KeyManagement Owner { get; set; } = default!;
+    private bool DeleteTarget { get => Owner.DeleteTarget; set => Owner.DeleteTarget = value; }
+
+    [Parameter, EditorRequired]
+    public GXKeyManagement? Active { get; set; }
+
+    private string? GetName(GXDevice target)
+    {
+        return target.Name;
+    }
+
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
+    {
+        GXDevice? filter = null;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            //Search devices by name
+            filter = new GXDevice() { Name = request.Filter };
+        }
+        ListDevices req = new ListDevices()
+        {
+            Index = request.StartIndex,
+            Count = request.Count,
+            Filter = filter,
+            OrderBy = request.OrderBy,
+            Descending = request.Descending,
+            AllUsers = request.ShowAllUserData
+        };
+        var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
+        List<GXDevice> list = new();
+        //Add empty device.
+        list.Add(new GXDevice() { Name = Properties.Resources.Default });
+        if (ret.Devices != null)
+        {
+            list.AddRange(ret.Devices);
+        }
+        return new ItemsProviderResult<GXDevice>(list, ClientHelpers.ToVirtualizedCount(ret.Count));
+    }
+
+
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGeneral.OnInitializedAsync");
+            if (Active == null && Id != null)
+            {
+                using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagement);
+                //Get key management data.
+                var tmp = (await Http.GetAsJsonAsync<GetKeyManagementResponse>(string.Format("api/KeyManagement?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGeneral.OnInitializedAsync");
+        }
+    }
+
+
+
+}

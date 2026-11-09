@@ -1,219 +1,185 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
-using System.Security.Claims;
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
-using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Shared.DTOs.Notification;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Security.Claims;
+
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <inheritdoc />
-    public class NotificationRepository : INotificationRepository
+    public partial class NotificationRepository : INotificationRepository
     {
         private readonly ClaimsPrincipal User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
-        private readonly IUserRepository _userRepository;
+        private readonly IDbConnectionFactory _dbFactory;
+        private readonly NotificationCache _notificationCache;
+        private readonly INotificationTypeRepository _notificationTypeRepository;
         private readonly IServiceProvider _serviceProvider;
-        private readonly INotificationGroupRepository _notificationGroupRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly IRoleRepository _roleRepository;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public NotificationRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
-            IUserRepository userRepository,
+        public NotificationRepository(
+            IDbConnectionFactory dbFactory,
             IServiceProvider serviceProvider,
-            INotificationGroupRepository notificationGroupRepository,
-            IGXEventsNotifier eventsNotifier,
-            GXPerformanceSettings performanceSettings)
+            IHttpContextAccessor httpContextAccessor,
+            INotificationTypeRepository notificationTypeRepository,
+            IRoleRepository roleRepository,
+            NotificationCache notificationCache,
+            IAuthorizationService authorizationService)
         {
-            var user = contextAccessor?.User;
-            if (user == null ||
-                (!user.IsInRole(GXRoles.Admin) &&
-                !user.IsInRole(GXRoles.User) &&
-                !user.IsInRole(GXRoles.Notification) &&
-                !user.IsInRole(GXRoles.NotificationManager)))
+            if (httpContextAccessor.HttpContext?.User == null)
             {
                 throw new UnauthorizedAccessException();
             }
-            User = user;
-            _host = host;
-            _eventsNotifier = eventsNotifier;
-            _userRepository = userRepository;
+            _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
-            _notificationGroupRepository = notificationGroupRepository;
-            _performanceSettings = performanceSettings;
-        }
-
-        /// <summary>
-        /// Returns notificated users.
-        /// </summary>
-        /// <param name="connection">DB connection.</param>
-        /// <param name="performanceSettings">Performance settings tells is server notifying the actions.</param>
-        /// <param name="users">Users who can be notified.</param>
-        /// <param name="targetType">Target type.</param>
-        /// <param name="action">Action.</param>
-        /// <returns>List of notified users or null if server doesn't use notifications.</returns>
-        internal static List<string>? GetNotifiedUsers(
-            GXDbConnection connection,
-            GXPerformanceSettings performanceSettings,
-            List<string>? users,
-            string targetType,
-            NotificationAction action)
-        {
-            if (users != null && users.Any() &&
-                performanceSettings.Notification(targetType))
-            {
-                GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
-                args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-                args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-                args.Joins.AddLeftJoin<GXUserGroup, GXUserGroupNotificationGroup>(a => a.Id, b => b.UserGroupId);
-                args.Joins.AddLeftJoin<GXUserGroupNotificationGroup, GXNotificationGroup>(a => a.NotificationGroupId, b => b.Id);
-                args.Joins.AddLeftJoin<GXNotificationGroup, GXNotificationGroupNotification>(a => a.Id, b => b.NotificationGroupId);
-                args.Joins.AddLeftJoin<GXNotificationGroupNotification, GXNotification>(a => a.NotificationId, b => b.Id);
-                UInt16 a = (UInt16)action;
-                args.Where.And<GXNotification>(w => (w.Action & a) != 0 && w.Targets.Contains(targetType));
-                List<GXUser> tmp = connection.Select<GXUser>(args);
-                return tmp.Select(s => s.Id).ToList();
-            }
-            return null;
-        }
-
-        /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? notificationId)
-        {
-            GXSelectArgs args = GXQuery.GetUsersByNotification(s => s.Id,
-                ServerHelpers.GetUserId(User), notificationId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
-            }
-            return ret;
-        }
-
-        /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? notificationIds)
-        {
-            GXSelectArgs args = GXQuery.GetUsersByNotifications(s => s.Id,
-                ServerHelpers.GetUserId(User), notificationIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
-            }
-            return ret;
+            User = httpContextAccessor.HttpContext.User;
+            _notificationCache = notificationCache;
+            _notificationTypeRepository = notificationTypeRepository;
+            _roleRepository = roleRepository;
+            _authorizationService = authorizationService;
         }
 
         /// <inheritdoc />
         public async Task DeleteAsync(
             IEnumerable<Guid> notifications,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.NotificationManager))
+            notifications = notifications.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXNotification, Guid>(_dbFactory, User, _serviceProvider, notifications,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.Delete);
+
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.Select<GXNotification>(a => a.Id, q => notifications.Contains(q.Id));
-            List<GXNotification> list = _host.Connection.Select<GXNotification>(arg);
-            DateTime now = DateTime.Now;
-            Dictionary<GXNotification, List<string>> updates = new();
-            foreach (GXNotification it in list)
-            {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(it.Id);
-                if (delete)
+                GXSelectArgs arg = GXSelectArgs.Select<GXNotification>(a => a.Id, q => notifications.Contains(q.Id));
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                List<GXNotification> list = connection.Select<GXNotification>(arg);
+                foreach (var item in list)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXNotification>(it.Id));
+                    await ReadAsync(item.Id, null, cancellationToken);
+                }
+
+                DateTime now = DateTime.Now;
+                foreach (GXNotification it in list)
+                {
+                    it.Removed = now;
+                    if (delete)
+                    {
+                        await connection.DeleteAsync(GXDeleteArgs.DeleteById<GXNotification>(it.Id), cancellationToken);
+                    }
+                    else
+                    {
+                        connection.Update(GXUpdateArgs.Update(it, q => q.Removed!));
+                    }
+                    string? userId = ServerHelpers.GetUserId(User);
+                    _notificationCache.Add(userId, new GXTarget(GXNotificationPolicies.Delete, it.Id));
+                }
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(notifications, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                    throw;
                 }
-                updates[it] = users;
             }
-            foreach (var it in updates)
-            {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.Notification, NotificationAction.Remove);
-                if (users == null)
-                {
-                    break;
-                }
-                GXNotification tmp = new GXNotification() { Id = it.Key.Id };
-                await _eventsNotifier.NotificationDelete(users, [tmp]);
-            }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXNotification[]> ListAsync(
+        public async Task<IEnumerable<GXNotification>> ListAsync(
             ListNotifications? request,
             ListNotificationResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.View);
+            if (User?.Identity?.IsAuthenticated != true)
             {
-                //Admin can see all the notifications.
-                arg = GXSelectArgs.SelectAll<GXNotification>();
+                return [];
             }
-            else
-            {
-                string? userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetNotificationsByUser(s => "*", userId);
+            var owner = new GXUser { Id = ServerHelpers.GetUserId(User) };
+            var arg = GXSelectArgs.SelectAll<GXNotification>(n => n.Creator == owner);
+            arg.Joins.AddInnerJoin<GXNotification, GXUser>(n => n.Creator!, u => u.Id!);
+            if (request?.Filter == null)
+                {
+                arg.Where.And<GXNotification>(n => n.Removed == null);
             }
-            if (request != null)
+            //Return notification type with all queries since it's a small table and usually needed for display.
+            arg.Columns.Add<GXNotificationType>(c => new { c.Id, c.Name, c.Code });
+            arg.Joins.AddInnerJoin<GXNotification, GXNotificationType>(j => j.Type!, j => j.Id);
+            if (request?.Filter != null)
             {
+                if (!string.IsNullOrEmpty(request.Filter.Creator?.Id))
+                {
+                    request.Filter.Creator = new GXUser() { Id = request.Filter.Creator.Id };
+                }
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXNotification>(w => !request.Exclude.Contains(w.Id));
                 }
@@ -229,29 +195,39 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                arg.OrderBy.Add<GXNotification>(q => q.CreationTime);
+                arg.OrderBy.Add<GXNotification>(q => q.CreationTime!);
                 arg.Descending = true;
             }
             arg.Distinct = true;
+            GXDateTimeFilters.Apply<GXNotification>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            var recipient = User;
+            await GXNotificationTypeAccess.RestrictAsync(connection, arg, _authorizationService, recipient, cancellationToken);
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXNotification>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXNotification>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request?.Select != null && request.Select.Contains(TargetType.User))
             {
-                arg.Joins.AddInnerJoin<GXNotification, GXUser>(j => j.Creator, j => j.Id);
-                arg.Columns.Add<GXUser>(c => c.Id);
+                arg.Joins.AddInnerJoin<GXNotification, GXUser>(j => j.Creator!, j => j.Id!);
+                arg.Columns.Add<GXUser>(c => c.Id!);
             }
-            GXNotification[] notifications = (await _host.Connection.SelectAsync<GXNotification>(arg)).ToArray();
+            GXNotification[] notifications = [.. (await connection.SelectAsync<GXNotification>(arg))];
+            await GXNotificationSourceStorage.LoadAsync(connection, notifications, cancellationToken);
             if (response != null)
             {
                 response.Notifications = notifications;
@@ -264,107 +240,102 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXNotification> ReadAsync(Guid id)
+        public async Task<GXNotification> ReadAsync(Guid id, Expression<Func<GXNotification, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            string userId = ServerHelpers.GetUserId(User);
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.View);
+            try
             {
-                //Admin can see all the notifications.
-                arg = GXSelectArgs.SelectAll<GXNotification>(w => w.Id == id);
-                arg.Joins.AddLeftJoin<GXNotification, GXNotificationGroupNotification>(x => x.Id, y => y.NotificationId);
-                arg.Joins.AddLeftJoin<GXNotificationGroupNotification, GXNotificationGroup>(j => j.NotificationGroupId, j => j.Id);
-            }
-            else
-            {
-                arg = GXQuery.GetNotificationsByUser(s => "*", userId, id);
-            }
-            arg.Distinct = true;
-            GXNotification notification = await _host.Connection.SingleOrDefaultAsync<GXNotification>(arg);
-            if (notification == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            //Get groups.
-            arg = GXSelectArgs.Select<GXNotificationGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXNotificationGroup, GXNotificationGroupNotification>(y => y.Id, x => x.NotificationId);
-            arg.Where.And<GXNotificationGroupNotification>(w => w.NotificationId == notification.Id);
-            notification.NotificationGroups = (await _host.Connection.SelectAsync<GXNotificationGroup>(arg)).ToList();
-            //Get agents.
-            arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationAgent>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationAgent, GXAgent>(y => y.AgentId, x => x.Id);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.Agents = (await _host.Connection.SelectAsync<GXAgent>(arg)).ToList();
-            //Get gateways.
-            arg = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationGateway>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationGateway, GXGateway>(y => y.GatewayId, x => x.Id);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.Gateways = (await _host.Connection.SelectAsync<GXGateway>(arg)).ToList();
-            //Get device attributes with own query.
-            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate, s.Index }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationDeviceAttributeTemplate>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationDeviceAttributeTemplate, GXAttributeTemplate>(y => y.AttributeTemplateId, x => x.Id);
-            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(y => y.ObjectTemplate, x => x.Id);
-            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName, s.Attributes });
-            arg.Columns.Exclude<GXObjectTemplate>(e => e.Attributes);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.DeviceAttributeTemplates = (await _host.Connection.SelectAsync<GXAttributeTemplate>(arg)).ToList();
-            //Get devices with own query.
-            arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Template }, w => w.Removed == null);
-            arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id });
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationDevice>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationDevice, GXDevice>(y => y.DeviceId, x => x.Id);
-            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(y => y.Template, x => x.Id);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.Devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToList();
-            //Get device groups with own query.
-            arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name, }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationDeviceGroup>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationDeviceGroup, GXDeviceGroup>(y => y.DeviceGroupId, x => x.Id);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.DeviceGroups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToList();
-            //Get device group attributes with own query.
-            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate, s.Index }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationDeviceGroupAttributeTemplate>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationDeviceGroupAttributeTemplate, GXAttributeTemplate>(y => y.AttributeTemplateId, x => x.Id);
-            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(y => y.ObjectTemplate, x => x.Id);
-            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName, s.Attributes });
-            arg.Columns.Exclude<GXObjectTemplate>(e => e.Attributes);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.DeviceGroupAttributeTemplates = (await _host.Connection.SelectAsync<GXAttributeTemplate>(arg)).ToList();
 
-            //Get agent groups.
-            arg = GXSelectArgs.Select<GXAgentGroup>(s => new { s.Id, s.Name });
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationAgentGroup>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationAgentGroup, GXAgentGroup>(y => y.AgentGroupId, x => x.Id);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.AgentGroups = (await _host.Connection.SelectAsync<GXAgentGroup>(arg)).ToList();
-            //Get gateway groups.
-            arg = GXSelectArgs.Select<GXGatewayGroup>(s => new { s.Id, s.Name });
-            arg.Joins.AddInnerJoin<GXNotification, GXNotificationGatewayGroup>(y => y.Id, x => x.NotificationId);
-            arg.Joins.AddInnerJoin<GXNotificationGatewayGroup, GXGatewayGroup>(y => y.GatewayGroupId, x => x.Id);
-            arg.Where.And<GXNotification>(w => w.Id == notification.Id);
-            notification.GatewayGroups = (await _host.Connection.SelectAsync<GXGatewayGroup>(arg)).ToList();
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName });
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXNotification, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXNotification>(w => w.Id == id);
-            notification.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return notification;
+                var userId = ServerHelpers.GetUserId(User);
+                GXSelectArgs arg = GXQuery.GetNotificationsByUser(s => "*", userId, id);
+                arg.Joins.AddInnerJoin<GXNotification, GXNotificationType>(x => x.Type!, y => y.Id);
+                arg.Columns.Add<GXNotificationType>(c => new { c.Id, c.Name });
+                arg.Distinct = true;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXNotification? notification = await connection.SingleOrDefaultAsync<GXNotification>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                //Get creator with own query. It's faster for some DBs.
+                arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName });
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXNotification, GXUser>(s => s.Creator!, o => o.Id!);
+                arg.Where.And<GXNotification>(w => w.Id == id);
+                notification.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
+                var recipient = User;
+                if (notification.Type == null || !await GXNotificationTypeAccess.AllowsAsync(connection, _authorizationService, recipient, notification.Type.Id, cancellationToken))
+                    {
+                    throw new UnauthorizedAccessException();
+                }
+                await GXNotificationSourceStorage.LoadAsync(connection, [notification], cancellationToken);
+                return notification;
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
+        public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXNotification> notifications,
-            Expression<Func<GXNotification, object?>>? columns)
+            Expression<Func<GXNotification, object>>? columns, CancellationToken cancellationToken = default)
         {
-            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
+            notifications = notifications.ToArray();
+            return await GXHistoryMutation.RunAsync<GXNotification, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, notifications,
+        async () =>
+        {
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
             DateTime now = DateTime.Now;
-            List<Guid> list = new();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            List<Guid> list = [];
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            notifications = [.. notifications];
+            foreach (var notification in notifications)
+            {
+                if (notification.Id == Guid.Empty || columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.Sources)))
+                    {
+                    notification.Sources = GXNotificationSourceStorage.Validate(notification.Sources);
+                }
+                await _authorizationService.EnsureAnyPolicyAsync(User,
+                    notification.Id == Guid.Empty ? GXNotificationPolicies.Add : GXNotificationPolicies.Edit);
+                GXNotification? previous = null;
+                if (notification.Id != Guid.Empty)
+                {
+                    previous = await ReadAsync(notification.Id, null, cancellationToken);
+                }
+                if (!string.IsNullOrWhiteSpace(notification.Creator?.Id) && notification.Creator.Id != creator.Id)
+                    {
+                    throw new UnauthorizedAccessException();
+                }
+                var recipient = User;
+                var type = notification.Type ?? previous?.Type;
+                if (type == null || !await GXNotificationTypeAccess.AllowsAsync(connection, _authorizationService, recipient, type.Id, cancellationToken))
+                    {
+                    throw new UnauthorizedAccessException();
+                }
+                if (notification.Id == Guid.Empty)
+                    {
+                    notification.Creator = new GXUser { Id = ServerHelpers.GetUserId(recipient) };
+                }
+            }
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             try
             {
                 foreach (GXNotification notification in notifications)
@@ -374,557 +345,286 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException(Properties.Resources.InvalidName);
                     }
-                    if (notification.NotificationGroups == null || !notification.NotificationGroups.Any())
-                    {
-                        ListNotificationGroups request = new ListNotificationGroups()
-                        {
-                            Filter = new GXNotificationGroup() { Default = true }
-                        };
-                        notification.NotificationGroups =
-                        [
-                            .. await _notificationGroupRepository.ListAsync(request, null, CancellationToken.None),
-                        ];
-                    }
                     if (notification.Id == Guid.Empty)
                     {
                         notification.CreationTime = now;
-                        notification.Creator = creator;
+                        notification.Creator ??= creator;
                         GXInsertArgs args = GXInsertArgs.Insert(notification);
                         args.Exclude<GXNotification>(q => new
                         {
-                            q.NotificationGroups,
-                            q.DeviceGroups,
-                            q.Devices,
-                            q.DeviceAttributeTemplates,
-                            q.DeviceGroupAttributeTemplates,
-                            q.Agents,
-                            q.Gateways,
                             q.Updated,
                             q.Removed
                         });
-                        _host.Connection.Insert(args);
+                        connection.Insert(transaction, args);
                         list.Add(notification.Id);
-                        AddNotificationToNotificationGroups(transaction, notification.Id, notification.NotificationGroups);
-                        AddDeviceAttributesToNotification(transaction, notification.Id, notification.DeviceAttributeTemplates);
-                        AddDevicesToNotification(transaction, notification.Id, notification.Devices);
-                        AddDeviceGroupsToNotification(transaction, notification.Id, notification.DeviceGroups);
-                        AddDeviceGroupAttributesToNotification(transaction, notification.Id, notification.DeviceGroupAttributeTemplates);
-                        AddAgentsToNotification(transaction, notification.Id, notification.Agents);
-                        AddGatewaysToNotification(transaction, notification.Id, notification.Gateways);
+                        _notificationCache.Add(notification.Creator.Id!, new GXTarget(GXNotificationPolicies.Add, notification.Id, notification.Name));
                     }
                     else
                     {
-                        GXSelectArgs m = GXSelectArgs.Select<GXNotification>(q => q.ConcurrencyStamp, where => where.Id == notification.Id);
-                        string updated = _host.Connection.SingleOrDefault<string>(m);
+                        GXSelectArgs m = GXSelectArgs.Select<GXNotification>(q => q.ConcurrencyStamp!, where => where.Id == notification.Id);
+                        string? updated = connection.SingleOrDefault<string>(transaction, m);
                         if (!string.IsNullOrEmpty(updated) && updated != notification.ConcurrencyStamp)
                         {
                             throw new ArgumentException(Properties.Resources.ContentEdited);
                         }
                         notification.ConcurrencyStamp = Guid.NewGuid().ToString();
                         notification.Updated = now;
-                        GXUpdateArgs args = GXUpdateArgs.Update(notification, columns);
+                        // Sources live in their own table; never pass that member to SQL UPDATE.
+                        var storedColumns = columns;
+                        if (columns != null && ServerHelpers.Contains(columns, nameof(GXNotification.Sources)))
+                        {
+                            var parameter = columns.Parameters[0];
+                            var members = typeof(GXNotification).GetProperties()
+                                .Where(p => p.Name != nameof(GXNotification.Sources) &&
+                                    (p.Name == nameof(GXNotification.Updated) || ServerHelpers.Contains(columns, p.Name)))
+                                .Select(p => Expression.Convert(Expression.Property(parameter, p), typeof(object)));
+                            storedColumns = Expression.Lambda<Func<GXNotification, object>>(
+                                Expression.NewArrayInit(typeof(object), members), parameter);
+                        }
+                        GXUpdateArgs args = GXUpdateArgs.Update(notification, storedColumns);
                         args.Exclude<GXNotification>(q => new
                         {
                             q.CreationTime,
-                            q.NotificationGroups,
-                            q.DeviceGroups,
-                            q.Devices,
-                            q.DeviceAttributeTemplates,
-                            q.DeviceGroupAttributeTemplates,
-                            q.Agents,
-                            q.Gateways,
+                            q.Creator,
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
-                            notification.Creator == null ||
-                            string.IsNullOrEmpty(notification.Creator.Id))
+                        connection.Update(transaction, args);
+                        _notificationCache.Add(creator.Id, new GXTarget(GXNotificationPolicies.Edit, notification.Id, notification.Name));
+                    }
+                    if (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.Sources)) || list.Contains(notification.Id))
                         {
-                            //Only admin can update the creator.
-                            args.Exclude<GXNotification>(q => q.Creator);
-                        }
-                        _host.Connection.Update(args);
-                        //Map notification groups to notification.
-                        List<GXNotificationGroup> notificationGroups;
-                        using (IServiceScope scope = _serviceProvider.CreateScope())
-                        {
-                            {
-                                INotificationGroupRepository notificationGroupRepository = scope.ServiceProvider.GetRequiredService<INotificationGroupRepository>();
-                                notificationGroups = await notificationGroupRepository.GetJoinedNotificationGroups(notification.Id);
-                                var comparer = new UniqueComparer<GXNotificationGroup, Guid>();
-                                List<GXNotificationGroup> removedNotificationGroups = notificationGroups.Except(notification.NotificationGroups, comparer).ToList();
-                                List<GXNotificationGroup> addedNotificationGroups = notification.NotificationGroups.Except(notificationGroups, comparer).ToList();
-                                if (removedNotificationGroups.Any())
-                                {
-                                    RemoveNotificationsFromNotificationGroup(transaction,
-                                        notification.Id, removedNotificationGroups);
-                                }
-                                if (addedNotificationGroups.Any())
-                                {
-                                    AddNotificationToNotificationGroups(transaction,
-                                        notification.Id, addedNotificationGroups);
-                                }
-                            }
-                        }
-                        //Add agents.
-                        if (notification.Agents != null &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.Agents))))
-                        {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgent>(where => where.Removed == null);
-                            arg.Joins.AddInnerJoin<GXAgent, GXNotificationAgent>(a => a.Id, b => b.AgentId);
-                            arg.Where.And<GXNotificationAgent>(where => where.Removed == null && where.NotificationId == notification.Id);
-                            List<GXAgent> agents = (await _host.Connection.SelectAsync<GXAgent>(arg)).ToList();
-                            var comparer = new UniqueComparer<GXAgent, Guid>();
-                            List<GXAgent> removed = agents.Except(notification.Agents, comparer).ToList();
-                            List<GXAgent> added = notification.Agents.Except(agents, comparer).ToList();
-                            if (removed.Any())
-                            {
-                                RemoveAgentsFromNotifications(transaction,
-                                    notification.Id, removed);
-                            }
-                            if (added.Any())
-                            {
-                                AddAgentsToNotification(transaction,
-                                    notification.Id, added);
-                            }
-                        }
-                        //Add gateways.
-                        if (notification.Gateways != null &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.Gateways))))
-                        {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXGateway>(where => where.Removed == null);
-                            arg.Joins.AddInnerJoin<GXGateway, GXNotificationGateway>(a => a.Id, b => b.GatewayId);
-                            arg.Where.And<GXNotificationGateway>(where => where.Removed == null && where.NotificationId == notification.Id);
-                            List<GXGateway> gateways = (await _host.Connection.SelectAsync<GXGateway>(arg)).ToList();
-                            var comparer = new UniqueComparer<GXGateway, Guid>();
-                            List<GXGateway> removed = gateways.Except(notification.Gateways, comparer).ToList();
-                            List<GXGateway> added = notification.Gateways.Except(gateways, comparer).ToList();
-                            if (removed.Any())
-                            {
-                                RemoveGatewaysFromNotifications(transaction,
-                                    notification.Id, removed);
-                            }
-                            if (added.Any())
-                            {
-                                AddGatewaysToNotification(transaction,
-                                    notification.Id, added);
-                            }
-                        }
-                        //Add device template attributes.
-                        if (notification.DeviceAttributeTemplates != null &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.DeviceAttributeTemplates))))
-                        {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(where => where.Removed == null);
-                            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXNotificationDeviceAttributeTemplate>(a => a.Id, b => b.AttributeTemplateId);
-                            arg.Where.And<GXNotificationDeviceAttributeTemplate>(where => where.Removed == null && where.NotificationId == notification.Id);
-                            List<GXAttributeTemplate> attributes = (await _host.Connection.SelectAsync<GXAttributeTemplate>(arg)).ToList();
-                            var comparer = new UniqueComparer<GXAttributeTemplate, Guid>();
-                            List<GXAttributeTemplate> removedNotificationAttributes = attributes.Except(notification.DeviceAttributeTemplates, comparer).ToList();
-                            List<GXAttributeTemplate> addedNotificationAttributes = notification.DeviceAttributeTemplates.Except(attributes, comparer).ToList();
-                            if (removedNotificationAttributes.Any())
-                            {
-                                RemoveDeviceAttributesFromNotifications(transaction,
-                                    notification.Id, removedNotificationAttributes);
-                            }
-                            if (addedNotificationAttributes.Any())
-                            {
-                                AddDeviceAttributesToNotification(transaction,
-                                    notification.Id, addedNotificationAttributes);
-                            }
-                        }
-                        if (notification.DeviceGroupAttributeTemplates != null &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.DeviceGroupAttributeTemplates))))
-                        {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(where => where.Removed == null);
-                            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXNotificationDeviceGroupAttributeTemplate>(a => a.Id, b => b.AttributeTemplateId);
-                            arg.Where.And<GXNotificationDeviceGroupAttributeTemplate>(where => where.Removed == null && where.NotificationId == notification.Id);
-                            List<GXAttributeTemplate> attributes = (await _host.Connection.SelectAsync<GXAttributeTemplate>(arg)).ToList();
-                            var comparer = new UniqueComparer<GXAttributeTemplate, Guid>();
-                            List<GXAttributeTemplate> removedNotificationAttributes = attributes.Except(notification.DeviceGroupAttributeTemplates, comparer).ToList();
-                            List<GXAttributeTemplate> addedNotificationAttributes = notification.DeviceGroupAttributeTemplates.Except(attributes, comparer).ToList();
-                            if (removedNotificationAttributes.Any())
-                            {
-                                RemoveDeviceGroupAttributesFromNotifications(transaction,
-                                    notification.Id, removedNotificationAttributes);
-                            }
-                            if (addedNotificationAttributes.Any())
-                            {
-                                AddDeviceGroupAttributesToNotification(transaction,
-                                    notification.Id, addedNotificationAttributes);
-                            }
-                        }
-                        if (notification.Devices != null &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.Devices))))
-                        {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>(where => where.Removed == null);
-                            arg.Joins.AddInnerJoin<GXDevice, GXNotificationDevice>(a => a.Id, b => b.DeviceId);
-                            arg.Where.And<GXNotificationDevice>(where => where.Removed == null && where.NotificationId == notification.Id);
-                            List<GXDevice> devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToList();
-                            var comparer = new UniqueComparer<GXDevice, Guid>();
-                            List<GXDevice> removedNotificationDevices = devices.Except(notification.Devices, comparer).ToList();
-                            List<GXDevice> addedNotificationDevices = notification.Devices.Except(devices, comparer).ToList();
-                            if (removedNotificationDevices.Any())
-                            {
-                                RemoveDevicesFromNotifications(transaction,
-                                    notification.Id, removedNotificationDevices);
-                            }
-                            if (addedNotificationDevices.Any())
-                            {
-                                AddDevicesToNotification(transaction,
-                                    notification.Id, addedNotificationDevices);
-                            }
-                        }
-                        if (notification.DeviceGroups != null &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXNotification.DeviceGroups))))
-                        {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
-                            arg.Joins.AddInnerJoin<GXDeviceGroup, GXNotificationDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
-                            arg.Where.And<GXNotificationDeviceGroup>(where => where.Removed == null && where.NotificationId == notification.Id);
-                            List<GXDeviceGroup> deviceGroups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToList();
-                            var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
-                            List<GXDeviceGroup> removedNotificationDeviceGroups = deviceGroups.Except(notification.DeviceGroups, comparer).ToList();
-                            List<GXDeviceGroup> addedNotificationDeviceGroups = notification.DeviceGroups.Except(deviceGroups, comparer).ToList();
-                            if (removedNotificationDeviceGroups.Any())
-                            {
-                                RemoveDeviceGroupsFromNotifications(transaction,
-                                    notification.Id, removedNotificationDeviceGroups);
-                            }
-                            if (addedNotificationDeviceGroups.Any())
-                            {
-                                AddDeviceGroupsToNotification(transaction,
-                                    notification.Id, addedNotificationDeviceGroups);
-                            }
-                        }
+                        await GXNotificationSourceStorage.ReplaceAsync(connection, transaction, notification.Id, notification.Sources, cancellationToken);
                     }
                 }
-                _host.Connection.CommitTransaction(transaction);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(notifications, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (Exception)
             {
-                _host.Connection.RollbackTransaction(transaction);
+                transaction.Rollback();
                 throw;
             }
-            Dictionary<GXNotification, List<string>> updates = new();
-            foreach (GXNotification notification in notifications)
-            {
-                updates[notification] = await GetUsersAsync(notification.Id);
-            }
-            foreach (var it in updates)
-            {
-                await _eventsNotifier.NotificationUpdate(it.Value, [it.Key]);
-            }
-            return list.ToArray();
+            return [.. list];
+        }, cancellationToken);
         }
 
-        /// <summary>
-        /// Map notification to notification groups.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="groups">Group IDs of the notification groups where the notification is added.</param>
-        public void AddNotificationToNotificationGroups(
-            IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXNotificationGroup>? groups)
+        // Lifecycle operations share this repository's persistence rules and notification queue.
+        internal static IModuleNotificationRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
+
+        private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModuleNotificationRepository
         {
-            if (groups != null)
+            public async Task RemoveAsync(GXNotificationType type, CancellationToken token)
             {
-                DateTime now = DateTime.Now;
-                List<GXNotificationGroupNotification> list = new();
-                foreach (GXNotificationGroup it in groups)
+                var notificationType = new GXNotificationType { Id = type.Id };
+                var query = GXSelectArgs.SelectAll<GXNotification>(n => n.Type == notificationType);
+                query.Joins.AddLeftJoin<GXNotification, GXUser>(n => n.Creator!, u => u.Id!);
+                query.Columns.Add<GXUser>(u => u.Id!);
+                foreach (var notification in await scope.Connection.SelectAsync<GXNotification>(scope.Transaction, query, token))
                 {
-                    list.Add(new GXNotificationGroupNotification()
+                    await scope.Connection.DeleteAsync(scope.Transaction, GXDeleteArgs.DeleteById<GXNotification>(notification.Id), token);
+                    if (notification.Creator?.Id is string owner)
                     {
-                        NotificationId = notificationId,
-                        NotificationGroupId = it.Id,
-                        CreationTime = now
-                    });
+                        await GXModuleRepositoryNotifications.QueueAsync(scope, GXNotificationPolicies.Delete, notification.Id.ToString(), token, [owner]);
+                    }
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
             }
-        }
 
-        /// <summary>
-        /// Remove map between notification group and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="groups">Group IDs of the notification groups where the notification is removed.</param>
-        public void RemoveNotificationsFromNotificationGroup(
-            IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXNotificationGroup> groups)
-        {
-            foreach (GXNotificationGroup it in groups)
+            public async Task EnsureAdministratorsAsync(GXNotificationType type, CancellationToken token)
             {
-                _host.Connection.Delete(transaction,
-                GXDeleteArgs.Delete<GXNotificationGroupNotification>(w => w.NotificationId == notificationId && w.NotificationGroupId == it.Id));
-            }
-        }
-
-        /// <summary>
-        /// Map device with notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="devices">Joined devices.</param>
-        public void AddDevicesToNotification(
-            IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXDevice>? devices)
-        {
-            if (devices != null)
-            {
-                DateTime now = DateTime.Now;
-                List<GXNotificationDevice> list = new();
-                foreach (GXDevice it in devices)
+                if (type.Removed != null)
                 {
-                    list.Add(new GXNotificationDevice()
-                    {
-                        NotificationId = notificationId,
-                        DeviceId = it.Id,
-                        CreationTime = now
-                    });
+                    return;
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
-            }
-        }
-
-        /// <summary>
-        /// Remove map between device and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="devices">Removed devices.</param>
-        public void RemoveDevicesFromNotifications(
-            IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXDevice> devices)
-        {
-            foreach (GXDevice it in devices)
-            {
-                _host.Connection.Delete(transaction,
-                    GXDeleteArgs.Delete<GXNotificationDevice>(w => w.NotificationId == notificationId && w.DeviceId == it.Id));
-            }
-        }
-
-        /// <summary>
-        /// Map device group with notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="groups">Joined device groups.</param>
-        public void AddDeviceGroupsToNotification(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXDeviceGroup>? groups)
-        {
-            if (groups != null)
-            {
-                DateTime now = DateTime.Now;
-                List<GXNotificationDeviceGroup> list = new();
-                foreach (GXDeviceGroup it in groups)
+                var admins = GXSelectArgs.Select<GXUser>(u => u.Id!, u => u.Removed == null);
+                admins.Joins.AddInnerJoin<GXUser, GXUserRole>(u => u.Id!, r => r.UserId!);
+                admins.Joins.AddInnerJoin<GXUserRole, GXRole>(u => u.RoleId!, r => r.Id);
+                admins.Where.And<GXRole>(r => r.NormalizedName == "ADMIN" && r.Removed == null);
+                foreach (var admin in await scope.Connection.SelectAsync<GXUser>(scope.Transaction, admins, token))
                 {
-                    list.Add(new GXNotificationDeviceGroup()
+                    // Both foreign keys must be captured at the same level for the ORM.
+                    var notificationType = new GXNotificationType { Id = type.Id };
+                    var owner = new GXUser { Id = admin.Id };
+                    if (await scope.Connection.SingleOrDefaultAsync<GXNotification>(scope.Transaction, GXSelectArgs.Select<GXNotification>(n => n.Id, n => n.Type == notificationType && n.Creator == owner), token) != null)
                     {
-                        NotificationId = notificationId,
-                        DeviceGroupId = it.Id,
-                        CreationTime = now
-                    });
+                        continue;
+                    }
+                    var notification = new GXNotification(scope.ModuleId)
+                    {
+                        Type = type,
+                        Creator = owner,
+                        Sources = [],
+                        TraceLevel = TraceLevel.Verbose,
+                        CreationTime = DateTimeOffset.UtcNow
+                    };
+                    Validator.ValidateObject(notification, new ValidationContext(notification), true);
+                    await scope.Connection.InsertAsync(scope.Transaction, GXInsertArgs.Insert(notification), token);
+                    await GXModuleRepositoryNotifications.QueueAsync(scope, GXNotificationPolicies.Add, notification.Id.ToString(), token, [admin.Id!]);
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
             }
         }
 
-        /// <summary>
-        /// Remove map between device group and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="groups">Removed device groups.</param>
-        public void RemoveDeviceGroupsFromNotifications(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXDeviceGroup> groups)
-        {
-            foreach (GXDeviceGroup it in groups)
+        private static readonly SemaphoreSlim DefaultsGate = new(1, 1);
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Guid>> EnsureDefaultsAsync(CancellationToken cancellationToken = default)
             {
-                _host.Connection.Delete(transaction,
-                    GXDeleteArgs.Delete<GXNotificationDeviceGroup>(w => w.NotificationId == notificationId && w.DeviceGroupId == it.Id));
-            }
+            return await GXHistoryMutation.RunAllAsync<GXNotification, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider,
+        async () =>
+        {
+            return await ApplyNotificationDefaultsAsync(null, cancellationToken);
+        }, cancellationToken);
         }
 
-        /// <summary>
-        /// Map agents with notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="agents">Joined agents.</param>
-        public void AddAgentsToNotification(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXAgent>? agents)
+        /// <inheritdoc />
+        public async Task<IEnumerable<Guid>> ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
-            if (agents != null)
-            {
-                DateTime now = DateTime.Now;
-                List<GXNotificationAgent> list = new();
-                foreach (GXAgent it in agents)
+            ids = ids.ToArray();
+            return await GXHistoryMutation.RunIdsAsync<GXNotification, Guid, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, ids,
+        async () =>
+        {
+            ArgumentNullException.ThrowIfNull(ids);
+            var selected = ids.Distinct().ToArray();
+            if (selected.Length == 0 || selected.Contains(Guid.Empty))
                 {
-                    list.Add(new GXNotificationAgent()
+                throw new ArgumentException("Select existing automatic notification defaults to restore.", nameof(ids));
+            }
+            return await ApplyNotificationDefaultsAsync(selected, cancellationToken);
+        }, cancellationToken);
+        }
+
+        private async Task<IEnumerable<Guid>> ApplyNotificationDefaultsAsync(Guid[]? ids, CancellationToken token)
+        {
+            bool reset = ids != null;
+            token.ThrowIfCancellationRequested();
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.Edit);
+            await DefaultsGate.WaitAsync(token);
+            try
+            {
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync(token);
+                var recipient = User;
+                var ownerId = ServerHelpers.GetUserId(recipient);
+                var owner = new GXUser { Id = ownerId };
+                if (await connection.SingleOrDefaultAsync<GXUser>(GXSelectArgs.Select<GXUser>(u => u.Id!,
+                    u => u.Id == ownerId && u.Removed == null), token) == null)
                     {
-                        NotificationId = notificationId,
-                        AgentId = it.Id,
-                        CreationTime = now
-                    });
+                    throw new ArgumentException("The notification owner is unavailable.", nameof(User));
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
-            }
-        }
 
-        /// <summary>
-        /// Remove map between agents and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="agents">Removed agents.</param>
-        public void RemoveAgentsFromNotifications(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXAgent> agents)
-        {
-            foreach (GXAgent it in agents)
-            {
-                _host.Connection.Delete(transaction,
-                    GXDeleteArgs.Delete<GXNotificationAgent>(w =>
-                    w.NotificationId == notificationId &&
-                    w.AgentId == it.Id));
-            }
-        }
+                var types = await connection.SelectAsync<GXNotificationType>(GXSelectArgs.SelectAll<GXNotificationType>(
+                    t => t.CreationMode == NotificationCreationMode.Automatic && t.Enabled == true && t.Removed == null), token);
+                var allowed = new List<GXNotificationType>();
+                foreach (var type in types)
+                    {
+                    if (await GXNotificationTypeAccess.AllowsAsync(connection, _authorizationService, recipient, type.Id, token))
+                        {
+                        allowed.Add(type);
+                    }
+                }
+                var sources = allowed.Any(t => string.Equals(t.Code, "UI", StringComparison.OrdinalIgnoreCase))
+                    ? (await GXNotificationPermissions.ReadAsync(connection, ownerId, token)).Select(p => p.Name!).ToList() : [];
 
-        /// <summary>
-        /// Map gateways with notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="gateways">Joined gateways.</param>
-        public void AddGatewaysToNotification(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXGateway>? gateways)
-        {
-            if (gateways != null)
-            {
-                DateTime now = DateTime.Now;
-                List<GXNotificationGateway> list = new();
-                foreach (GXGateway it in gateways)
+                var changes = new List<(GXNotification Notification, bool Added)>();
+                await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, token);
+                try
                 {
-                    list.Add(new GXNotificationGateway()
+                    var query = GXSelectArgs.Select<GXNotification>(n => new { n.Id, n.Type, n.CreationTime },
+                        n => n.Creator == owner && n.Removed == null);
+                    query.Joins.AddInnerJoin<GXNotification, GXNotificationType>(n => n.Type!, t => t.Id);
+                    query.Columns.Add<GXNotificationType>(t => t.Id);
+                    var existing = await connection.SelectAsync<GXNotification>(transaction, query, token);
+                    IEnumerable<(GXNotificationType Type, GXNotification? Previous)> targets;
+                    if (ids != null)
                     {
-                        NotificationId = notificationId,
-                        GatewayId = it.Id,
-                        CreationTime = now
-                    });
+                        var selected = existing.Where(n => ids.Contains(n.Id)).ToArray();
+                        if (selected.Length != ids.Length || selected.Any(n => !allowed.Any(t => t.Id == n.Type?.Id)))
+                            {
+                            throw new ArgumentException("Only the selected user's available automatic notification defaults can be restored.", nameof(ids));
+                        }
+                        targets = selected.Select(n => (allowed.Single(t => t.Id == n.Type!.Id), (GXNotification?)n)).ToArray();
+                    }
+                    else
+                    {
+                        targets = allowed.OrderBy(t => t.Id).Select(type => (type, existing.Where(n => n.Type?.Id == type.Id)
+                            .OrderBy(n => n.CreationTime).ThenBy(n => n.Id).FirstOrDefault())).ToArray();
+                    }
+                    foreach (var (type, previous) in targets)
+                    {
+                        if (previous != null && !reset)
+                            {
+                            continue;
+                        }
+                        var value = new GXNotification(type.Name)
+                        {
+                            Id = previous?.Id ?? Guid.Empty,
+                            Creator = owner,
+                            Type = new GXNotificationType { Id = type.Id },
+                            Sources = string.Equals(type.Code, "UI", StringComparison.OrdinalIgnoreCase) ? sources
+                                : string.Equals(type.Code, "TOASTER", StringComparison.OrdinalIgnoreCase) && recipient.IsInRole(GXRoles.Admin)
+                                    ? [GXSystemLogPolicies.Add] : [],
+                            TraceLevel = TraceLevel.Error,
+                            ConcurrencyStamp = Guid.NewGuid().ToString()
+                        };
+                        if (previous == null)
+                        {
+                            value.CreationTime = DateTimeOffset.UtcNow;
+                            await connection.InsertAsync(transaction, GXInsertArgs.Insert(value), token);
+                        }
+                        else
+                        {
+                            value.Updated = DateTimeOffset.UtcNow;
+                            await connection.UpdateAsync(transaction, GXUpdateArgs.Update(value, n => new
+                            {
+                                n.Name,
+                                n.Description,
+                                n.Enabled,
+                                n.ScriptMethod,
+                                n.MinimumDeliveryTime,
+                                n.TraceLevel,
+                                n.Updated,
+                                n.ConcurrencyStamp
+                            }), token);
+                            await connection.DeleteAsync(transaction,
+                                GXDeleteArgs.Delete<GXNotificationProperty>(p => p.Notification == value), token);
+                        }
+                        await GXNotificationSourceStorage.ReplaceAsync(connection, transaction, value.Id, value.Sources, token);
+                        changes.Add((value, previous == null));
+                    }
+                    await transaction.CommitAsync(token);
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
-            }
-        }
-
-        /// <summary>
-        /// Remove map between gateways and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="gateways">Removed gateways.</param>
-        public void RemoveGatewaysFromNotifications(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXGateway> gateways)
-        {
-            foreach (GXGateway it in gateways)
-            {
-                _host.Connection.Delete(transaction,
-                    GXDeleteArgs.Delete<GXNotificationGateway>(w =>
-                    w.NotificationId == notificationId &&
-                    w.GatewayId == it.Id));
-            }
-        }
-
-        /// <summary>
-        /// Map device attributes with notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="attributes">Joined attributes.</param>
-        public void AddDeviceAttributesToNotification(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXAttributeTemplate>? attributes)
-        {
-            if (attributes != null)
-            {
-                DateTime now = DateTime.Now;
-                List<GXNotificationDeviceAttributeTemplate> list = new();
-                foreach (GXAttributeTemplate it in attributes)
+                catch
                 {
-                    list.Add(new GXNotificationDeviceAttributeTemplate()
-                    {
-                        NotificationId = notificationId,
-                        AttributeTemplateId = it.Id,
-                        CreationTime = now
-                    });
+                    await transaction.RollbackAsync(CancellationToken.None);
+                    throw;
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
-            }
-        }
-
-        /// <summary>
-        /// Remove map between device attribute and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="attributes">Removed attributes.</param>
-        public void RemoveDeviceAttributesFromNotifications(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXAttributeTemplate> attributes)
-        {
-            foreach (GXAttributeTemplate it in attributes)
-            {
-                _host.Connection.Delete(transaction,
-                    GXDeleteArgs.Delete<GXNotificationDeviceAttributeTemplate>(w =>
-                    w.NotificationId == notificationId &&
-                    w.AttributeTemplateId == it.Id));
-            }
-        }
-
-        /// <summary>
-        /// Map device group attributes with notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="attributes">Joined attributes.</param>
-        public void AddDeviceGroupAttributesToNotification(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXAttributeTemplate>? attributes)
-        {
-            if (attributes != null)
-            {
-                DateTime now = DateTime.Now;
-                List<GXNotificationDeviceGroupAttributeTemplate> list = new();
-                foreach (GXAttributeTemplate it in attributes)
-                {
-                    list.Add(new GXNotificationDeviceGroupAttributeTemplate()
+                foreach (var change in changes)
                     {
-                        NotificationId = notificationId,
-                        AttributeTemplateId = it.Id,
-                        CreationTime = now
-                    });
+                    _notificationCache.Add(ownerId, new GXTarget(change.Added ? GXNotificationPolicies.Add : GXNotificationPolicies.Edit,
+                        change.Notification.Id, change.Notification.Name));
                 }
-                _host.Connection.Insert(transaction,
-                    GXInsertArgs.InsertRange(list));
+                return changes.Select(c => c.Notification.Id).ToArray();
             }
-        }
-
-        /// <summary>
-        /// Remove map between device group attribute and notification.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="notificationId">Notification ID.</param>
-        /// <param name="attributes">Removed attributes.</param>
-        public void RemoveDeviceGroupAttributesFromNotifications(IDbTransaction transaction,
-            Guid notificationId, IEnumerable<GXAttributeTemplate> attributes)
-        {
-            foreach (GXAttributeTemplate it in attributes)
-            {
-                _host.Connection.Delete(transaction,
-                    GXDeleteArgs.Delete<GXNotificationDeviceGroupAttributeTemplate>(w =>
-                    w.NotificationId == notificationId &&
-                    w.AttributeTemplateId == it.Id));
-            }
+            finally { DefaultsGate.Release(); }
         }
     }
 }

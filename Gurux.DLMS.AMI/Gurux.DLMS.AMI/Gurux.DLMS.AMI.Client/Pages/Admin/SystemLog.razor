@@ -1,38 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @page "/systemlog"
 
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Authorization
@@ -44,88 +42,105 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = "Admin, SystemLogManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject ConfirmBase Confirm
-@inject IGXNotifier2 Notifier
 @inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
+
+<GXHelpContext Topic="SystemLog" />
 
 <PageTitle>@Properties.Resources.SystemLogs</PageTitle>
 
-<MenuControl RightCorner="true">
+<GXMenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" />
+        <GXMenuEntry Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" Policy="@GXSystemLogPolicies.Clear" />
     </ChildContent>
-</MenuControl>
+</GXMenuControl>
 
-<GXTable @ref="table"
-         Active="Active"
-         Context="error"
-         ItemsProvider="@GetItems"
-         Filter="@Filter"
-         OnSearch="@Updated"
-         Columns="@Columns"
-         ShowAllUsers="false"
-         ShowRemoved="false">
+<GXViewTable ViewName="Admin.SystemLog" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXSystemLogPolicies.View })" TItem="GXLog" @ref="table"
+             @bind-Active="Active"
+             Context="error"
+             ItemsProvider="@GetItems"
+             Filter="@Filter"
+             OnSearch="@Updated"
+             Columns="@Columns"
+             ShowAllUsers="false"
+             ShowRemoved="false">
     <FilterContent>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="SystemLog-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <Fh Id="Type" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="Type" Visibility="Visibility.Medium">
             <EnumTypeSelector Type="@TargetType.SystemLog"
                               @bind-Value="@filter.Type"
                               OnSelected="@((int? e) => Updated())">
             </EnumTypeSelector>
-        </Fh>
-        <Fh Id="Message" Visibility="Visibility.Medium">
-            <input class="form-control" type="text" placeholder="Filter by error..."
+        </GXFh>
+        <GXFh Id="Message" Visibility="Visibility.Medium">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByError"
                    @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-        </Fh>
-        <Fh Id="systemlog.TraceLevel" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="Level" Visibility="Visibility.Medium">
             <GXInputDropdown class="form-select"
                              Id="ScheduleLogs-TraceLevel"
-                             LastValue="true"
+                             RememberValue="true"
                              @bind-Value="TraceLevel"
                              OnSelected="@((TraceLevel e) => Updated())">
             </GXInputDropdown>
-        </Fh>
-        <Fh Id="Closed" Visibility="Visibility.Medium">
-            <input class="form-control" placeholder="Filter by close time..."
+        </GXFh>
+        <GXFh Id="Closed" Visibility="Visibility.Medium">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-        </Fh>
+        </GXFh>
     </FilterContent>
     <HeaderContent>
-        <Th Name="CreationTime" Target="@error" Sort="@(s => error.CreationTime)" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Type" Target="@error">@Properties.Resources.Type</Th>
-        <Th Name="Message" Target="@error">@Properties.Resources.Error</Th>
-        <Th Name="Level" Target="@error">@Properties.Resources.Level</Th>
-        <Th Name="Closed" Target="@error">@Properties.Resources.CloseTime</Th>
+        <GXTh Name="CreationTime" Target="@error" Sort="@(s => error.CreationTime)" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Name="Type" Target="@error">@Properties.Resources.Type</GXTh>
+        <GXTh Name="Message" Target="@error">@Properties.Resources.Error</GXTh>
+        <GXTh Name="Level" Target="@error">@Properties.Resources.Level</GXTh>
+        <GXTh Name="Closed" Target="@error">@Properties.Resources.CloseTime</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</td>
-        <td>@(ResourceStorage.GetEnumType(TargetType.SystemLog, error.Type))</td>
-        <td>@error.Message</td>
-        <td>@ClientHelpers.LevelToString(error.Level)</td>
-        <td>@ResourceStorage.DateTimeOffsetToString(error.Closed)</td>
+        <GXTd Id="CreationTime"><button type="button" class="btn btn-link p-0 text-start" data-diagnostic-details="true" @onclick="() => { _detailsId = error.PublicId; }" @onclick:stopPropagation="true">@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</button></GXTd>
+        <GXTd Id="Type">@(ResourceStorage.GetEnumType(TargetType.SystemLog, error.Type))</GXTd>
+        <GXTd Id="Message">@error.Message</GXTd>
+        <GXTd Id="Level">@ClientHelpers.LevelToString(error.Level)</GXTd>
+        <GXTd Id="Closed">@ResourceStorage.DateTimeOffsetToString(error.Closed)</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 
 <br />
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearErrors">
-</Confirm>
+
+
+@if (_detailsId is Guid detailsId)
+{
+    <GXDialog Title="@Properties.Resources.SystemLogs" Save="false" ManageFocus="true"
+              OkButtonTitle="" CancelButtonTitle="@Properties.Resources.Close" OnCancel="() => { _detailsId = null; }">
+        <Gurux.DLMS.AMI.Client.Pages.Log.LogDetails Id="@detailsId" Source="system" Embedded="true" />
+    </GXDialog>
+}
 
 @code {
+    private Guid? _detailsId;
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("CreationTime") { Position = 0, Description = "CreationTime", Visibility = (byte)Visibility.All },
+        new("Type") { Position = 1, Description = "Type", Visibility = (byte)Visibility.All },
+        new("Message") { Position = 2, Description = "Error", Visibility = (byte)Visibility.All },
+        new("Level") { Position = 3, Description = "Level", Visibility = (byte)Visibility.All },
+        new("Closed") { Position = 4, Description = "CloseTime", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Action.
     /// </summary>
@@ -138,14 +153,14 @@
     [Parameter]
     public Guid? Id { get; set; }
 
-    private GXSystemLog? Active { get; set; }
+    private GXLog? Active { get; set; }
 
     /// <inheritdoc />
     public string Name
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.SystemLogs;
+            return Properties.Resources.SystemLogs;
         }
     }
 
@@ -163,7 +178,7 @@
     {
         get
         {
-            return "SystemLog";
+            return "system-log";
         }
     }
 
@@ -197,28 +212,20 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    private GXTable<GXSystemLog>? table;
+    private GXViewTable<GXLog>? table;
 
     /// <summary>
     /// Trace level.
     /// </summary>
-    private TraceLevel TraceLevel
-    {
-        get;
-        set;
-    }
+    private TraceLevel TraceLevel { get; set; }
 
     /// <summary>
     /// System error filter.
     /// </summary>
-    private GXSystemLog filter = new GXSystemLog();
+    private GXLog filter = new GXLog();
 
-    /// <summary>
-    /// User is verified before system errors are cleared.
-    /// </summary>
-    protected ConfirmBase? ClearConfirmation;
 
-    public bool IsActive(GXSystemLog item)
+    public bool IsActive(GXLog item)
     {
         return item.Closed == null;
     }
@@ -242,39 +249,41 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingSystemLog);
+            NotificationService?.RemoveByKey("Pages/Admin/SystemLog.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (logs) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On(this, nameof(IGXHubEvents.ClearSystemLogs), async () =>
-            {
-                ResourceStorage.ClearEnumTypes(TargetType.SystemLog);
-                await Updated();
+                foreach (var it in logs)
+                {
+                    if (it.Type == GXSystemLogPolicies.Add ||
+                        it.Type == GXSystemLogPolicies.Clear ||
+                        it.Type == GXSystemLogPolicies.Close)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, logs, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.AddSystemLogs), async (logs) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<Guid>>(this, nameof(IGXHubEvents.CloseSystemLogs), async (logs) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (Id != null)
             {
                 //Get last selected item.
-                Active = new GXSystemLog() { Id = Id.Value };
+                Active = new GXLog() { PublicId = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -283,18 +292,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/SystemLog.OnInitialized");
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXSystemLog>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingSystemLog);
         try
         {
             if (ShowClosedErrors)
@@ -315,7 +320,7 @@
             {
                 filter.Level = (int)TraceLevel;
             }
-            ListSystemLogs req = new ListSystemLogs()
+            ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
@@ -329,12 +334,25 @@
             }
             //Get enum types.
             await ResourceStorage.RefreshEnumTypesAsync(TargetType.SystemLog);
-            var ret = await Http.PostAsJson<ListSystemLogsResponse>("api/SystemLog/List", req, request.CancellationToken);
+            var ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=system", req, request.CancellationToken);
             if (ret.Logs != null)
             {
                 //Mark system logs as seen.
-                await Notifier.Mark(Http, TargetType.SystemLog, ret.Logs.Max(s => s.CreationTime));
-                return new ItemsProviderResult<GXSystemLog>(ret.Logs, ret.Count);
+                if (ret.Logs.Any())
+                {
+                    if (Notifier != null)
+                    {
+                        await Notifier.Mark(Http, TargetType.SystemLog, ret.Logs.Max(s => s.CreationTime));
+                    }
+                }
+            
+                if (Id.HasValue && table != null)
+                {
+                    Active = ret.Logs?.FirstOrDefault(log => log.PublicId == Id.Value);
+                    table.RestoreSelection(Active);
+                }
+            
+                return new ItemsProviderResult<GXLog>((ret.Logs ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -353,49 +371,55 @@
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(ex.ToString());
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 
     /// <summary>
     /// Clear the system error list.
     /// </summary>
 
-    public void OnClear()
+    public async Task OnClear()
     {
-        Notifier?.ClearStatus();
-        ClearConfirmation?.Show();
+        NotificationService?.RemoveByKey("Pages/Admin/SystemLog.OnClear");
+        var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearErrors,
+            new AmiConfirmationOptions
+            {
+                ConfirmText = Properties.Resources.Clear,
+                AllowDelete = false
+            });
+        await OnClearConfirmation(confirmation);
     }
 
     /// <summary>
     /// Clear the system error list.
     /// </summary>
 
-    public async Task OnClearConfirmation(ConfirmArgs args)
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (args.Confirm)
             {
-                Notifier.ProgressStart();
+                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingSystemLog);
                 try
                 {
-                    await Http.PostAsJson<ClearSystemLogResponse>("api/SystemLog/Clear", new ClearSystemLog());
+                    await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=system", new ClearLog());
                     await Updated();
                 }
                 finally
                 {
-                    Notifier.ProgressEnd();
                 }
             }
         }
@@ -405,7 +429,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 }

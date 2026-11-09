@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -40,82 +39,94 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @inject IGXResourceStorage ResourceStorage
 @implements IDisposable
 
+<GXHelpContext Topic="Images" />
+
 @if (Active != null)
 {
-    <Dialog OnCancel="Cancel"
+    <GXDialog OnCancel="Cancel"
             CancelButtonTitle="@Properties.Resources.Cancel"
             OkButtonTitle="@Properties.Resources.Ok"
             OnOk="Save">
         <ImageEditor Action="@CrudAction.Update" Active="@Active"
                      IconPacks="@IconPacks"></ImageEditor>
-    </Dialog>
+    </GXDialog>
 }
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Id="Run" Text="@Properties.Resources.Refresh" OnClick="@OnRefresh" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Id="Run" Text="@Properties.Resources.Refresh" OnClick="@OnRefresh" Policy="@GXAppearancePolicies.Edit" />
+    </ChildContent>
+</GXMenuControl>
 
-<GXTable @ref="table"
-         Context="resource"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Single"
-         Filter="@Filter"
-         ShowAllUsers="false"
-         ShowRemoved="false"
-         Columns="@Columns"
-         OnSearch="@Updated">
+<GXViewTable ViewName="Appearance.Images" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="GXAppearance" @ref="table"
+             Context="resource"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Single"
+             Filter="@Filter"
+             ShowAllUsers="false"
+             ShowRemoved="false"
+             Columns="@Columns"
+             OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <GXFh Id="Image">
             @*
                 Image
             *@
-        </th>
-        <th>
-            <Search2 class="form-control"
-                     placeholder="@Properties.Resources.FilterByName"
-                     id="Resources"
-                     Immediate="true"
-                     LastValue="true"
-                     @bind-Value="@filter.Id"
-                     OnValueChanged="@(async (e) => await Updated())" />
-        </th>
+        </GXFh>
+        <GXFh Id="Name">
+            <GXSearch class="form-control"
+                    placeholder="@Properties.Resources.FilterByName"
+                    id="Resources"
+                    Immediate="true"
+                    RememberValue="true"
+                    @bind-Value="@filter.Name"
+                    @bind-Value:after="Updated" />
+        </GXFh>
+        <GXFh Id="ResourceType"></GXFh>
+        <GXFh Id="Updated"></GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-        </AuthorizeView>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXAppearancePolicies.Edit"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <th width="1%"></th>
-        <Th Name="Name" Target="@resource">@Properties.Resources.Name</Th>
-        <Th Name="ResourceType" Target="@resource">@Properties.Resources.Type</Th>
-        <Th Name="Updated" Target="@resource">@Properties.Resources.Updated</Th>
+        <GXTh Id="Image" TItem="GXAppearance" width="1%"></GXTh>
+        <GXTh Name="Name" Target="@resource">@Properties.Resources.Name</GXTh>
+        <GXTh Name="ResourceType" Target="@resource">@Properties.Resources.Type</GXTh>
+        <GXTh Name="Updated" Target="@resource">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td class="img-cell">
-            @if (!string.IsNullOrEmpty(resource.Id))
+        <GXTd Id="Image" class="img-cell">
+            @if (!string.IsNullOrEmpty(resource.Name))
             {
-                <Image Id="@resource.Id" Width="24" Height="24" Color="black"></Image>
+                <GXImage Id="@resource.Name" Value="@resource.Value" Width="24" Height="24" Color="black"></GXImage>
             }
-        </td>
-        <td><LinkButton Target="@resource" OnClick="@Edit" Text="@resource.Id" /></td>
-        <td>@((ResourceType?)resource.ResourceType)</td>
-        <td>@ResourceStorage.DateTimeOffsetToString(resource.Updated)</td>
+        </GXTd>
+        <GXTd Id="Name"><GXLinkButton TItem="GXAppearance" Target="@resource" OnClick="@Edit" Text="@resource.Name" /></GXTd>
+        <GXTd Id="ResourceType">@((ResourceType?)resource.ResourceType)</GXTd>
+        <GXTd Id="Updated">@ResourceStorage.DateTimeOffsetToString(resource.Updated)</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
 
 @code {
-    private GXValidator? _validator;
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Image") { Position = 0, Description = "Image", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+        new("ResourceType") { Position = 2, Description = "Type", Visibility = (byte)Visibility.All },
+        new("Updated") { Position = 3, Description = "Updated", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    private GXValidator? _validator { get; set; }
     /// <summary>
     /// Available icon packs
     /// </summary>
@@ -126,9 +137,8 @@
     /// Selected resource ID.
     /// </summary>
     [Parameter]
-    public string? Id { get; set; }
+    public Guid? Id { get; set; }
 
-    CrudAction Action;
     GXAppearance? Active;
 
     /// <inheritdoc />
@@ -154,7 +164,7 @@
     {
         get
         {
-            return "Icons";
+            return "images";
         }
     }
 
@@ -205,7 +215,7 @@
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXAppearance>? table;
+    protected GXViewTable<GXAppearance>? table;
 
     /// <summary>
     /// Update table.
@@ -216,42 +226,49 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Appearance/Images.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Appearance/Images.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
         await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingImages);
+            NotificationService?.RemoveByKey("Pages/Appearance/Images.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXAppearance>>(this, nameof(IGXHubEvents.AppearanceUpdate), async (resources) =>
-            {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXAppearancePolicies.Add ||
+                        it.Type == GXAppearancePolicies.Edit ||
+                        it.Type == GXAppearancePolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXAppearance>>(this, nameof(IGXHubEvents.AppearanceDelete), async (resources) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = new GXAppearance() { Id = Id };
+                table.RestoreSelection(new GXAppearance() { Id = Id.Value });
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -260,18 +277,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Appearance/Images.OnInitializedAsync");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXAppearance>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingImages);
         try
         {
             if (request.Removed)
@@ -298,7 +311,7 @@
             var ret = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", req, request.CancellationToken);
             if (ret.Appearances != null)
             {
-                return new ItemsProviderResult<GXAppearance>(ret.Appearances, ret.Count);
+                return new ItemsProviderResult<GXAppearance>(ret.Appearances, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -308,11 +321,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -322,21 +331,21 @@
     /// </summary>
     public async void OnRefresh()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingImage);
+        NotificationService?.RemoveByKey("Pages/Appearance/Images.regenerate");
         try
         {
-            RefreshAppearance req = new RefreshAppearance()
+            RegenerateAppearance req = new RegenerateAppearance()
             {
-                Force = true
+                Type = (int)ResourceType.Image
             };
-            var ret = await Http.PostAsJson<RefreshAppearanceResponse>("api/Appearance/Refresh", req);
+            var ret = await Http.PostAsJson<RegenerateAppearanceResponse>("api/appearance/regenerate", req);
             if (ret.NewItems)
             {
                 await Updated();
             }
             //Update all icons to the local storage.
-            Notifier?.ShowInformation(Properties.Resources.Updated, true);
+            NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.Updated, string.Empty, Closable: true));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -344,11 +353,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Appearance/Images.OnRefresh");
         }
     }
 
@@ -358,8 +363,7 @@
 
     private void Edit(GXAppearance value)
     {
-        Action = CrudAction.Update;
-        Active = value;
+        Active = ClientHelpers.Clone<GXAppearance>(value);
         InvokeAsync(StateHasChanged);
     }
 
@@ -381,10 +385,10 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Appearance/Images.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             Edit(table.Active);
         }
@@ -394,7 +398,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Appearance/Images.OnEdit");
         }
     }
 
@@ -407,16 +411,16 @@
         {
             _validator?.ClearErrors();
             if (_validator != null &&
-                !_validator.Validate())
+                !await _validator.ValidateAsync())
             {
                 return;
             }
             UpdateAppearance req = new UpdateAppearance()
             {
-                Appearances = [Active]
+                Appearances = [Active ?? throw new InvalidOperationException(Properties.Resources.NoAppearanceIsSelected)]
             };
-            Active = null;
             await Http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Update", req);
+            Active = null;
             if (table != null)
             {
                 await table.RefreshDataAsync(true);
@@ -424,7 +428,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -440,7 +444,12 @@
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

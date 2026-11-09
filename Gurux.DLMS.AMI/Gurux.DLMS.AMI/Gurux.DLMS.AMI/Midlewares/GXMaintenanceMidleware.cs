@@ -1,116 +1,122 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using System.Net;
-using System.Text.Json;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Text.Json;
 
-namespace Gurux.DLMS.AMI.Server.Midlewares
+namespace Gurux.DLMS.AMI.Server.Midlewares;
+
+/// <summary>Returns maintenance responses while preserving administrator and sign-in access.</summary>
+internal sealed class GXMaintenanceMidleware(RequestDelegate next, IConfigurationRepository configurationRepository)
 {
-    /// <summary>
-    /// This class handles the maintenance mode.
-    /// </summary>
-    internal sealed class GXMaintenanceMidleware
+    private readonly RequestDelegate _next = next;
+    private readonly IConfigurationRepository _configurationRepository = configurationRepository;
+
+    public async Task Invoke(HttpContext context, Gurux.DLMS.AMI.Module.IGXAmiTemplateTokenResolver tokens)
     {
-        private readonly RequestDelegate _next;
-        private readonly IConfigurationRepository _configurationRepository;
-        private MaintenanceSettings? settings;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXMaintenanceMidleware(
-            RequestDelegate next,
-            IConfigurationRepository configurationRepository)
+        var path = context.Request.Path;
+        if (context.User.IsInRole(GXRoles.Admin) || path.Equals(new PathString("/api/Configuration/Maintenance")) ||
+            path.StartsWithSegments("/Account"))
         {
-            _next = next;
-            _configurationRepository = configurationRepository;
-            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Maintenance } };
-            var ret = _configurationRepository.ListAsync(
-                req, null, CancellationToken.None).Result;
-            if (ret != null && ret.Length == 1 && !string.IsNullOrEmpty(ret[0].Settings))
-            {
-                settings = JsonSerializer.Deserialize<MaintenanceSettings>(ret[0].Settings);
-            }
-            _configurationRepository.Updated += async (configurations) =>
-                {
-                    //If maintenance configuration is updated.
-                    foreach (GXConfiguration it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Maintenance && it.Settings != null)
-                        {
-                            settings = JsonSerializer.Deserialize<MaintenanceSettings>(it.Settings);
-                            break;
-                        }
-                    }
-                };
-        }
-
-        public async Task Invoke(HttpContext context)
-        {
-            if (settings != null && settings.MaintenanceMode &&
-                !context.User.IsInRole(GXRoles.Admin))
-            {
-                //Server is in maintenance mode. Retry after given time.
-                context.Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
-                int delay = 0;
-                if (settings.EndTime != null && settings.EndTime > DateTime.Now)
-                {
-                    //If maintenance end time is given.
-                    delay = (int)(settings.EndTime.Value - DateTime.Now).TotalSeconds;
-                }
-                context.Response.Headers.RetryAfter = delay.ToString();
-                ListConfiguration req = new ListConfiguration()
-                {
-                    Filter = new GXConfiguration()
-                    {
-                        Name = GXConfigurations.Maintenance
-                    }
-                };
-                var ret = await _configurationRepository.ListAsync(req, null, CancellationToken.None);
-                if (ret.Length == 1)
-                {
-                    if (!string.IsNullOrEmpty(settings.Message))
-                    {
-                        await context.Response.WriteAsync(settings.Message);
-                    }
-                }
-                return;
-            }
             await _next(context);
+            return;
         }
+        // Read the persisted configuration so updates and restarts cannot leave a stale maintenance state.
+        var configurations = await _configurationRepository.ListAsync(context.User,
+            new ListConfiguration { Filter = new GXConfiguration { Name = GXConfigurations.Maintenance } },
+            null, context.RequestAborted);
+        var configuration = configurations.FirstOrDefault();
+        var settings = string.IsNullOrEmpty(configuration?.Settings) ? null :
+            JsonSerializer.Deserialize<MaintenanceSettings>(configuration.Settings);
+        var now = DateTimeOffset.UtcNow;
+        if (settings?.IsActive(now) != true)
+        {
+            await _next(context);
+            return;
+        }
+        context.Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+        context.Response.Headers.CacheControl = "no-store";
+        if (settings.EndTime is DateTimeOffset endTime)
+        {
+            context.Response.Headers.RetryAfter = Math.Ceiling((endTime - now).TotalSeconds)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        bool html = (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)) &&
+            !(path.StartsWithSegments("/api") || path.StartsWithSegments("/guruxami") || path.StartsWithSegments("/addin"));
+        context.Response.ContentType = html ? "text/html; charset=utf-8" : "application/json; charset=utf-8";
+        if (HttpMethods.IsHead(context.Request.Method))
+        {
+            return;
+        }
+        const string title = "Site is on maintenance mode.";
+        var detail = string.IsNullOrWhiteSpace(settings.Message) ? title :
+            settings.Message.Length > 65536 ? settings.Message :
+            await tokens.ResolveAsync(settings.Message, new Gurux.DLMS.AMI.Module.AmiTemplateTokenContext
+            { User = context.User, Culture = System.Globalization.CultureInfo.CurrentCulture,
+                Page = "maintenance", Values = settings.GetTokenValues() }, context.RequestAborted);
+        if (html)
+        {
+            var loginUrl = WebUtility.HtmlEncode(context.Request.PathBase.Add("/Account/Login").Value);
+            var endNotice = settings.EndTime is DateTimeOffset end
+                ? "<p>Expected end: " + WebUtility.HtmlEncode(end.UtcDateTime.ToString("u", System.Globalization.CultureInfo.InvariantCulture)) + "</p>"
+                : string.Empty;
+            await context.Response.WriteAsync($"""
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>503 Service Unavailable</title>
+                </head>
+                <body>
+                    <main>
+                        <h1>{title}</h1>
+                        <p style="white-space: pre-wrap">{WebUtility.HtmlEncode(detail)}</p>
+                        {endNotice}
+                        <a href="{loginUrl}">Administrator login</a>
+                    </main>
+                </body>
+                </html>
+                """, context.RequestAborted);
+            return;
+        }
+        await context.Response.WriteAsJsonAsync(new
+        {
+            type = "maintenance",
+            title,
+            status = (int)HttpStatusCode.ServiceUnavailable,
+            detail,
+            startTime = settings.StartTime,
+            endTime = settings.EndTime
+        }, context.RequestAborted);
     }
 }

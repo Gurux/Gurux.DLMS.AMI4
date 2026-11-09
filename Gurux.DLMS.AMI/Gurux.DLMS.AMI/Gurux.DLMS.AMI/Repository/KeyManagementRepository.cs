@@ -1,105 +1,117 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Client.Pages.Admin;
+using Gurux.DLMS.AMI.Client.Pages.KeyManagement;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
+using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.CodeAnalysis;
-using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
-using Gurux.DLMS.AMI.Module;
-using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using Gurux.DLMS.AMI.Client.Shared.KeyManagement;
+
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
+
     /// <inheritdoc />
     public class KeyManagementRepository : IKeyManagementRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IKeyManagementGroupRepository _deviceKeyGroupRepository;
-        private readonly IAmiCryptoService _cryproService;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly IGXAmiCryptoService _cryproService;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public KeyManagementRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+        public KeyManagementRepository(
+            IAuthorizationService authorizationService,
+            IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
             IUserRepository userRepository,
             IServiceProvider serviceProvider,
             IKeyManagementGroupRepository deviceKeyGroupRepository,
-            IGXEventsNotifier eventsNotifier,
-            IAmiCryptoService cryproService,
-            GXPerformanceSettings performanceSettings)
+            IGXAmiCryptoService cryproService,
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
-            _eventsNotifier = eventsNotifier;
+            if (httpContextAccessor.HttpContext?.User == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
             _deviceKeyGroupRepository = deviceKeyGroupRepository;
             _cryproService = cryproService;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
         }
 
-        /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid keyId)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.KeyManagement) &&
-                !User.IsInRole(GXRoles.KeyManagementManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXKeyManagement), id, action, GXKeyManagementLogPolicies.View, connection, transaction);
 
-            GXSelectArgs args = GXQuery.GetUsersByKeyManagement(s => s.Id,
+        /// <inheritdoc />
+        public async Task<List<string>> GetUsersAsync(Guid keyId, CancellationToken cancellationToken = default)
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByKeyManagement(s => s.Id!,
                 ServerHelpers.GetUserId(User), keyId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
+            if (User != null && User.HasClaim("Permission", GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -107,114 +119,120 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? keyIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? keyIds, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.KeyManagement) &&
-                !User.IsInRole(GXRoles.KeyManagementManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-
-            GXSelectArgs args = GXQuery.GetUsersByKeyManagements(s => s.Id,
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByKeyManagements(s => s.Id!,
                 ServerHelpers.GetUserId(User), keyIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
+            if (User != null && User.HasClaim("Permission", GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
             return ret;
         }
-
 
         /// <inheritdoc />
         public async Task DeleteAsync(
             IEnumerable<Guid> keys,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.KeyManagementManager)))
+            keys = keys.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXKeyManagement, Guid>(_dbFactory, User, _serviceProvider, keys,
+        async () =>
+        {
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            if (keys != null && keys.Any())
-            {
-                if (!User.IsInRole(GXRoles.Admin) &&
-                    !User.IsInRole(GXRoles.KeyManagementManager))
+
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.Delete);
+                if (keys != null && keys.Any())
                 {
-                    throw new UnauthorizedAccessException();
-                }
-                GXSelectArgs arg = GXSelectArgs.Select<GXKeyManagement>(a => a.Id, q => keys.Contains(q.Id));
-                List<GXKeyManagement> list = await _host.Connection.SelectAsync<GXKeyManagement>(arg);
-                DateTime now = DateTime.Now;
-                Dictionary<GXKeyManagement, List<string>> updates = new();
-                foreach (GXKeyManagement key in list)
-                {
-                    key.Removed = now;
-                    List<string> users = await GetUsersAsync(key.Id);
-                    if (delete)
+                    if (!User.HasClaim("Permission", GXRoles.Admin) &&
+                        !User.HasClaim("Permission", GXKeyManagementPolicies.Delete))
                     {
-                        await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXKeyManagement>(key.Id));
+                        throw new UnauthorizedAccessException();
                     }
-                    else
+                    await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                    GXSelectArgs arg = GXSelectArgs.Select<GXKeyManagement>(a => a.Id, q => keys.Contains(q.Id));
+                    List<GXKeyManagement> list = await connection.SelectAsync<GXKeyManagement>(arg);
+                    DateTime now = DateTime.Now;
+                    Dictionary<GXKeyManagement, List<string>> updates = [];
+
+                    foreach (var entity in list)
                     {
-                        _host.Connection.Update(GXUpdateArgs.Update(key, q => q.Removed));
+                        updates[entity] = await GetNotifiedUsers(entity.Id, NotificationAction.Remove, connection);
                     }
-                    updates[key] = users;
-                }
-                foreach (var it in updates)
-                {
-                    var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                        it.Value, TargetType.KeyManagement, NotificationAction.Remove);
-                    if (users == null)
+
+                    await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+                    foreach (GXKeyManagement key in list)
                     {
-                        break;
-                    }
-                    GXKeyManagement tmp = new GXKeyManagement() { Id = it.Key.Id };
-                    await _eventsNotifier.KeyManagementDelete(users, [tmp]);
-                }
-                if (!delete)
-                {
-                    List<GXKeyManagementLog> logs = new List<GXKeyManagementLog>();
-                    foreach (var it in updates.Keys)
-                    {
-                        logs.Add(new GXKeyManagementLog(TraceLevel.Info)
+                        await GXLogStore.DeleteOwnedAsync(connection, transaction, "key-management", [key.Id], cancellationToken);
+                        key.Removed = now;
+
+                        if (delete && (await connection.SelectAsync<GXKeyManagementKey>(transaction,
+                            GXSelectArgs.Select<GXKeyManagementKey>(k => k.Id, k => k.KeyManagement == key), cancellationToken)).Count == 0)
                         {
-                            CreationTime = DateTime.Now,
-                            KeyManagement = it,
-                            Message = Properties.Resources.KeyManagementRemoved
-                        });
+                            await connection.DeleteAsync(transaction, GXDeleteArgs.DeleteById<GXKeyManagement>(key.Id), cancellationToken);
+                        }
+                        else
+                        {
+                            connection.Update(transaction, GXUpdateArgs.Update(key, q => q.Removed!));
+                        }
+
                     }
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
+                    await transaction.CommitAsync(cancellationToken);
+                    foreach (var it in updates)
                     {
-                        var deviceKeyLogRepository = scope.ServiceProvider.GetRequiredService<IKeyManagementLogRepository>();
-                        await deviceKeyLogRepository.AddAsync("Removed", logs);
+                        var users = it.Value;
+                        if (users == null)
+                        {
+                            break;
+                        }
+                        GXKeyManagement tmp = new() { Id = it.Key.Id };
+                        _notificationCache.Add(users, new GXTarget(GXKeyManagementPolicies.Delete, tmp.Id));
+                    }
+
+                }
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(keys, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
                     }
                 }
+                else
+                {
+                    throw;
+                }
             }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXKeyManagement[]> ListAsync(
-
+        public async Task<IEnumerable<GXKeyManagement>> ListAsync(
             ListKeyManagements? request,
             ListKeyManagementsResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.KeyManagement) &&
-                !User.IsInRole(GXRoles.KeyManagementManager) &&
-                //If agent
-                !User.Claims.Where(w => w.Type.Equals("scope") && w.Value.Equals(GXAgentPolicies.View)).Any()))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers &&
+                User.HasClaim("Permission", GXRoles.Admin))
             {
                 //Admin can see all the keys.
                 arg = GXSelectArgs.SelectAll<GXKeyManagement>();
@@ -231,25 +249,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     //If user want to filter devices by ID.
                     Guid id = request.Filter.Device.Id;
-                    arg.Joins.AddInnerJoin<GXKeyManagement, GXDevice>(j => j.Device, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXKeyManagement, GXDevice>(j => j.Device!, j => j.Id);
                     arg.Where.And<GXDevice>(w => w.Id == id);
                     request.Filter.Device = null;
                 }
-                if (!string.IsNullOrEmpty(request.Filter.SystemTitle))
+                if (request.Filter.SystemTitle?.Length > 0)
                 {
                     selectItemsBySystemTitle = true;
                     //Return key management items where system title is set ot it's null.
-                    string st = request.Filter.SystemTitle;
-                    arg.Where.And<GXKeyManagement>(w => w.SystemTitle == st || w.SystemTitle == "" ||
-                     w.SystemTitle == null);
+                    var st = request.Filter.SystemTitle;
+                    arg.Where.And<GXKeyManagement>(w => w.SystemTitle == st || w.SystemTitle == null);
                     request.Filter.SystemTitle = null;
                 }
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXKeyManagement>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXKeyManagement>(w => request.Included.Contains(w.Id));
                 }
@@ -257,24 +274,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request?.Select != null && request.Select.Contains(TargetType.Device))
             {
                 //Get device basic information.
-                arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(j => j.Device, j => j.Id);
+                arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(j => j.Device!, j => j.Id);
                 arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
-                arg.Columns.Exclude<GXDevice>(e => e.Keys);
+                arg.Columns.Exclude<GXDevice>(e => e.Keys!);
             }
 
             arg.Distinct = true;
+            GXDateTimeFilters.Apply<GXKeyManagement>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXKeyManagement>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXKeyManagement>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -283,34 +307,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                arg.OrderBy.Add<GXKeyManagement>(q => q.CreationTime);
+                arg.OrderBy.Add<GXKeyManagement>(q => q.CreationTime!);
                 arg.Descending = true;
             }
-            GXKeyManagement[] list = (await _host.Connection.SelectAsync<GXKeyManagement>(arg)).ToArray();
+            GXKeyManagement[] list = [.. (await connection.SelectAsync<GXKeyManagement>(arg))];
 
             //Ignore default key management items if user has ask
             //key management by system title and it's set.
             if (selectItemsBySystemTitle)
             {
-                var tmp = list.Where(w => !string.IsNullOrEmpty(w.SystemTitle)).ToArray();
-                if (tmp != null && tmp.Any())
+                var tmp = list.Where(w => w.SystemTitle?.Length > 0).ToArray();
+                if (tmp != null && tmp.Length > 0)
                 {
                     list = tmp;
                 }
             }
 
-            if (request?.Select != null && request.Select.Contains("KeyManagementKey"))
+            if (request?.Select != null && (request.Select.Contains("KeyManagementKey") || request.Select.Contains("key-management-key")))
             {
                 foreach (GXKeyManagement it in list)
                 {
                     arg = GXSelectArgs.SelectAll<GXKeyManagementKey>(w => w.KeyManagement == it);
-                    it.Keys = (await _host.Connection.SelectAsync<GXKeyManagementKey>(arg)).ToList();
+                    it.Keys = [.. (await connection.SelectAsync<GXKeyManagementKey>(arg))];
                     //Decrypt keys.
                     foreach (var key in it.Keys)
                     {
-                        if (!string.IsNullOrEmpty(key.Data))
+                        if (key.Key?.Length > 0)
                         {
-                            key.Data = await _cryproService.DecryptAsync(key.Data);
+                            key.Key = null;
                         }
                     }
                 }
@@ -339,7 +363,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 e.Updated,
                                 e.Removed
                             });
-                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template!, j => j.Id);
                             arg.Where.And<GXObjectTemplate>(w => w.Removed == null);
                         }
                         if (request?.Select != null && request.Select.Contains(TargetType.Attribute))
@@ -352,7 +376,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 e.Updated,
                                 e.Removed
                             });
-                            arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                            arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object!);
                             arg.Where.And<GXAttribute>(w => w.Removed == null);
                             if (request?.Select != null && request.Select.Contains("AttributeTemplate"))
                             {
@@ -364,11 +388,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                     e.Updated,
                                     e.Removed
                                 });
-                                arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                                arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template!, j => j.Id);
                                 arg.Where.And<GXAttributeTemplate>(w => w.Removed == null);
                             }
                         }
-                        it.Device.Objects = (await _host.Connection.SelectAsync<GXObject>(arg)).ToList();
+                        it.Device.Objects = [.. (await connection.SelectAsync<GXObject>(arg))];
                     }
                 }
             }
@@ -385,278 +409,292 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXKeyManagement> ReadAsync(Guid id)
+        public async Task<GXKeyManagement> ReadAsync(Guid id, Expression<Func<GXKeyManagement, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.KeyManagement) &&
-                !User.IsInRole(GXRoles.KeyManagementManager)))
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
 
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                //Admin can see all the keys.
-                arg = GXSelectArgs.SelectAll<GXKeyManagement>(w => w.Id == id);
-            }
-            else
-            {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetKeyManagementsByUser(s => "*", userId, id);
-            }
-            arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
-            arg.Columns.Exclude<GXDevice>(s => s.Keys);
-            arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(x => x.Device, y => y.Id);
-            arg.Distinct = true;
-            GXKeyManagement key = await _host.Connection.SingleOrDefaultAsync<GXKeyManagement>(arg);
-            if (key == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            //Get key management groups with own query.
-            arg = GXSelectArgs.SelectAll<GXKeyManagementGroup>(w => w.Removed == null);
-            arg.Joins.AddLeftJoin<GXKeyManagementGroup, GXKeyManagementGroupKeyManagement>(j => j.Id, j => j.KeyManagementGroupId);
-            arg.Where.And<GXKeyManagementGroupKeyManagement>(w => w.KeyManagementId == key.Id);
-            key.KeyManagementGroups = await _host.Connection.SelectAsync<GXKeyManagementGroup>(arg);
-
-            //Get key management keys with own query.
-            arg = GXSelectArgs.SelectAll<GXKeyManagementKey>(w => w.KeyManagement == key && w.Removed == null);
-            key.Keys = await _host.Connection.SelectAsync<GXKeyManagementKey>(arg);
-            if (key.Keys != null)
-            {
-                //Decrypt keys.
-                foreach (var it in key.Keys)
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+                GXSelectArgs arg;
+                if (User.HasClaim("Permission", GXRoles.Admin))
                 {
-                    if (!string.IsNullOrEmpty(it.Data))
+                    //Admin can see all the keys.
+                    arg = GXSelectArgs.SelectAll<GXKeyManagement>(w => w.Id == id);
+                }
+                else
+                {
+                    string userId = ServerHelpers.GetUserId(User);
+                    arg = GXQuery.GetKeyManagementsByUser(s => "*", userId, id);
+                }
+                arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
+                arg.Columns.Exclude<GXDevice>(s => s.Keys!);
+                arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(x => x.Device!, y => y.Id);
+                arg.Distinct = true;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXKeyManagement? key = await connection.SingleOrDefaultAsync<GXKeyManagement>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                //Get key management groups with own query.
+                arg = GXSelectArgs.SelectAll<GXKeyManagementGroup>(w => w.Removed == null);
+                arg.Joins.AddLeftJoin<GXKeyManagementGroup, GXKeyManagementGroupKeyManagement>(j => j.Id, j => j.KeyManagementGroupId);
+                arg.Where.And<GXKeyManagementGroupKeyManagement>(w => w.KeyManagementId == key.Id);
+                key.KeyManagementGroups = await connection.SelectAsync<GXKeyManagementGroup>(arg);
+
+                //Get key management keys with own query.
+                arg = GXSelectArgs.SelectAll<GXKeyManagementKey>(w => w.KeyManagement == key && w.Removed == null);
+                key.Keys = await connection.SelectAsync<GXKeyManagementKey>(arg);
+                if (key.Keys != null)
+                {
+                    //Decrypt keys.
+                    foreach (var it in key.Keys)
                     {
-                        it.Data = await _cryproService.DecryptAsync(it.Data);
+                        if (it.Key?.Length > 0)
+                        {
+                            it.Key = null;
+                        }
                     }
                 }
+                //Get creator with own query. It's faster for some DBs.
+                arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXKeyManagement, GXUser>(s => s.Creator!, o => o.Id!);
+                arg.Where.And<GXKeyManagement>(w => w.Id == id);
+                key.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
+                if (columns == null || ServerHelpers.Contains(columns, nameof(GXKeyManagement.Properties)))
+                {
+                    key.Properties = await GXPropertyStores.KeyManagement.ListAsync(connection, null, key, cancellationToken);
+                }
+                return key;
+
             }
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXKeyManagement, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXKeyManagement>(w => w.Id == id);
-            key.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return key;
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
+        public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXKeyManagement> keys,
-            Expression<Func<GXKeyManagement, object?>>? columns)
+            Expression<Func<GXKeyManagement, object>>? columns, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.KeyManagement) &&
-                !User.IsInRole(GXRoles.KeyManagementManager) &&
-                //If agent
-                !User.Claims.Where(w => w.Type.Equals("scope") && w.Value.Equals(GXAgentPolicies.View)).Any()))
+            keys = keys.ToArray();
+            return await GXHistoryMutation.RunAsync<GXKeyManagement, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, keys,
+        async () =>
+        {
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            DateTime now = DateTime.Now;
-            List<Guid> list = new();
-            Dictionary<GXKeyManagement, List<string>> updates = new();
-            foreach (GXKeyManagement key in keys)
-            {
-                if (key.Device != null && key.Device.Id == Guid.Empty)
-                {
-                    key.Device = null;
-                }
-                if (string.IsNullOrEmpty(key.SystemTitle))
-                {
-                    key.SystemTitle = null;
-                }
-                else
-                {
-                    key.SystemTitle = key.SystemTitle.Replace(" ", "");
-                    if (key.SystemTitle.Length != 16)
-                    {
-                        throw new ArgumentException(string.Format("Invalid system title '{0}'.", key.SystemTitle));
-                    }
-                }
-                //Verify key management key system title if it's given.
-                //If system title is not given key management is used as a default value.
-                if (!string.IsNullOrEmpty(key.SystemTitle) &&
-                    GXDLMSTranslator.HexToBytes(key.SystemTitle).Length != 8)
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
-                }
-                if (key.KeyManagementGroups == null || !key.KeyManagementGroups.Any())
-                {
-                    //Get default key groups.
-                    ListKeyManagementGroups request = new ListKeyManagementGroups()
-                    {
-                        Filter = new GXKeyManagementGroup() { Default = true }
-                    };
-                    key.KeyManagementGroups = new List<GXKeyManagementGroup>();
-                    key.KeyManagementGroups.AddRange(await _deviceKeyGroupRepository.ListAsync(request, null, CancellationToken.None));
-                    //It's OK if key management doesn't belong to any group.
-                }
-                if (key.Id == Guid.Empty)
-                {
-                    key.CreationTime = now;
-                    key.Creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-                    GXInsertArgs args = GXInsertArgs.Insert(key);
-                    args.Exclude<GXKeyManagement>(q => new
-                    {
-                        q.Updated,
-                        q.KeyManagementGroups,
-                        q.ConcurrencyStamp,
-                        q.Keys
-                    });
-                    _host.Connection.Insert(args);
-                    list.Add(key.Id);
-                    AddKeyManagementToKeyManagementGroups(key.Id, key.KeyManagementGroups);
-                    await AddKeyManagementKeysToKeyManagement(key, key.Keys);
-                }
-                else
-                {
-                    GXSelectArgs m = GXSelectArgs.Select<GXKeyManagement>(q => q.ConcurrencyStamp, where => where.Id == key.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
-                    if (!string.IsNullOrEmpty(updated) && updated != key.ConcurrencyStamp)
-                    {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
-                    }
-                    key.Updated = now;
-                    key.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(key, columns);
-                    args.Exclude<GXKeyManagement>(q => new
-                    {
-                        q.CreationTime,
-                        q.KeyManagementGroups,
-                        q.Keys
-                    });
-                    if (!User.IsInRole(GXRoles.Admin) ||
-                        key.Creator == null ||
-                        string.IsNullOrEmpty(key.Creator.Id))
-                    {
-                        //Only admin can update the creator.
-                        args.Exclude<GXKeyManagement>(q => q.Creator);
-                    }
 
-                    _host.Connection.Update(args);
-                    //Map key groups to key.
-                    List<GXKeyManagementGroup> groups;
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.Add, GXKeyManagementPolicies.Edit);
+                DateTime now = DateTime.Now;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
+                foreach (GXKeyManagement key in keys)
+                {
+                    if (key.Device != null && key.Device.Id == Guid.Empty)
                     {
-                        IKeyManagementGroupRepository deviceKeyGroupRepository = scope.ServiceProvider.GetRequiredService<IKeyManagementGroupRepository>();
-                        groups = await deviceKeyGroupRepository.GetJoinedKeyManagementGroups(key.Id);
+                        key.Device = null;
                     }
+                    if (key.SystemTitle?.Length is not > 0)
                     {
-                        var comparer = new UniqueComparer<GXKeyManagementGroup, Guid>();
-                        List<GXKeyManagementGroup> removedKeyManagementGroups = groups.Except(key.KeyManagementGroups, comparer).ToList();
-                        List<GXKeyManagementGroup> addedKeyManagementGroups = key.KeyManagementGroups.Except(groups, comparer).ToList();
-                        if (removedKeyManagementGroups.Any())
+                        key.SystemTitle = null;
+                    }
+                    else
+                    {
+                        if (key.SystemTitle.Length != 8)
                         {
-                            RemoveKeyManagementsFromKeyManagementGroup(key.Id, removedKeyManagementGroups);
-                        }
-                        if (addedKeyManagementGroups.Any())
-                        {
-                            AddKeyManagementToKeyManagementGroups(key.Id, addedKeyManagementGroups);
+                            throw new ArgumentException(string.Format("Invalid system title '{0}'.", key.SystemTitle));
                         }
                     }
-                    //Map key management keys to key management.
+                    //Verify key management key system title if it's given.
+                    //If system title is not given key management is used as a default value.
+                    if (key.SystemTitle?.Length > 0 && key.SystemTitle.Length != 8)
                     {
-                        GXKeyManagement iKeyManagement = await ReadAsync(key.Id);
-                        var comparer = new UniqueComparer<GXKeyManagementKey, Guid>();
-                        List<GXKeyManagementKey>? removedKeys = null;
-                        if (iKeyManagement.Keys != null && key.Keys != null)
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
+                    if (key.KeyManagementGroups == null || key.KeyManagementGroups.Count == 0)
+                    {
+                        //Get default key groups.
+                        ListKeyManagementGroups request = new()
                         {
-                            removedKeys = iKeyManagement.Keys.Except(key.Keys, comparer).ToList();
+                            Filter = new GXKeyManagementGroup() { Default = true }
+                        };
+                        key.KeyManagementGroups = [.. await _deviceKeyGroupRepository.ListAsync(request, null, CancellationToken.None)];
+                        //It's OK if key management doesn't belong to any group.
+                    }
+                    var added = key.Id == Guid.Empty;
+                    List<GXKeyManagementGroup>? existingGroups = null;
+                    if (!added)
+                    {
+                        using var scope = _serviceProvider.CreateScope();
+                        var groupsRepository = scope.ServiceProvider.GetRequiredService<IKeyManagementGroupRepository>();
+                        existingGroups = await groupsRepository.GetJoinedKeyManagementGroups(key.Id);
+                    }
+                    await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+                    List<string> notifiedUsers;
+                    if (added)
+                    {
+                        key.CreationTime = now;
+                        key.Creator = new GXUser()
+                        {
+                            Id = ServerHelpers.GetUserId(User)
+                        };
+                        GXInsertArgs args = GXInsertArgs.Insert(key);
+                        args.Exclude<GXKeyManagement>(q => new { q.Updated, q.KeyManagementGroups, q.ConcurrencyStamp, q.Keys, q.Properties });
+                        connection.Insert(transaction, args);
+                        AddKeyManagementToKeyManagementGroups(connection, key.Id, key.KeyManagementGroups, transaction);
+                        await AddKeyManagementKeysToKeyManagement(connection, key, key.Keys, transaction);
+                        if (key.Properties != null)
+                        {
+                            await GXPropertyStores.KeyManagement.ReplaceAsync(connection, transaction, key, key.Properties, cancellationToken);
                         }
-                        List<GXKeyManagementKey>? addedKeys = null;
-                        if (iKeyManagement.Keys == null)
+                        notifiedUsers = await GetNotifiedUsers(key.Id, NotificationAction.Add, connection, transaction);
+
+                    }
+                    else
+                    {
+                        GXSelectArgs m = GXSelectArgs.Select<GXKeyManagement>(q => q.ConcurrencyStamp!, where => where.Id == key.Id);
+                        string? updated = connection.SingleOrDefault<string>(transaction, m);
+                        if (!string.IsNullOrEmpty(updated) && updated != key.ConcurrencyStamp)
                         {
-                            addedKeys = key.Keys;
+                            throw new ArgumentException(Properties.Resources.ContentEdited);
                         }
-                        else if (key.Keys != null)
+
+                        var routing = await connection.SingleOrDefaultAsync<GXKeyManagement>(transaction, GXSelectArgs.SelectAll<GXKeyManagement>(g => g.Id == key.Id), cancellationToken);
+                        if (routing != null && (routing.ProviderId != key.ProviderId || routing.ProviderConnectionId != key.ProviderConnectionId))
                         {
-                            addedKeys = key.Keys.Except(iKeyManagement.Keys, comparer).ToList();
+                            throw new InvalidOperationException("Create a new key management to change provider routing.");
                         }
-                        if (removedKeys != null && removedKeys.Any())
+
+                        key.Updated = now;
+                        key.ConcurrencyStamp = Guid.NewGuid().ToString();
+                        GXUpdateArgs args = GXUpdateArgs.Update(key, columns);
+                        args.Exclude<GXKeyManagement>(q => new { q.CreationTime, q.KeyManagementGroups, q.Keys, q.Properties });
+                        if (!User.HasClaim("Permission", GXRoles.Admin) || key.Creator == null || string.IsNullOrEmpty(key.Creator.Id))
                         {
-                            RemoveKeyManagementKeysFromKeyManagement(removedKeys);
+                            //Only admin can update the creator.
+                            args.Exclude<GXKeyManagement>(q => q.Creator!);
                         }
-                        if (addedKeys != null && addedKeys.Any())
+
+                        connection.Update(transaction, args);
+                        //Map key groups to key.
+                        var groups = existingGroups!;
+
                         {
-                            await AddKeyManagementKeysToKeyManagement(key, addedKeys);
-                        }
-                        //Update changed keys.
-                        if (key.Keys != null && iKeyManagement.Keys != null)
-                        {
-                            var updatedKeys = key.Keys.Union(iKeyManagement.Keys, comparer).ToList();
-                            foreach (var it in updatedKeys)
+                            var comparer = new UniqueComparer<GXKeyManagementGroup, Guid>();
+                            List<GXKeyManagementGroup> removedKeyManagementGroups = [.. groups.Except(key.KeyManagementGroups, comparer)];
+                            List<GXKeyManagementGroup> addedKeyManagementGroups = [.. key.KeyManagementGroups.Except(groups, comparer)];
+                            if (removedKeyManagementGroups.Count != 0)
                             {
-                                if (it.KeyType == null || (int)it.KeyType.Value == 0)
-                                {
-                                    throw new ArgumentException(Properties.Resources.InvalidKeyType);
-                                }
-                                if (string.IsNullOrEmpty(it.Data))
-                                {
-                                    throw new ArgumentException(Properties.Resources.InvalidKeyData);
-                                }
-                                else
-                                {
-                                    //Management key is saved excrypted.
-                                    it.Data = await _cryproService.EncryptAsync(it.Data);
-                                }
-                                if (it.IsHex == null)
-                                {
-                                    it.IsHex = false;
-                                }
-                                GXUpdateArgs u = GXUpdateArgs.Update(it, c => new
-                                {
-                                    c.KeyType,
-                                    c.IsHex,
-                                    c.Data,
-                                    c.Updated
-                                });
-                                await _host.Connection.UpdateAsync(u);
+                                RemoveKeyManagementsFromKeyManagementGroup(connection, key.Id, removedKeyManagementGroups, transaction);
+                            }
+
+                            if (addedKeyManagementGroups.Count != 0)
+                            {
+                                AddKeyManagementToKeyManagementGroups(connection, key.Id, addedKeyManagementGroups, transaction);
                             }
                         }
+
+                        var existing = await connection.SelectAsync<GXKeyManagementKey>(transaction, GXSelectArgs.SelectAll<GXKeyManagementKey>(k => k.KeyManagement == key), cancellationToken);
+                        if (key.Keys != null)
+                        {
+                            foreach (var stored in existing.Where(k => k.Removed == null))
+                            {
+                                var incoming = key.Keys.SingleOrDefault(k => k.Id == stored.Id) ?? throw new InvalidOperationException("Use lifecycle operations; keys cannot be removed through a group save.");
+                                GXKeyUpdateGuard.EnsureUnchanged(stored, incoming);
+                            }
+
+                            if (key.Keys.Any(k => k.Id != Guid.Empty && !existing.Any(e => e.Id == k.Id)))
+                            {
+                                throw new InvalidOperationException("Key identities cannot be moved between groups.");
+                            }
+
+                            await AddKeyManagementKeysToKeyManagement(connection, key, [.. key.Keys.Where(k => k.Id == Guid.Empty)], transaction);
+                        }
+
+                        if (key.Properties != null)
+                        {
+                            await GXPropertyStores.KeyManagement.ReplaceAsync(connection, transaction, key, key.Properties, cancellationToken);
+                        }
+                        notifiedUsers = await GetNotifiedUsers(key.Id, NotificationAction.Edit, connection, transaction);
+
+                    }
+                    await transaction.CommitAsync(cancellationToken);
+                    _notificationCache.Add(notifiedUsers, new GXTarget(added ? GXKeyManagementPolicies.Add : GXKeyManagementPolicies.Edit, key.Id, key.Name) { ConcurrencyStamp = key.ConcurrencyStamp });
+                }
+                List<GXLog> logs = [];
+                foreach (var it in keys)
+                {
+                    logs.Add(new GXLog(TraceLevel.Info)
+                    {
+                        CreationTime = DateTime.Now,
+                        Creator = it.Id,
+                        Message = it.CreationTime == now ? Properties.Resources.KeyManagementInstalled :
+                        Properties.Resources.KeyManagementUpdated
+                    });
+                }
+                using (IServiceScope scope = _serviceProvider.CreateScope())
+                {
+                    var deviceKeyLogRepository = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("key-management");
+                    await deviceKeyLogRepository.AddAsync("Update", logs, cancellationToken);
+                }
+                return [.. keys.Select(s => s.Id)];
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(keys, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
                     }
                 }
-                updates[key] = await GetUsersAsync(key.Id);
-            }
-            foreach (var it in updates)
-            {
-                //Only ID and name are notified.
-                await _eventsNotifier.KeyManagementUpdate(it.Value, new GXKeyManagement[] {
-                    new GXKeyManagement(){Id = it.Key.Id, Name = it.Key.Name }});
-            }
-            List<GXKeyManagementLog> logs = new List<GXKeyManagementLog>();
-            foreach (var it in updates.Keys)
-            {
-                logs.Add(new GXKeyManagementLog(TraceLevel.Info)
+                else
                 {
-                    CreationTime = DateTime.Now,
-                    KeyManagement = new GXKeyManagement() { Id = it.Id, Name = it.Name },
-                    Message = it.CreationTime == now ? Properties.Resources.KeyManagementInstalled :
-                    Properties.Resources.KeyManagementUpdated
-                });
+                    throw;
+                }
             }
-            using (IServiceScope scope = _serviceProvider.CreateScope())
-            {
-                var deviceKeyLogRepository = scope.ServiceProvider.GetRequiredService<IKeyManagementLogRepository>();
-                await deviceKeyLogRepository.AddAsync("Update", logs);
-            }
-            return list.ToArray();
+        }, cancellationToken);
         }
 
         /// <summary>
         /// Map key group to user groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="keyId">KeyManagement ID.</param>
         /// <param name="groups">Group IDs of the key groups where the key is added.</param>
-        private void AddKeyManagementToKeyManagementGroups(Guid keyId, IEnumerable<GXKeyManagementGroup> groups)
+        /// <param name="transaction">Database transaction used for the update.</param>
+        private static void AddKeyManagementToKeyManagementGroups(GXDbConnection connection,
+            Guid keyId, IEnumerable<GXKeyManagementGroup> groups, System.Data.IDbTransaction transaction)
         {
             DateTime now = DateTime.Now;
-            List<GXKeyManagementGroupKeyManagement> list = new();
+            List<GXKeyManagementGroupKeyManagement> list = [];
             foreach (GXKeyManagementGroup it in groups)
             {
                 list.Add(new GXKeyManagementGroupKeyManagement()
@@ -666,56 +704,68 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between key group and key.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="keyId">KeyManagement ID.</param>
         /// <param name="groups">Group IDs of the key groups where the key is removed.</param>
-        private void RemoveKeyManagementsFromKeyManagementGroup(Guid keyId, IEnumerable<GXKeyManagementGroup> groups)
+        /// <param name="transaction">Database transaction used for the update.</param>
+        private static void RemoveKeyManagementsFromKeyManagementGroup(GXDbConnection connection,
+            Guid keyId, IEnumerable<GXKeyManagementGroup> groups, System.Data.IDbTransaction transaction)
         {
             foreach (var it in groups)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXKeyManagementGroupKeyManagement>(w => w.KeyManagementId == keyId && w.KeyManagementGroupId == it.Id));
+                connection.Delete(transaction, GXDeleteArgs.Delete<GXKeyManagementGroupKeyManagement>(w => w.KeyManagementId == keyId && w.KeyManagementGroupId == it.Id));
             }
         }
 
         /// <summary>
         /// Map keys to key management.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="keyManagement">Key management.</param>
         /// <param name="keys">Added keys.</param>
-        public async Task AddKeyManagementKeysToKeyManagement(GXKeyManagement keyManagement, IEnumerable<GXKeyManagementKey>? keys)
+        /// <param name="transaction">Database transaction used for the update.</param>
+        private async Task AddKeyManagementKeysToKeyManagement(GXDbConnection connection,
+            GXKeyManagement keyManagement, IEnumerable<GXKeyManagementKey>? keys, System.Data.IDbTransaction transaction)
         {
             if (keys != null && keys.Any())
             {
                 DateTime now = DateTime.Now;
                 foreach (GXKeyManagementKey it in keys)
                 {
-                    if (it.KeyType == null || (int)it.KeyType.Value == 0)
+                    if (it.Id != Guid.Empty)
                     {
-                        throw new ArgumentException(Properties.Resources.InvalidKeyType);
+                        throw new InvalidOperationException("Registration requires a new key identity.");
                     }
-                    if (string.IsNullOrEmpty(it.Data))
+
+                    it.KeyManagement = keyManagement;
+                    if (it.State == null)
                     {
-                        throw new ArgumentException(Properties.Resources.InvalidKeyData);
+                        GXKeyPolicy.InitializeLegacy(it);
                     }
-                    else
+
+                    it.State = KeyState.PreActive;
+                    it.ActivationDate = it.DeactivationDate = it.CompromiseDate = it.DestroyDate = null;
+                    GXKeyPolicy.ValidateRegistration(it);
+                    string? provider = it.ProviderId ?? keyManagement.ProviderId;
+                    if (string.IsNullOrEmpty(provider) || provider == "local")
                     {
-                        //Management key is saved excrypted.
-                        it.Data = await _cryproService.EncryptAsync(it.Data);
+                        GXKeyPolicy.ValidateMaterial(it);
+                        it.Key = await _cryproService.EncryptAsync(it.Key!);
                     }
-                    if (it.IsHex == null)
-                    {
-                        it.IsHex = false;
-                    }
+
+                    it.Id = Guid.NewGuid();
+                    it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     it.CreationTime = now;
                     it.KeyManagement = keyManagement;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     args.Exclude<GXKeyManagementKey>(e => new { e.Updated, e.Removed });
-                    _host.Connection.Insert(args);
+                    connection.Insert(transaction, args);
                 }
             }
         }
@@ -723,16 +773,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove map between key management group and key management.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="keys">Removed keys</param>
-        public void RemoveKeyManagementKeysFromKeyManagement(IEnumerable<GXKeyManagementKey> keys)
+        private static void RemoveKeyManagementKeysFromKeyManagement(GXDbConnection connection,
+            IEnumerable<GXKeyManagementKey> keys)
         {
             DateTime now = DateTime.Now;
             foreach (GXKeyManagementKey it in keys)
             {
                 it.Removed = now;
             }
-            GXUpdateArgs args = GXUpdateArgs.UpdateRange(keys, c => c.Removed);
-            _host.Connection.UpdateAsync(args);
+            GXUpdateArgs args = GXUpdateArgs.UpdateRange(keys, c => c.Removed!);
+            connection.UpdateAsync(args);
         }
     }
 }

@@ -1,0 +1,130 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject IServiceProvider Services
+@inject IGXMenuService SharedMenuService
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@if (_ready)
+{
+<CascadingValue Value="this">
+<GXTabControl PersistSelectionInUrl="true" RouteGroup="config/language" Active="Language">
+    <TabTextTemplate>
+        <GXImage Id="@context.Icon" />
+        <GXLocalizedText Value="@context.Text" />
+    </TabTextTemplate>
+    <ChildContent>
+        <TabHeader Name="@GXMenus.ConfigurationLanguageTab">
+            <ContentForLink Context="link">
+                @switch (link.Url)
+                {
+                    case "Language":
+                        <Languages AvailableLanguages="@AvailableLanguages" />
+                        break;
+                    case "Localize":
+                        <Localization AvailableLanguages="@AvailableLanguages" />
+                        break;
+                }
+            </ContentForLink>
+        </TabHeader>
+    </ChildContent>
+</GXTabControl>
+</CascadingValue>
+}
+
+@code {
+    [Parameter] public List<GXLanguage> AvailableLanguages { get; set; } = [];
+    private bool _ready;
+    private GXEditorMenu? _editorMenu;
+    private IGXNotificationService? NotificationService;
+
+    protected override async Task OnInitializedAsync()
+    {
+        NotificationService = Services.GetService<IGXNotificationService>();
+        try
+        {
+            if (!AvailableLanguages.Any())
+            {
+                var result = await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages());
+                AvailableLanguages.AddRange(result.Languages ?? []);
+            }
+            _editorMenu = new GXEditorMenu(SharedMenuService);
+            _editorMenu.Set(AvailableLanguages, CrudAction.Update, SaveLanguagesAsync, CancelLanguagesAsync);
+            _ready = true;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnInitializedAsync");
+        }
+    }
+
+    internal void SetEnabled(GXLanguage item, bool value)
+    {
+        item.Enabled = value;
+        MarkChanged();
+    }
+
+    internal void SetDefault(GXLanguage item, bool value)
+    {
+        item.Default = value;
+        MarkChanged();
+    }
+
+    private void MarkChanged() => GXEditContexts.For(AvailableLanguages).NotifyFieldChanged(new FieldIdentifier(AvailableLanguages, nameof(AvailableLanguages)));
+
+    private async Task SaveLanguagesAsync()
+    {
+        try
+        {
+            if (!AvailableLanguages.Any(it => it.Enabled == true && it.Default == true))
+                {
+                throw new ArgumentException("Default language is not selected.");
+            }
+            await Http.PostAsJson("api/Localization/Update", new UpdateLocalization { Localizations = AvailableLanguages.ToArray() });
+            GXEditContexts.For(AvailableLanguages).MarkAsUnmodified();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnSave");
+        }
+    }
+
+    private Task CancelLanguagesAsync()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _editorMenu?.Dispose();
+}

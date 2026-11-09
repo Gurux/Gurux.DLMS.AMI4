@@ -1,0 +1,98 @@
+@page "/videos"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Client.Rest
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject HttpClient Http
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.TutorialVideos</PageTitle>
+<section class="tutorial-videos" aria-labelledby="videos-title">
+    <a href="">@Properties.Resources.Walkthroughs</a>
+    <h1 id="videos-title">@Properties.Resources.TutorialVideos</h1>
+    <p>@Properties.Resources.TutorialVideosDescription</p>
+    @if (_loading)
+    {
+        <p role="status">@Properties.Resources.Loading</p>
+    }
+    else if (_error)
+    {
+        <p role="alert">@Properties.Resources.TutorialVideosUnavailable</p>
+        <button type="button" class="btn btn-primary" @onclick="LoadAsync">@Properties.Resources.RetryTutorialVideos</button>
+    }
+    else if (_selected == null)
+    {
+        <p role="status">@Properties.Resources.NoTutorialVideos</p>
+    }
+    else
+    {
+        <div class="video-layout">
+            <div class="video-detail">
+                <iframe @key="_selected.VideoId" class="video-player" src="@($"https://www.youtube-nocookie.com/embed/{_selected.VideoId}")"
+                        title="@_selected.Title" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen
+                        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                <h2>@_selected.Title</h2>
+                <p class="video-description">@_selected.Description</p>
+                <a href="@($"https://www.youtube.com/watch?v={_selected.VideoId}")" target="_blank" rel="noopener noreferrer">YouTube</a>
+            </div>
+            <nav class="video-list" aria-label="@Properties.Resources.TutorialVideos">
+                @foreach (var video in _videos)
+                {
+                    <button @key="video.VideoId" type="button" class="video-item" aria-pressed="@(video == _selected ? "true" : "false")"
+                            @onclick="() => Select(video)">
+                        <img src="@($"https://i.ytimg.com/vi/{video.VideoId}/hqdefault.jpg")" alt="" loading="lazy" width="160" height="90" />
+                        <span>@video.Title</span>
+                    </button>
+                }
+            </nav>
+        </div>
+    }
+</section>
+
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+    private GXVideoTutorial[] _videos = [];
+    private GXVideoTutorial? _selected;
+    private bool _loading = true, _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = false;
+        try
+        {
+            var feed = await Http.GetFromJsonAsync<GXVideoTutorialFeed>("api/Block/Tutorials", _lifetime.Token);
+            _videos = (feed?.Videos ?? []).Where(v => v != null && v.IsPlayable)
+                .OrderBy(v => v.Position).DistinctBy(v => v.VideoId).ToArray();
+            _selected = _videos.FirstOrDefault();
+        }
+        catch (AccessTokenNotAvailableException error)
+        {
+            error.Redirect();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            _error = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Select(GXVideoTutorial video)
+    {
+        _selected = video;
+    }
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

@@ -1,249 +1,305 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
-@using Gurux.DLMS.AMI.Module.Enums;
-@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Module.Enums
 
-@using Gurux.Net
-@using Gurux.Serial
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS
-@using Gurux.DLMS.ManufacturerSettings
-@using Gurux.DLMS.Objects
-@using System.Xml.Linq
-@using System.IO
-@using System.Xml
-@using System.Xml.Serialization
-@using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
-@using Gurux.DLMS.AMI.Client.Pages.Media
-@using System.Text.Json
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Device
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.User
+@using Microsoft.AspNetCore.Authorization
+@using System.Reflection
+@inject ModuleLoader Loader
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@inject IGXNotificationService Notifications
+@implements IDisposable
 
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="ParametersView" />
 
-@if (_moduleConfiguration != null && _moduleConfiguration.Any())
+@foreach (var view in _views)
 {
-    foreach (var it in _moduleConfiguration)
-    {
-        RenderFragment renderFragment = (builder) =>
-        {
-            builder.OpenComponent(0, it.Key);
-            @if (it.Value.Settings != null)
-            {
-                builder.AddAttribute(1, "Settings", it.Value.Settings);
-            }
-            builder.AddComponentReferenceCapture(0, inst =>
-                            {
-                                _modules.Add(new KeyValuePair<string, IAmiExtendedParameterSettingsUI>(it.Value.Module, (IAmiExtendedParameterSettingsUI)inst));
-                            });
-            builder.CloseComponent();
-        };
-        <div>
-            @renderFragment
-        </div>
-    }
+    <ModuleErrorBoundary @key="view" ModuleId="@view.ModuleId">
+        @RenderView(view)
+    </ModuleErrorBoundary>
 }
 
 @code {
-    [Parameter]
-    public List<IGXParameter>? Parameters { get; set; }
+    [Parameter] public List<IGXProperty>? Parameters { get; set; }
+    [Parameter] public object? Target { get; set; }
 
-    [Parameter]
-    public object? Target { get; set; }
-
-    private ExtendedlUIType _extendedlUI;
-
-    private List<KeyValuePair<string, IAmiExtendedParameterSettingsUI>> _modules = new List<KeyValuePair<string, IAmiExtendedParameterSettingsUI>>();
-
-    private struct ModuleInfo
+    private sealed class SettingsView
     {
-        ///Module name.
-        public string Module;
-        //Module settings.
-        public object? Settings;
+        public required string ModuleId { get; init; }
+        public required string Name { get; init; }
+        public required Type Component { get; init; }
+        public string? Settings { get; init; }
+        public object? Instance { get; set; }
+        public Task? Initialization { get; set; }
     }
 
-    private Dictionary<Type, ModuleInfo> _moduleConfiguration = new Dictionary<Type, ModuleInfo>();
+    private readonly List<SettingsView> _views = [];
+    private object? _target;
+    private List<IGXProperty>? _parameters;
+    private bool _reload = true;
+    private bool _interactive;
+    private readonly SemaphoreSlim _gate = new(1);
+    private bool _disposed;
+    private long _generation;
 
     protected override void OnInitialized()
     {
-        try
+        Loader.Changed += ModulesChanged;
+        Authentication.AuthenticationStateChanged += AuthenticationChanged;
+    }
+
+    private void AuthenticationChanged(Task<AuthenticationState> state) => ModulesChanged();
+
+    private void ModulesChanged()
+    {
+        ++_generation;
+        _reload = true;
+        _views.Clear();
+        if (!_interactive)
         {
-            //TODO: Get settings from the external modules.
-            /*
-            Dictionary<string, List<Type>> list;
-            if (Target is GXDevice)
-            {
-                list = modules.GetMeterSettings();
-            }
-            else if (Target is GXObject)
-            {
-                list = modules.GetObjectSettings();
-            }
-            else if (Target is GXAttribute)
-            {
-                list = modules.GetAttributeSettings();
-            }
-            else if (Target is GXDevice)
-            {
-                list = modules.GetMeterSettings();
-            }
-            else
-            {
-                throw new Exception(Properties.Resources.InvalidTarget);
-            }
-            foreach (var module in list)
-            {
-                foreach (var type in module.Value)
-                {
-                    if (typeof(IAmiExtendedDeviceSettingsUI).IsAssignableFrom(type))
-                    {
-                        IAmiExtendedDeviceSettingsUI? ds = (IAmiExtendedDeviceSettingsUI?)Activator.CreateInstance(type);
-                        _extendedlUI = ds.ExtendedUI(Target);
-                    }
-                    else if (typeof(IAmiExtendedObjectSettingsUI).IsAssignableFrom(type))
-                    {
-                        IAmiExtendedObjectSettingsUI? os = (IAmiExtendedObjectSettingsUI?)Activator.CreateInstance(type);
-                        _extendedlUI = os.ExtendedUI(Target);
-                    }
-                    else if (typeof(IAmiExtendedAttributeSettingsUI).IsAssignableFrom(type))
-                    {
-                        IAmiExtendedAttributeSettingsUI? s = (IAmiExtendedAttributeSettingsUI?)Activator.CreateInstance(type);
-                        _extendedlUI = s.ExtendedUI(Target);
-                    }
-                    else if (typeof(IAmiExtendedDeviceGroupSettingsUI).IsAssignableFrom(type))
-                    {
-                        IAmiExtendedDeviceGroupSettingsUI? dgs = (IAmiExtendedDeviceGroupSettingsUI?)Activator.CreateInstance(type);
-                        _extendedlUI = dgs.ExtendedUI(Target);
-                    }
-                    if (_extendedlUI != ExtendedlUIType.None)
-                    {
-                        _moduleConfiguration[type] = new ModuleInfo() { Module = module.Key };
-                        var p = type.GetProperty("Settings");
-                        if (p != null)
-                        {
-                            foreach (var param in Parameters)
-                            {
-                                if (param.Name == module.Key)
-                                {
-                                    if (!string.IsNullOrEmpty(param.Settings))
-                                    {
-                                        _moduleConfiguration[type] = new ModuleInfo()
-                                            {
-                                                Module = module.Key,
-                                                Settings = JsonSerializer.Deserialize(param.Settings, p.PropertyType)
-                                            };
-                                    };
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            */
+            return;
         }
-        catch (Exception ex)
+        _ = InvokeAsync(async () =>
         {
-            Notifier?.ProcessError(ex);
+            if (_disposed)
+            {
+                return;
+            }
+            await LoadViewsAsync();
+            StateHasChanged();
+        });
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ReferenceEquals(_target, Target) || !ReferenceEquals(_parameters, Parameters))
+        {
+            _target = Target;
+            _parameters = Parameters;
+            _reload = true;
+            ++_generation;
+        }
+        if (_interactive)
+        {
+            await LoadViewsAsync();
         }
     }
 
-    public void UpdateSettings<T>(List<T>? parameters) where T : IGXParameter
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender)
+        {
+            return;
+        }
+        _interactive = true;
+        await LoadViewsAsync();
+        StateHasChanged();
+    }
+
+    private AmiViewArea SettingsArea => Target switch
+    {
+        GXDevice => AmiViewArea.DeviceSettings,
+        GXDeviceGroup => AmiViewArea.DeviceGroupSettings,
+        GXObject => AmiViewArea.ObjectSettings,
+        GXAttribute => AmiViewArea.AttributeSettings,
+        GXUser => AmiViewArea.UserSettings,
+        GXUserGroup => AmiViewArea.UserGroupSettings,
+        _ => AmiViewArea.ParameterSettings
+    };
+
+    private async Task LoadViewsAsync()
+    {
+        await _gate.WaitAsync();
         try
         {
-            if (parameters != null)
+            if (!_reload || _disposed)
             {
-                string? id = null;
-                //Save module device settings.
-                foreach (var module in _modules)
+                return;
+            }
+        
+            _reload = false;
+            _views.Clear();
+            if (Target == null)
+            {
+                return;
+            }
+        
+            try
+            {
+                var generation = _generation;
+                if (!Loader.IsInitialized)
                 {
-                    if (module.Value is IAmiExtendedParameterSettingsUI ps)
+                    await Loader.RefreshAsync();
+                }
+        
+                var user = (await Authentication.GetAuthenticationStateAsync()).User;
+                var views = new List<SettingsView>();
+                foreach (var module in Loader.AddIns.OrderBy(m => m.Id))
+                {
+                    foreach (var view in module.Views.Where(v => v.Area == SettingsArea).OrderBy(v => v.Order).ThenBy(v => v.Key))
                     {
-                        id = ps.Name;
-                        ps.Save();
-                    }
-                    else
-                    {
-                        throw new Exception(Properties.Resources.InvalidTarget);
+                        if (string.IsNullOrWhiteSpace(view.Policy) || !(await Authorization.AuthorizeAsync(user, Target, view.Policy)).Succeeded)
+                        {
+                            continue;
+                        }
+        
+                        var type = await Loader.GetViewTypeAsync(module.Id, view.Area, view.Key);
+                        if (type == null)
+                        {
+                            continue;
+                        }
+        
+                        if (!typeof(IGXAmiModuleSettings).IsAssignableFrom(type))
+                        {
+                            var error = new InvalidOperationException("A module settings view must implement IGXAmiModuleSettings.");
+                            Loader.DisableClientModule(module.Id, error);
+                            Notifications.ReportError(error);
+                            continue;
+                        }
+        
+                        var name = view.Key ?? module.Id;
+                        views.Add(new SettingsView { ModuleId = module.Id, Name = name, Component = type, Settings = Parameters?.FirstOrDefault(p => p.Module?.Id == module.Id && p.Name == name)?.Value });
                     }
                 }
-                //Serialize module device settings.
-                foreach (var module in _modules)
+        
+                if (!_disposed && generation == _generation)
                 {
-                    var settings = module.Value.GetType().GetProperty("Settings");
-                    if (settings != null && settings.CanRead && settings.CanWrite && settings.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
-                    {
-                        var value = settings.GetValue(module.Value);
-                        if (value != null)
-                        {
-                            T? param = parameters.SingleOrDefault(w => w.Module.Id == id && w.Name == id);
-                            if (param == null)
-                            {
-                                param = Activator.CreateInstance<T>();
-                                param.Name = id;
-                                param.Module = new GXModule() { Id = module.Key };
-                                parameters.Add(param);
-                            }
-                            param.Settings = JsonSerializer.Serialize(value);
-                        }
-                    }
+                    _views.AddRange(views);
                 }
             }
+            catch (Exception error)
+            {
+                Notifications.ReportError(error);
+            }
         }
-        catch (Exception)
+        finally
         {
-            throw;
+            _gate.Release();
         }
     }
 
-    public void Cancel()
+    private RenderFragment RenderView(SettingsView view) => builder =>
     {
-        foreach (var module in _modules)
+        builder.OpenComponent(0, view.Component);
+        if (view.Component.GetProperty("Target")?.GetCustomAttribute<ParameterAttribute>() != null)
         {
-            if (module.Value is IAmiExtendedParameterSettingsUI ps)
+            builder.AddAttribute(1, "Target", Target);
+        }
+        builder.AddComponentReferenceCapture(2, instance =>
+        {
+            if (ReferenceEquals(view.Instance, instance))
             {
-                ps.Cancel();
+                return;
             }
-            else
+            view.Instance = instance;
+            view.Initialization = InitializeAsync(view);
+        });
+        builder.CloseComponent();
+    };
+
+    private async Task InitializeAsync(SettingsView view)
+    {
+        try
+        {
+            var settings = (IGXAmiModuleSettings)view.Instance!;
+            settings.Initialize(view.Settings);
+            await settings.InitializeAsync(view.Settings);
+            if (!_disposed && _views.Contains(view))
             {
-                throw new Exception(Properties.Resources.InvalidTarget);
+                await InvokeAsync(StateHasChanged);
             }
         }
+        catch (Exception error)
+        {
+            Loader.DisableClientModule(view.ModuleId, error);
+            await DispatchExceptionAsync(error);
+        }
+    }
+
+    public async Task UpdateSettingsAsync<T>(List<T>? parameters) where T : IGXProperty
+    {
+        if (parameters == null)
+        {
+            return;
+        }
+        foreach (var view in _views.ToArray())
+        {
+            if (view.Initialization != null)
+            {
+                await view.Initialization;
+            }
+            if (!_views.Contains(view) || view.Instance is not IGXAmiModuleSettings settings)
+            {
+                continue;
+            }
+            var value = await settings.SaveAsync();
+            var parameter = parameters.SingleOrDefault(p => p.Module?.Id == view.ModuleId && p.Name == view.Name);
+            if (parameter == null)
+            {
+                parameter = Activator.CreateInstance<T>();
+                parameter.Name = view.Name;
+                parameter.Module = new GXModule { Id = view.ModuleId };
+                parameters.Add(parameter);
+            }
+            parameter.Value = value;
+        }
+    }
+
+    public async Task CancelAsync()
+    {
+        foreach (var view in _views.ToArray())
+        {
+            if (view.Initialization != null)
+            {
+                await view.Initialization;
+            }
+            if (!_views.Contains(view) || view.Instance is not IGXAmiModuleSettings settings)
+            {
+                continue;
+            }
+            settings.Cancel();
+            await settings.CancelAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        ++_generation;
+        Loader.Changed -= ModulesChanged;
+        Authentication.AuthenticationStateChanged -= AuthenticationChanged;
+        _views.Clear();
     }
 }

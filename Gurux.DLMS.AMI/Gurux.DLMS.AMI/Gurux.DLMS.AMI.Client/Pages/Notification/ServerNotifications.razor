@@ -1,0 +1,240 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using System.Reflection
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.UI.Components.Enums
+@namespace Gurux.DLMS.AMI.Client.Pages.Notification
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXMenuService SharedMenuService
+
+@implements IDisposable
+
+@if (_editContext != null && Configuration != null)
+{
+<GXHelpContext Topic="Notifications" />
+<h2><GXLocalizedText Value="@Properties.Resources.ServerNotifications" /></h2>
+<input class="form-control" type="search" placeholder="@Properties.Resources.FilterByName"
+       aria-label="@Properties.Resources.FilterByName" @bind="_filter" @bind:event="oninput" />
+<hr />
+<EditForm EditContext="@_editContext">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    @Properties.Resources.Name
+                    <div class="form-check form-switch">
+                        <input id="server-notifications-all" class="form-check-input" type="checkbox"
+                               checked="@Notifications.All(IsEnabled)" @onchange="ToggleAll" />
+                        <label for="server-notifications-all">@Properties.Resources.All</label>
+                    </div>
+                </th>
+                <th>@Properties.Resources.Notifications</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var group in Notifications.Where(n => string.IsNullOrEmpty(_filter) || n.Contains(_filter, StringComparison.OrdinalIgnoreCase)).GroupBy(GroupName))
+            {
+                <tr @key="group.Key">
+                    <td>@group.Key</td>
+                    <td>
+                        <Gurux.UI.Components.Accordion.GXAccordion Id="@("server-notifications-" + group.Key)">
+                            <HeaderTemplate>
+                                <span>@string.Join(", ", group.Where(IsEnabled).Select(ActionName))</span>
+                            </HeaderTemplate>
+                            <ChildContent>
+                                @foreach (var name in group)
+                                {
+                                    <div class="form-check form-switch mb-2" @key="name">
+                                        <input id="@("notification-" + name)" class="form-check-input" type="checkbox"
+                                               checked="@IsEnabled(name)" @onchange="e => SetEnabled(name, e.Value is true)" />
+                                        <label for="@("notification-" + name)"><GXLocalizedText Value="@ActionName(name)" /></label>
+                                    </div>
+                                }
+                            </ChildContent>
+                        </Gurux.UI.Components.Accordion.GXAccordion>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</EditForm>
+}
+
+@code {
+    /// <summary>Optional configuration supplied by an embedding page.</summary>
+    [Parameter] public GXConfiguration? Configuration { get; set; }
+
+    private static readonly HashSet<string> NotificationActions = new(StringComparer.Ordinal)
+        { "add", "edit", "delete", "clear", "execute", "error", "close", "status", "status-change", "start", "end" };
+    private static readonly string[] Notifications = typeof(GXUserPolicies).Assembly.GetTypes()
+        .Where(t => t.IsClass && t.Name.EndsWith("Policies", StringComparison.Ordinal))
+        .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
+        .Where(f => f.IsLiteral && f.FieldType == typeof(string))
+        .Select(f => (string)f.GetRawConstantValue()!)
+        .Where(n => n.Contains('.') && NotificationActions.Contains(ActionName(n)))
+        .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray();
+
+    private static string GroupName(string name) => name[..name.LastIndexOf('.')];
+    private static string ActionName(string name) => name[(name.LastIndexOf('.') + 1)..];
+    private PerformanceSettings _settings = new();
+    private EditContext _editContext = null!;
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+    private string? _filter;
+    private bool _disposed;
+    private GXConfiguration? _loadedConfiguration;
+    private string? _loadedSettings;
+    private IGXProgress? Progress => Services.GetService<IGXProgress>();
+    private IGXNotificationService? NotificationService => Services.GetService<IGXNotificationService>();
+
+    protected override void OnInitialized()
+    {
+        MenuService.Clear();
+        MenuService.AddMenuItems(new GXMenuItem
+        {
+            Text = Properties.Resources.Save, Icon = "Save", Enabled = EnableStyle.Modified,
+            OnClick = EventCallback.Factory.Create(this, SaveAsync)
+        });
+        MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel",
+            EventCallback.Factory.Create(this, OnCancel)));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Configuration != null) {
+            return;
+        }
+        try
+        {
+            using var progress = Progress?.ProgressStart(GXProgress.RetrievingPerformances);
+            var references = await Http.GetFromJsonAsync<GXConfiguration[]>("api/Configuration/References") ?? [];
+            if (_disposed) {
+                return;
+            }
+            var selected = references.FirstOrDefault(c => string.Equals(c.Name, GXConfigurations.Notification, StringComparison.OrdinalIgnoreCase));
+            if (selected != null)
+            {
+                var response = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List",
+                    new ListConfiguration { Included = [selected.Id], OrderBy = nameof(GXConfiguration.Name) });
+                if (_disposed) {
+                    return;
+                }
+                Configuration = response.Configurations?.FirstOrDefault(c => c.Id == selected.Id);
+            }
+            if (Configuration == null) {
+                throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+            }
+            OnParametersSet();
+        }
+        catch (Microsoft.AspNetCore.Components.WebAssembly.Authentication.AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { NotificationService?.ReportError(ex, "ServerNotifications.Load"); }
+    }
+    protected override void OnParametersSet()
+    {
+        var active = Configuration;
+        if (_editContext != null && ReferenceEquals(active, _loadedConfiguration) && active?.Settings == _loadedSettings)
+        {
+            return;
+        }
+        _loadedConfiguration = active;
+        _loadedSettings = active?.Settings;
+        _settings = string.IsNullOrWhiteSpace(_loadedSettings) ? new()
+            : JsonSerializer.Deserialize<PerformanceSettings>(_loadedSettings) ?? new();
+        _editContext = new EditContext(_settings);
+        MenuService.EditContext = _editContext;
+    }
+
+    /// <inheritdoc />
+    public void Update()
+    {
+        _loadedConfiguration = null;
+        OnParametersSet();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsEnabled(string name) => _settings.IgnoreNotification?.Contains(name, StringComparer.OrdinalIgnoreCase) != true;
+
+    private void SetEnabled(string name, bool enabled)
+    {
+        var ignored = new HashSet<string>(_settings.IgnoreNotification ?? [], StringComparer.OrdinalIgnoreCase);
+        if (enabled)
+        {
+            ignored.Remove(name);
+        }
+        else
+        {
+            ignored.Add(name);
+        }
+        _settings.IgnoreNotification = ignored.Count == 0 ? null : ignored.Order(StringComparer.Ordinal).ToArray();
+        _editContext.NotifyFieldChanged(new FieldIdentifier(_settings, nameof(PerformanceSettings.IgnoreNotification)));
+    }
+
+    private void ToggleAll(ChangeEventArgs args)
+    {
+        _settings.IgnoreNotification = args.Value is true ? null : Notifications.ToArray();
+        _editContext.NotifyFieldChanged(new FieldIdentifier(_settings, nameof(PerformanceSettings.IgnoreNotification)));
+    }
+
+    /// <summary>Saves notification settings for the selected configuration.</summary>
+    public async Task SaveAsync()
+    {
+        try
+        {
+            NotificationService?.RemoveByKey("Performance.Save");
+            using var progress = Progress?.ProgressStart(GXProgress.SavingPerformance);
+            var active = Configuration ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+            var settings = JsonSerializer.Serialize(_settings);
+            var update = ClientHelpers.Clone<GXConfiguration>(active);
+            update.Settings = settings;
+            await Http.PostAsJson("api/Configuration/Update", new ConfigurationUpdate { Configurations = [update] });
+            active.Settings = settings;
+            _loadedSettings = settings;
+            _editContext.MarkAsUnmodified();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Microsoft.AspNetCore.Components.WebAssembly.Authentication.AccessTokenNotAvailableException ex)
+        {
+            ex.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Performance.Save");
+        }
+    }
+
+    private void OnCancel() { _loadedConfiguration = null; OnParametersSet(); }
+
+    /// <inheritdoc />
+    public void Dispose() { _disposed = true; _pageMenu?.Dispose(); }
+}

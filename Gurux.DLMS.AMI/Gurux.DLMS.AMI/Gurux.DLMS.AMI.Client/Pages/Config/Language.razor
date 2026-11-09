@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums
@@ -46,13 +45,14 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@inject ConfirmBase Confirm
 @implements IDisposable
 @implements IGXConfigUpdate
 
+
+<GXHelpContext Topic="Language" />
 
 @if (Active != null)
 {
@@ -60,13 +60,13 @@
 }
 else @if (_authentications != null)
 {
-    <MenuControl RightCorner="true">
+    <GXMenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
         </ChildContent>
-    </MenuControl>
+    </GXMenuControl>
 
-    <GXTable @ref="table"
+    <GXViewTable ViewName="Config.Language" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXLanguagePolicies.View })" TItem="GXLanguage" @ref="table"
              Context="item"
              ItemsProvider="@GetItems"
              SelectionMode="SelectionMode.Single"
@@ -74,23 +74,31 @@ else @if (_authentications != null)
         <FilterContent>
         </FilterContent>
         <MenuContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockGroupManager)>
-                <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-                <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
-            </AuthorizeView>
+            <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXLanguagePolicies.View"></GXContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXLanguagePolicies.Delete"></GXContextMenuItem>
         </MenuContent>
         <HeaderContent>
-            <Th Name="Name" Target="@item">@Properties.Resources.Name</Th>
-            <Th Name="ClientId" Target="@item">Client ID</Th>
+            <GXTh Name="Name" Target="@item">@Properties.Resources.Name</GXTh>
+            <GXTh Name="ClientId" Target="@item">@Properties.Resources.ClientID</GXTh>
         </HeaderContent>
         <ItemContent>
-            <Td Link="@("Config/Authentication/Edit/" + item.Id)">@item.Id</Td>
-            <td>@item.Id</td>
+            <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath("/Config/Authentication/Edit/" + item.Id)">@item.Id</GXTd>
+            <GXTd Id="ClientId">@item.Id</GXTd>
         </ItemContent>
-    </GXTable>
+    </GXViewTable>
     <br />
 }
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
+        new("ClientId") { Position = 1, Description = Properties.Resources.ClientID, Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Parent component.
     /// </summary>
@@ -118,7 +126,7 @@ else @if (_authentications != null)
 
     /// <inheritdoc/>
     public void Update()
-    {       
+    {
         InvokeAsync(StateHasChanged);
     }
 
@@ -129,6 +137,14 @@ else @if (_authentications != null)
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("Authentication/"))
         {
             //If authentication is shown or edit.
@@ -136,10 +152,8 @@ else @if (_authentications != null)
         }
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingLanguage);
+            NotificationService?.RemoveByKey("Pages/Config/Language.OnInitialized");
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
                 var items = JsonSerializer.Deserialize<AuthenticationSettings[]>(Parent.Active.Settings);
@@ -155,11 +169,7 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Language.OnInitialized");
         }
     }
 
@@ -171,15 +181,15 @@ else @if (_authentications != null)
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Config/Language.OnRemove");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Language.OnRemove");
         }
     }
 
@@ -190,8 +200,8 @@ else @if (_authentications != null)
     {
         try
         {
-            Notifier.ClearStatus();
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "Config/Authentication/Add");
+            NotificationService?.RemoveByKey("Pages/Config/Language.OnAdd");
+            ClientHelpers.NavigateTo(NavigationManager,  "Config/Authentication/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -199,7 +209,7 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Language.OnAdd");
         }
     }
 
@@ -216,7 +226,7 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -227,10 +237,10 @@ else @if (_authentications != null)
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Config/Language.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             Edit(table.Active);
         }
@@ -240,12 +250,12 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Language.OnEdit");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }

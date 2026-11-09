@@ -1,0 +1,187 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Internal
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject ILogger<BlockModule> Logger
+@implements IDisposable
+@if (Blocks != null)
+{
+    @foreach (var block in Blocks.Where(block => !_closedBlocks.Contains(block.Id) &&
+            GXBlockPageSelection.Matches(block, Navigation.ToBaseRelativePath(Navigation.Uri))))
+    {
+        <section @key="block.Id" class="block-module @(IsWalkthroughs(block) ? "walkthroughs-block" : null) @GetLocationClass() @(IsSidebarNavigation(block) ? "sidebar-navigation" : null) @(IsSidebarHeader(block) ? "sidebar-navigation-header" : null) @(block.Closable ? "alert-dismissible" : null)">
+            @if (block.Closable)
+            {
+                <button type="button" class="btn-close" aria-label="@Properties.Resources.Close" @onclick="() => OnClose(block)">
+                </button>
+            }
+            @if (block.BlockType == BlockType.Html && !string.IsNullOrWhiteSpace(block.Body))
+            {
+                <div class="@block.CssClass" role="@block.CssRole" style="@block.Style">
+                    @if (!string.IsNullOrWhiteSpace(block.Title))
+                    {
+                        <p class='markup'>@((MarkupString)block.Title)</p>
+                    }
+                    <p class='markup'>@((MarkupString)block.Body)</p>
+                </div>
+            }
+            else if (block.BlockType is BlockType.Markdown or BlockType.MarkdownFile or BlockType.HtmlFile)
+            {
+                <div class="@block.CssClass" role="@block.CssRole" style="@block.Style">
+                    @if (!string.IsNullOrWhiteSpace(block.Title))
+                    {
+                        <p class="markup">@((MarkupString)block.Title)</p>
+                    }
+                    @if (block.BlockType == BlockType.Markdown)
+                    {
+                        <GXMarkdownView Content="@block.Body" />
+                    }
+                    else if (block.BlockType == BlockType.MarkdownFile)
+                    {
+                        <GXMarkdownView @key="(block.Id, block.Updated)" Source="@($"api/Block/Content/{block.Id}")" />
+                    }
+                    else
+                    {
+                        <BlockFileView @key="(block.Id, block.Updated)" BlockId="@block.Id" />
+                    }
+                </div>
+            }
+            else if (block.BlockType == BlockType.RSS)
+            {
+                @if (!string.IsNullOrWhiteSpace(block.Title))
+                {
+                    <p class="block-title">@block.Title</p>
+                }
+                <BlockRssView @key="(block.Id, block.Updated)" BlockId="@block.Id" />
+            }
+            else if (block.BlockType == BlockType.Component && block.ComponentView?.ClassName != null)
+            {
+                if (!string.IsNullOrWhiteSpace(block.Title))
+                {
+                    <p class='markup'>@((MarkupString)block.Title)</p>
+                }
+                Type? type = Type.GetType(block.ComponentView.ClassName);
+                if (type != null)
+                {
+                    <DynamicComponent Type="type"></DynamicComponent>
+                }
+                else
+                {
+                    Logger.LogError("Unknown component {0}", block.ComponentView.ClassName);
+                }
+            }
+            @if (ChildContent is not null)
+            {
+                <div class="block-content">
+                    @ChildContent
+                </div>
+            }
+        </section>
+    }
+}
+@code {
+    private readonly HashSet<Guid> _closedBlocks = new();
+
+    protected override void OnInitialized()
+    {
+        NotificationService = Services.GetService<IGXNotificationService>();
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public BlockLocation? Location { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public IEnumerable<GXBlock>? Blocks { get; set; }
+
+
+    private string GetLocationClass() => $"location-{Location?.ToString().ToLowerInvariant()}";
+
+    private static bool IsWalkthroughs(GXBlock block) => block.BlockType == BlockType.Component
+        && block.ComponentView?.ClassName == typeof(Gurux.DLMS.AMI.Client.Helpers.Walkthroughs).FullName;
+
+    private static bool IsSidebarNavigation(GXBlock block) => block.Location is BlockLocation.SidebarLeft or BlockLocation.SidebarRight
+        && block.BlockType == BlockType.Component
+        && (block.ComponentView?.ClassName == typeof(Gurux.DLMS.AMI.Client.Layout.NavMenu).FullName
+            || block.ComponentView?.ClassName == typeof(Gurux.DLMS.AMI.Client.Layout.NavMenuHeader).FullName);
+
+    private static bool IsSidebarHeader(GXBlock block) => IsSidebarNavigation(block)
+        && block.ComponentView?.ClassName == typeof(Gurux.DLMS.AMI.Client.Layout.NavMenuHeader).FullName;
+
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+        => _ = InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    /// Close the selected block.
+    /// </summary>
+    /// <param name="block"></param>
+    /// <returns></returns>
+    public async Task OnClose(object sender)
+    {
+        try
+        {
+            if (sender is GXBlock block)
+            {
+                CloseBlock arg = new CloseBlock();
+                arg.Ids = new Guid[] { block.Id };
+                await Http.PostAsJson<CloseBlockResponse>("api/Block/Close", arg);
+                _closedBlocks.Add(block.Id);
+                await InvokeAsync(StateHasChanged);
+                var storage = Services.GetService<IAmiBlockStorage>();
+                if (storage != null)
+                {
+                    await storage.RefreshBlocksAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+}
+

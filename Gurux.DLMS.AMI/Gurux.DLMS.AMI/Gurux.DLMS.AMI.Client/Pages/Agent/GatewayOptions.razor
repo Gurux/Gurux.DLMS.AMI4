@@ -1,39 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Media;
 @using Gurux.DLMS.AMI.Client.Pages.Script
-@using Gurux.DLMS.AMI.Components.Enums;
+@using Gurux.UI.Components.Enums;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.Enums
 @using Gurux.Net;
@@ -49,46 +46,42 @@
 @using System.Diagnostics
 @using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
 
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="GatewayOptions" />
 
 @if (Settings != null)
 {
-    <EditForm Model="@Settings">
+    <EditForm EditContext="@(GXEditContexts.For(Owner?.Active ?? (object)Settings))">
         <DataAnnotationsValidator />
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Settings.Enabled" />
                     <br />
                 </div>
-                <fieldset disabled="@(!Settings.Active)">
+                <fieldset disabled="@(!Settings.Enabled)">
                     <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
                                      @ref=networkSettings></NetworkSettings>
                     <div class="form-group">
                         <label>@Properties.Resources.TraceLevel</label>
-                        <select class="form-select" @bind="Settings.TraceLevel">
-                            @foreach (var it in TraceLevels)
-                            {
-                                <option value="@it">@it</option>
-                            }
-                        </select>
+                        <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(TraceLevels)" />
                     </div>
                     <div class="form-group">
-                        <label>Gateway</label>
-                        <DropdownSearch class="form-control"
+                        <label>@Properties.Resources.Gateway</label>
+                        <GXDropdownSearch class="form-control"
                                         Id="DeviceImporter"
-                                        LastValue="true"
+                                        RememberValue="true"
                                         @bind-Value="SelectedGateway"
                                         ItemsProvider="@GetGateways">
-                        </DropdownSearch>
+                        </GXDropdownSearch>
                     </div>
                     @if (SelectedGateway == null)
                     {
                         <div class="form-group">
                             <label>@Properties.Resources.IdentifyWaitTime</label>
-                            <InputIntegerTimeSpan id="identifyWaitTime" class="form-control"
+                            <GXInputTimeSpan RememberValue="false" id="identifyWaitTime" class="form-control"
                                                   @bind-Value="Settings.IdentifyWaitTime" />
                             <ValidationMessage For="@(() => Settings.IdentifyWaitTime)" />
                         </div>
@@ -106,9 +99,20 @@
 }
 
 @code {
+    [CascadingParameter] public Agent? Owner { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+    }
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     //Available scripts.
     [Parameter]
-    public GXScript[]? Scripts { get; set; }
+    public IEnumerable<GXScript>? Scripts { get; set; }
 
     [Parameter]
     public GatewaySettings? Settings { get; set; }
@@ -137,43 +141,40 @@
         }
     }
 
-    public void Validate(GXValidator sender)
+    public async System.Threading.Tasks.Task ValidateAsync(GXValidator sender)
     {
         OnValidate(sender);
-        _validator?.Validate();
+        if (_validator != null)
+        {
+            await _validator.ValidateAsync();
+        }
     }
 
     public void OnValidate(GXValidator sender)
     {
-        if (Settings != null && Settings.Active)
+        if (Settings != null && Settings.Enabled)
         {
             if (Settings.ExpirationTime < 0)
             {
-                sender.AddError(() => Settings.ExpirationTime, "Invalid expiration time.");
+                sender.AddError(() => Settings.ExpirationTime, Properties.Resources.InvalidExpirationTime);
             }
             networkSettings?.Validate(sender);
-            //Update selected gateway ID.
-            if (SelectedGateway != null)
+            if (Settings.Enabled && (Settings.Id == null && Settings.ScriptMethod == null))
             {
-                Settings.Id = SelectedGateway.Id;
-            }
-            else
-            {
-                Settings.Id = null;
-            }
-            if (Settings.Active && (Settings.Id == null && Settings.ScriptMethod == null))
-            {
-                sender.AddError(() => SelectedGateway, "Gateway must be selected.");
+                sender.AddError(() => SelectedGateway, Properties.Resources.GatewayMustBeSelected);
             }
         }
     }
 
-    private GXGateway? SelectedGateway;
+    private GXGateway? _selectedGateway;
+    private GXGateway? SelectedGateway { get => _selectedGateway; set { _selectedGateway = value; if (Settings != null) {
+        Settings.Id = value?.Id;
+    } } }
 
     private async ValueTask<ItemsProviderResult<GXGateway?>> GetGateways(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingGatewayOptions);
         try
         {
             ListGateways req = new ListGateways()
@@ -184,7 +185,9 @@
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
             };
-            if (Settings?.Id is Guid id)
+            var settings = Settings;
+            Guid? selectedId = settings?.Id;
+            if (selectedId is Guid id)
             {
                 //Load only the selected gateway.
                 req.Filter = new() { Id = id };
@@ -200,13 +203,13 @@
             ListGatewaysResponse ret = await Http.PostAsJson<ListGatewaysResponse>("api/Gateway/List", req, request.CancellationToken);
             if (ret.Gateways != null)
             {
-                if (Settings?.Id is Guid)
+                if (!request.CancellationToken.IsCancellationRequested && ReferenceEquals(Settings, settings) && selectedId is Guid && Settings?.Id == selectedId)
                 {
                     //Set the selected gateway.
-                    SelectedGateway = ret.Gateways.FirstOrDefault();
+                    _selectedGateway = ret.Gateways.FirstOrDefault(item => item.Id == selectedId);
                     StateHasChanged();
                 }
-                return new ItemsProviderResult<GXGateway?>(ret.Gateways, ret.Count);
+                return new ItemsProviderResult<GXGateway?>(ret.Gateways, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -216,11 +219,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }

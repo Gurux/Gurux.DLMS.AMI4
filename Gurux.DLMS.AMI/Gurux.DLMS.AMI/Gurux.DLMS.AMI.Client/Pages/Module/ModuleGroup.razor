@@ -1,175 +1,151 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Shared.DIs
 
+@using Gurux.DLMS.AMI.Client.Pages.User
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module;
+@using Gurux.DLMS.AMI.Shared.DTOs;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
+<GXHelpContext Topic="ModuleGroup" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                                        <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Name" />
-                </div>
-                <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.DefaultGroup"
-                                         @bind-Value="Active.Default" />
-                    <br />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Description</label>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Description" />
-                </div>
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
-}
-@code {
-    [CascadingParameter]
-    private ModuleGroupTab? Parent { get; set; }
-
-
-    private GXModuleGroup? _active;
-
-    private GXModuleGroup? Active
-    {
-        get
-        {
-            if (Parent?.Active != null)
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
             {
-                return Parent.Active;
+                <TabHeader Name="@GXMenus.ModuleGroupTab" Parameters="@TabParameters" />
             }
-            return _active;
-        }
-    }
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+@code {
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active,
+        ["Action"] = _action,
+        ["ModuleGroup"] = Active
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
     /// <summary>
-    /// User action.
+    /// Action.
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
     /// <summary>
-    /// Selected item.
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
     /// </summary>
     [Parameter]
     public Guid? Id { get; set; }
 
-    private bool DeleteTarget;
-    public string? IsDeleting
-    {
-        get
-        {
-            if (Notifier.Action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXModuleGroup Active = new GXModuleGroup(null);
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.ModuleGroup;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModuleGroup);
+            NotificationService?.RemoveByKey("Pages/Module/ModuleGroup.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get module group data.
                 var tmp = (await Http.GetAsJsonAsync<GetModuleGroupResponse>(string.Format("api/ModuleGroup?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
-                    _active = tmp.Item;
+                    Active = tmp.Item;
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            _ready = true;
+            EditorMenu.Set(Active, EditorAction, OnSave, OnCancel);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -177,18 +153,17 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModuleGroup.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Save module.
-    /// </summary>
-    public async void OnSave()
+    private GXEditorMenu? _editorMenu;
+    private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
+    private CrudAction EditorAction => ClientHelpers.GetAction(NavigationManager, Action);
+    public bool DeleteTarget { get; set; }
+    public void Dispose() => _editorMenu?.Dispose();
+
+    public async Task OnSave()
     {
         try
         {
@@ -196,9 +171,9 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingModuleGroup);
+            NotificationService?.RemoveByKey("Pages/Module/ModuleGroupGeneral.OnSave");
+            if (EditorAction == CrudAction.Delete)
 
             {
                 await Http.PostAsJson<RemoveModuleGroupResponse>("api/ModuleGroup/Delete", new RemoveModuleGroup()
@@ -210,11 +185,11 @@
             else
             {
                 string address;
-                if (action == CrudAction.Create)
+                if (EditorAction == CrudAction.Create)
                 {
                     address = "api/ModuleGroup/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (EditorAction == CrudAction.Update)
                 {
                     address = "api/ModuleGroup/Update";
                 }
@@ -224,7 +199,7 @@
                 }
                 await Http.PostAsJson<AddModuleGroupResponse>(address, new AddModuleGroup() { ModuleGroups = new GXModuleGroup[] { Active } });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -232,19 +207,12 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModuleGroupGeneral.OnSave");
         }
     }
-
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
-    private void OnCancel()
+    private Task OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
     }
 }

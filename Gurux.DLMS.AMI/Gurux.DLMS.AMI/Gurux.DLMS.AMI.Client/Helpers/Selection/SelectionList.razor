@@ -1,34 +1,30 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Shared.Enums;
@@ -53,7 +49,7 @@
                 </div>
                 @if (ShowAllUsers)
                 {
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+                    <AuthorizeView Roles=@GXRoles.Admin>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox"
                                    @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
@@ -125,7 +121,6 @@
 }
 
 @code {
-    public delegate Task ItemUpdatedEventHandler(IEnumerable<TItem> items);
 
 
     public delegate string? GetNameEventHandler(TItem target);
@@ -135,7 +130,6 @@
     SelectionContainer<TItem>? Container { get; set; }
 
     private CancellationTokenSource? _cts;
-    private int _currentPage = 0;
 
     /// <summary>
     /// Data from the all users is shown for the admin.
@@ -166,26 +160,19 @@
     /// Current page.
     /// </summary>
     [Parameter]
-    public int CurrentPage
+    public int CurrentPage { get; set; }
+
+    protected override void OnParametersSet()
     {
-        get
-        {
-            return _currentPage;
-        }
-        set
-        {
-            if (value < 0)
-            {
-                //Select the first page.
-                value = 0;
-            }
-            else if (Container.PageSize * value > TotalCount)
-            {
-                //Select the last page.
-                value = TotalCount / Container.PageSize;
-            }
-            _currentPage = value;
-        }
+        ClampCurrentPage();
+    }
+
+    private void ClampCurrentPage()
+    {
+        int lastPage = Container is { PageSize: > 0 }
+            ? Math.Max(0, (TotalCount - 1) / Container.PageSize)
+            : 0;
+        CurrentPage = Math.Clamp(CurrentPage, 0, lastPage);
     }
 
     /// <summary>
@@ -195,6 +182,7 @@
     internal async Task SelectPage(int index)
     {
         CurrentPage = index;
+        ClampCurrentPage();
         await RefreshDataAsync(true);
     }
 
@@ -209,7 +197,7 @@
     {
         get
         {
-            return (int)Math.Ceiling(TotalCount / (double)Container.PageSize);
+            return Container is { PageSize: > 0 } ? (int)Math.Ceiling(TotalCount / (double)Container.PageSize) : 0;
         }
     }
 
@@ -236,7 +224,7 @@
 
     public List<TItem> GetItems()
     {
-        return Items.Except(HiddenItems).ToList();
+        return (Items ?? []).Except(HiddenItems).ToList();
     }
 
     /// <summary>
@@ -292,13 +280,13 @@
     /// A new item has added for the list.
     /// </summary>
     [Parameter]
-    public ItemUpdatedEventHandler? OnAdded { get; set; }
+    public EventCallback<IEnumerable<TItem>> OnAdded { get; set; }
 
     /// <summary>
     /// Item has removed from the lists.
     /// </summary>
     [Parameter]
-    public ItemUpdatedEventHandler? OnRemoved { get; set; }
+    public EventCallback<IEnumerable<TItem>> OnRemoved { get; set; }
 
     private string dropClass = "";
 
@@ -326,17 +314,19 @@
         if (Container != null && Container.SourceList != null &&
             Container.Item != null && Items != null)
         {
+            var source = Container.DragSource;
+            Container.DragSource = null;
             TItem[] items = new TItem[] { Container.Item };
             Container.SourceList.Remove(Container.Item);
             Items.Add(Container.Item);
-            OnAdded?.Invoke(items);
+            await OnAdded.InvokeAsync(items);
             await Container.ItemAdded(this, items);
-            if (Container.DragSource != null)
+            if (source != null)
             {
-                Container.DragSource.OnRemoved?.Invoke(items);
-                await Container.ItemRemoved(Container.DragSource, items);
-                await Container.DragSource.RefreshDataAsync();
-                Container.DragSource = null;
+                await source.OnRemoved.InvokeAsync(items);
+                await Container.ItemRemoved(source, items);
+                await source.RefreshDataAsync();
+
             }
         }
     }
@@ -355,7 +345,7 @@
     /// <param name="renderOnSuccess">Is UI render after success operation.</param>
     internal async Task RefreshDataAsync(bool renderOnSuccess = true)
     {
-        if (Container != null)
+        if (Container != null && ItemsProvider != null)
         {
             _cts?.Cancel();
             _cts = new CancellationTokenSource();
@@ -370,7 +360,10 @@
                 cancellationToken);
             var result = await ItemsProvider(req);
             Items?.Clear();
-            Items?.AddRange(result.Items);
+            if (result.Items != null)
+            {
+                Items?.AddRange(result.Items);
+            }
             TotalCount = result.TotalItemCount;
             Pages.Clear();
             if (!ShowAllData)
@@ -383,7 +376,7 @@
             // Only apply result if the task was not canceled.
             if (!cancellationToken.IsCancellationRequested && renderOnSuccess)
             {
-                InvokeAsync(StateHasChanged);
+                _= InvokeAsync(StateHasChanged);
             }
         }
     }

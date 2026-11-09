@@ -1,38 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @page "/modulelogs"
 
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -46,113 +44,118 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = "Admin, ModuleLogManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject ConfirmBase Confirm
-@inject IGXNotifier2 Notifier
 @inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
+
+<GXHelpContext Topic="ModuleLogs" />
 
 @if (Title)
 {
     <PageTitle>@Properties.Resources.ModuleLogs</PageTitle>
 }
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleLogManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Close" Id="Edit" OnClick="@OnClose" />
-            <MenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Close" Id="close" OnClick="@OnClose" Policy="@GXModuleLogPolicies.Close" />
+        <GXMenuEntry Text="@Properties.Resources.Clear" Id="clear" OnClick="@OnClear" Policy="@GXModuleLogPolicies.Clear" />
+    </ChildContent>
+</GXMenuControl>
 
 
-<GXTable @ref="table"
-         Context="item"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         Filter="@Filter"
-         ShowAllUsers="@Header"
-         Columns="@Columns"
-         CanEdit="@CanEdit"
-         OnSearch="@Updated">
-    <FilterContent>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
-            <GXDateTimeSelector Id="ModuleLogs-CreationTime"
-                                @bind-Value="@filter.CreationTime"
-                                Placeholder="@Properties.Resources.FilterByCreationTime">
-            </GXDateTimeSelector>
-        </Fh>
-        <th>
-            <ModuleSelector @bind-Value="@filter.Module"></ModuleSelector>
-        </th>
-        <Fh Id="Type" Visibility="Visibility.Medium">
-            <EnumTypeSelector Type="@TargetType.ModuleLog"
-                              @bind-Value="@filter.Type"
-                              OnSelected="@((int? e) => Updated())">
-            </EnumTypeSelector>
-        </Fh>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by log..."
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <div>
-                <GXInputDropdown class="form-select"
-                                 Id="ModuleLogs-TraceLevel"
-                                 LastValue="true"
-                                 @bind-Value="TraceLevel"
-                                 OnSelected="@((TraceLevel e) => Updated())">
-                </GXInputDropdown>
-            </div>
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by close time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-    </FilterContent>
-    <MenuContent>
-        <ContextMenuItem Text="@Properties.Resources.Show" Id="Show" OnClick="async () => OnShow()"></ContextMenuItem>
-        <ContextMenuItem Text="@Properties.Resources.Close" Id="Edit" OnClick="async () => OnClose()"></ContextMenuItem>
-    </MenuContent>
-    <HeaderContent>
-        <Th Name="CreationTime" Target="@item" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Target="@item">@Properties.Resources.Module</Th>
-        <Th Name="Type" Target="@item">@Properties.Resources.Type</Th>
-        <Th Target="@item">@Properties.Resources.Error</Th>
-        <Th Target="@item">@Properties.Resources.Level</Th>
-        <Th Target="@item">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("Config/ModuleLog/Edit/" + item.Id)">@ResourceStorage.DateTimeOffsetToString(item.CreationTime)</Td>
-        <td>@item.Module</td>
-        <td>@(ResourceStorage.GetEnumType(TargetType.ModuleLog, item.Type))</td>
-        <td>@item.Message</td>
-        <td>@ClientHelpers.LevelToString(item.Level)</td>
-        <td>@ResourceStorage.DateTimeOffsetToString(item.Closed)</td>
-    </ItemContent>
-</GXTable>
+@if (_interactive)
+{
+    <GXViewTable ViewName="Module.ModuleLogs" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXModuleLogPolicies.View })"
+                 TItem="GXLog" @ref="table"
+                 Context="item"
+                 ItemsProvider="@GetItems"
+                 SelectionMode="SelectionMode.Multiple"
+                 ShowRemoved="false"
+                 Filter="@Filter"
+                 ShowAllUsers="@Header"
+                 Columns="@Columns"
+                 CanEdit="@CanEdit"
+                 OnSearch="@Updated">
+        <FilterContent>
+            <GXFh Id="CreationTime" Visibility="Visibility.Medium">
+                <GXDateTimeSelector Id="ModuleLogs-CreationTime"
+                                    @bind-Value="@filter.CreationTime"
+                                    Placeholder="@Properties.Resources.FilterByCreationTime">
+                </GXDateTimeSelector>
+            </GXFh>
+            <GXFh Id="Module">
+                <ModuleSelector @bind-Value="_moduleFilter"></ModuleSelector>
+            </GXFh>
+            <GXFh Id="Type" Visibility="Visibility.Medium">
+                <EnumTypeSelector Type="@TargetType.ModuleLog"
+                                  @bind-Value="@filter.Type"
+                                  OnSelected="@((int? e) => Updated())">
+                </EnumTypeSelector>
+            </GXFh>
+            <GXFh Id="Error">
+                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByLog"
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </GXFh>
+            <GXFh Id="Level">
+                <div>
+                    <GXInputDropdown class="form-select"
+                                     Id="ModuleLogs-TraceLevel"
+                                     RememberValue="true"
+                                     @bind-Value="TraceLevel"
+                                     OnSelected="@((TraceLevel e) => Updated())">
+                    </GXInputDropdown>
+                </div>
+            </GXFh>
+            <GXFh Id="CloseTime">
+                <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </GXFh>
+        </FilterContent>
+        <MenuContent>
+            <GXContextMenuItem Text="@Properties.Resources.Show" Id="show" OnClick="async () => OnShow()"></GXContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Close" Id="edit" OnClick="OnClose"></GXContextMenuItem>
+        </MenuContent>
+        <HeaderContent>
+            <GXTh Id="CreationTime" Name="CreationTime" Target="@item" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+            <GXTh Id="Module" Target="@item">@Properties.Resources.Module</GXTh>
+            <GXTh Id="Type" Name="Type" Target="@item">@Properties.Resources.Type</GXTh>
+            <GXTh Id="Error" Target="@item">@Properties.Resources.Error</GXTh>
+            <GXTh Id="Level" Target="@item">@Properties.Resources.Level</GXTh>
+            <GXTh Id="CloseTime" Target="@item">@Properties.Resources.CloseTime</GXTh>
+        </HeaderContent>
+        <ItemContent>
+            <GXTd Id="CreationTime" Link="@NavigationManager.GetCurrentPagePath("/Config/ModuleLog/Edit/" + item.PublicId)">@ResourceStorage.DateTimeOffsetToString(item.CreationTime)</GXTd>
+            <GXTd Id="Module">@item.SourceId</GXTd>
+            <GXTd Id="Type">@(ResourceStorage.GetEnumType(TargetType.ModuleLog, item.Type))</GXTd>
+            <GXTd Id="Error">@item.Message</GXTd>
+            <GXTd Id="Level">@ClientHelpers.LevelToString(item.Level)</GXTd>
+            <GXTd Id="CloseTime">@ResourceStorage.DateTimeOffsetToString(item.Closed)</GXTd>
+        </ItemContent>
+    </GXViewTable>
+}
 <br />
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
-</Confirm>
-<Confirm @ref="CloseConfirmation"
-         ConfirmationChanged="OnCloseConfirmation"
-         ConfirmationTitle="Confirm close"
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Close"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToCloseSelectedItems">
-</Confirm>
+
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("CreationTime") { Position = 0, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Module") { Position = 1, Description = "Module", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Type") { Position = 2, Description = "Type", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Error") { Position = 3, Description = "Error", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Level") { Position = 4, Description = "Level", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CloseTime") { Position = 5, Description = "CloseTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected module log ID.
     /// </summary>
@@ -170,7 +173,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.ModuleLogs;
+            return Properties.Resources.ModuleLogs;
         }
     }
 
@@ -211,7 +214,7 @@
     {
         get
         {
-            return TargetType.ModuleLog;
+            return "module-log";
         }
     }
 
@@ -254,19 +257,12 @@
     /// <summary>
     /// Module log filter.
     /// </summary>
-    private GXModuleLog filter = new GXModuleLog()
+    private GXModule? _moduleFilter;
+    private GXLog filter = new GXLog()
     {
         Level = null
     };
-    /// <summary>
-    /// User is verified before module logs are cleared.
-    /// </summary>
-    protected ConfirmBase? ClearConfirmation;
 
-    /// <summary>
-    /// User is verified before module errors are closed.
-    /// </summary>
-    protected ConfirmBase? CloseConfirmation;
 
     /// <summary>
     /// Closed errors are shown.
@@ -276,7 +272,7 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXModuleLog? Active
+    public GXLog? Active
     {
         get
         {
@@ -287,7 +283,17 @@
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXModuleLog>? table;
+    protected GXViewTable<GXLog>? table;
+    private bool _interactive;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactive = true;
+            StateHasChanged();
+        }
+    }
 
     /// <summary>
     /// Update table.
@@ -298,18 +304,26 @@
         {
             if (table != null)
             {
-                Notifier.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Module/ModuleLogs.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModuleLogs.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
             if (string.Compare(Action, "Edit", true) == 0)
@@ -317,31 +331,25 @@
                 //If user edist the module log.
                 return;
             }
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXModule>?>(this, nameof(IGXHubEvents.ClearModuleLogs), async (logs) =>
-            {
-                ResourceStorage.ClearEnumTypes(TargetType.ModuleLog);
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXModuleLog>>(this, nameof(IGXHubEvents.AddModuleLogs), async (logs) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXModuleLog>>(this, nameof(IGXHubEvents.CloseModuleLogs), async (logs) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModuleLogs);
+            NotificationService?.RemoveByKey("Pages/Module/ModuleLogs.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+          {
+              foreach (var it in items)
+              {
+                  if (it.Type == GXModuleLogPolicies.Add ||
+                            it.Type == GXModuleLogPolicies.Clear ||
+                            it.Type == GXModuleLogPolicies.Close)
+                  {
+                      _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                      break;
+                  }
+              }
+          });
             if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = new GXModuleLog() { Id = Id.Value };
+                table.RestoreSelection(new GXLog() { PublicId = Id.Value });
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -350,18 +358,14 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModuleLogs.OnInitialized");
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXModuleLog>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingModuleLogs);
         try
         {
             if (ShowClosedErrors)
@@ -374,19 +378,8 @@
                 //Show active errors.
                 filter.Closed = null;
             }
-            if (string.IsNullOrEmpty(filter.Module?.Id))
-            {
-                filter.Module = null;
-            }
-            else
-            {
-                //Send only ID if module filter is used.
-                filter.Module = new GXModule()
-                {
-                    Id = filter.Module.Id
-                };
-            }
-            ListModuleLogs req = new ListModuleLogs()
+            filter.SourceId = _moduleFilter?.Id;
+            ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
@@ -401,12 +394,24 @@
             }
             //Get enum types.
             await ResourceStorage.RefreshEnumTypesAsync(TargetType.ModuleLog);
-            var ret = await Http.PostAsJson<ListModuleLogsResponse>("api/ModuleLog/List", req, request.CancellationToken);
+            var ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=module", req, request.CancellationToken);
             if (ret.Logs != null)
             {
                 //Mark module logs as seen.
-                await Notifier.Mark(Http, TargetType.ModuleLog, ret.Logs.Max(s => s.CreationTime));
-                return new ItemsProviderResult<GXModuleLog>(ret.Logs, ret.Count);
+                if (ret.Logs.Any())
+                {
+                    if (Notifier != null)
+                    {
+                        await Notifier.Mark(Http, TargetType.ModuleLog, ret.Logs.Max(s => s.CreationTime));
+                    }
+                }
+            
+                if (Id.HasValue && table != null)
+                {
+                    table.RestoreSelection(ret.Logs?.FirstOrDefault(log => log.PublicId == Id.Value));
+                }
+            
+                return new ItemsProviderResult<GXLog>((ret.Logs ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -416,11 +421,7 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -432,12 +433,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Module/ModuleLogs.OnShow");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "Config/ModuleLog/Edit/" + table.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "Config/ModuleLog/Edit/" + table.Active.PublicId);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -445,22 +446,29 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModuleLogs.OnShow");
         }
     }
 
     /// <summary>
     /// Close the selected logs.
     /// </summary>
-    public void OnClose()
+    public async Task OnClose()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            CloseConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Message).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmClose, Properties.Resources.AreYouSureYouWantToCloseSelectedItems,
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Close,
+                    AllowDelete = false,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Message).ToArray()
+                });
+            await OnCloseConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -468,24 +476,24 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Close the selected logs.
     /// </summary>
-    public async Task OnCloseConfirmation(ConfirmArgs args)
+    public async Task OnCloseConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
-                CloseAgentLog req = new CloseAgentLog()
+                CloseLog req = new CloseLog()
                 {
-                    Logs = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    Ids = table.SingleOrDefault().Select(w => w.PublicId).ToArray()
                 };
-                await Http.PostAsJson<CloseAgentLogResponse>("api/ModuleLog/Close", req);
+                await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=module", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -494,36 +502,41 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Clear the module logs.
     /// </summary>
-    public void OnClear()
+    public async Task OnClear()
     {
-        Notifier.ClearStatus();
-        ClearConfirmation?.Show();
+        NotificationService?.RemoveByKey("Pages/Module/ModuleLogs.OnClear");
+        var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearLog,
+            new AmiConfirmationOptions
+            {
+                ConfirmText = Properties.Resources.Clear,
+                AllowDelete = false
+            });
+        await OnClearConfirmation(confirmation);
     }
 
     /// <summary>
     /// Clear the agent error list.
     /// </summary>
-    public async Task OnClearConfirmation(ConfirmArgs args)
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (args.Confirm)
             {
-                Notifier.ProgressStart();
+                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingModuleLog);
                 try
                 {
-                    await Http.PostAsJson<ClearModuleLogsResponse>("api/ModuleLog/Clear", new ClearModuleLogs());
+                    await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=module", new ClearLog());
                 }
                 finally
                 {
-                    Notifier.ProgressEnd();
                 }
             }
         }
@@ -533,12 +546,17 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

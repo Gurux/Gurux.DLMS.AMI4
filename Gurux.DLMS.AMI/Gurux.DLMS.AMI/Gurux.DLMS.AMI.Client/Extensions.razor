@@ -1,41 +1,38 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/extensions"
 
-@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums
 
+@using Gurux.UI.Components.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -44,20 +41,21 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Module
 @using System.Text.Json
-
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@using Gurux.DLMS.AMI.Module.Enums
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject ModuleLoader Loader
 @implements IDisposable
-@implements IAmiComponent
+@implements IGXAmiComponent
 
 @if (Title)
 {
     <h1>@Properties.Resources.Extensions</h1>
 }
 
-<GXTable @ref="table"
+<GXTable TItem="GXModule" @ref="table"
+         @bind-Active="Active"
          Context="module"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Single"
@@ -71,22 +69,22 @@
         </th>
         <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value) ?? string.Empty)" />
         </th>
     </FilterContent>
     <HeaderContent>
         <th width="1%"></th>
-        <Th Name="Name" Target="@module" SortMode="SortMode.Descending">@Properties.Resources.Name</Th>
+        <GXTh Name="Name" Target="@module" SortMode="SortMode.Descending">@Properties.Resources.Name</GXTh>
         <th>@Properties.Resources.Description</th>
     </HeaderContent>
     <ItemContent>
         <td class="img-cell">
-            <Image Id="@module.Id"></Image>
+            <GXImage Id="@module.Id"></GXImage>
         </td>
-        <Td Link="@("Extension/Edit/" + module.Id)">
-            <span class=@(ClientHelpers.GetActiveDot(module.Active))>
+        <GXTd Link="@NavigationManager.GetCurrentPagePath("/Extension/Edit/" + module.Id)">
+            <span class=@(ClientHelpers.GetActiveDot(module.Enabled))>
             </span><span class="@module.Id" aria-hidden="true"></span>@module.Id
-        </Td>
+        </GXTd>
         <td>
             @module.Description
         </td>
@@ -94,6 +92,10 @@
 </GXTable>
 <br />
 @code {
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     [Parameter]
     public Gurux.DLMS.AMI.Client.Pages.Module.ModuleManage? Parent { get; set; }
 
@@ -108,7 +110,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.Extensions;
+            return Properties.Resources.Extensions;
         }
     }
 
@@ -126,7 +128,7 @@
     {
         get
         {
-            return "Extensions";
+            return "extensions";
         }
     }
 
@@ -135,6 +137,9 @@
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
+
+    [Parameter]
+    public GXModule? Active { get; set; }
 
     /// <summary>
     /// Is filter shown.
@@ -170,11 +175,11 @@
     /// Module filter. Show only installed and activated modules.
     /// </summary>
     private GXModule filter = new GXModule()
-        {
-            Active = true,
-            Type = ModuleType.Extension,
-            Status = (ModuleStatus.Installed | ModuleStatus.CustomBuild)
-        };
+    {
+        Enabled = true,
+
+        Status = (ModuleStatus.Installed | ModuleStatus.CustomBuild)
+    };
 
     /// <summary>
     /// Table reference.
@@ -195,61 +200,50 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Extensions.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Extensions.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
             if (Notifier == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
-           {
-               try
-               {
-                   if (configurations != null)
-                   {
-                       foreach (var it in configurations)
-                       {
-                           if (it.Name == GXConfigurations.Modules && !string.IsNullOrEmpty(it.Settings))
-                           {
-                               _settings = JsonSerializer.Deserialize<ModuleSettings>(it.Settings);
-                               InvokeAsync(StateHasChanged);
-                               break;
-                           }
-                       }
-                   }
-               }
-               catch (Exception ex)
-               {
-                   Notifier?.ProcessError(ex);
-               }
-           });
-            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), async (modules) =>
+            NotificationService?.RemoveByKey("Extensions.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXModulePolicies.Add ||
+                            it.Type == GXModulePolicies.Delete ||
+                            it.Type == GXModulePolicies.Edit)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleDelete), async (modules) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
-            if (table != null && Id != null)
+            if (Id != null)
             {
                 //Get last selected item.
-                table.Active = new GXModule() { Id = Id };
+                Active = new GXModule() { Id = Id };
             }
             //Get configuration data.
             if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
@@ -267,34 +261,37 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Extensions.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingExtensions);
         try
         {
             ListModules req = new ListModules()
-                {
-                    Index = request.StartIndex,
-                    Count = request.Count,
-                    Filter = filter,
-                    OrderBy = request.OrderBy,
-                    Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData
-                };
-            if (Count != 0)
             {
-                req.Count = Count;
+                Index = 0,
+                Count = 0,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+
+            if (!Loader.IsInitialized)
+            {
+                await Loader.RefreshAsync(request.CancellationToken);
             }
-            //Get extension modules.
+            //Get modules that declare an extension view.
             var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
             if (ret.Modules != null)
             {
-                return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+                var available = Loader.AddIns.Where(m => m.Views.Any(v => v.Area == AmiViewArea.Extension)).Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var modules = ret.Modules.Where(m => available.Contains(m.Id)).ToArray();
+                return new ItemsProviderResult<GXModule>(modules.Skip(request.StartIndex).Take(Count != 0 ? Count : request.Count), modules.Length);
             }
         }
         catch (TaskCanceledException)
@@ -304,17 +301,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

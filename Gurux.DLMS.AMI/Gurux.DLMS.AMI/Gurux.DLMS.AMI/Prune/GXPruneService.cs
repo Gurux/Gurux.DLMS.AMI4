@@ -1,130 +1,113 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Server.Internal;
 
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.Rest;
-using System.Diagnostics;
-using System.Text.Json;
-using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
-using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.Rest;
+using Gurux.Service.Orm;
+using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Server.Prune
 {
     /// <summary>
     /// This class implements prune service.
     /// </summary>
-    internal class GXPruneService : IGXPruneService, IHostedService, IDisposable
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
+    internal class GXPruneService(ILogger<GXPruneService> logger,
+        IDbConnectionFactory dbFactory,
+        IServiceProvider serviceProvider,
+        IConfigurationRepository configurationRepository) : IGXPruneService, IHostedService, IDisposable
     {
-        private readonly IGXHost _host;
-        private readonly ILogger _logger;
-        private Timer? _timer;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IConfigurationRepository _configurationRepository;
+        private readonly IDbConnectionFactory _dbFactory = dbFactory;
+        private readonly ILogger _logger = logger;
+        private GXAsyncTimer? _timer;
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
+        private readonly IConfigurationRepository _configurationRepository = configurationRepository;
         private PruneSettings? _options;
+        private readonly object _settingsGate = new();
+        private readonly SemaphoreSlim _runGate = new(1, 1);
+        private readonly CancellationTokenSource _stopping = new();
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXPruneService(ILogger<GXPruneService> logger,
-            IGXHost host,
-            IServiceProvider serviceProvider,
-            IConfigurationRepository configurationRepository)
+        private void InitTimer(IEnumerable<GXConfiguration> configurations)
         {
-            _logger = logger;
-            _host = host;
-            _serviceProvider = serviceProvider;
-            _configurationRepository = configurationRepository;
-        }
-
-        private void InitTimer(GXConfiguration[] configurations)
-        {
-            //Start prune if it's not disabled.
-            if (_options != null && _options.Enabled)
+            _ = configurations;
+            lock (_settingsGate)
             {
-                if (_timer == null)
-                {
-                    _timer = new Timer(RunPruneTasks, _options, 0, 60000);
+                if (_stopping.IsCancellationRequested) {
+                    return;
                 }
-            }
-            else
-            {
-                if (_timer != null)
+                if (_options?.Enabled == true)
                 {
-                    _timer.Dispose();
-                    _timer = null;
+                    _timer ??= new GXAsyncTimer(RunScheduledAsync, _logger);
+                    _timer.Change(TimeSpan.Zero, TimeSpan.FromMinutes(1));
+                }
+                else
+                {
+                    _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 }
             }
         }
-
         /// <inheritdoc />
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (ServerSettings.GetDefaultAdminUser(_host) == null)
+            ClaimsPrincipal? admin;
             {
-                await StopAsync(cancellationToken);
-                return;
+                await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
+                admin = await ServerSettings.GetDefaultAdminUserAsync(connection, cancellationToken: cancellationToken);
+                if (admin == null)
+                {
+                    await StopAsync(cancellationToken);
+                    return;
+                }
             }
             _logger.LogInformation("Prune is starting.");
-            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Prune } };
-            GXConfiguration[] ret = _configurationRepository.ListAsync(req, null, cancellationToken).Result;
-            if (ret != null && ret.Length == 1 && !string.IsNullOrEmpty(ret[0].Settings))
+            ListConfiguration req = new() { Filter = new GXConfiguration() { Name = GXConfigurations.Prune } };
+            IEnumerable<GXConfiguration> ret = await _configurationRepository.ListAsync(admin, req, cancellationToken: cancellationToken);
+            if (ret != null && ret.Count() == 1 && ret.First().Settings is string settings && !string.IsNullOrEmpty(settings))
             {
-                _options = JsonSerializer.Deserialize<PruneSettings>(ret[0].Settings);
-                _configurationRepository.Updated += async (configurations) =>
-                {
-                    //If prune configuration is updated.
-                    foreach (GXConfiguration it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Prune && it.Settings != null)
-                        {
-                            _options = JsonSerializer.Deserialize<PruneSettings>(it.Settings);
-                            if (_options != null)
-                            {
-                                InitTimer(ret);
-                            }
-                            break;
-                        }
-                    }
-                };
+                _options = JsonSerializer.Deserialize<PruneSettings>(settings);
+                _configurationRepository.Updated += OnConfigurationUpdated;
                 if (_options != null)
                 {
                     InitTimer(ret);
@@ -132,26 +115,39 @@ namespace Gurux.DLMS.AMI.Server.Prune
             }
         }
 
+        private void OnConfigurationUpdated(IEnumerable<GXConfiguration> configurations)
+        {
+            var configuration = configurations.FirstOrDefault(c => c.Name == GXConfigurations.Prune);
+            if (configuration?.Settings == null) {
+                return;
+            }
+            try
+            {
+                _options = JsonSerializer.Deserialize<PruneSettings>(configuration.Settings);
+                InitTimer([configuration]);
+            }
+            catch (JsonException ex) { _logger.LogError(ex, "Invalid prune configuration."); }
+        }
+
         /// <inheritdoc />
         public Task RunAsync()
         {
-            return Task.Run(() => RunPruneTasks());
+            return RunPruneTasks();
         }
 
-        private void RunPruneTasks(object? state)
-        {
-            RunPruneTasks().Wait();
-        }
+        private Task RunScheduledAsync(CancellationToken cancellationToken) => RunPruneTasks(cancellationToken);
 
         private async Task Prune<T>(PruneBase value, T? item, Expression<Func<T, object>>? updated,
-            Expression<Func<T, object>>? where, string str)
+            Expression<Func<T, bool>>? where, string str, CancellationToken cancellationToken) where T : class
         {
             UInt32 count;
             if (value.Interval != 0)
             {
                 //Get amount of the pruned rows.
+                ArgumentNullException.ThrowIfNull(where);
                 GXSelectArgs total = GXSelectArgs.Select<T>(q => GXSql.Count(GXSql.One), where);
-                count = _host.Connection.SingleOrDefault<UInt32>(total);
+                await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
+                count = await connection.SingleOrDefaultAsync<UInt32>(total, cancellationToken);
                 if (value.Maximum > 0 && count > value.Maximum)
                 {
                     count = (UInt32)value.Maximum;
@@ -160,23 +156,26 @@ namespace Gurux.DLMS.AMI.Server.Prune
                 {
                     using (IServiceScope scope = _serviceProvider.CreateScope())
                     {
-                        ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                        GXSystemLog log = new GXSystemLog(TraceLevel.Info);
-                        log.Message = string.Format("Prune removed {0} " + str + ".", count);
-                        await errors.AddAsync(TargetType.Prune, [log]);
+                        ILogRepository errors = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("system");
+                        GXLog log = new(TraceLevel.Info)
+                        {
+                            Message = string.Format("Prune removed {0} " + str + ".", count)
+                        };
+                        await errors.AddAsync(TargetType.Prune, [log], cancellationToken);
                     }
                     if (value.Delete || updated == null)
                     {
                         GXDeleteArgs del = GXDeleteArgs.Delete(where);
                         del.Count = count;
-                        await _host.Connection.DeleteAsync(del);
+                        await connection.DeleteAsync(del, cancellationToken);
                     }
                     else
                     {
+                        ArgumentNullException.ThrowIfNull(item);
                         GXUpdateArgs update = GXUpdateArgs.Update(item, updated);
                         update.Count = count;
                         update.Where.And(where);
-                        await _host.Connection.UpdateAsync(update);
+                        await connection.UpdateAsync(update, cancellationToken);
                     }
                 }
             }
@@ -185,138 +184,176 @@ namespace Gurux.DLMS.AMI.Server.Prune
         /// <summary>
         /// Run prune tasks.
         /// </summary>
-        private async Task RunPruneTasks()
+        private async Task RunPruneTasks(CancellationToken cancellationToken = default)
         {
-            if (_options == null)
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopping.Token);
+            await _runGate.WaitAsync(linked.Token);
+            try { await RunPruneTasksCore(linked.Token); }
+            finally { _runGate.Release(); }
+        }
+
+        private async Task RunPruneTasksCore(CancellationToken cancellationToken)
+        {
+            var options = _options;
+            if (options == null)
             {
                 return;
             }
-            _logger.LogInformation(Properties.Resources.PruneStarted);
+            if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                _logger.LogInformation("{Message}", Properties.Resources.PruneStarted);
+            }
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
-                ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                GXSystemLog error = new GXSystemLog(TraceLevel.Info);
-                error.Message = Properties.Resources.PruneStarted;
-                await errors.AddAsync(TargetType.Prune, [error]);
+                ILogRepository errors = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("system");
+                GXLog error = new(TraceLevel.Info)
+                {
+                    Message = Properties.Resources.PruneStarted
+                };
+                await errors.AddAsync(TargetType.Prune, [error], cancellationToken);
             }
             try
             {
                 DateTime now = DateTime.Now;
-                if (_options.SystemLog.Interval != 0)
+                if (options.SystemLog.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.SystemLog.Interval);
-                    await Prune(_options.SystemLog, new GXSystemLog() { Closed = now },
-                        u => u.Closed, w => w.Closed == null && w.CreationTime < dt, "System log");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.SystemLog.Interval);
+                    await Prune(options.SystemLog, new GXLog() { Closed = now },
+                        u => u.Closed!, GXLogStore.SourcePredicate("system", w => w.Closed == null && w.CreationTime < dt), "System log", cancellationToken);
                 }
-                if (_options.User.Interval != 0)
+                if (options.User.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.User.Interval);
-                    await Prune(_options.User, new GXUser() { Removed = now },
-                        u => u.Removed, w => w.Removed == null && w.Removed < dt, "User");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.User.Interval);
+                    await Prune(options.User, new GXUser() { Removed = now },
+                        u => u.Removed!, w => w.Removed == null && w.Removed < dt, "User", cancellationToken);
                 }
-                if (_options.UserActions.Interval != 0)
+                if (options.UserActions.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.UserActions.Interval);
-                    await Prune<GXUserAction>(_options.UserActions,
+                    DateTime dt = DateTime.Now.AddMinutes(-options.UserActions.Interval);
+                    await Prune<GXLog>(options.UserActions,
                         null,
-                        null, w => w.CreationTime < dt, "User action");
+                        null, GXLogStore.SourcePredicate("user-action", w => w.CreationTime < dt), "User action", cancellationToken);
                 }
-                if (_options.UserErrors.Interval != 0)
+                if (options.UserErrors.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.UserErrors.Interval);
-                    await Prune(_options.UserErrors, new GXUserError(TraceLevel.Error) { Closed = now },
-                        u => u.Closed, w => w.Closed == null && w.CreationTime < dt, "User error");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.UserErrors.Interval);
+                    await Prune(options.UserErrors, new GXLog(TraceLevel.Error) { Closed = now },
+                        u => u.Closed!, GXLogStore.SourcePredicate("user-error", w => w.Closed == null && w.CreationTime < dt), "User error", cancellationToken);
                 }
-                if (_options.DeviceLogs.Interval != 0)
+                if (options.DeviceLogs.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.DeviceLogs.Interval);
-                    await Prune(_options.DeviceLogs, new GXDeviceError() { Closed = now },
-                        u => u.Closed, w => w.Closed == null && w.CreationTime < dt, "Device error");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.DeviceLogs.Interval);
+                    await Prune(options.DeviceLogs, new GXLog() { Closed = now },
+                        u => u.Closed!, GXLogStore.SourcePredicate("device-error", w => w.Closed == null && w.CreationTime < dt), "Device error", cancellationToken);
                 }
-                if (_options.DeviceActions.Interval != 0)
+                if (options.DeviceActions.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.DeviceActions.Interval);
-                    await Prune<GXDeviceAction>(_options.DeviceActions, null, null, w => w.CreationTime < dt, "Device action");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.DeviceActions.Interval);
+                    await Prune<GXLog>(options.DeviceActions, null, null, GXLogStore.SourcePredicate("device-action", w => w.CreationTime < dt), "Device action", cancellationToken);
                 }
-                if (_options.AgentLog.Interval != 0)
+                if (options.AgentLog.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.AgentLog.Interval);
-                    await Prune(_options.AgentLog, new GXAgentLog() { Closed = now },
-                        u => u.Closed, w => w.Closed == null && w.CreationTime < dt, "Agent log");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.AgentLog.Interval);
+                    await Prune(options.AgentLog, new GXLog() { Closed = now },
+                        u => u.Closed!, GXLogStore.SourcePredicate("agent", w => w.Closed == null && w.CreationTime < dt), "Agent log", cancellationToken);
                 }
-                if (_options.GatewayLog.Interval != 0)
+                if (options.GatewayLog.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.GatewayLog.Interval);
-                    await Prune(_options.GatewayLog, new GXGatewayLog() { Closed = now },
-                        u => u.Closed, w => w.Closed == null && w.CreationTime < dt, "Gateway log");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.GatewayLog.Interval);
+                    await Prune(options.GatewayLog, new GXLog() { Closed = now },
+                        u => u.Closed!, GXLogStore.SourcePredicate("gateway", w => w.Closed == null && w.CreationTime < dt), "Gateway log", cancellationToken);
                 }
-                if (_options.ScheduleLog.Interval != 0)
+                if (options.ScheduleLog.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.ScheduleLog.Interval);
-                    await Prune(_options.ScheduleLog, new GXScheduleLog() { Closed = now },
-                        u => u.Closed, w => w.Closed == null && w.CreationTime < dt, "Schedule log");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.ScheduleLog.Interval);
+                    await Prune(options.ScheduleLog, new GXLog() { Closed = now },
+                        u => u.Closed!, GXLogStore.SourcePredicate("schedule", w => w.Closed == null && w.CreationTime < dt), "Schedule log", cancellationToken);
                 }
-                if (_options.Task.Interval != 0)
+                if (options.Task.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.Task.Interval);
-                    switch (_options.Task.Type)
+                    DateTime dt = DateTime.Now.AddMinutes(-options.Task.Interval);
+                    switch (options.Task.Type)
                     {
                         case PruneTaskRemoveType.All:
-                            await Prune<GXTask>(_options.Task, null, null, w => w.CreationTime < dt, "Tasks");
+                            await Prune<GXTask>(options.Task, null, null, w => w.CreationTime < dt, "Tasks", cancellationToken);
                             break;
                         case PruneTaskRemoveType.NotStarted:
-                            await Prune<GXTask>(_options.Task, null, null, w => w.Start == null && w.CreationTime < dt, "Tasks");
+                            await Prune<GXTask>(options.Task, null, null, w => w.Start == null && w.CreationTime < dt, "Tasks", cancellationToken);
                             break;
-                        case PruneTaskRemoveType.Compleated:
-                            await Prune<GXTask>(_options.Task, null, null, w => w.Ready != null && w.CreationTime < dt, "Tasks");
+                        case PruneTaskRemoveType.Completed:
+                            await Prune<GXTask>(options.Task, null, null, w => w.Ready != null && w.CreationTime < dt, "Tasks", cancellationToken);
                             break;
                         case PruneTaskRemoveType.Failed:
-                            await Prune<GXTask>(_options.Task, null, null, w => w.Ready != null && w.Error != null && w.CreationTime < dt, "Tasks");
+                            await Prune<GXTask>(options.Task, null, null, w => w.Ready != null && w.Error != null && w.CreationTime < dt, "Tasks", cancellationToken);
                             break;
                         case PruneTaskRemoveType.Successful:
-                            await Prune<GXTask>(_options.Task, null, null, w => w.Ready != null && w.Error == null && w.CreationTime < dt, "Tasks");
+                            await Prune<GXTask>(options.Task, null, null, w => w.Ready != null && w.Error == null && w.CreationTime < dt, "Tasks", cancellationToken);
                             break;
                     }
                 }
-                if (_options.PerformanceLog.Interval != 0)
+                if (options.PerformanceLog.Interval != 0)
                 {
-                    DateTime dt = DateTime.Now.AddMinutes(-_options.PerformanceLog.Interval);
-                    await Prune<GXPerformance>(_options.PerformanceLog, null, null, w => w.End < dt, "Performance log");
+                    DateTime dt = DateTime.Now.AddMinutes(-options.PerformanceLog.Interval);
+                    await Prune<GXPerformance>(options.PerformanceLog, null, null, w => w.End < dt, "Performance log", cancellationToken);
                 }
                 using (IServiceScope scope = _serviceProvider.CreateScope())
                 {
-                    ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                    GXSystemLog error = new GXSystemLog(TraceLevel.Info);
-                    error.Message = Properties.Resources.PruneCompleted;
-                    await errors.AddAsync(TargetType.Prune, [error]);
+                    ILogRepository errors = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("system");
+                    GXLog error = new(TraceLevel.Info)
+                    {
+                        Message = Properties.Resources.PruneCompleted
+                    };
+                    await errors.AddAsync(TargetType.Prune, [error], cancellationToken);
                 }
-                _logger.LogInformation(Properties.Resources.PruneCompleted);
+                if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+                {
+                    _logger.LogInformation("{Message}", Properties.Resources.PruneCompleted);
+                }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
-                using (IServiceScope scope = _serviceProvider.CreateScope())
+                if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
                 {
-                    ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                    GXSystemLog error = new GXSystemLog();
-                    error.Message = "Prune failed: " + ex.Message;
-                    errors.AddAsync(TargetType.Prune, [error]).Wait();
+                    _logger.LogError("{Message}", ex.Message);
                 }
+                using IServiceScope scope = _serviceProvider.CreateScope();
+                ILogRepository errors = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("system");
+                GXLog error = new()
+                {
+                    Message = "Prune failed: " + ex.Message
+                };
+                await errors.AddAsync(TargetType.Prune, [error], cancellationToken);
             }
         }
 
         /// <inheritdoc />
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogWarning("Prune is stopping.");
-            _timer?.Change(Timeout.Infinite, 0);
-            return Task.CompletedTask;
+            _configurationRepository.Updated -= OnConfigurationUpdated;
+            GXAsyncTimer? timer;
+            lock (_settingsGate)
+            {
+                _stopping.Cancel();
+                timer = _timer;
+            }
+            if (timer != null) {
+                await timer.StopAsync(cancellationToken);
+            }
+            await _runGate.WaitAsync(cancellationToken);
+            _runGate.Release();
         }
 
         /// <inheritdoc />
         public void Dispose()
         {
-            _timer?.Dispose();
+            _configurationRepository.Updated -= OnConfigurationUpdated;
+            lock (_settingsGate)
+            {
+                _stopping.Cancel();
+                _timer?.Dispose();
+            }
         }
     }
 }

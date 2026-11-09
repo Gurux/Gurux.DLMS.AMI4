@@ -1,56 +1,86 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using Gurux.DLMS.AMI.Shared.Rest
 @inject HttpClient Http
 @inherits ErrorBoundary
-@ChildContent
+@if (CurrentException == null)
+{
+    @ChildContent
+}
+else if (ErrorContent != null)
+{
+    @ErrorContent(CurrentException)
+}
+else
+{
+    <div class="alert alert-danger" role="alert">
+        @Gurux.DLMS.AMI.Client.Properties.Resources.AnUnhandledErrorHasOccurred
+    </div>
+}
 
 @code
 {
+    /// <summary>Changing the route recovers a failed page while preserving healthy editor state.</summary>
+    [Parameter]
+    public string? RecoveryKey { get; set; }
+
+    private string? _recoveryKey;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_recoveryKey, RecoveryKey, StringComparison.Ordinal))
+        {
+            _recoveryKey = RecoveryKey;
+            if (CurrentException != null)
+            {
+                Recover();
+            }
+        }
+        base.OnParametersSet();
+    }
+
     protected override async Task OnErrorAsync(Exception exception)
     {
         try
         {
-            GXUserError ue = new GXUserError(System.Diagnostics.TraceLevel.Error);
+            GXLog ue = new GXLog(System.Diagnostics.TraceLevel.Error);
             ue.Message = exception.Message;
             ue.StackTrace = exception.StackTrace;
-            AddUserError req = new AddUserError();
-            req.Errors = new GXUserError[] { ue };
-            await Http.PostAsJson<AddUserErrorResponse>("api/UserError/Add", req);
+            AddLog req = new AddLog();
+            req.Type = "Error";
+            req.Logs = new GXLog[] { ue };
+            await Http.PostAsJson<AddLogResponse>("api/Log/Add?source=user-error", req);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             //It's OK if this fails.
         }

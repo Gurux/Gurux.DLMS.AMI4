@@ -1,420 +1,130 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Client.Pages.Config
-@using Gurux.DLMS.AMI.Components.Accordion
-@using Gurux.DLMS.AMI.Shared.DIs
 
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Module
+@page "/User/{Id:guid?}"
+@page "/User/{Action}/{Id:guid?}"
+@page "/Notifications"
+@using Gurux.DLMS.AMI.Shared.DTOs.Menu
+@using Gurux.DLMS.AMI.Client.Pages.Notification
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = "Admin, UserManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
-@inject AuthenticationStateProvider AuthenticationStateProvider
+<GXHelpContext Topic="User" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.Blocked" @bind-Value="Blocked" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.GivenName">@Properties.Resources.GivenName</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.GivenName" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Surname">@Properties.Resources.Surname</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Surname" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Email">@Properties.Resources.Email</CopyLabel>
-                    <InputText id="user-email" disabled="@IsDisabled" class="form-control"
-                               @bind-Value="Active.Email" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.LastLogin">@Properties.Resources.LastLogin</CopyLabel>
-                    <GXDateTimeSelector Id="user-lastLogin" Save="false" Disabled="true" class="form-control"
-                                        @bind-Value="Active.LastLogin" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.ConnectionInfo">@Properties.Resources.IpAddress</CopyLabel>
-                    <GXInputIpAddress Id="user-connectionInfo" readonly="readonly" class="form-control"
-                                      Value="@Active.ConnectionInfo" />
-                </div>
-                <Accordion Id="content-type-authoring">
-                    <HeaderTemplate>
-                        <div>
-                            <h6><b>Roles</b></h6>
-                            <label>@_availableRoles</label>
-                        </div>
-                    </HeaderTemplate>
-                    <ChildContent>
-                        <RoleEditor @ref="_roleEditor" Roles="@_roles"></RoleEditor>
-                    </ChildContent>
-                </Accordion>
-                <div class="form-group">
-                    <Label>@Properties.Resources.Language</Label>
-                    <DropdownSearch class="form-control"
-                                    @ref="Languages"
-                                    Id="user-language"
-                                    LastValue="true"
-                                    @bind-Value="Language"
-                                    ItemsProvider="@GetLanguages">
-                    </DropdownSearch>
-                </div>
-                <div class="form-group">
-                    <Label>Time zone</Label>
-                    <TimeZoneSelector CssClass="form-control"
-                                      @bind-Value="Active.TimeZone">
-                    </TimeZoneSelector>
-                </div>
-
-            </div>
-            @if (Active.CreationTime != DateTime.MinValue)
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" Active="@_activeTab" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXTabIcon Id="@context.Icon" Color="@context.IconColor" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
             {
-                <div class="form-group">
-                    <label>@Properties.Resources.CreationTime</label>
-                    <GXDateTimeSelector Id="user-creationTime" Save="false" Disabled="true" class="form-control"
-                                        @bind-Value="Active.CreationTime" />
-                </div>
+                <TabHeader Name="@GXMenus.UserDetailsTab" Parameters="@TabParameters" ParametersForLink="@GetTabParameters" LinkFilter="@ShowUserTab" />
             }
-            @if (Active.Updated != null)
-            {
-                <div class="form-group">
-                    <label>@Properties.Resources.Updated</label>
-                    <GXDateTimeSelector Id="user-updated" Save="false" Disabled="true" class="form-control"
-                                        @bind-Value="Active.Updated" />
-                </div>
-            }
-            @if (Active.Removed != null)
-            {
-                <div class="form-group">
-                    <label>@Properties.Resources.Removed</label>
-                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                               @bind-Value="Active.Removed" />
-                </div>
-            }
-            @if (action == CrudAction.Delete)
-            {
-                <hr />
-                <p>
-                </p>
-                <div class="form-group">
-                    <InputRadioGroup @bind-Value="DeleteTarget">
-                        <InputRadio Value="false">
-                        </InputRadio>
-                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                        <InputRadio Value="true">
-                        </InputRadio>
-                        <label>@Properties.Resources.TargetDeleteQuestion</label>
-                    </InputRadioGroup>
-                    <br />
-                </div>
-            }
-        </div>
-    </EditForm>
-}
-
+            <ModuleViews Area="AmiViewArea.User" Target="@Active" Parameters="@TabParameters" />
+                <ModuleViews Area="AmiViewArea.UserSettings" Target="@Active" Parameters="@TabParameters" />
+            </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+<ModuleViews Area="AmiViewArea.User" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
+<ModuleViews Area="AmiViewArea.UserSettings" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 @code {
-    private RoleEditor? _roleEditor;
-    private string? _availableRoles;
-    private DropdownSearch<GXLanguage>? Languages;
-
-    [CascadingParameter]
-    private UserTab? Parent { get; set; }
-
-    private GXUser? _active;
-
-    private GXUser? Active
+    public List<GXRole> RoleCatalog { get; } = new();
+    public GXPermission[] PermissionCatalog { get; private set; } = Array.Empty<GXPermission>();
+    private async Task InitializeUserCatalogs()
     {
-        get
-        {
-            if (Parent?.Active != null)
-            {
-                return Parent.Active;
-            }
-            return _active;
-        }
-    }
-
-    private bool Blocked
-    {
-        get
-        {
-            return Active?.LockoutEnd == DateTimeOffset.MaxValue;
-        }
-        set
-        {
-            if (Active != null)
-            {
-                if (value)
-                {
-                    Active.LockoutEnd = DateTimeOffset.MaxValue;
-                    Active.LockoutEnabled = true;
-                }
-                else
-                {
-                    Active.LockoutEnd = null;
-                    Active.LockoutEnabled = false;
-                }
-            }
-        }
-    }
-
-    private GXLanguage[]? _languages = null;
-
-    private GXLanguage? Language
-    {
-        get
-        {
-            return _languages?.Where(w => w.Id == Active?.Language).SingleOrDefault();
-        }
-        set
-        {
-            if (Active != null)
-            {
-                Active.Language = value?.Id;
-            }
-        }
-    }
-
-    private async ValueTask<ItemsProviderResult<GXLanguage?>> GetLanguages(GXItemsProviderRequest request)
-    {
-        //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
-        try
-        {
-            ListLanguages req = new ListLanguages()
-            {
-                Index = request.StartIndex,
-                Count = request.Count,
-                OrderBy = request.OrderBy,
-                Descending = request.Descending,
-            };
-            if (_languages == null || !_languages.Any())
-            {
-                var ret = await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", req, request.CancellationToken);
-                _languages = ret.Languages;
-            }
-            if (_languages != null)
-            {
-                Language = _languages?.Where(w => w.Id == Active?.Language).SingleOrDefault();
-                IEnumerable<GXLanguage> list = _languages;
-                if (!string.IsNullOrEmpty(request.Filter))
-                {
-                    string name = request.Filter.ToLower();
-                    list = _languages.Where(w => w.EnglishName.ToLower().Contains(name) ||
-                                                 w.NativeName.ToLower().Contains(name));
-                    req.Filter = new GXLanguage() { Id = request.Filter };
-                }
-                return new ItemsProviderResult<GXLanguage?>(list, _languages.Count());
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            //Let the table component handle this.
-            throw;
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
-        return default;
-    }
-
-    /// <summary>
-    /// User action.
-    /// </summary>
-    [Parameter]
-    public string? Action { get; set; }
-
-    private CrudAction action;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    [Parameter]
-    public Guid? Id { get; set; }
-
-    private bool DeleteTarget;
-
-    private List<GXRole> _roles = new List<GXRole>();
-
-    public string? IsDisabled
-    {
-        get
-        {
-            if (action == CrudAction.Create)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
-
-    public string? IsDeleting
-    {
-        get
-        {
-            if (Notifier.Action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
-
-    public void Update()
-    {
-        _availableRoles = null;
-        if (Active != null)
-        {
-            var roles = GXRole.GetRoles(_roles, Active.Roles, false, false);
-            var scopes = GXRole.GetScopes(_roles, Active.Scopes, false);
-            if (Active.Roles != null)
-            {
-                _availableRoles = string.Join(",", Active.Roles);
-            }
-            if (Active.Scopes != null)
-            {
-                _availableRoles += string.Join(",", Active.Scopes);
-            }
-            foreach (var role in roles)
-            {
-                role.Default = true;
-            }
-            foreach (var scope in scopes)
-            {
-                scope.Default = true;
-            }
-            _roleEditor?.Update();
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
-            {
-                //Get user data.
-                var tmp = (await Http.GetAsJsonAsync<GetUserResponse>(string.Format("api/User/{0}", Id)));
-                if (tmp?.Item != null)
-                {
-                    _active = tmp.Item;
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("404");
-                }
-            }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
+            PermissionCatalog = await Http.GetAsJsonAsync<GXPermission[]>("api/Permission") ?? Array.Empty<GXPermission>();
             ListRoles req = new ListRoles();
             var ret = await Http.PostAsJson<ListRolesResponse>("api/Role/List", req);
-            _roles.Clear();
-            _availableRoles = null;
+            RoleCatalog.Clear();
             if (ret?.Roles != null)
             {
-                _roles.AddRange(ret.Roles);
+                RoleCatalog.AddRange(ret.Roles);
             }
-            //Disable all user roles and scopes.
-            foreach (var role in _roles)
+            foreach (var name in Active.Roles ?? new List<string>())
+            {
+                if (!RoleCatalog.Any(r => string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    RoleCatalog.Add(new GXRole { Name = name });
+                }
+            }
+            //Clear role selection before applying the actual assigned roles.
+            foreach (var role in RoleCatalog)
             {
                 role.Default = false;
-                if (role.Scopes != null)
-                {
-                    foreach (var it in role.Scopes)
-                    {
-                        it.Default = false;
-                    }
-                }
+
             }
             if (Active.Roles == null)
             {
                 Active.Roles = new List<string>();
             }
-            Update();
-            Notifier.Clear();
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
+            foreach (var role in GXRole.GetRoles(RoleCatalog, Active.Roles, false, false)) {
+                role.Default = true;
             }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
     }
-
-    /// <summary>
-    /// Save user.
-    /// </summary>
-    public async void OnSave()
+    private GXEditorMenu? _editorMenu;
+    private GXProfilePictureEdit? _profilePictureEdit;
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+    public bool DeleteTarget { get; set; }
+    public EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+    private void InitializeEditorMenu()
+    {
+        _profilePictureEdit = new GXProfilePictureEdit(Active.ProfilePicture?.Id, Active.Id);
+        _editorMenu ??= new GXEditorMenu(SharedMenuService);
+        _editorMenu.Set(Active, _action, OnSave, OnCancel);
+    }
+    private Task OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
+    }
+    public void Dispose() => _editorMenu?.Dispose();
+    private async Task OnSave()
     {
         try
         {
@@ -422,50 +132,24 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingUser);
+            NotificationService?.RemoveByKey("Pages/User/UserGeneral.OnSave");
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveUserResponse>("api/User/Delete", new RemoveUser()
                 {
-                    Ids = new string[] { Active.Id },
+                    Ids = new string[] { Active.Id ?? throw new InvalidOperationException(Properties.Resources.TheUserIDIsMissing) },
                     Delete = DeleteTarget
                 });
             }
             else
             {
-                Active.Roles = new List<string>();
-                Active.Scopes = new List<string>();
-                foreach (var role in _roles)
-                {
-                    if (role.Name != null)
-                    {
-                        if (role.Default == true)
-                        {
-                            Active.Roles.Add(role.Name.ToLower());
-                        }
-                        else if (role.Scopes?.Any() == true)
-                        {
-                            foreach (var it in role.Scopes)
-                            {
-                                if (it.Default == true && it.Name != null)
-                                {
-                                    Active.Scopes.Add(role.Name.ToLower() + "." + it.Name.ToLower());
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!Active.Roles.Any() && !Active.Scopes.Any())
-                {
-                    throw new Exception("Select user roles or scopes.");
-                }
                 string address;
-                if (action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
                     address = "api/User/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (_action == CrudAction.Update)
                 {
                     address = "api/User/Update";
                 }
@@ -473,9 +157,23 @@
                 {
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
-                await Http.PostAsJson<AddUserResponse>(address, new AddUser() { Users = new GXUser[] { Active } });
+                await (_profilePictureEdit ??= new GXProfilePictureEdit(Active.ProfilePicture?.Id, Active.Id)).SaveAsync(Http,
+                    Active.ProfilePicture, image => Active.ProfilePicture = image,
+                    async () => { await Http.PostAsJson<AddUserResponse>(address, new AddUser { Users = [Active] }); },
+                    error => NotificationService?.ReportError(error, "User.ProfilePicture.Cleanup"));
+                FormContext.MarkAsUnmodified();
+                if (_action == CrudAction.Update && Active.Language != _originalLanguage)
+                {
+                    var authentication = Services.GetService<AuthenticationStateProvider>();
+                    if (authentication != null &&
+                        ClientHelpers.GetUserId((await authentication.GetAuthenticationStateAsync()).User, false) == Active.Id)
+                    {
+                        await Services.GetRequiredService<GXResourceStorage>().UpdateLocalizationAsync();
+                    }
+                }
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            FormContext.MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -483,19 +181,147 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/User/UserGeneral.OnSave");
         }
     }
 
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
-    private void OnCancel()
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    private bool _ready;
+    private string? _originalLanguage;
+    private string? _activeTab;
+
+    protected override void OnParametersSet()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        _activeTab = string.Equals(NavigationManager.GetCurrentPagePath(), "Notifications", StringComparison.OrdinalIgnoreCase)
+            ? "Notifications" : null;
+    }
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXUser Active = new GXUser(null);
+
+    private bool _isOwnUser;
+    private bool ShowUserTab(GXMenuLink link)
+    {
+        if (string.Equals(link.Url, "ProfilePicture", StringComparison.OrdinalIgnoreCase) ||
+            link.TargetType?.Split(',')[0] == typeof(ProfilePictureEditor).FullName)
+            {
+            return _action != CrudAction.Create;
+        }
+        if (string.Equals(link.Url, "PersonalAccessTokens", StringComparison.OrdinalIgnoreCase) ||
+            link.TargetType?.Split(',')[0] == typeof(UserPersonalAccessTokens).FullName)
+            {
+            return _action == CrudAction.Update && _isOwnUser;
+        }
+        return _isOwnUser || !IsNotificationsTab(link);
+    }
+    private static bool IsNotificationsTab(GXMenuLink link) =>
+        string.Equals(link.Url, "Notifications", StringComparison.OrdinalIgnoreCase) ||
+        link.TargetType?.Split(',')[0] == typeof(Gurux.DLMS.AMI.Client.Pages.Notification.Notifications).FullName;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active,
+        ["Action"] = _action,
+        ["User"] = Active
+    };
+
+    private IDictionary<string, object>? GetTabParameters(GXMenuLink link)
+        => Type.GetType(link.TargetType ?? string.Empty) == typeof(ProfilePictureEditor)
+            ? new Dictionary<string, object>
+            {
+                [nameof(ProfilePictureEditor.Value)] = Active.ProfilePicture!,
+                [nameof(ProfilePictureEditor.ValueChanged)] = EventCallback.Factory.Create<GXAppearance?>(this, ProfilePictureChanged),
+                [nameof(ProfilePictureEditor.Disabled)] = _action is not (CrudAction.Create or CrudAction.Update),
+                [nameof(ProfilePictureEditor.Id)] = "user-profile-picture-editor"
+            } : null;
+
+    private void ProfilePictureChanged(GXAppearance? image)
+    {
+        if (_action is not (CrudAction.Create or CrudAction.Update)) {
+            return;
+        }
+        Active.ProfilePicture = image;
+        FormContext.NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXUser.ProfilePicture)));
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            if (string.Equals(NavigationManager.GetCurrentPagePath(), "Notifications", StringComparison.OrdinalIgnoreCase))
+            {
+                Action = "Edit";
+            }
+            switch (_action)
+            {
+                case CrudAction.Create:
+                    Title = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    Title = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.User;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUser);
+            NotificationService?.RemoveByKey("Pages/User/User.OnInitializedAsync");
+            if (_action != CrudAction.Create)
+            {
+                //Get user data.
+                var address = Id.HasValue ? $"api/User/{Id}" : "api/User";
+                var tmp = await Http.GetAsJsonAsync<GetUserResponse>(address);
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                    return;
+                }
+            }
+            var authentication = Services.GetService<AuthenticationStateProvider>();
+            _isOwnUser = authentication != null &&
+                ClientHelpers.GetUserId((await authentication.GetAuthenticationStateAsync()).User, false) == Active.Id;
+            _originalLanguage = Active.Language;
+            await InitializeUserCatalogs();
+            InitializeEditorMenu();
+            _ready = true;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/User/User.OnInitializedAsync");
+        }
     }
 }

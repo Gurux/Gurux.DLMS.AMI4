@@ -1,3 +1,30 @@
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 window.iconpack = (function () {
     function setPackLink(href) {
         let link = document.getElementById("icon-pack");
@@ -13,7 +40,9 @@ window.iconpack = (function () {
 
     async function fetchText(url) {
         const res = await fetch(url, { cache: "force-cache" });
-        if (!res.ok) throw new Error("Failed to fetch CSS: " + res.status);
+        if (!res.ok) {
+            throw new Error("Failed to fetch CSS: " + res.status);
+        }
         return await res.text();
     }
 
@@ -23,7 +52,9 @@ window.iconpack = (function () {
         let m;
         while ((m = re.exec(cssText)) !== null) {
             const name = m[1];
-            if (name && name !== "icon") set.add(name);
+            if (name && name !== "icon") {
+                set.add(name);
+            }
         }
         return Array.from(set).sort();
     }
@@ -34,7 +65,9 @@ window.iconpack = (function () {
         let m;
         while ((m = re.exec(cssText)) !== null) {
             const name = m[1];
-            if (!name || ["solid", "regular", "brands", "lg", "xs", "sm", "xl", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x", "fw", "spin", "pulse", "border", "pull-left", "pull-right", "flip-horizontal", "flip-vertical", "stack", "stack-1x", "stack-2x", "inverse"].includes(name)) continue;
+            if (!name || ["solid", "regular", "brands", "lg", "xs", "sm", "xl", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x", "fw", "spin", "pulse", "border", "pull-left", "pull-right", "flip-horizontal", "flip-vertical", "stack", "stack-1x", "stack-2x", "inverse"].includes(name)) {
+                continue;
+            }
             set.add(name);
         }
         return Array.from(set).sort();
@@ -43,8 +76,12 @@ window.iconpack = (function () {
     async function load(packId, href) {
         setPackLink(href);
         const css = await fetchText(href);
-        if (packId === "bootstrap-icons") return parseBootstrapIconsCss(css);
-        if (packId === "fontawesome") return parseFontAwesomeCss(css);
+        if (packId === "bootstrap-icons") {
+            return parseBootstrapIconsCss(css);
+        }
+        if (packId === "fontawesome") {
+            return parseFontAwesomeCss(css);
+        }
         return [];
     }
     return { load };

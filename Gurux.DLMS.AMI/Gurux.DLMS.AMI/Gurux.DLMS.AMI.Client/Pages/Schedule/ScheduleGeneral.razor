@@ -1,0 +1,193 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Pages.User
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.AMI.Shared.DTOs.Schedule
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject NavigationManager NavigationManager
+
+@inject HttpClient Http
+@inject IServiceProvider Services
+
+
+<GXHelpContext Topic="Schedule" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <DataAnnotationsValidator />
+
+        <div class="row g-0">
+            <div class="col-12">
+                <div class="form-group">
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Active.Enabled" />
+                </div>
+                <div class="form-group">
+                    @Properties.Resources.Name
+                    <GXCopyButton Value="@Active.Name" />
+                    <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control"
+                               placeholder=@Properties.Resources.ScheduleName />
+                    <ValidationMessage For="@(() => Active.Name)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.Start">@Properties.Resources.ScheduleExecutionTime</GXCopyButton>
+                    <input type="text" id="start" disabled="@IsDeleting" value="@GetDateTime()" class="form-control"
+                           @onchange="@((ChangeEventArgs __e) => SetDateTime(Convert.ToString(__e.Value)))" placeholder=@Properties.Resources.ScheduleExecutionTime />
+                    <ValidationMessage For="@(() => Active.Start)" />
+                </div>
+                <label>@Properties.Resources.TraceLevel</label>
+                <GXInputDropdown class="form-select"
+                                 Id="Agent.TraceLevel"
+                                 RememberValue="@(Action == CrudAction.Create)"
+                                 @bind-Value="Active.TraceLevel">
+                </GXInputDropdown>
+                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                    Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                @if (Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [Parameter] public Func<bool, Task<bool>>? AcceptChanges { get; set; }
+
+
+    [CascadingParameter] public Schedule? Editor { get; set; }
+    private bool DeleteTarget { get => Editor?.DeleteTarget ?? false; set { if (Editor != null) {
+        Editor.DeleteTarget = value;
+    } } }
+
+    [Parameter, EditorRequired]
+    public GXSchedule? Active { get; set; }
+    private IGXNotificationService? NotificationService => Services.GetService<IGXNotificationService>();
+
+
+
+
+    /// <summary>
+    /// User Action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+
+
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    /// <summary>
+    /// Convert date-string from invaliant culture to user format.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    string? GetDateTime()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(Active?.Start))
+            {
+                GXDateTime tm = new GXDateTime(Active.Start, CultureInfo.InvariantCulture);
+                return tm.ToFormatString(CultureInfo.CurrentUICulture);
+            }
+            return "";
+        }
+        catch (Exception)
+        {
+            return Active?.Start;
+        }
+    }
+    /// <summary>
+    /// Date time is serialized to invariant culture.
+    /// </summary>
+    /// <param name="value"></param>
+    void SetDateTime(string? value)
+    {
+        try
+        {
+            if (Active != null)
+            {
+                NotificationService?.RemoveByKey("Pages/Schedule/Schedule.SetDateTime");
+                GXDateTime tm = new GXDateTime(value, CultureInfo.CurrentUICulture);
+                Active.Start = tm.ToFormatString(CultureInfo.InvariantCulture);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Schedule/Schedule.SetDateTime");
+        }
+    }
+
+
+
+}

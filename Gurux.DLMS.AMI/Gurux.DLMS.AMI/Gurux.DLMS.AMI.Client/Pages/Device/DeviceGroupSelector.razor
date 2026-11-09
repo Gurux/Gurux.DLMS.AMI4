@@ -1,45 +1,43 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
 @using Gurux.DLMS.AMI.Components.Wizard
 @using Gurux.DLMS.AMI.Shared.DTOs
+<GXHelpContext Topic="DeviceGroupSelector" />
+
 @if (_edit)
 {
     <WizardControl OnPageChanging="@OnPageChange" OnComplete="@OnComplete">
         <ChildContent>
             <WizardPage Name="Selected device groups"
-                        Description="Selected device groups">
+                        Description="@Properties.Resources.SelectedDeviceGroups">
                 <DeviceGroupsSelector DeviceGroups="@DeviceGroups">
 
                 </DeviceGroupsSelector>
@@ -47,7 +45,7 @@
             @if (ObjectTemplates != null)
             {
                 <WizardPage Name="Selected objects"
-                            Description="Selected objects">
+                            Description="@Properties.Resources.SelectedObjects">
                     <ObjectTemplatesSelector DeviceTemplates="@_deviceTemplates"
                                              ObjectTypes="@ObjectTypes"
                                              IgnoredObjectTypes="@IgnoredObjectTypes"
@@ -58,7 +56,7 @@
             @if (AttributeTemplates != null)
             {
                 <WizardPage Name="Selected attributes"
-                            Description="Selected attributes">
+                            Description="@Properties.Resources.SelectedAttributes">
                     <AttributeTemplatesSelector DeviceTemplates="@_deviceTemplates"
                                                 ObjectTypes="@ObjectTypes"
                                                 IgnoredObjectTypes="@IgnoredObjectTypes"
@@ -71,85 +69,93 @@
 }
 else
 {
-    <MenuControl RightCorner="true">
+    <GXMenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@Edit" />
+            <GXMenuEntry Text="@Properties.Resources.Edit" Id="edit" OnClick="@Edit" />
         </ChildContent>
-    </MenuControl>
+    </GXMenuControl>
 
-    <TabControl>
+    <GXTabControl PersistSelectionInUrl="true">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
+            <GXImage Id="@context.Icon" />
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            @*Show selected devices.*@
-            <TabPage Text=@Properties.Resources.DeviceGroups>
-                @if (DeviceGroups != null && DeviceGroups.Any())
-                {
-                    <DeviceGroups Columns="@DeviceGroupColumns"
-                                  AvailableDeviceGroups="@DeviceGroups"
-                                  CanEdit="false"
-                                  Menu="false"
-                                  Header="false" />
-                }
-                else
-                {
-                    <label>
-                        No selected device groups.
-                    </label>
-                }
-            </TabPage>
-            @if (ObjectTemplates != null)
-            {
-                @*Show selected objects.*@
-                <TabPage Text=@Properties.Resources.Objects>
-                    @if (ObjectTemplates != null && ObjectTemplates.Any())
+            <TabHeader Name="@GXMenus.DeviceGroupSelectorTab" LinkFilter="@ShowSelectionTab">
+                <ContentForLink Context="link">
+                    @if (link.Url == "DeviceGroups")
                     {
-                        <ObjectTemplates Columns="@ObjectColumns"
-                                         ObjectTypes="@ObjectTypes"
-                                         IgnoredObjectTypes="@IgnoredObjectTypes"
-                                         AvailableObjectTemplates="@ObjectTemplates"
-                                         CanEdit="false"
-                                         Menu="false"
-                                         Header="false" />
+                        if (DeviceGroups != null && DeviceGroups.Any())
+                        {
+                            <DeviceGroups Columns="@DeviceGroupColumns"
+                                          AvailableDeviceGroups="@DeviceGroups"
+                                          CanEdit="false"
+                                          Menu="false"
+                                          Header="false" />
+                        }
+                        else
+                        {
+                            <label>
+                                @Gurux.DLMS.AMI.Client.Properties.Resources.NoSelectedDeviceGroups
+                            </label>
+                        }
+
                     }
-                    else
+                    else if (link.Url == "Objects")
                     {
-                        <label>
-                            No selected objects.
-                        </label>
+                        if (ObjectTemplates != null && ObjectTemplates.Any())
+                        {
+                            <ObjectTemplates Device="@null" Columns="@ObjectColumns"
+                                             ObjectTypes="@ObjectTypes"
+                                             IgnoredObjectTypes="@IgnoredObjectTypes"
+                                             AvailableObjectTemplates="@ObjectTemplates"
+                                             CanEdit="false"
+                                             Menu="false"
+                                             Header="false" />
+                        }
+                        else
+                        {
+                            <label>
+                                @Gurux.DLMS.AMI.Client.Properties.Resources.NoSelectedObjects
+                            </label>
+                        }
+
                     }
-                </TabPage>
-            }
-            @if (AttributeTemplates != null)
-            {
-                @*Show selected atttributes.*@
-                <TabPage Text=@Properties.Resources.Attributes>
-                    @if (AttributeTemplates != null && AttributeTemplates.Any())
+                    else if (link.Url == "Attributes")
                     {
-                        <AttributeTemplates Columns="@AttributeColumns"
-                                            ObjectTypes="@ObjectTypes"
-                                            IgnoredObjectTypes="@IgnoredObjectTypes"
-                                            AvailableAttributeTemplates="@AttributeTemplates"
-                                            CanEdit="false"
-                                            Filter="false"
-                                            Menu="false"
-                                            Header="false" />
+                        if (AttributeTemplates != null && AttributeTemplates.Any())
+                        {
+                            <AttributeTemplates Device="@null" Columns="@AttributeColumns"
+                                                ObjectTypes="@ObjectTypes"
+                                                IgnoredObjectTypes="@IgnoredObjectTypes"
+                                                AvailableAttributeTemplates="@AttributeTemplates"
+                                                CanEdit="false"
+                                                Filter="false"
+                                                Menu="false"
+                                                Header="false" />
+                        }
+                        else
+                        {
+                            <label>
+                                @Gurux.DLMS.AMI.Client.Properties.Resources.NoSelectedAttributes
+                            </label>
+                        }
+
                     }
-                    else
-                    {
-                        <label>
-                            No selected attributes.
-                        </label>
-                    }
-                </TabPage>
-            }
+                </ContentForLink>
+            </TabHeader>
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 
 @code {
+
+    private bool ShowSelectionTab(GXMenuLink link) => link.Url switch
+    {
+        "Objects" => ObjectTemplates != null,
+        "Attributes" => AttributeTemplates != null,
+        _ => true
+    };
 
     /// <summary>
     /// Shown object types.
@@ -234,7 +240,9 @@ else
     /// User has changing the page.
     /// </summary>
     /// <param name="index"></param>
-    bool OnPageChange(int index)
+    private void OnPageChange(WizardControl.PageChangingArgs args) => args.Cancel = !CanChangePage(args.Index);
+
+    private bool CanChangePage(int index)
     {
         if (index == 0)
         {

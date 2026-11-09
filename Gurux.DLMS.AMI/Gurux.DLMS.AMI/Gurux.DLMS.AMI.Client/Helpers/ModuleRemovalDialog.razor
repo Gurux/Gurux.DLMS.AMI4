@@ -1,0 +1,150 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@namespace Gurux.DLMS.AMI.Client.Helpers
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using System.Net.Http.Json
+@using Gurux.DLMS.AMI.Shared.DTOs.Module
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@inject Gurux.UI.Components.IGXProgress Progress
+
+@if (_open)
+{
+    <div class="modal show" style="display:block" role="dialog" aria-modal="true" aria-label="@Properties.Resources.RemoveModules">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h4>@Properties.Resources.RemoveModules</h4></div>
+            <div class="modal-body">
+                <ul>@foreach (var item in _modules)
+                {
+                    <li>@item.Name (@item.Id)</li>
+                }
+                </ul>
+                <label>@Gurux.DLMS.AMI.Client.Properties.Resources.ModuleData
+                    <GXInputDropdown TValue="ModuleDataRemoval" class="form-control" @bind-Value="_mode" Disabled="@_busy" Items="@(new[] { ModuleDataRemoval.Preserve, ModuleDataRemoval.DeleteData, ModuleDataRemoval.DeleteDataAndTables })" Formatter="@(value => value == ModuleDataRemoval.Preserve ? Properties.Resources.KeepDataAndTables : value == ModuleDataRemoval.DeleteData ? Properties.Resources.DeleteModuleDataKeepTables : Properties.Resources.DeleteModuleDataAndTables)" RememberValue="false" />
+                </label>
+                @if (_mode != ModuleDataRemoval.Preserve)
+                {
+                    <p role="alert">@Properties.Resources.TheSelectedModulesDataWillBePermanentlyDeleted</p>
+                }
+                @if (_mode == ModuleDataRemoval.DeleteDataAndTables)
+                {
+                    <p>@Properties.Resources.TheModulesDatabaseTablesWillAlsoBeRemoved</p>
+                }
+                @if (_error != null)
+                {
+                    <p role="alert" class="text-danger">@_error</p>
+                }
+                @foreach (var result in _results)
+                {
+                    <p role="status">@result.ModuleId: @(result.Success ? Properties.Resources.Removed : result.Error)</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" disabled="@_busy" @onclick="ConfirmAsync">@Properties.Resources.Remove</button>
+                <button type="button" class="btn btn-secondary" disabled="@_busy" @onclick="Cancel">@Properties.Resources.Cancel</button>
+            </div>
+        </div></div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    [Parameter] public EventCallback<IReadOnlyList<ModuleRemovalResult>> Removed { get; set; }
+    private sealed record Selection(string Id,string Name);
+    private Selection[] _modules=[];
+    private ModuleDataRemoval _mode=ModuleDataRemoval.Preserve;
+    private List<ModuleRemovalResult> _results=[];
+    private bool _open,_busy;
+    private string? _error;
+    public void Show(IEnumerable<GXModule> modules)
+    {
+        if (_busy)
+        {
+            throw new InvalidOperationException(Properties.Resources.ModuleRemovalIsAlreadyPending);
+        }
+        _modules=modules.Select(m=>new Selection(m.Id,m.Name??m.Id)).DistinctBy(m=>m.Id).ToArray();
+        if (_modules.Length == 0)
+        {
+            throw new ArgumentException("Select at least one module.");
+        }
+        _mode=ModuleDataRemoval.Preserve;_results=[];_error=null;_open=true;StateHasChanged();
+    }
+    public void Cancel() {
+        if (!_busy)
+        {
+            _open = false;
+            StateHasChanged();
+        }
+    }
+    private async Task ConfirmAsync()
+    {
+        if (_busy || !_open)
+        {
+            return;
+        }
+        _busy=true;_error=null;
+        using var progress=Progress.ProgressStart(Properties.Resources.RemovingModules);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/Module/Delete", new RemoveModule { Modules = _modules.Select(m => m.Id).ToArray(), DataRemoval = (byte)_mode }, (progress?.CancellationToken ?? CancellationToken.None));
+            await response.EnsureSuccessAsync((progress?.CancellationToken ?? CancellationToken.None));
+            var result = await response.Content.ReadFromJsonAsync<RemoveModuleResponse>(cancellationToken: (progress?.CancellationToken ?? CancellationToken.None));
+            _results = result?.Results ?? [];
+            if (_results.Count == 0)
+            {
+                throw new InvalidOperationException(Properties.Resources.TheServerDidNotReturnModuleRemovalResults);
+            }
+        
+            await Removed.InvokeAsync(_results);
+            if (_results.All(r => r.Success))
+            {
+                _open = false;
+            }
+            else
+            {
+                _modules = _modules.Where(m => !_results.Any(r => r.ModuleId == m.Id && r.Success)).ToArray();
+            }
+        }
+        catch (OperationCanceledException)when ((progress?.CancellationToken ?? CancellationToken.None).IsCancellationRequested)
+        {
+            _error = Properties.Resources.StoppedWaitingForRemovalRefreshTheModuleListToCheckTheResult;
+        }
+        catch (Exception error)
+        {
+            _error = error.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

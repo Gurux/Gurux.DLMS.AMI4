@@ -1,38 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @page "/tasks"
 @using Gurux.DLMS.AMI.Client.Shared.Enums
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -44,105 +42,114 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = "Admin, TaskManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject ConfirmBase Confirm
-@inject IGXNotifier2 Notifier
 @inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
-@implements IAmiComponent
+@implements IGXAmiComponent
+
+<GXHelpContext Topic="Tasks" />
 
 @if (Title)
 {
     <PageTitle>@Properties.Resources.Tasks (@Properties.Resources.Total: @Total)</PageTitle>
 }
 
-<MenuControl RightCorner="true">
+<GXMenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
-        <MenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" />
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXTaskPolicies.Delete" />
+        <GXMenuEntry Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" Policy="@GXTaskPolicies.Clear" />
     </ChildContent>
-</MenuControl>
+</GXMenuControl>
 
-<GXTable @ref="table"
-         Active="Active"
-         Context="task"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         ShowAllUsers="@Header"
-         Columns="@Columns"
-         Filter="@Filter"
-         OnSearch="@Updated">
+<GXViewTable ViewName="Admin.Tasks" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXTaskPolicies.View })" TItem="GXTask" @ref="table"
+             @bind-Active="Active"
+             Context="task"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             ShowRemoved="false"
+             ShowAllUsers="@Header"
+             Columns="@Columns"
+             Filter="@Filter"
+             OnSearch="@Updated">
     <FilterContent>
-        <Fh Id="Target">
+        <GXFh Id="Target">
             @*Target*@
-        </Fh>
-        <Fh Id="CreationTime">
+        </GXFh>
+        <GXFh Id="CreationTime">
             <GXDateTimeSelector Id="Tasks-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <Fh Id="Tasks-Type" Visibility="Visibility.Small">
+        </GXFh>
+        <GXFh Id="TaskType" Visibility="Visibility.Small">
             @*Task type*@
             <GXInputDropdown class="form-select"
                              Id="Tasks-Type"
-                             LastValue="true"
+                             RememberValue="true"
                              @bind-Value="filter.TaskType"
                              OnSelected="@((TaskType? e) => Updated())">
             </GXInputDropdown>
-        </Fh>
-        <Fh Id="Start" Visibility="Visibility.Small">
-            <input class="form-control" placeholder="Filter by start time..."
+        </GXFh>
+        <GXFh Id="Start" Visibility="Visibility.Small">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByStartTime"
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
-        </Fh>
-        <Fh Id="Ready" Visibility="Visibility.Medium">
-            <input class="form-control" placeholder="Filter by end time..."
+        </GXFh>
+        <GXFh Id="Ready" Visibility="Visibility.Medium">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByEndTime"
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
-        </Fh>
-        <Fh Id="Result" Visibility="Visibility.Large">
+        </GXFh>
+        <GXFh Id="Result" Visibility="Visibility.Large">
             @*Result.*@
-        </Fh>
+        </GXFh>
     </FilterContent>
     <HeaderContent>
-        <Th Name="Target" Target="@task">@Properties.Resources.Target</Th>
-        <Th Name="CreationTime" Target="@task" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="TaskType" Target="@task" Visibility="Visibility.Small">@Properties.Resources.TaskType</Th>
-        <Th Name="Start" Target="@task" Visibility="Visibility.Small">@Properties.Resources.StartTime</Th>
-        <Th Name="Ready" Target="@task" Visibility="Visibility.Medium">@Properties.Resources.CompletedTime</Th>
-        <Th Name="Result" Target="@task" Visibility="Visibility.Large">@Properties.Resources.Result</Th>
+        <GXTh Name="Target" Target="@task">@Properties.Resources.Target</GXTh>
+        <GXTh Name="CreationTime" Target="@task" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Name="TaskType" Target="@task" Visibility="Visibility.Small">@Properties.Resources.TaskType</GXTh>
+        <GXTh Name="Start" Target="@task" Visibility="Visibility.Small">@Properties.Resources.StartTime</GXTh>
+        <GXTh Name="Ready" Target="@task" Visibility="Visibility.Medium">@Properties.Resources.CompletedTime</GXTh>
+        <GXTh Name="Result" Target="@task" Visibility="Visibility.Large">@Properties.Resources.Result</GXTh>
     </HeaderContent>
     <ItemContent>
-        <Td Id="Target">@task.Target</Td>
-        <Td Id="CreationTime">@ResourceStorage.DateTimeOffsetToString(task.CreationTime)</Td>
-        <Td Id="TaskType" Visibility="Visibility.Small">@TaskTypeToString(task.TaskType)</Td>
-        <Td Id="Start" Visibility="Visibility.Small">@ResourceStorage.DateTimeOffsetToString(task.Start)</Td>
-        <Td Id="Ready" Visibility="Visibility.Medium">@ResourceStorage.DateTimeOffsetToString(task.Ready)</Td>
-        <Td Id="Result" Visibility="Visibility.Large">@task.Result</Td>
+        <GXTd Id="Target">@task.Target</GXTd>
+        <GXTd Id="CreationTime"><button type="button" class="btn btn-link p-0 text-start" data-diagnostic-details="true" @onclick="() => { _detailsId = task.Id; }" @onclick:stopPropagation="true">@ResourceStorage.DateTimeOffsetToString(task.CreationTime)</button></GXTd>
+        <GXTd Id="TaskType" Visibility="Visibility.Small">@TaskTypeToString(task.TaskType)</GXTd>
+        <GXTd Id="Start" Visibility="Visibility.Small">@ResourceStorage.DateTimeOffsetToString(task.Start)</GXTd>
+        <GXTd Id="Ready" Visibility="Visibility.Medium">@ResourceStorage.DateTimeOffsetToString(task.Ready)</GXTd>
+        <GXTd Id="Result" Visibility="Visibility.Large">@task.Result</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="RemoveConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
 
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearTasks">
-</Confirm>
+@if (_detailsId is Guid detailsId)
+{
+    <GXDialog Title="@Properties.Resources.Task" Save="false" ManageFocus="true"
+              OkButtonTitle="" CancelButtonTitle="@Properties.Resources.Close" OnCancel="() => { _detailsId = null; }">
+        <TaskDetails Id="@detailsId" />
+    </GXDialog>
+}
 
 @code {
+    private Guid? _detailsId;
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Target") { Position = 0, Description = "Target", Visibility = (byte)Visibility.All },
+        new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
+        new("TaskType") { Position = 2, Description = "TaskType", Visibility = (byte)Visibility.Small },
+        new("Start") { Position = 3, Description = "StartTime", Visibility = (byte)Visibility.Small },
+        new("Ready") { Position = 4, Description = "CompletedTime", Visibility = (byte)Visibility.Medium },
+        new("Result") { Position = 5, Description = "Result", Visibility = (byte)Visibility.Large },
+    ];
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Action.
     /// </summary>
@@ -162,7 +169,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.Tasks;
+            return Properties.Resources.Tasks;
         }
     }
 
@@ -180,7 +187,7 @@
     {
         get
         {
-            return "Tasks";
+            return "tasks";
         }
     }
 
@@ -238,7 +245,7 @@
 
     private static string TaskTypeToString(TaskType? type)
     {
-        string str;
+        string? str;
         switch (type)
         {
             case TaskType.Read:
@@ -254,7 +261,7 @@
                 str = Properties.Resources.Refresh;
                 break;
             default:
-                str = type.ToString();
+                str = type?.ToString() ?? string.Empty;
                 break;
         }
         return str;
@@ -266,14 +273,8 @@
     private GXTask filter = new GXTask();
 
     /// <summary>
-    /// User is verified before tasks are removed.
-    ///</summary>
-    protected ConfirmBase? RemoveConfirmation;
-
-    /// <summary>
     /// User is verified before tasks are cleared.
     ///</summary>
-    protected ConfirmBase? ClearConfirmation;
     /// <summary>
     /// Table reference.
     /// </summary>
@@ -288,89 +289,48 @@
         {
             if (table != null)
             {
-                Notifier.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Admin/Tasks.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Admin/Tasks.Updated");
         }
-    }
-
-    /// <summary>
-    /// Task status has changed.
-    /// </summary>
-    /// <param name="tasks">Changed tasks.</param>
-    protected bool StateChanged(IEnumerable<GXTask> tasks)
-    {
-        try
-        {
-            bool updated = false;
-            if (table?.Items != null)
-            {
-                foreach (var it in tasks)
-                {
-                    GXTask? task = table.Items.Where(w => w.Id == it.Id).SingleOrDefault();
-                    if (task != null)
-                    {
-                        updated = true;
-                        if (it.Start != null)
-                        {
-                            task.Start = it.Start;
-                        }
-                        if (it.Ready != null)
-                        {
-                            task.Ready = it.Ready;
-                            task.Result = it.Result;
-                        }
-                    }
-                    else
-                    {
-                        //Unknown task executed.
-                        //This might happen with pagination if task is not in the visible items.
-                        return true;
-                    }
-                }
-            }
-            if (updated)
-            {
-                InvokeAsync(StateHasChanged);
-            }
-        }
-        catch (Exception)
-        {
-        }
-        return false;
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), async (tasks) =>
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTasks);
+            NotificationService?.RemoveByKey("Pages/Admin/Tasks.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskDelete), async (tasks) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), async (tasks) =>
-            {
-                if (StateChanged(tasks))
+                foreach (var it in items)
                 {
-                    await Updated();
+                    if (it.Type == GXTaskPolicies.Add ||
+                        it.Type == GXTaskPolicies.Delete ||
+                        it.Type == GXTaskPolicies.Clear)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                    if (it.Type == GXTaskPolicies.Edit)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
                 }
             });
-            Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.TaskClear), async (tasks) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (Id != null)
             {
                 //Get last selected item.
@@ -383,18 +343,14 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/Tasks.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXTask>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingTasks);
         try
         {
             ListTasks req = new ListTasks()
@@ -414,8 +370,12 @@
             if (ret.Tasks != null)
             {
                 //Mark tasks as seen.
-                await Notifier.Mark(Http, TargetType.Task, ret.Tasks.Max(s => s.CreationTime));
-                return new ItemsProviderResult<GXTask>(ret.Tasks, ret.Count);
+                if (Notifier != null)
+                {
+                    await Notifier.Mark(Http, TargetType.Task, ret.Tasks.Max(s => s.CreationTime));
+                }
+
+                return new ItemsProviderResult<GXTask>(ret.Tasks, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -425,11 +385,7 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -437,15 +393,21 @@
     /// <summary>
     /// Remove selected tasks.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SelectedItems.Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            RemoveConfirmation?.Show();
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = false
+                });
+            await OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -453,22 +415,28 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Clear the all tasks.
     /// </summary>
-    public void OnClear()
+    public async Task OnClear()
     {
-        ClearConfirmation?.Show();
+        var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearTasks,
+            new AmiConfirmationOptions
+            {
+                ConfirmText = Properties.Resources.Clear,
+                AllowDelete = false
+            });
+        await OnClearConfirmation(confirmation);
     }
 
     /// <summary>
     /// Delete the selected task list.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
@@ -485,20 +453,20 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Clear user tasks.
     /// </summary>
-    public async Task OnClearConfirmation(ConfirmArgs args)
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (args.Confirm)
             {
-                Notifier.ProgressStart();
+                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingTask);
                 try
                 {
                     ClearTask req = new ClearTask();
@@ -506,7 +474,6 @@
                 }
                 finally
                 {
-                    Notifier.ProgressEnd();
                 }
             }
         }
@@ -516,12 +483,17 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

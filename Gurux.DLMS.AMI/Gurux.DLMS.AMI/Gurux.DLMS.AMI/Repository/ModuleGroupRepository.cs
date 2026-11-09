@@ -1,131 +1,141 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Shared.DTOs.Module;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+
+using Gurux.DLMS.AMI.Hubs;
+using System.Security.Claims;
+using Gurux.Service.Orm.Enums;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
+
     /// <inheritdoc />
     public class ModuleGroupRepository : IModuleGroupRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IUserRepository _userRepository;
         private readonly IUserGroupRepository _userGroupRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public ModuleGroupRepository(
-            IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+            IAuthorizationService authorizationService,
+            IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
             IUserRepository userRepository,
-            IGXEventsNotifier eventsNotifier,
             IUserGroupRepository userGroupRepository,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
+            if (httpContextAccessor.HttpContext?.User == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
             _userRepository = userRepository;
-            _eventsNotifier = eventsNotifier;
             _userGroupRepository = userGroupRepository;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
         }
+
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXModuleGroup), id, action, GXModuleGroupPolicies.View, connection, transaction, notifications: _notificationCache);
 
         /// <inheritdoc />
         public async Task<List<GXUserGroup>> GetJoinedUserGroups(Guid moduleGroupId)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupModuleGroup>(a => a.Id, b => b.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupModuleGroup, GXModuleGroup>(a => a.ModuleGroupId, b => b.Id);
             arg.Where.And<GXModuleGroup>(where => where.Removed == null && where.Id == moduleGroupId);
-            return (await _host.Connection.SelectAsync<GXUserGroup>(arg));
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            return (await connection.SelectAsync<GXUserGroup>(arg));
         }
 
         /// <inheritdoc />
-        public async Task<List<GXModule>> GetJoinedModules(Guid moduleGroupId)
+        private static async Task<List<GXModule>> GetJoinedModules(GXDbConnection connection, Guid moduleGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXModule>();
             arg.Joins.AddInnerJoin<GXModule, GXModuleGroupModule>(a => a.Id, b => b.ModuleId);
             arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModuleGroup>(a => a.ModuleGroupId, b => b.Id);
             arg.Where.And<GXModuleGroup>(where => where.Removed == null && where.Id == moduleGroupId);
-            return (await _host.Connection.SelectAsync<GXModule>(arg));
+            return (await connection.SelectAsync<GXModule>(arg));
         }
 
         /// <inheritdoc />
         public async Task<List<GXModuleGroup>> GetJoinedModuleGroups(string moduleId)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ModuleGroup) &&
-                !User.IsInRole(GXRoles.ModuleGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXModuleGroup>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXModuleGroup, GXModuleGroupModule>(a => a.Id, b => b.ModuleGroupId);
             arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModule>(a => a.ModuleId, b => b.Id);
-            arg.Where.And<GXModule>(where => where.Active == true && where.Id == moduleId);
-            return (await _host.Connection.SelectAsync<GXModuleGroup>(arg));
+            arg.Where.And<GXModule>(where => where.Enabled == true && where.Id == moduleId);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            return (await connection.SelectAsync<GXModuleGroup>(arg));
         }
 
         /// <inheritdoc/>
-        public async Task<List<string>> GetUsersAsync(Guid? groupId)
+        public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ModuleGroup) &&
-                !User.IsInRole(GXRoles.ModuleGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs args = GXQuery.GetUsersByModuleGroup(s => s.Id,
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByModuleGroup(s => s.Id!,
                 ServerHelpers.GetUserId(User), groupId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (groupId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXModuleGroup), groupId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User != null && User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -134,19 +144,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc/>
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ModuleGroup) &&
-                !User.IsInRole(GXRoles.ModuleGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs args = GXQuery.GetUsersByModuleGroups(s => s.Id,
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByModuleGroups(s => s.Id!,
                 ServerHelpers.GetUserId(User), groupIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User != null && User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -156,57 +161,99 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc/>
         public async Task DeleteAsync(
-            IEnumerable<Guid> userGrouprs,
-            bool delete)
+            IEnumerable<Guid> groups,
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ModuleGroupManager)))
+            groups = groups.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXModuleGroup, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, groups,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.Delete);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            IEnumerable<GXModuleGroup> exists;
+            if (User.IsInRole(GXRoles.Admin))
             {
-                throw new UnauthorizedAccessException();
+                GXSelectArgs arg = GXSelectArgs.Select<GXModuleGroup>(s => new { s.Id, s.Name }, w => groups.Contains(w.Id));
+                exists = connection.Select<GXModuleGroup>(arg);
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXModuleGroup>(a => a.Id, q => userGrouprs.Contains(q.Id));
-            List<GXModuleGroup> list = _host.Connection.Select<GXModuleGroup>(arg);
-            DateTime now = DateTime.Now;
-            Dictionary<GXModuleGroup, List<string>> updates = new Dictionary<GXModuleGroup, List<string>>();
-            foreach (GXModuleGroup it in list)
+            else
             {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(it.Id);
+                //Check that the user has access rights to the removed agent groups.
+                string userId = ServerHelpers.GetUserId(User);
+                var arg = GXQuery.GetModuleGroupsByUser(s => new { s.Id, s.Name }, userId, null,
+                     DateTimeOffset.MinValue, null, groups);
+                exists = connection.Select<GXModuleGroup>(arg);
+            }
+            if (!exists.Any())
+            {
+                //If user try to remove item that is not in the list, throw exception.
+                //This can happen if user try to remove item that is already removed or user try to remove item that he doesn't have access.
+                throw new GXAmiForbiddenException(string.Join(", ", groups));
+            }
+            DateTime now = DateTime.Now;
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                foreach (GXModuleGroup it in exists)
+                {
+                    if (!groups.Contains(it.Id))
+                    {
+                        //If user try to remove item that is not in the list, throw exception.
+                        //This can happen if user try to remove item that is already removed or user try to remove item that he doesn't have access.
+                        throw new GXAmiForbiddenException(it.Id.ToString());
+                    }
+                    it.Removed = now;
+                    List<string> users = await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection, transaction);
+                    _notificationCache.Add(users, new GXTarget(GXModuleGroupPolicies.Delete, it.Id));
+                    if (!delete)
+                    {
+                        connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed!));
+                    }
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXModuleGroup>(it.Id));
+                    await connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(exists), cancellationToken);
+                }
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(groups, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                    throw;
                 }
-                updates[it] = users;
             }
-            foreach (var it in updates)
+            catch (Exception)
             {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.ModuleGroup, NotificationAction.Remove);
-                if (users == null)
-                {
-                    break;
-                }
-                GXModuleGroup tmp = new GXModuleGroup() { Id = it.Key.Id };
-                await _eventsNotifier.ModuleGroupDelete(users, [tmp]);
+                transaction.Rollback();
+                throw;
             }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXModuleGroup[]> ListAsync(
+        public async Task<IEnumerable<GXModuleGroup>> ListAsync(
             ListModuleGroups? request,
             ListModuleGroupsResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ModuleGroup) &&
-                !User.IsInRole(GXRoles.ModuleGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.View);
             GXSelectArgs arg;
             if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
             {
@@ -216,7 +263,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetModuleGroupsByUser(s => "*", userId);
+                arg = GXQuery.GetModuleGroupsByUser(s => "*", userId, null,
+                    request?.Filter?.Removed, request?.Exclude, request?.Included);
             }
             if (request != null)
             {
@@ -224,41 +272,48 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Filter?.UserGroups != null)
                 {
                     var ug = request.Filter.UserGroups.FirstOrDefault();
-                    if (ug?.Users != null && ug.Users.Any())
+                    if (ug?.Users != null && ug.Users.Count != 0)
                     {
                         var user = ug.Users.FirstOrDefault();
                         if (user != null)
                         {
                             arg.Joins.AddLeftJoin<GXUserGroupModuleGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
                             arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
-                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId!, j => j.Id!);
                             arg.Where.FilterBy(user);
                         }
                     }
                     request.Filter.UserGroups = null;
                 }
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXModuleGroup>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXModuleGroup>(w => request.Included.Contains(w.Id));
                 }
             }
+            GXDateTimeFilters.Apply<GXModuleGroup>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXModuleGroup>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXModuleGroup>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -268,9 +323,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 arg.Descending = true;
-                arg.OrderBy.Add<GXModuleGroup>(q => q.CreationTime);
+                arg.OrderBy.Add<GXModuleGroup>(q => q.CreationTime!);
             }
-            GXModuleGroup[] groups = (await _host.Connection.SelectAsync<GXModuleGroup>(arg)).ToArray();
+            GXModuleGroup[] groups = [.. (await connection.SelectAsync<GXModuleGroup>(arg))];
             if (response != null)
             {
                 response.ModuleGroups = groups;
@@ -283,180 +338,271 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXModuleGroup> ReadAsync(Guid id)
+        public async Task<GXModuleGroup> ReadAsync(Guid id, Expression<Func<GXModuleGroup, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ModuleGroup) &&
-                !User.IsInRole(GXRoles.ModuleGroupManager)))
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                //Admin can see all the groups.
-                arg = GXSelectArgs.SelectAll<GXModuleGroup>(w => w.Id == id);
-            }
-            else
-            {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetModuleGroupsByUser(s => s.Id, userId);
-            }
-            arg.Columns.Exclude<GXModuleGroup>(e => e.Modules);
-            arg.Distinct = true;
-            var group = (await _host.Connection.SingleOrDefaultAsync<GXModuleGroup>(arg));
-            if (group == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            ////////////////////////////////////////////////////
-            //Get modules that belongs for this module group.
-            arg = GXSelectArgs.Select<GXModule>(s => s.Id);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModule>(j => j.ModuleId, j => j.Id);
-            arg.Where.And<GXModuleGroupModule>(q => q.Removed == null && q.ModuleGroupId == id);
-            group.Modules = await _host.Connection.SelectAsync<GXModule>(arg);
 
-            ////////////////////////////////////////////////////
-            //Get user groups that belongs for this module group.
-            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXUserGroupModuleGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
-            arg.Where.And<GXUserGroupModuleGroup>(q => q.Removed == null && q.ModuleGroupId == id);
-            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName });
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXModuleGroup, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXModuleGroup>(w => w.Id == id);
-            group.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return group;
-        }
-
-        /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
-            IEnumerable<GXModuleGroup> ModuleGroups,
-            Expression<Func<GXModuleGroup, object?>>? columns)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ModuleGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            DateTime now = DateTime.Now;
-            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            List<Guid> list = new List<Guid>();
-            Dictionary<GXModuleGroup, List<string>> updates = new Dictionary<GXModuleGroup, List<string>>();
-            foreach (GXModuleGroup it in ModuleGroups)
-            {
-                if (string.IsNullOrEmpty(it.Name))
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.View);
+                GXSelectArgs arg;
+                if (User.IsInRole(GXRoles.Admin))
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
+                    //Admin can see all the groups.
+                    arg = GXSelectArgs.SelectAll<GXModuleGroup>(w => w.Id == id);
                 }
-                if (it.UserGroups == null || !it.UserGroups.Any())
+                else
                 {
-                    //Get default user groups.
-                    it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(
-                        ServerHelpers.GetUserId(User));
-                    if (it.UserGroups == null || !it.UserGroups.Any())
+                    string userId = ServerHelpers.GetUserId(User);
+                    arg = GXQuery.GetModuleGroupsByUser(s => "*", userId, id);
+                }
+                arg.Columns.Exclude<GXModuleGroup>(e => e.Modules!);
+                arg.Distinct = true;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                var group = (await connection.SingleOrDefaultAsync<GXModuleGroup>(arg)) ?? throw new GXAmiForbiddenException(id.ToString());
+                ////////////////////////////////////////////////////
+                //Get modules that belongs for this module group.
+                arg = GXSelectArgs.Select<GXModule>(s => s.Id);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModule>(j => j.ModuleId, j => j.Id);
+                arg.Where.And<GXModuleGroupModule>(q => q.Removed == null && q.ModuleGroupId == id);
+                group.Modules = await connection.SelectAsync<GXModule>(arg);
+
+                ////////////////////////////////////////////////////
+                //Get user groups that belongs for this module group.
+                arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXUserGroupModuleGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                arg.Where.And<GXUserGroupModuleGroup>(q => q.Removed == null && q.ModuleGroupId == id);
+                group.UserGroups = await connection.SelectAsync<GXUserGroup>(arg);
+                //Get creator with own query. It's faster for some DBs.
+                arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName });
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXModuleGroup, GXUser>(s => s.Creator!, o => o.Id!);
+                arg.Where.And<GXModuleGroup>(w => w.Id == id);
+                group.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
+                return group;
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
                     {
-                        throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
                     }
-                }
-                if (it.Id == Guid.Empty)
-                {
-                    it.Creator = creator;
-                    it.CreationTime = now;
-                    GXInsertArgs args = GXInsertArgs.Insert(it);
-                    //User groups must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXModuleGroup>(e => new { e.Modules, e.UserGroups, e.Updated });
-                    _host.Connection.Insert(args);
-                    list.Add(it.Id);
-                    AddModuleGroupToUserGroups(it.Id, it.UserGroups);
-                    if (it.Modules != null)
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
                     {
-                        AddModulesToModuleGroup(it.Id, it.Modules.Select(s => s.Id).ToArray());
+                        throw ex;
                     }
                 }
                 else
                 {
-                    GXSelectArgs m = GXSelectArgs.Select<GXModuleGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
-                    if (!string.IsNullOrEmpty(updated) && updated != it.ConcurrencyStamp)
-                    {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
-                    }
-
-                    List<string> users = await GetUsersAsync(it.Id);
-                    it.Updated = now;
-                    it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXModuleGroup>(q => new
-                    {
-                        q.Modules,
-                        q.UserGroups,
-                        q.CreationTime
-                    });
-                    if (!User.IsInRole(GXRoles.Admin) ||
-                        string.IsNullOrEmpty(it.Creator?.Id))
-                    {
-                        //Only admin can update the creator.
-                        args.Exclude<GXModuleGroup>(q => q.Creator);
-                    }
-                    _host.Connection.Update(args);
-                    //Map user group to Module group.
-                    List<GXUserGroup> userGroups = await GetJoinedUserGroups(it.Id);
-                    var comparer = new UniqueComparer<GXUserGroup, Guid>();
-                    List<GXUserGroup> removed = userGroups.Except(it.UserGroups, comparer).ToList();
-                    List<GXUserGroup> added = it.UserGroups.Except(userGroups, comparer).ToList();
-
-                    if (added.Count != 0)
-                    {
-                        AddModuleGroupToUserGroups(it.Id, added);
-                    }
-                    if (removed.Count != 0)
-                    {
-                        RemoveModuleGroupFromUserGroups(it.Id, removed);
-                    }
-                    //Map modules to Module group.
-                    if (it.Modules != null)
-                    {
-                        List<GXModule> list3 = await GetJoinedModules(it.Id);
-                        List<string> groups2 = list3.Select(s => s.Id).ToList();
-                        string[] tmp2 = it.Modules.Select(s => s.Id).ToArray();
-                        string[] removed2 = groups2.Except(tmp2).ToArray();
-                        string[] added2 = tmp2.Except(groups2).ToArray();
-                        if (added2.Length != 0)
-                        {
-                            AddModulesToModuleGroup(it.Id, added2);
-                        }
-                        if (removed2.Length != 0)
-                        {
-                            RemoveModulesFromModuleGroup(it.Id, removed2);
-                        }
-                    }
-                    updates[it] = users;
+                    throw;
                 }
             }
-            foreach (var it in updates)
-            {
-                await _eventsNotifier.ModuleGroupUpdate(it.Value, new GXModuleGroup[] { it.Key });
+        }
+
+        /// <summary>Inserts a new group and its memberships in the caller's transaction without notifications or history.</summary>
+        internal static async Task UpsertAsync(GXDbConnection connection, System.Data.IDbTransaction transaction,
+            GXModuleGroup group, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(transaction);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (group.Id != Guid.Empty)
+                {
+                throw new ArgumentException("This overload only inserts new groups.", nameof(group));
             }
-            return list.ToArray();
+            if (string.IsNullOrEmpty(group.Name))
+                {
+                throw new ArgumentException(Gurux.DLMS.AMI.Properties.Resources.InvalidName);
+            }
+            if (string.IsNullOrEmpty(group.Creator?.Id))
+                {
+                throw new ArgumentException("A group creator is required.", nameof(group));
+            }
+            group.CreationTime ??= DateTime.Now;
+            if (group.UserGroups?.Count is not > 0 || group.UserGroups.Any(g => g.Id == Guid.Empty))
+                {
+                throw new ArgumentException(Gurux.DLMS.AMI.Properties.Resources.TargetMustBelongToOneGroup);
+            }
+            var args = GXInsertArgs.Insert(group);
+            args.Exclude<GXModuleGroup>(group => new { group.UserGroups, group.Modules, group.Updated });
+            await connection.InsertAsync(transaction, args, cancellationToken);
+            var memberships = group.UserGroups.Select(userGroup => new GXUserGroupModuleGroup
+            {
+                UserGroupId = userGroup.Id,
+                ModuleGroupId = group.Id,
+                CreationTime = DateTime.Now
+            }).ToArray();
+            await connection.InsertAsync(transaction, GXInsertArgs.InsertRange(memberships), cancellationToken);
+            if (group.Modules?.Count > 0)
+            {
+                var modules = group.Modules.Select(module => new GXModuleGroupModule
+                {
+                    ModuleGroupId = group.Id, ModuleId = module.Id, CreationTime = DateTime.Now
+                }).ToArray();
+                await connection.InsertAsync(transaction, GXInsertArgs.InsertRange(modules), cancellationToken);
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Guid>> UpsertAsync(
+            IEnumerable<GXModuleGroup> ModuleGroups,
+            Expression<Func<GXModuleGroup, object>>? columns, CancellationToken cancellationToken = default)
+        {
+            ModuleGroups = ModuleGroups.ToArray();
+            return await GXHistoryMutation.RunAsync<GXModuleGroup, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, ModuleGroups,
+        async () =>
+        {
+            try
+            {
+
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXModuleGroupPolicies.Add, GXModuleGroupPolicies.Edit);
+                DateTime now = DateTime.Now;
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                List<Guid> list = [];
+                Dictionary<GXModuleGroup, List<string>> updates = [];
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                foreach (GXModuleGroup it in ModuleGroups)
+                {
+                    if (string.IsNullOrEmpty(it.Name))
+                    {
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
+                    if (it.UserGroups?.Count is not > 0)
+                    {
+                        //Get default user groups.
+                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroupsAsync(
+                            ServerHelpers.GetUserId(User));
+                        if (it.UserGroups?.Count is not > 0)
+                        {
+                            throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                        }
+                    }
+                    if (it.Id == Guid.Empty)
+                    {
+                        it.Creator = creator;
+                        it.CreationTime = now;
+                        using (var insertTransaction = connection.BeginTransaction())
+                        {
+                            await UpsertAsync(connection, insertTransaction, it, cancellationToken);
+                            insertTransaction.Commit();
+                        }
+                        list.Add(it.Id);
+                    }
+                    else
+                    {
+                        GXSelectArgs m = GXSelectArgs.Select<GXModuleGroup>(q => q.ConcurrencyStamp!, where => where.Id == it.Id);
+                        string? updated = connection.SingleOrDefault<string>(m);
+                        if (!string.IsNullOrEmpty(updated) && updated != it.ConcurrencyStamp)
+                        {
+                            throw new ArgumentException(Properties.Resources.ContentEdited);
+                        }
+
+                        List<string> users = await GetNotifiedUsers(it.Id, NotificationAction.Edit, connection);
+                        it.Updated = now;
+                        it.ConcurrencyStamp = Guid.NewGuid().ToString();
+                        GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
+                        args.Exclude<GXModuleGroup>(q => new
+                        {
+                            q.Modules,
+                            q.UserGroups,
+                            q.CreationTime
+                        });
+                        if (!User.IsInRole(GXRoles.Admin) ||
+                            string.IsNullOrEmpty(it.Creator?.Id))
+                        {
+                            //Only admin can update the creator.
+                            args.Exclude<GXModuleGroup>(q => q.Creator!);
+                        }
+                        connection.Update(args);
+                        //Map user group to Module group.
+                        List<GXUserGroup> userGroups = await GetJoinedUserGroups(it.Id);
+                        var comparer = new UniqueComparer<GXUserGroup, Guid>();
+                        List<GXUserGroup> removed = [.. userGroups.Except(it.UserGroups, comparer)];
+                        List<GXUserGroup> added = [.. it.UserGroups.Except(userGroups, comparer)];
+
+                        if (added.Count != 0)
+                        {
+                            AddModuleGroupToUserGroups(connection, it.Id, added);
+                        }
+                        if (removed.Count != 0)
+                        {
+                            RemoveModuleGroupFromUserGroups(connection, it.Id, removed);
+                        }
+                        //Map modules to Module group.
+                        if (it.Modules != null)
+                        {
+                            List<GXModule> list3 = await GetJoinedModules(connection, it.Id);
+                            List<string> groups2 = [.. list3.Select(s => s.Id)];
+                            string[] tmp2 = [.. it.Modules.Select(s => s.Id)];
+                            string[] removed2 = [.. groups2.Except(tmp2)];
+                            string[] added2 = [.. tmp2.Except(groups2)];
+                            if (added2.Length != 0)
+                            {
+                                AddModulesToModuleGroup(connection, it.Id, added2);
+                            }
+                            if (removed2.Length != 0)
+                            {
+                                RemoveModulesFromModuleGroup(connection, it.Id, removed2);
+                            }
+                        }
+                        list.Add(it.Id);
+                        updates[it] = users;
+                    }
+                }
+                foreach (var it in updates)
+                {
+                    _notificationCache.Add(await GetNotifiedUsers(it.Key.Id, NotificationAction.Edit, connection),
+                        new GXTarget(GXModuleGroupPolicies.Edit, it.Key.Id, it.Key.Name) { ConcurrencyStamp = it.Key.ConcurrencyStamp });
+                }
+                return [.. list];
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(ModuleGroups, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }, cancellationToken);
         }
 
         /// <summary>
         /// Map module group to user groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="moduleGroupId">Module group ID.</param>
         /// <param name="groups">User groups where the module is added.</param>
-        public void AddModuleGroupToUserGroups(Guid moduleGroupId,
+        private static void AddModuleGroupToUserGroups(GXDbConnection connection,
+            Guid moduleGroupId,
             IEnumerable<GXUserGroup> groups)
         {
             DateTime now = DateTime.Now;
-            List<GXUserGroupModuleGroup> list = new List<GXUserGroupModuleGroup>();
+            List<GXUserGroupModuleGroup> list = [];
             foreach (var ug in groups)
             {
                 list.Add(new GXUserGroupModuleGroup()
@@ -466,15 +612,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            connection.Insert(GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between module group and user groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="moduleGroupId">Module group ID.</param>
         /// <param name="groups">Group IDs of the module groups where the module is removed.</param>
-        public void RemoveModuleGroupFromUserGroups(Guid moduleGroupId,
+        private static void RemoveModuleGroupFromUserGroups(GXDbConnection connection,
+            Guid moduleGroupId,
             IEnumerable<GXUserGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupModuleGroup>();
@@ -483,18 +631,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXUserGroupModuleGroup>(w => w.UserGroupId == ug.Id &&
                     w.ModuleGroupId == moduleGroupId);
             }
-            _host.Connection.Delete(args);
+            connection.Delete(args);
         }
 
         /// <summary>
         /// Map modules to module group.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="moduleGroupId">Module group ID.</param>
         /// <param name="groups">Group IDs of the module groups where the module is added.</param>
-        public void AddModulesToModuleGroup(Guid moduleGroupId, IEnumerable<string> groups)
+        private static void AddModulesToModuleGroup(GXDbConnection connection,
+            Guid moduleGroupId, IEnumerable<string> groups)
         {
             DateTime now = DateTime.Now;
-            List<GXModuleGroupModule> list = new List<GXModuleGroupModule>();
+            List<GXModuleGroupModule> list = [];
             foreach (var ug in groups)
             {
                 list.Add(new GXModuleGroupModule()
@@ -504,15 +654,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            connection.Insert(GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between modules and module group.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="moduleGroupId">Module group ID.</param>
         /// <param name="groups">Group IDs of the module groups where the module is removed.</param>
-        public void RemoveModulesFromModuleGroup(Guid moduleGroupId, IEnumerable<string> groups)
+        private static void RemoveModulesFromModuleGroup(GXDbConnection connection,
+            Guid moduleGroupId, IEnumerable<string> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXModuleGroupModule>();
             foreach (var it in groups)
@@ -520,7 +672,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXModuleGroupModule>(w => w.ModuleId == it &&
                     w.ModuleGroupId == moduleGroupId);
             }
-            _host.Connection.Delete(args);
+            connection.Delete(args);
         }
     }
 }

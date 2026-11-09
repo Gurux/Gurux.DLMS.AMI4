@@ -1,0 +1,198 @@
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Pages.Config
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Accordion
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Text.Json
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject ILogger<ViewGeneral> Logger
+@inject HttpClient Http
+<GXHelpContext Topic="ViewGeneral" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@FormContext">
+        <PolicyTabs>
+            <GeneralContent>
+                <div class="row">
+                    <div style="width:100%">
+                        <div class="form-group">
+                            <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Active.Enabled" />
+                        </div>
+                        <div class="form-group">
+                            <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                            <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Title</label>
+                            <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Title" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Description</label>
+                            <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Description" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="allow-column-customization"><GXLocalizedText Value="@Properties.Resources.AllowColumnCustomization" /></label>
+                            <GXInputDropdown id="allow-column-customization" class="form-select" Disabled="@(Action == CrudAction.Delete)" @bind-Value="CustomizationChoice" RememberValue="false" Items="@CustomizationChoiceItems"><Template Context="choice"><GXLocalizedText Value="@choice.Label" /></Template></GXInputDropdown>
+                        </div>
+                        <div class="form-group">
+                            <GXInputSwitch Text="@Properties.Resources.ShowAllData" Disabled="@(Action == CrudAction.Delete)" @bind-Value="Active.ShowAllData" />
+                        </div>
+                        <div class="form-group">
+                            <label><GXLocalizedText Value="@Properties.Resources.PageSize" /></label>
+                            <GXInputNumber RememberValue="false" id="page-size" class="form-control" disabled="@IsDeleting" min="1" @bind-Value="Active.PageSize" Max="@GXNumberBounds.Maximum(Active.PageSize)" />
+                        </div>
+                        <div class="form-group">
+                            <label><GXLocalizedText Value="@Properties.Resources.SelectionMode" /></label>
+                            <GXInputDropdown id="selection-mode" class="form-select" Disabled="@(Action == CrudAction.Delete)" @bind-Value="SelectionChoice" RememberValue="false" Items="@SelectionChoiceItems"><Template Context="choice"><GXLocalizedText Value="@choice.Label" /></Template></GXInputDropdown>
+                        </div>
+                        <CascadingValue Value="this">
+                            <Columns View="@Active"></Columns>
+                        </CascadingValue>
+                        <GXInputSwitch Text="@Properties.Resources.Preload" @bind-Value="Active.Preload" />
+
+                        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                            Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                        @if (Action == CrudAction.Delete)
+                        {
+                            <hr />
+                            <p>
+                            </p>
+                            <div class="form-group">
+                                <InputRadioGroup @bind-Value="DeleteTarget">
+                                    <InputRadio Value="false">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                                    <InputRadio Value="true">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDeleteQuestion</label>
+                                </InputRadioGroup>
+                                <br />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </GeneralContent>
+            <PolicyContent>
+                <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+            </PolicyContent>
+        </PolicyTabs>
+    </EditForm>
+}
+@code {
+    private sealed record DropdownChoice<T>(T Value, string? Label);
+    private IEnumerable<DropdownChoice<byte?>> SelectionChoiceItems => new[] { new DropdownChoice<byte?>(null, Properties.Resources.Default) }.Concat(Enum.GetValues<SelectionMode>().Select(it => new DropdownChoice<byte?>((byte)it, it.ToString())));
+    private DropdownChoice<byte?> SelectionChoice
+    {
+        get => SelectionChoiceItems.First(it => EqualityComparer<byte?>.Default.Equals(it.Value, Active?.SelectionMode));
+        set
+        {
+            var active = Active;
+            if (active == null) {
+                return;
+            }
+            active.SelectionMode = value.Value;
+            GXEditContexts.For(active).NotifyFieldChanged(new FieldIdentifier(active, nameof(active.SelectionMode)));
+        }
+    }
+    private IEnumerable<DropdownChoice<bool?>> CustomizationChoiceItems => new DropdownChoice<bool?>[] { new(null, Properties.Resources.Default + " (admin)"), new(true, Properties.Resources.Yes), new(false, Properties.Resources.No) };
+    private DropdownChoice<bool?> CustomizationChoice
+    {
+        get => CustomizationChoiceItems.First(it => EqualityComparer<bool?>.Default.Equals(it.Value, Active?.AllowColumnCustomization));
+        set
+        {
+            var active = Active;
+            if (active == null) {
+                return;
+            }
+            active.AllowColumnCustomization = value.Value;
+            GXEditContexts.For(active).NotifyFieldChanged(new FieldIdentifier(active, nameof(active.AllowColumnCustomization)));
+        }
+    }
+
+
+    [Parameter, EditorRequired]
+    public GXView? Active { get; set; }
+
+    void OnEdit(object? value)
+    {
+
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter] public View? Editor { get; set; }
+    private bool DeleteTarget { get => Editor?.DeleteTarget ?? false; set { if (Editor != null) {
+        Editor.DeleteTarget = value;
+    } } }
+    private EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public void Update() => StateHasChanged();
+
+    public void Updated()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+}

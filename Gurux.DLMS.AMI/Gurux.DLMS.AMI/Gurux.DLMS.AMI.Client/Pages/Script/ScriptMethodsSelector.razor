@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Client.Pages.Workflow;
 @using Gurux.DLMS.AMI.Shared.DIs
 
@@ -45,11 +42,12 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="ScriptMethodsSelector" />
 
 <SelectionContainer TItem="GXScriptMethod" @ref="@_selectionContainer">
-    <SelectionList Title="Selected" @ref="_selected"
+    <SelectionList TItem="GXScriptMethod" Title="@Properties.Resources.Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems">
         <DataContent>
@@ -57,26 +55,29 @@
             target.Description;
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchSelectedByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
-    <SelectionList Title="Available" @ref="_available"
+    <SelectionList TItem="GXScriptMethod" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
                    ItemsProvider="@GetItems">
         <DataContent>
             @context.Script?.Name + "." + context.Name + "<br />" +
             target.Description;
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
         </FilterContent>
     </SelectionList>
 </SelectionContainer>
 
 @code {
-    [CascadingParameter]
-    private WorkflowTab? Parent { get; set; }
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public GXWorkflow? Active { get; set; }
 
     SelectionList<GXScriptMethod>? _selected;
     SelectionList<GXScriptMethod>? _available;
@@ -98,19 +99,19 @@
                     name = name.ToLower();
                     foreach (var it in _selected.Items)
                     {
-                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        if (it.Name != null && !(it.Name ?? string.Empty).ToLower().Contains(name))
                         {
                             _selected.HiddenItems.Add(it);
                         }
                     }
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Script/ScriptMethodsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Script/ScriptMethodsSelector.SearchSelectedByName");
         }
     }
 
@@ -121,13 +122,13 @@
             if (_available != null)
             {
                 filter.Name = name;
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Script/ScriptMethodsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Script/ScriptMethodsSelector.SearchByName");
         }
     }
 
@@ -149,7 +150,7 @@
     private async ValueTask<ItemsProviderResult<GXScriptMethod>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScriptMethods);
         try
         {
             ListScripts req = new ListScripts()
@@ -177,7 +178,7 @@
                         }
                     }
                 }
-                return new ItemsProviderResult<GXScriptMethod>(list, ret.Count);
+                return new ItemsProviderResult<GXScriptMethod>(list, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -187,31 +188,30 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingScriptMethods);
+            NotificationService?.RemoveByKey("Pages/Script/ScriptMethodsSelector.OnInitializedAsync");
             if (_selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            if (Parent?.Active?.ScriptMethods != null)
+            if (Active?.ScriptMethods != null)
             {
                 //Get scripts from selected script group.
-                _selected.Items = Parent.Active.ScriptMethods;
+                _selected.Items = Active.ScriptMethods;
             }
             else
             {
@@ -229,11 +229,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Script/ScriptMethodsSelector.OnInitializedAsync");
         }
     }
 }

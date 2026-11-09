@@ -1,34 +1,30 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -46,59 +42,57 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Text;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Profile" />
 
 @if (Active != null)
 {
-    <Dialog OnOk="OnSave" OnCancel="OnCancel">
-        <EditForm Model="@Active">
+    <GXDialog OnOk="OnSave" OnCancel="OnCancel">
+        <EditForm EditContext="@GXEditContexts.For(Active)">
             <DataAnnotationsValidator />
+            <ValidationSummary />
             <GXValidator @ref="_validator" OnValidate="OnValidate" />
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
                         <div class="col-auto">
                             <label>@Properties.Resources.KeyManagementKeyType</label>
-                            <select class="form-select" @bind="Active.InterfaceType">
-                                @foreach (var it in InterfaceTypes)
-                                {
-                                    <option value="@Convert.ToInt32(it)">
-                                        @it
-                                    </option>
-                                }
-                            </select>
+                            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="Active.InterfaceType"
+                                             Items="@(InterfaceTypes.Select(it => (int)it))" Formatter="@((int value) => ((Gurux.DLMS.Enums.InterfaceType)value).ToString())" />
                         </div>
                         <ValidationMessage For="@(() => Active.InterfaceType)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.ClientAddress</label>
-                        <InputNumber id="clientAddress"
+                        <GXInputNumber RememberValue="false" id="clientAddress"
                                      class="form-control"
-                        @bind-Value="Active.ClientAddress" />
+                        @bind-Value="Active.ClientAddress" Min="@GXNumberBounds.Minimum(Active.ClientAddress)" Max="@GXNumberBounds.Maximum(Active.ClientAddress)" />
                         <ValidationMessage For="@(() => Active.ClientAddress)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.LogicalAddress</label>
-                        <InputNumber id="logicalAddress"
+                        <GXInputNumber RememberValue="false" id="logicalAddress"
                                      class="form-control"
-                        @bind-Value="Active.LogicalAddress" />
+                        @bind-Value="Active.LogicalAddress" Min="@GXNumberBounds.Minimum(Active.LogicalAddress)" Max="@GXNumberBounds.Maximum(Active.LogicalAddress)" />
                         <ValidationMessage For="@(() => Active.LogicalAddress)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.PhysicalAddress</label>
-                        <InputNumber id="physicalAddress"
+                        <GXInputNumber RememberValue="false" id="physicalAddress"
                                      class="form-control"
-                        @bind-Value="Active.PhysicalAddress" />
+                        @bind-Value="Active.PhysicalAddress" Min="@GXNumberBounds.Minimum(Active.PhysicalAddress)" Max="@GXNumberBounds.Maximum(Active.PhysicalAddress)" />
                         <ValidationMessage For="@(() => Active.PhysicalAddress)" />
                     </div>
                 </div>
             </div>
         </EditForm>
-    </Dialog>
+    </GXDialog>
 }
 @code {
+
+    private IGXNotificationService? NotificationService;
 
     private List<Gurux.DLMS.Enums.InterfaceType> InterfaceTypes = new List<Gurux.DLMS.Enums.InterfaceType>(new[]{
     Gurux.DLMS.Enums.InterfaceType.HDLC,
@@ -134,19 +128,21 @@
 
     protected override void OnInitialized()
     {
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/Profile.OnInitialized");
             if (Active == null || Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             _original = ClientHelpers.Clone<GXCommunicationProfile>(Active);
             //Remove added profiles.
-            foreach (var it in Parent.GetSelectedProfiles())
+            foreach (var it in (Parent?.GetSelectedProfiles() ?? []))
             {
                 //Remove already added profile types when adding a new profile.
-                if (Parent.ProfileAction == CrudAction.Create ||
+                if (Parent?.ProfileAction == CrudAction.Create ||
                 //Remove key type if not selected key type.
                 Active.InterfaceType != it.InterfaceType)
                 {
@@ -156,7 +152,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/Profile.OnInitialized");
         }
     }
 
@@ -172,7 +168,7 @@
     /// <summary>
     /// Save profile group.
     ///</summary>
-    public void OnSave()
+    public async System.Threading.Tasks.Task OnSave()
     {
         try
         {
@@ -181,11 +177,11 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_validator != null && !_validator.Validate())
+            if (_validator != null && !await _validator.ValidateAsync())
             {
                 return;
             }
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/Profile.OnSave");
             if (Parent?.ProfileAction == CrudAction.Create)
             {
                 Parent?._profiles?.Add(Active);
@@ -198,11 +194,12 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
+            Parent?.Parent?.SettingsChanged();
             Parent?.Update();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/Profile.OnSave");
         }
     }
 

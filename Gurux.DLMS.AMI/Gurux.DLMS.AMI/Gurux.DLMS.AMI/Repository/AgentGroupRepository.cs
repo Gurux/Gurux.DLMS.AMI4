@@ -1,116 +1,128 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
-using System.Linq.Expressions;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
-using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using System.Linq.Expressions;
+using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <inheritdoc />
-    public class AgentGroupRepository : IAgentGroupRepository
+    class AgentGroupRepository : IAgentGroupRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IServiceProvider _serviceProvider;
         private readonly IUserGroupRepository _userGroupRepository;
         private readonly IUserRepository _userRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public AgentGroupRepository(
-            IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+            IDbConnectionFactory dbFactory,
+            IAuthorizationService authorizationService,
+            IHttpContextAccessor httpContextAccessor,
             IServiceProvider serviceProvider,
             IUserGroupRepository userGroupRepository,
-            IGXEventsNotifier eventsNotifier,
             IUserRepository userRepository,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
+            if (httpContextAccessor.HttpContext?.User == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
             _userGroupRepository = userGroupRepository;
-            _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
         }
 
-        private async Task<List<GXUserGroup>> GetUserGroupsByAgentGroupId(Guid agentGroupId)
+        private static async Task<List<GXUserGroup>> GetUserGroupsByAgentGroupId(GXDbConnection connection,
+            IDbTransaction transaction, Guid agentGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupAgentGroup>(a => a.Id, b => b.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupAgentGroup, GXAgentGroup>(a => a.AgentGroupId, b => b.Id);
             arg.Where.And<GXAgentGroup>(where => where.Removed == null && where.Id == agentGroupId);
-            return (await _host.Connection.SelectAsync<GXUserGroup>(arg));
+            return (await connection.SelectAsync<GXUserGroup>(transaction, arg));
         }
 
-        private List<GXAgent> GetAgentsByAgentGroupId(Guid agentGroupId)
+        private static List<GXAgent> GetAgentsByAgentGroupId(GXDbConnection connection,
+            IDbTransaction transaction,
+            Guid agentGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgent>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXAgent, GXAgentGroupAgent>(a => a.Id, b => b.AgentId);
             arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(a => a.AgentGroupId, b => b.Id);
             arg.Where.And<GXAgentGroup>(where => where.Removed == null && where.Id == agentGroupId);
-            return _host.Connection.Select<GXAgent>(arg);
+            return connection.Select<GXAgent>(transaction, arg);
         }
 
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXAgentGroup), id, action, GXAgentGroupPolicies.View, connection, transaction, notifications: _notificationCache);
+
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? groupId)
+        public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken)
         {
-            if (User == null ||
-               (!User.IsInRole(GXRoles.Admin) &&
-               !User.IsInRole(GXRoles.AgentGroup) &&
-               !User.HasScope(GXAgentGroupPolicies.View)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByAgentGroup(s => "*", ServerHelpers.GetUserId(User), groupId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (groupId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXAgentGroup), groupId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -119,18 +131,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds, CancellationToken cancellationToken)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.AgentGroup) &&
-                !User.HasScope(GXAgentGroupPolicies.View)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByAgentGroups(s => "*", ServerHelpers.GetUserId(User), agentIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -139,68 +146,102 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(IEnumerable<Guid> userGrouprs, bool delete)
+        public async Task DeleteAsync(IEnumerable<Guid> groups, bool delete, bool notify, CancellationToken cancellationToken)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.AgentGroup) &&
-                !User.HasScope(GXAgentGroupPolicies.Delete)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.Select<GXAgentGroup>(a => new { a.Id, a.Name }, q => userGrouprs.Contains(q.Id));
-            List<GXAgentGroup> list = _host.Connection.Select<GXAgentGroup>(arg);
-            DateTime now = DateTime.Now;
-            Dictionary<GXAgentGroup, List<string>> updates = new Dictionary<GXAgentGroup, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            groups = groups.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXAgentGroup, Guid>(_dbFactory, User, _serviceProvider, groups,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.Delete);
+            groups.ValidateIds();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             try
             {
-                foreach (GXAgentGroup it in list)
+                IEnumerable<GXAgentGroup> exists;
+                if (User.IsInRole(GXRoles.Admin))
                 {
+                    GXSelectArgs arg = GXSelectArgs.Select<GXAgentGroup>(s => new { s.Id, s.Name }, w => groups.Contains(w.Id));
+                    exists = connection.Select<GXAgentGroup>(transaction, arg, cancellationToken);
+                }
+                else
+                {
+                    //Check that the user has access rights to the removed agent groups.
+                    string userId = ServerHelpers.GetUserId(User);
+                    var arg = GXQuery.GetAgentGroupsByUser(s => new { s.Id, s.Name }, userId, null,
+                       DateTimeOffset.MinValue, null, groups);
+                    exists = connection.Select<GXAgentGroup>(transaction, arg, cancellationToken);
+                }
+                if (!exists.Any())
+                {
+                    //If user try to remove item that is not in the list, throw exception.
+                    //This can happen if user try to remove item that is already removed or user try to remove item that he doesn't have access.
+                    throw new GXAmiForbiddenException(string.Join(", ", groups));
+                }
+                DateTime now = DateTime.Now;
+                foreach (GXAgentGroup it in exists)
+                {
+                    if (!groups.Contains(it.Id))
+                    {
+                        //If user try to remove item that is not in the list, throw exception.
+                        //This can happen if user try to remove item that is already removed or user try to remove item that he doesn't have access.
+                        throw new GXAmiForbiddenException(it.Id.ToString());
+                    }
                     it.Removed = now;
-                    List<string> users = await GetUsersAsync(it.Id);
+                    if (notify)
+                    {
+                        List<string> users = await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection, transaction);
+                        _notificationCache.Add(users, new GXTarget(GXAgentGroupPolicies.Delete, it.Id, it.Name));
+                    }
                     if (!delete)
                     {
-                        await _host.Connection.UpdateAsync(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                        await connection.UpdateAsync(transaction, GXUpdateArgs.Update(it, q => q.Removed!), cancellationToken);
                     }
-                    updates[it] = users;
                 }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
+                    //Remove agent group and all the maps to agents, user groups and device groups.
+                    GXDeleteArgs args = GXDeleteArgs.Delete<GXAgentGroupDeviceGroup>(w => groups.Contains(w.AgentGroupId));
+                    await connection.DeleteAsync(transaction, args, cancellationToken);
+                    args = GXDeleteArgs.Delete<GXAgentGroupAgent>(w => groups.Contains(w.AgentGroupId));
+                    await connection.DeleteAsync(transaction, args, cancellationToken);
+                    await connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(exists), cancellationToken);
                 }
-                _host.Connection.CommitTransaction(transaction);
+                await transaction.CommitAsync(cancellationToken);
             }
-            catch (Exception)
+            catch (GXDatabaseException ex)
             {
-                _host.Connection.RollbackTransaction(transaction);
-                throw;
-            }
-            foreach (var it in updates)
-            {
-                GXAgentGroup tmp = new GXAgentGroup() { Id = it.Key.Id, Name = it.Key.Name };
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                  it.Value, TargetType.AgentGroup, NotificationAction.Remove);
-                if (users != null && users.Any())
+                await transaction.RollbackAsync(CancellationToken.None);
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
                 {
-                    await _eventsNotifier.AgentGroupDelete(users, [tmp]);
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);                        // If deadlock, wait max 1 seconds and retry.
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(groups, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
                 }
             }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXAgentGroup[]> ListAsync(ListAgentGroups? request,
+        public async Task<IEnumerable<GXAgentGroup>> ListAsync(ListAgentGroups? request,
             ListAgentGroupsResponse? response,
             CancellationToken cancellationToken)
         {
-            if (User == null ||
-               (!User.IsInRole(GXRoles.Admin) &&
-               !User.IsInRole(GXRoles.AgentGroup) &&
-               //If agent
-               !User.HasScope(GXAgentPolicies.View)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.View);
             GXSelectArgs arg;
             if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
             {
@@ -210,84 +251,111 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetAgentGroupsByUser(s => "*", userId, null);
+                arg = GXQuery.GetAgentGroupsByUser(s => "*", userId, null,
+                    request?.Filter?.Removed, request?.Exclude, request?.Included);
             }
-            if (request != null)
+            GXDateTimeFilters.Apply<GXAgentGroup>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            try
             {
-                //If agent groups are filtered by User.
-                if (request.Filter?.UserGroups != null)
+                if (request != null)
                 {
-                    var ug = request.Filter.UserGroups.FirstOrDefault();
-                    if (ug?.Users != null && ug.Users.Any())
+                    //If agent groups are filtered by User.
+                    if (request.Filter?.UserGroups != null)
                     {
-                        var User = ug.Users.FirstOrDefault();
-                        if (User != null)
+                        var ug = request.Filter.UserGroups.FirstOrDefault();
+                        if (ug?.Users != null && ug.Users.Count != 0)
                         {
-                            arg.Joins.AddLeftJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
-                            arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
-                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
-                            arg.Where.FilterBy(User);
+                            var User = ug.Users.FirstOrDefault();
+                            if (User != null)
+                            {
+                                arg.Joins.AddLeftJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                                arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                                arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId!, j => j.Id!);
+                                arg.Where.FilterBy(User);
+                            }
+                        }
+                        request.Filter.UserGroups = null;
+                    }
+                    arg.Where.FilterBy(request.Filter);
+                }
+                if (request != null && request.Count != 0)
+                {
+                    //Return total row count. This can be used for paging.
+                    GXSelectArgs total = GXSelectArgs.Select<GXAgentGroup>(q => GXSql.Count(1));
+                    total.Joins.Append(arg.Joins);
+                    total.Where.Append(arg.Where);
+                    if (response != null)
+                    {
+                        response.Count = connection.SingleOrDefault<long>(transaction, total);
+                        if (response.Count == 0)
+                        {
+                            //No need to retrieve data when none is available.
+                            return [];
                         }
                     }
-                    request.Filter.UserGroups = null;
+                    arg.Index = request.Index;
+                    arg.Count = request.Count;
                 }
-                arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request != null && !string.IsNullOrEmpty(request.OrderBy))
                 {
-                    arg.Where.And<GXAgentGroup>(w => !request.Exclude.Contains(w.Id));
+                    arg.Descending = request.Descending;
+                    arg.OrderBy.Add<GXAgentGroup>(request.OrderBy);
                 }
-                if (request.Included != null && request.Included.Any())
+                else
                 {
-                    arg.Where.And<GXAgentGroup>(w => request.Included.Contains(w.Id));
+                    arg.Descending = true;
+                    arg.OrderBy.Add<GXAgentGroup>(q => q.CreationTime!);
                 }
-            }
-            if (request != null && request.Count != 0)
-            {
-                //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXAgentGroup>(q => GXSql.DistinctCount(q.Id));
-                total.Joins.Append(arg.Joins);
-                total.Where.Append(arg.Where);
+                var groups = await connection.SelectAsync<GXAgentGroup>(transaction, arg);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.AgentGroups = groups;
+                    if (response.Count == 0)
+                    {
+                        response.Count = groups.Count;
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                return groups;
             }
-            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            catch (GXDatabaseException ex)
             {
-                arg.Descending = request.Descending;
-                arg.OrderBy.Add<GXAgentGroup>(request.OrderBy);
-            }
-            else
-            {
-                arg.Descending = true;
-                arg.OrderBy.Add<GXAgentGroup>(q => q.CreationTime);
-            }
-            GXAgentGroup[] groups = (await _host.Connection.SelectAsync<GXAgentGroup>(arg)).ToArray();
-            if (response != null)
-            {
-                response.AgentGroups = groups;
-                if (response.Count == 0)
+                transaction.Rollback();
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
                 {
-                    response.Count = groups.Length;
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);                        // If deadlock, wait max 1 seconds and retry.
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ListAsync(request, response, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
                 }
             }
-            return groups;
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
         /// <inheritdoc />
-        public async Task<GXAgentGroup> ReadAsync(
-
-         Guid id)
+        public async Task<GXAgentGroup> ReadAsync(Guid id, Expression<Func<GXAgentGroup, object>>? columns, CancellationToken cancellationToken)
         {
-            bool isAdmin = false;
-            if (User != null)
-            {
-                isAdmin = User.IsInRole(GXRoles.Admin);
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.View);
             GXSelectArgs arg;
-            if (User == null || isAdmin)
+            if (User.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the groups.
                 arg = GXSelectArgs.SelectAll<GXAgentGroup>(w => w.Id == id);
@@ -298,80 +366,126 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg = GXQuery.GetAgentGroupsByUser(s => "*", userId, id);
             }
             arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
-            arg.Joins.AddInnerJoin<GXAgentGroup, GXUser>(j => j.Creator, j => j.Id);
-            arg.Columns.Exclude<GXAgentGroup>(e => e.Agents);
+            arg.Joins.AddInnerJoin<GXAgentGroup, GXUser>(j => j.Creator!, j => j.Id!);
+            arg.Columns.Exclude<GXAgentGroup>(e => e.Agents!);
             arg.Distinct = true;
-            var group = await _host.Connection.SingleOrDefaultAsync<GXAgentGroup>(arg);
-            if (group == null)
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            try
             {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                var group = await connection.SingleOrDefaultAsync<GXAgentGroup>(transaction, arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                ////////////////////////////////////////////////////
+                //Get agents that belongs for this agent group.
+                arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgent>(j => j.AgentId, j => j.Id);
+                arg.Where.And<GXAgentGroupAgent>(q => q.Removed == null && q.AgentGroupId == id);
+                group.Agents = await connection.SelectAsync<GXAgent>(transaction, arg);
+
+                ////////////////////////////////////////////////////
+                //Get User groups that belongs for this agent group.
+                arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                arg.Where.And<GXUserGroupAgentGroup>(q => q.Removed == null && q.AgentGroupId == id);
+                group.UserGroups = await connection.SelectAsync<GXUserGroup>(transaction, arg);
+                ////////////////////////////////////////////////////
+                //Get device groups.
+                arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.AgentGroupId == id);
+                group.DeviceGroups = await connection.SelectAsync<GXDeviceGroup>(transaction, arg);
+
+                //Get creator with own query. It's faster for some DBs.
+                arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXAgentGroup, GXUser>(s => s.Creator!, o => o.Id!);
+                arg.Where.And<GXAgentGroup>(w => w.Id == id);
+                group.Creator = await connection.SingleOrDefaultAsync<GXUser>(transaction, arg);
+                return group;
             }
-            ////////////////////////////////////////////////////
-            //Get agents that belongs for this agent group.
-            arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgent>(j => j.AgentId, j => j.Id);
-            arg.Where.And<GXAgentGroupAgent>(q => q.Removed == null && q.AgentGroupId == id);
-            group.Agents = await _host.Connection.SelectAsync<GXAgent>(arg);
+            catch (GXDatabaseException ex)
+            {
+                transaction.Rollback();
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);                        // If deadlock, wait max 1 seconds and retry.
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
 
-            ////////////////////////////////////////////////////
-            //Get User groups that belongs for this agent group.
-            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
-            arg.Where.And<GXUserGroupAgentGroup>(q => q.Removed == null && q.AgentGroupId == id);
-            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            ////////////////////////////////////////////////////
-            //Get device groups.
-            arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-            arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.AgentGroupId == id);
-            group.DeviceGroups = await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
-
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXAgentGroup, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXAgentGroup>(w => w.Id == id);
-            group.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return group;
+        /// <summary>Inserts a new group and its memberships in the caller's transaction without notifications or history.</summary>
+        internal static async Task UpsertAsync(GXDbConnection connection, System.Data.IDbTransaction transaction,
+            GXAgentGroup group, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(transaction);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (group.Id != Guid.Empty)
+                {
+                throw new ArgumentException("This overload only inserts new groups.", nameof(group));
+            }
+            if (string.IsNullOrEmpty(group.Name))
+                {
+                throw new ArgumentException(Gurux.DLMS.AMI.Properties.Resources.InvalidName);
+            }
+            if (string.IsNullOrEmpty(group.Creator?.Id))
+                {
+                throw new ArgumentException("A group creator is required.", nameof(group));
+            }
+            group.CreationTime ??= DateTime.Now;
+            if (group.UserGroups?.Count is not > 0 || group.UserGroups.Any(g => g.Id == Guid.Empty))
+                {
+                throw new ArgumentException(Gurux.DLMS.AMI.Properties.Resources.TargetMustBelongToOneGroup);
+            }
+            var args = GXInsertArgs.Insert(group);
+            args.Exclude<GXAgentGroup>(group => new { group.Updated, group.Removed, group.UserGroups });
+            await connection.InsertAsync(transaction, args, cancellationToken);
+            var memberships = group.UserGroups.Select(userGroup => new GXUserGroupAgentGroup
+            {
+                UserGroupId = userGroup.Id,
+                AgentGroupId = group.Id,
+                CreationTime = DateTime.Now
+            }).ToArray();
+            await connection.InsertAsync(transaction, GXInsertArgs.InsertRange(memberships), cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(IEnumerable<GXAgentGroup> AgentGroups,
-            Expression<Func<GXAgentGroup, object?>>? columns)
+        public async Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXAgentGroup> AgentGroups,
+            Expression<Func<GXAgentGroup, object>>? columns, CancellationToken cancellationToken)
         {
-            if (User == null ||
-               (!User.IsInRole(GXRoles.Admin) &&
-               !User.IsInRole(GXRoles.AgentGroup)) &&
-               !User.HasScope(GXAgentGroupPolicies.Edit))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            AgentGroups = AgentGroups.ToArray();
+            return await GXHistoryMutation.RunAsync<GXAgentGroup, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, AgentGroups,
+        async () =>
+        {
             DateTime now = DateTime.Now;
-            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            List<Guid> list = new List<Guid>();
-            Dictionary<GXAgentGroup, List<string>> updates = new Dictionary<GXAgentGroup, List<string>>();
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
             List<GXUserGroup>? defaultGroups = null;
             var newGroups = AgentGroups.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = AgentGroups.Where(w => w.Id != Guid.Empty).ToList();
-            //Get notified users.
-            if (newGroups.Any())
-            {
-                var first = newGroups.First();
-                var users = await GetUsersAsync(first.Id);
-                foreach (var it in newGroups)
-                {
-                    updates[it] = users;
-                }
-            }
-            foreach (var it in updatedGroups)
-            {
-                updates[it] = await GetUsersAsync(it.Id);
-            }
-
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             try
             {
                 foreach (GXAgentGroup it in AgentGroups)
@@ -380,152 +494,160 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException(Properties.Resources.InvalidName);
                     }
-                    if (it.UserGroups == null || !it.UserGroups.Any())
+                    if (it.UserGroups?.Count is not > 0)
                     {
-                        if (defaultGroups == null)
-                        {
-                            //Get default User groups.
-                            defaultGroups = await _userGroupRepository.GetDefaultUserGroups(ServerHelpers.GetUserId(User));
-                        }
+                        //Get default User groups.
+                        defaultGroups ??= await _userGroupRepository.GetDefaultUserGroupsAsync(ServerHelpers.GetUserId(User));
                         it.UserGroups = defaultGroups;
-                        if (it.UserGroups == null || !it.UserGroups.Any())
+                        if (it.UserGroups?.Count is not > 0)
                         {
                             throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
                         }
                     }
                 }
-                if (newGroups.Any())
+                if (newGroups.Count != 0)
                 {
+                    await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.Add);
                     foreach (var it in newGroups)
                     {
                         it.Creator = creator;
                         it.CreationTime = now;
-                    }
-                    GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
-                    args.Exclude<GXAgentGroup>(e => new
-                    {
-                        e.Updated,
-                        e.Removed,
-                        //User groups must hanlde separetly because users are identified with name and not Guid.
-                        e.UserGroups
-                    });
-                    await _host.Connection.InsertAsync(transaction, args);
-                    foreach (var it in newGroups)
-                    {
-                        if (it.UserGroups != null)
-                        {
-                            AddAgentGroupToUserGroups(transaction, it.Id, it.UserGroups);
-                        }
-                    }
-                    foreach (var it in newGroups)
-                    {
-                        list.Add(it.Id);
+                        await UpsertAsync(connection, transaction, it, cancellationToken);
+                        _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Add, connection, transaction), new GXTarget(GXAgentGroupPolicies.Add, it.Id, it.Name) { ConcurrencyStamp = it.ConcurrencyStamp });
                     }
                 }
-                foreach (var it in updatedGroups)
+                if (updatedGroups.Count != 0)
                 {
-                    GXSelectArgs m = GXSelectArgs.Select<GXAgentGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
-                    if (!string.IsNullOrEmpty(updated) && updated != it.ConcurrencyStamp)
+                    await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentGroupPolicies.Edit);
+                    foreach (var it in updatedGroups)
                     {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
+                        GXSelectArgs m = GXSelectArgs.Select<GXAgentGroup>(q => q.ConcurrencyStamp!, where => where.Id == it.Id);
+                        string? updated = connection.SingleOrDefault<string>(transaction, m);
+                        if (!string.IsNullOrEmpty(updated) && updated != it.ConcurrencyStamp)
+                        {
+                            throw new ArgumentException(Properties.Resources.ContentEdited);
+                        }
+                        it.Updated = now;
+                        it.ConcurrencyStamp = Guid.NewGuid().ToString();
+                        GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
+                        args.Exclude<GXAgentGroup>(q => new
+                        {
+                            q.CreationTime,
+                            q.UserGroups,
+                            q.Agents,
+                            q.DeviceGroups
+                        });
+                        if (!User.IsInRole(GXRoles.Admin) ||
+                            it.Creator == null ||
+                            string.IsNullOrEmpty(it.Creator.Id))
+                        {
+                            //Only admin can update the creator.
+                            args.Exclude<GXAgentGroup>(q => q.Creator!);
+                        }
+                        connection.Update(transaction, args);
+                        //Map User group to Agent group.
+                        {
+                            List<GXUserGroup> userGroups = await GetUserGroupsByAgentGroupId(connection, transaction, it.Id);
+                            var comparer = new UniqueComparer<GXUserGroup, Guid>();
+                            List<GXUserGroup> removedUserGroups = [.. userGroups.Except(it.UserGroups!, comparer)];
+                            List<GXUserGroup> addedUserGroups = [.. it.UserGroups!.Except(userGroups, comparer)];
+                            if (removedUserGroups.Count != 0)
+                            {
+                                RemoveAgentGroupFromUserGroups(connection, transaction, it.Id, removedUserGroups);
+                            }
+                            if (addedUserGroups.Count != 0)
+                            {
+                                AddAgentGroupToUserGroups(connection, transaction, it.Id, addedUserGroups);
+                            }
+                        }
+                        //Map agents to Agent group.
+                        if (it.Agents != null)
+                        {
+                            List<GXAgent> agents = GetAgentsByAgentGroupId(connection, transaction, it.Id);
+                            var comparer = new UniqueComparer<GXAgent, Guid>();
+                            List<GXAgent> removedAgents = [.. agents.Except(it.Agents, comparer)];
+                            List<GXAgent> addedAgents = [.. it.Agents.Except(agents, comparer)];
+                            if (removedAgents.Count != 0)
+                            {
+                                RemoveAgentsFromAgentGroup(connection, transaction, it.Id, removedAgents);
+                            }
+                            if (addedAgents.Count != 0)
+                            {
+                                AddAgentsToAgentGroup(connection, transaction, it.Id, addedAgents);
+                            }
+                        }
+                        //Map device groups to agent group.
+                        if (it.DeviceGroups != null)
+                        {
+                            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceGroupPolicies.View);
+                            // Read through the update transaction: another connection would wait on this group's write lock.
+                            GXSelectArgs deviceGroupArgs = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
+                            deviceGroupArgs.Joins.AddInnerJoin<GXDeviceGroup, GXAgentGroupDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
+                            deviceGroupArgs.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXAgentGroup>(a => a.AgentGroupId, b => b.Id);
+                            deviceGroupArgs.Where.And<GXAgentGroup>(where => where.Removed == null && where.Id == it.Id);
+                            List<GXDeviceGroup> deviceGroups = await connection.SelectAsync<GXDeviceGroup>(transaction, deviceGroupArgs, cancellationToken);
+                            var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
+                            List<GXDeviceGroup> removedDeviceGroups = [.. deviceGroups.Except(it.DeviceGroups, comparer)];
+                            List<GXDeviceGroup> addedDeviceGroups = [.. it.DeviceGroups.Except(deviceGroups, comparer)];
+                            if (removedDeviceGroups.Count != 0)
+                            {
+                                RemoveDeviceGroupsFromAgentGroup(connection, transaction, it.Id, removedDeviceGroups);
+                            }
+                            if (addedDeviceGroups.Count != 0)
+                            {
+                                AddDeviceGroupsToAgentGroup(connection, transaction, it.Id, addedDeviceGroups);
+                            }
+                        }
+                        _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Edit, connection, transaction),
+                            new GXTarget(GXAgentGroupPolicies.Edit, it.Id, it.Name) { ConcurrencyStamp = it.ConcurrencyStamp });
                     }
-                    it.Updated = now;
-                    it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXAgentGroup>(q => new
-                    {
-                        q.CreationTime,
-                        q.UserGroups,
-                        q.Agents,
-                        q.DeviceGroups
-                    });
-                    if (!User.IsInRole(GXRoles.Admin) ||
-                        it.Creator == null ||
-                        string.IsNullOrEmpty(it.Creator.Id))
-                    {
-                        //Only admin can update the creator.
-                        args.Exclude<GXAgentGroup>(q => q.Creator);
-                    }
-                    _host.Connection.Update(args);
-                    //Map User group to Agent group.
-                    {
-                        List<GXUserGroup> userGroups = await GetUserGroupsByAgentGroupId(it.Id);
-                        var comparer = new UniqueComparer<GXUserGroup, Guid>();
-                        List<GXUserGroup> removedUserGroups = userGroups.Except(it.UserGroups, comparer).ToList();
-                        List<GXUserGroup> addedUserGroups = it.UserGroups.Except(userGroups, comparer).ToList();
-                        if (removedUserGroups.Any())
-                        {
-                            RemoveAgentGroupFromUserGroups(transaction, it.Id, removedUserGroups);
-                        }
-                        if (addedUserGroups.Any())
-                        {
-                            AddAgentGroupToUserGroups(transaction, it.Id, addedUserGroups);
-                        }
-                    }
-                    //Map agents to Agent group.
-                    if (it.Agents != null)
-                    {
-                        List<GXAgent> agents = GetAgentsByAgentGroupId(it.Id);
-                        var comparer = new UniqueComparer<GXAgent, Guid>();
-                        List<GXAgent> removedAgents = agents.Except(it.Agents, comparer).ToList();
-                        List<GXAgent> addedAgents = it.Agents.Except(agents, comparer).ToList();
-                        if (removedAgents.Any())
-                        {
-                            RemoveAgentsFromAgentGroup(transaction, it.Id, removedAgents);
-                        }
-                        if (addedAgents.Any())
-                        {
-                            AddAgentsToAgentGroup(transaction, it.Id, addedAgents);
-                        }
-                    }
-                    //Map device groups to agent group.
-                    if (it.DeviceGroups != null)
-                    {
-                        List<GXDeviceGroup> deviceGroups;
-                        using (IServiceScope scope = _serviceProvider.CreateScope())
-                        {
-                            IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                            deviceGroups = await deviceGroupRepository.GetDeviceGroupsByAgentId(it.Id);
-                        }
-                        var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
-                        List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(it.DeviceGroups, comparer).ToList();
-                        List<GXDeviceGroup> addedDeviceGroups = it.DeviceGroups.Except(deviceGroups, comparer).ToList();
-                        if (removedDeviceGroups.Any())
-                        {
-                            RemoveDeviceGroupsFromAgentGroup(transaction, it.Id, removedDeviceGroups);
-                        }
-                        if (addedDeviceGroups.Any())
-                        {
-                            AddDeviceGroupsToAgentGroup(transaction, it.Id, addedDeviceGroups);
-                        }
-                    }
-                    updates[it] = await GetUsersAsync(it.Id);
                 }
-                _host.Connection.CommitTransaction(transaction);
+                await transaction.CommitAsync(cancellationToken);
+                return [.. AgentGroups.Select(s => s.Id)];
+            }
+            catch (GXDatabaseException ex)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);                        // If deadlock, wait max 1 seconds and retry.
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(AgentGroups, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (Exception)
             {
-                _host.Connection.RollbackTransaction(transaction);
+                transaction.Rollback();
                 throw;
             }
-            foreach (var it in updates)
-            {
-                await _eventsNotifier.AgentGroupUpdate(it.Value, [it.Key]);
-            }
-            return list.ToArray();
+        }, cancellationToken);
         }
 
         /// <summary>
         /// Map agent group to User groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="groups">User groups where the agent is added.</param>
-        public void AddAgentGroupToUserGroups(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXUserGroup> groups)
+        private static void AddAgentGroupToUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXUserGroup> groups)
         {
             DateTime now = DateTime.Now;
-            List<GXUserGroupAgentGroup> list = new List<GXUserGroupAgentGroup>();
+            List<GXUserGroupAgentGroup> list = [];
             foreach (var it in groups)
             {
                 list.Add(new GXUserGroupAgentGroup()
@@ -535,16 +657,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+            connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between agent group and User groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="groups">User groups where the agent is removed.</param>
-        public void RemoveAgentGroupFromUserGroups(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXUserGroup> groups)
+        private static void RemoveAgentGroupFromUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXUserGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupAgentGroup>();
             foreach (var it in groups)
@@ -552,19 +675,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXUserGroupAgentGroup>(w => w.UserGroupId == it.Id &&
                     w.AgentGroupId == agentGroupId);
             }
-            _host.Connection.Delete(transaction, args);
+            connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Map agents to agent group.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="agents">Added Agents.</param>
-        public void AddAgentsToAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXAgent> agents)
+        private static void AddAgentsToAgentGroup(GXDbConnection connection, IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXAgent> agents)
         {
             DateTime now = DateTime.Now;
-            List<GXAgentGroupAgent> list = new List<GXAgentGroupAgent>();
+            List<GXAgentGroupAgent> list = [];
             foreach (var it in agents)
             {
                 list.Add(new GXAgentGroupAgent()
@@ -574,35 +698,37 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+            connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between agents and agent group.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="agents">Removed agents.</param>
-        public void RemoveAgentsFromAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXAgent> agents)
+        private static void RemoveAgentsFromAgentGroup(GXDbConnection connection, IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXAgent> agents)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupAgent>();
             foreach (var it in agents)
             {
                 args.Where.Or<GXAgentGroupAgent>(w => w.AgentId == it.Id && w.AgentGroupId == agentGroupId);
             }
-            _host.Connection.Delete(transaction, args);
+            connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Map agents to agent group.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="agents">Device groups where the agent is added.</param>
-        public void AddDeviceGroupsToAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXDeviceGroup> agents)
+        private static void AddDeviceGroupsToAgentGroup(GXDbConnection connection, IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXDeviceGroup> agents)
         {
             DateTime now = DateTime.Now;
-            List<GXAgentGroupDeviceGroup> list = new List<GXAgentGroupDeviceGroup>();
+            List<GXAgentGroupDeviceGroup> list = [];
             foreach (var it in agents)
             {
                 list.Add(new GXAgentGroupDeviceGroup()
@@ -612,16 +738,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+            connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between agents and agent group.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="groups">Device groups where the agent is removed.</param>
-        public void RemoveDeviceGroupsFromAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXDeviceGroup> groups)
+        private static void RemoveDeviceGroupsFromAgentGroup(GXDbConnection connection, IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXDeviceGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupDeviceGroup>();
             foreach (var it in groups)
@@ -629,7 +756,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXAgentGroupDeviceGroup>(w => w.DeviceGroupId == it.Id &&
                     w.AgentGroupId == agentGroupId);
             }
-            _host.Connection.Delete(transaction, args);
+            connection.Delete(transaction, args);
         }
     }
 }

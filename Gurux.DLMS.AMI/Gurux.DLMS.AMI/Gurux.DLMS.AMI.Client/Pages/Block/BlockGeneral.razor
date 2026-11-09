@@ -1,0 +1,575 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Text.Json
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject ILogger<Block> Logger
+@inject HttpClient Http
+<GXHelpContext Topic="Block" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Active.Enabled" />
+                </div>
+                <div class="form-group">
+                    <GXInputSwitch Text="@Properties.Resources.Preload" @bind-Value="Active.Preload" Disabled="@(Action == CrudAction.Delete)" />
+                </div>
+                <div class="form-group">
+                    <GXInputSwitch Text="@Properties.Resources.Closable" @bind-Value="Active.Closable" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                    <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Location</label>
+                    <GXInputDropdown class="form-select" @bind-Value="Active.Location" RememberValue="false" Items="@(blockList.Select(it => (BlockLocation?)it))" />
+                </div>
+                <div class="form-group">
+                    <label for="block-page-visibility"><GXLocalizedText Value="@Properties.Resources.PageVisibility" /></label>
+                    <GXInputDropdown id="block-page-visibility" Disabled="@(Action == CrudAction.Delete)" @bind-Value="Active.PageVisibility" class="form-select" RememberValue="false" Items="@(new[] { BlockPageVisibility.ShowOnListedPages, BlockPageVisibility.HideOnListedPages })" Formatter="@(value => value == BlockPageVisibility.ShowOnListedPages ? Properties.Resources.ShowOnListedPages : Properties.Resources.HideOnListedPages)" />
+                </div>
+                <div class="form-group">
+                    <label for="block-pages"><GXLocalizedText Value="@Properties.Resources.Pages" /></label>
+                    <InputTextArea id="block-pages" disabled="@IsDeleting" @bind-Value="Active.Pages" class="form-control" rows="4" />
+                    <small class="form-text text-muted"><GXLocalizedText Value="@Properties.Resources.OneExactPagePathPerLineUseForTheHomePageLeaveEmptyToShowOnAllPages" /></small>
+                    @if (string.IsNullOrWhiteSpace(Active.Pages))
+                    {
+                        <p class="form-text"><GXLocalizedText Value="@Properties.Resources.ThePageListIsEmptyThisBlockIsShownOnAllPages" /></p>
+                    }
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.BlockType</label>
+                    <GXInputDropdown class="form-select" @bind-Value="Active.BlockType" RememberValue="false" Items="@(blockTypes)" />
+                </div>
+                @if (Active.BlockType is BlockType.Html or BlockType.Markdown or BlockType.HtmlFile or BlockType.MarkdownFile or BlockType.RSS)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Title</label>
+                        <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Title" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        @if (Active.BlockType == BlockType.RSS)
+                        {
+                            <label>@Properties.Resources.RSSFeedURL</label>
+                            <InputText id="feed-url" disabled="@IsDeleting" @bind-Value="Active.Body" class="form-control" placeholder="@Properties.Resources.HttpsExampleComFeedXml" />
+                        }
+                        else if (Active.BlockType is BlockType.HtmlFile or BlockType.MarkdownFile)
+                        {
+                            <label>@Properties.Resources.ServerContentFile</label>
+                            <InputText id="body-file" disabled="@IsDeleting" @bind-Value="Active.Body" class="form-control" placeholder="@Properties.Resources.ReadmeMd" />
+                            <small>@Properties.Resources.PathRelativeToTheServerSPublicContentDirectoryWwwroot</small>
+                        }
+                        else
+                        {
+                            <label>@Properties.Resources.Body</label>
+                            <GXInputTextArea id="body" disabled="@IsDeleting" @bind-Value="Active.Body" class="form-control fill" />
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.CSSClass</label>
+                        <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.CssClass" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.CSSRole</label>
+                        <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.CssRole" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.HTMLStyle</label>
+                        <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Style" class="form-control" />
+                    </div>
+                }
+                else if (Active.BlockType == BlockType.Component)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Title</label>
+                        <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Title" class="form-control" />
+                    </div>
+                    <label>@Properties.Resources.Component</label>
+                    @if (componentList != null)
+                    {
+                        <GXInputDropdown class="form-select" @bind-Value="SelectedComponent" RememberValue="false" Items="@(componentList.Select(it => it.ClassName))" Formatter="@(value => componentList.FirstOrDefault(it => it.ClassName == value)?.Name)" />
+                    }
+                    <hr />
+                    <label>@Properties.Resources.Parameters:</label>
+                    @foreach (var p in @_parameters)
+                    {
+                        <div class="form-group">
+                            @if (p.Value is bool v)
+                            {
+                                <div class="form-check form-switch">
+                                    <label class="form-check-label">@p.Key</label>
+                                    <input type="checkbox" checked="@Convert.ToBoolean(p.Value)"
+                                           class="form-check-input"
+                                           @onchange="@((ChangeEventArgs __e) => UpdateParameterValue(p.Key, __e.Value))" />
+                                </div>
+                            }
+                            else
+                            {
+                                <label>@p.Key</label>
+                                <input class="form-control" value="@p.Value" @onchange="@((ChangeEventArgs __e) => UpdateParameterValue(p.Key, __e.Value))" />
+                            }
+                        </div>
+                    }
+                @if (componentList != null && !string.IsNullOrEmpty(SelectedComponent))
+                {
+                    //Show component configuration UI if exists.
+                    var comp = componentList.Where(w => w.ClassName == SelectedComponent).SingleOrDefault();
+                    if (!string.IsNullOrEmpty(comp?.ConfigurationUI))
+                    {
+                        Type? type = Type.GetType(comp.ConfigurationUI);
+                        if (type != null)
+                        {
+                            var onEdit = EventCallback.Factory.Create<KeyValuePair<string, object>>(this, arg =>
+                            {
+                                try
+                                {
+                                    UpdateParameterValue(arg.Key, arg.Value);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogError(ex.Message);
+                                }
+                            });
+                            RenderFragment renderFragment = (builder) =>
+                            {
+                                builder.OpenComponent(0, type);
+                                builder.AddAttribute(1, "OnSettingsUpdated", onEdit);
+                                int pos = 2;
+                                @foreach (var p in @_parameters)
+                                {
+                                    builder.AddAttribute(pos++, p.Key, p.Value);
+                                }
+                                builder.CloseComponent();
+                            };
+                            <div>
+                                @renderFragment
+                            </div>
+                        }
+                        else
+                        {
+                            Logger.LogError("Unknown component {0}", comp.ConfigurationUI);
+                        }
+                    }
+                }
+            }
+            else if (Active.BlockType == BlockType.Script)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Title</label>
+                    <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Title" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Script</label>
+                    <GXInputDropdown class="form-select" @bind-Value="SelectedScript" RememberValue="false" Items="@(scriptList.Select(it => it.Name))" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Method</label>
+                    <GXInputDropdown class="form-select" @bind-Value="SelectedScriptMethod" RememberValue="false" Items="@(_selectedScript?.Methods?.Select(it => it.Name) ?? [])" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.CSSClass</label>
+                    <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.CssClass" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.CSSRole</label>
+                    <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.CssRole" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.HTMLStyle</label>
+                    <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Style" class="form-control" />
+                </div>
+            }
+            else
+            {
+                NotificationService?.ReportError(new Exception("Unknown block type."));
+            }
+            <div class="form-group">
+                <label>@Properties.Resources.Publish</label>
+                <InputDate Type="@InputDateType.DateTimeLocal" id="publish" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="Active.PublishTime" />
+            </div>
+            <div class="form-group">
+                <label>@Properties.Resources.EndTime</label>
+                <InputDate Type="@InputDateType.DateTimeLocal" id="endTime" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="Active.EndTime" />
+            </div>
+            <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+            @if (Action == CrudAction.Delete)
+            {
+                <hr />
+                <p>
+                </p>
+                <div class="form-group">
+                    <InputRadioGroup @bind-Value="DeleteTarget">
+                        <InputRadio Value="false">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                        <InputRadio Value="true">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDeleteQuestion</label>
+                    </InputRadioGroup>
+                    <br />
+                </div>
+            }
+        </div>
+    </div>
+</EditForm>
+}
+@code {
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public GXBlock? Active { get; set; }
+
+    void OnEdit(object? value)
+    {
+
+    }
+
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+
+    [CascadingParameter] public Block Owner { get; set; } = default!;
+    private bool DeleteTarget { get => Owner.DeleteTarget; set => Owner.DeleteTarget = value; }
+    /// <summary>
+    /// Block list.
+    /// </summary>
+    List<BlockLocation> blockList = new List<BlockLocation>();
+    /// <summary>
+    ///Block types.
+    /// </summary>
+    List<BlockType> blockTypes = new List<BlockType>();
+
+    /// <summary>
+    /// List of available component views.
+    /// </summary>
+    IEnumerable<GXComponentView>? componentList;
+    /// <summary>
+    /// Script list.
+    /// </summary>
+    List<GXScript> scriptList = new List<GXScript>();
+
+    private object? Target = null;
+
+    /// <summary>
+    /// Component parameters.
+    ///</summary>
+    List<GXKeyValuePair<string, object?>> _parameters = new List<GXKeyValuePair<string, object?>>();
+
+    void UpdateParameterValue(string name, object? value)
+    {
+        if (Target != null)
+        {
+            var prop = Target.GetType().GetProperty(name);
+            if (prop != null)
+            {
+                prop.SetValue(Target, Convert.ChangeType(value, prop.PropertyType));
+                if (Active != null) {
+                    Active.Body = JsonSerializer.Serialize(Target);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Selected component class name.
+    /// </summary>
+    string? SelectedComponent
+    {
+        get
+        {
+            if (Active == null)
+            {
+                return null;
+            }
+            if (Active.ComponentView == null)
+            {
+                //Select first component if component is not selected.
+                if (componentList != null && componentList.Any())
+                {
+                    SelectedComponent = componentList.First().ClassName;
+                }
+            }
+            if (Active.ComponentView == null)
+            {
+                return null;
+            }
+            return Active.ComponentView.ClassName;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                if (Active.ComponentView != null && Active.ComponentView.ClassName != value)
+                {
+                    Active.Body = null;
+                }
+                if (Active != null && componentList != null)
+                {
+                    Active.ComponentView = componentList.Where(where => where.ClassName == value).FirstOrDefault();
+                    _parameters.Clear();
+                    if (Active.ComponentView != null && !string.IsNullOrEmpty(Active.ComponentView.ClassName))
+                    {
+                        Type? type = Type.GetType(Active.ComponentView.ClassName);
+                        if (type == null)
+                        {
+                            throw new ArgumentException("Unknown component name: " + Active.ComponentView.ClassName);
+                        }
+                        if (!string.IsNullOrEmpty(Active.Body))
+                        {
+                            Target = JsonSerializer.Deserialize(Active.Body, type);
+                        }
+                        else
+                        {
+                            Target = Activator.CreateInstance(type);
+                        }
+                        if (Target == null)
+                        {
+                            throw new ArgumentException("Unknown component name: " + Active.ComponentView.ClassName);
+                        }
+                        foreach (var it in Target.GetType().GetProperties())
+                        {
+                            if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
+                            {
+                                _parameters.Add(new GXKeyValuePair<string, object?>(it.Name, it.GetValue(Target)));
+                            }
+                        }
+                        Active.Body = JsonSerializer.Serialize(Target);
+                    }
+                }
+            }
+        }
+    }
+
+    GXScript? _selectedScript;
+
+    /// <summary>
+    /// Selected script name.
+    /// </summary>
+    string? SelectedScript
+    {
+        get
+        {
+            if (_selectedScript == null)
+            {
+                return null;
+            }
+            return _selectedScript.Name;
+        }
+        set
+        {
+            _selectedScript = null;
+            SelectedScriptMethod = null;
+            if (!string.IsNullOrEmpty(value))
+            {
+                foreach (var it in scriptList)
+                {
+                    if (it.Name == value)
+                    {
+                        _selectedScript = it;
+                        if (_selectedScript.Methods is { Count: > 0 })
+                        {
+                            SelectedScriptMethod = _selectedScript.Methods[0].Name;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Selected script method name.
+    /// </summary>
+    string? SelectedScriptMethod
+    {
+        get
+        {
+            if (Active == null || Active.ScriptMethod == null)
+            {
+                return null;
+            }
+            return Active.ScriptMethod.Name;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.ScriptMethod = null;
+                if (_selectedScript != null)
+                {
+                    foreach (var method in (_selectedScript.Methods ?? []))
+                    {
+                        if (method.Name == value)
+                        {
+                            Active.ScriptMethod = method;
+                            Active.ScriptMethod.Script = _selectedScript;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        try
+        {
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingBlock);
+            NotificationService?.RemoveByKey("Pages/Block/Block.OnInitializedAsync");
+            if (Active == null && Id != null)
+            {
+                //Get block data.
+                var tmp = (await Http.GetAsJsonAsync<GetBlockResponse>(string.Format("api/Block?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            blockList.Add(BlockLocation.Header);
+            blockList.Add(BlockLocation.SidebarLeft);
+            blockList.Add(BlockLocation.SidebarRight);
+            blockList.Add(BlockLocation.ContentHeader);
+            blockList.Add(BlockLocation.Content);
+            blockList.Add(BlockLocation.ContentFooter);
+            blockList.Add(BlockLocation.Footer);
+
+
+            //Get available component views.
+            var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", new ListComponentViews());
+            componentList = ret.ComponentViews;
+            //Get available scripts.
+            var ret2 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", new ListScripts());
+            foreach (var it in (ret2.Scripts ?? []))
+            {
+                if (it.Methods != null && it.Methods.Count != 0)
+                {
+                    scriptList.Add(it);
+                }
+            }
+            blockTypes.Add(BlockType.Html);
+            blockTypes.Add(BlockType.Markdown);
+            blockTypes.Add(BlockType.HtmlFile);
+            blockTypes.Add(BlockType.MarkdownFile);
+            blockTypes.Add(BlockType.RSS);
+            if (componentList?.Any() == true)
+            {
+                blockTypes.Add(BlockType.Component);
+            }
+            if (scriptList.Any())
+            {
+                blockTypes.Add(BlockType.Script);
+                if (Active.ScriptMethod != null)
+                {
+                    var selectedMethod = Active.ScriptMethod;
+                    SelectedScript = selectedMethod.Script?.Name;
+                    SelectedScriptMethod = selectedMethod.Name;
+                }
+                else
+                {
+                    SelectedScript = scriptList[0].Name;
+                }
+            }
+            if (Active.ComponentView != null)
+            {
+                SelectedComponent = Active.ComponentView.ClassName;
+            }
+            else
+            {
+                SelectedComponent = null;
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Block/Block.OnInitializedAsync");
+        }
+    }
+
+
+}

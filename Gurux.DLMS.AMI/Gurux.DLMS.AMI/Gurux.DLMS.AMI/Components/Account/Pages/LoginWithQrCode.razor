@@ -1,0 +1,161 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/LoginWithQrCode"
+@using System.Security.Claims
+@using Gurux.DLMS.AMI.Data
+@using Gurux.DLMS.AMI.Module
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authentication
+@inject IGXAmiModuleServices ModuleServices
+@inject NavigationManager Navigation
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ApproveLoginWithYourPhone</PageTitle>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.ApproveLoginWithYourPhone</h1>
+@if (challenge is not null && qrImage is not null)
+{
+    <p>@Gurux.DLMS.AMI.Properties.Resources.ScanThisCodeWithAPhoneAlreadySignedInToThisAccountEnterTheNumberBelowOnYourPhoneAndAp</p>
+    <img src="@qrImage" width="300" height="300" class="img-fluid" alt="@Gurux.DLMS.AMI.Properties.Resources.ScanToApproveThisLoginOnYourSignedInPhone" />
+    <p>@Gurux.DLMS.AMI.Properties.Resources.VerificationNumber <strong class="fs-2">@challenge.VerificationNumber</strong></p>
+    <p>This request expires at @challenge.ExpiresAt.ToString("HH:mm:ss 'UTC'"). Waiting for approval…</p>
+    <form id="qr-login-check" method="post" @formname="qr-login-check" @onsubmit="CompleteAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="btn btn-primary">@Gurux.DLMS.AMI.Properties.Resources.CheckApproval</button>
+    </form>
+    <form method="post" @formname="qr-login-cancel" @onsubmit="CancelAsync">
+        <AntiforgeryToken />
+        <button type="submit" class="btn btn-link">@Gurux.DLMS.AMI.Properties.Resources.CancelLogin</button>
+    </form>
+    <script src="qr-login.js"></script>
+}
+else
+{
+    <p role="alert">@message</p>
+}
+<p><a href="Account/Login">@Gurux.DLMS.AMI.Properties.Resources.ReturnToLogin</a></p>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    private AmiQrLoginChallenge? challenge;
+    private string? qrImage;
+    private string message = Gurux.DLMS.AMI.Properties.Resources.ThisRequestHasExpiredOrPhoneApprovalIsUnavailableStartANewLogin;
+    private string id = "";
+    private string browserKey = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpContext.Response.Headers.CacheControl = "no-store";
+        HttpContext.Response.Headers["Referrer-Policy"] = "no-referrer";
+        var cookie = HttpContext.Request.Cookies[QrLoginFlow.CookieName]?.Split('.');
+        if (cookie?.Length != 2 || cookie.Any(p => p.Length != 64))
+        {
+            return;
+        }
+        id = cookie[0];
+        browserKey = cookie[1];
+        try
+        {
+            challenge = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginChallenge?>((service, _) => Task.FromResult(service.GetForBrowser(id, browserKey)), HttpContext.RequestAborted);
+            if (challenge is null)
+            {
+                return;
+            }
+        
+            var url = Navigation.ToAbsoluteUri("Account/ApproveQrLogin?id=" + Uri.EscapeDataString(challenge.Id)).AbsoluteUri;
+            var png = await ModuleServices.InvokeAsync<IGXAmiQrCodeGenerator, byte[]>((generator, _) => Task.FromResult(generator.GeneratePng(url)), HttpContext.RequestAborted);
+            qrImage = "data:image/png;base64," + Convert.ToBase64String(png);
+        }
+        catch (AmiModuleUnavailableException)
+        {
+            challenge = null;
+        }
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (challenge is null)
+        {
+            return;
+        }
+        AmiQrLoginGrant? grant;
+        try
+        {
+            grant = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginGrant?>((service, _) => Task.FromResult(service.Consume(id, browserKey)), HttpContext.RequestAborted);
+        }
+        catch (AmiModuleUnavailableException)
+        {
+            challenge = null;
+            return;
+        }
+        if (grant is null)
+        {
+            return;
+        }
+        HttpContext.Response.Cookies.Delete(QrLoginFlow.CookieName, QrLoginFlow.CookieOptions(HttpContext));
+        var user = await UserManager.FindByIdAsync(grant.UserId);
+        if (user is null || !await SignInManager.CanSignInAsync(user) ||
+            (UserManager.SupportsUserLockout && await UserManager.IsLockedOutAsync(user)) ||
+            await UserManager.GetSecurityStampAsync(user) != grant.SecurityStamp)
+        {
+            challenge = null;
+            message = Gurux.DLMS.AMI.Properties.Resources.TheAccountChangedOrIsUnavailableStartANewLogin;
+            return;
+        }
+        await SignInManager.SignInWithClaimsAsync(user, grant.RememberMe,
+            [new Claim("amr", "mfa")]);
+        await HttpContext.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
+        // Only local paths are accepted, even if the initial login URL was tampered with.
+        var target = grant.ReturnUrl;
+        if (string.IsNullOrEmpty(target) || !target.StartsWith('/') || target.StartsWith("//") || target.StartsWith("/\\") || target.Any(char.IsControl))
+        {
+            target = "/";
+        }
+        RedirectManager.RedirectTo(target);
+    }
+
+    private async Task CancelAsync()
+    {
+        try
+        {
+            await ModuleServices.InvokeAsync<IGXAmiQrLogin>((service, _) =>
+            {
+                service.Cancel(id, browserKey);
+                return Task.CompletedTask;
+            }, HttpContext.RequestAborted);
+        }
+        catch (AmiModuleUnavailableException)
+        {
+        }
+        HttpContext.Response.Cookies.Delete(QrLoginFlow.CookieName, QrLoginFlow.CookieOptions(HttpContext));
+        RedirectManager.RedirectTo("Account/Login");
+    }
+}

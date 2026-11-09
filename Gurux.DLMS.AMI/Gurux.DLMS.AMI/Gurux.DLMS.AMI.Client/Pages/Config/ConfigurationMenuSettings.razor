@@ -1,0 +1,125 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using MenuKind = Gurux.DLMS.AMI.Shared.DTOs.Enums.MenuKind
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Menu
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@inject HttpClient Http
+
+<AuthorizeView Policy="@GXMenuPolicies.Edit">
+    <Authorized>
+        <h1><GXLocalizedText Value="@Properties.Resources.ConfigurationLayout" /></h1>
+        <p><GXLocalizedText Value="@Properties.Resources.ChooseTheOrderAndVisibilityOfConfigurationEntries" /></p>
+        @if (_error != null)
+        {
+            <p class="alert alert-danger" role="alert">@_error</p>
+        }
+        @if (_menu != null)
+        {
+            <fieldset disabled="@_saving">
+                <Gurux.DLMS.AMI.Client.Pages.Menu.Links @key="_menu" Value="@_menu" />
+                <button type="button" class="btn btn-primary" id="configuration-menu-save" @onclick="SaveAsync"><GXLocalizedText Value="@Properties.Resources.Save" /></button>
+                <button type="button" class="btn btn-secondary" @onclick="LoadAsync"><GXLocalizedText Value="@Properties.Resources.Cancel" /></button>
+            </fieldset>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    /// <summary>The page whose list is refreshed after saving the menu.</summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
+
+    private GXMenu? _menu;
+    private string? _error;
+    private bool _saving;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _error = null;
+            var menu = (await Http.GetAsJsonAsync<GetMenuResponse>("api/Menu/name?name=" + Uri.EscapeDataString(GXMenus.ConfigurationMenu)))?.Item;
+            if (menu == null || menu.Kind != MenuKind.Configuration)
+            {
+                throw new InvalidOperationException(Properties.Resources.ConfigurationMenuIsUnavailable);
+            }
+        
+            menu.Links = menu.Links?.OrderBy(l => l.Order).ToList() ?? [];
+            _menu = menu;
+        }
+        catch (Microsoft.AspNetCore.Components.WebAssembly.Authentication.AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    /// <summary>Saves edited links without leaving the configuration page.</summary>
+    public async Task SaveAsync()
+    {
+        if (_menu == null || _saving)
+        {
+            return;
+        }
+        _saving = true;
+        _error = null;
+        try
+        {
+            await Http.PostAsJson<UpdateMenuResponse>("api/Menu/Update", new UpdateMenu { Menus = [_menu] });
+            await LoadAsync();
+            if (_error == null && _menu != null && Parent != null)
+            {
+                await Parent.ConfigurationLinksSavedAsync(_menu);
+            }
+        }
+        catch (Microsoft.AspNetCore.Components.WebAssembly.Authentication.AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

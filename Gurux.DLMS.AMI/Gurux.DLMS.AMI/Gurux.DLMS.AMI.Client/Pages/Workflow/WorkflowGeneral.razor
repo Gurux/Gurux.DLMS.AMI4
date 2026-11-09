@@ -1,0 +1,342 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+<GXHelpContext Topic="WorkflowGeneral" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@FormContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <PolicyTabs>
+            <GeneralContent>
+                <WorkflowIdentity Active="@Active" Disabled="@(Action == CrudAction.Delete)" />
+                <WorkflowEventFilter Active="@Active" Disabled="@(Action == CrudAction.Delete)" />
+                <WorkflowPreview Active="@Active" Triggers="@triggers" Disabled="@(Action == CrudAction.Delete)" CanPreviewEvents="@_canViewTriggers" />
+                <div class="row">
+                    <div style="width:100%">
+                        <div class="form-group">
+                            <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Active.Enabled" />
+                            <br />
+                        </div>
+                        <div class="form-group">
+                            <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                            <InputText id="name" disabled="@IsDeleting" class="form-control"
+                                       @bind-Value="Active.Name" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Description</label>
+                            <InputText id="name" disabled="@IsDeleting" class="form-control"
+                                       @bind-Value="Active.Description" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Trigger</label>
+                            <GXInputDropdown class="form-select" @bind-Value="SelectedTrigger" Disabled="@(Action == CrudAction.Delete || !_canViewTriggers)" RememberValue="false" Items="@(triggers.Select(it => it.ClassName))" Formatter="@(value => triggers.FirstOrDefault(it => it.ClassName == value)?.Name)" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Activities</label>
+                            <GXInputDropdown class="form-select" @bind-Value="SelectedActivity" Disabled="@(Action == CrudAction.Delete || !_canViewTriggers)" RememberValue="false" Items="@(Activities.Select(it => it.Name))" />
+                        </div>
+                        @if (_scriptMethods != null)
+                        {
+                            <div class="form-group">
+                                <label>@Properties.Resources.Condition</label>
+                                <GXInputDropdown class="form-select" @bind-Value="SelectedCondition" RememberValue="false" Items="@(_scriptMethods.Select(it => it.Name))" />
+                            </div>
+                        }
+                        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                            Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                        @if (Action == CrudAction.Delete)
+                        {
+                            <hr />
+                            <p>
+                            </p>
+                            <div class="form-group">
+                                <InputRadioGroup @bind-Value="DeleteTarget">
+                                    <InputRadio Value="false">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                                    <InputRadio Value="true">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDeleteQuestion</label>
+                                </InputRadioGroup>
+                                <br />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </GeneralContent>
+            <PolicyContent>
+                <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+            </PolicyContent>
+        </PolicyTabs>
+    </EditForm>
+}
+@code {
+    protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public GXWorkflow? Active { get; set; }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter] public Workflow? Editor { get; set; }
+    private bool DeleteTarget { get => Editor?.DeleteTarget ?? false; set { if (Editor != null) {
+        Editor.DeleteTarget = value;
+    } } }
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    GXTrigger? Trigger { get; set; }
+
+    private string? _selectedTrigger;
+
+    string? SelectedTrigger
+    {
+        get
+        {
+            return _selectedTrigger;
+        }
+        set
+        {
+            _selectedTrigger = value;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    ///Update trigger condition script.
+    string? SelectedCondition
+    {
+        get
+        {
+            if (Active?.TriggerMethod == null)
+            {
+                return null;
+            }
+
+            return Active.TriggerMethod.Name;
+        }
+        set
+        {
+            if (Active != null && _scriptMethods != null)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    Active.TriggerMethod = null;
+                }
+                else
+                {
+                    foreach (var method in _scriptMethods)
+                    {
+                        if (string.Compare(method.Name, value, true) == 0)
+                        {
+                            Active.TriggerMethod = method;
+                            break;
+                        }
+                    }
+                    InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+    }
+
+    string? SelectedActivity
+    {
+        get
+        {
+            return Active?.TriggerActivity?.Name;
+        }
+        set
+        {
+            foreach (var trigger in (triggers ?? []))
+            {
+                if (string.Compare(trigger.ClassName, SelectedTrigger, true) == 0)
+                {
+                    foreach (var activity in (trigger.Activities ?? []))
+                    {
+                        if (string.Compare(activity.Name, value, true) == 0)
+                        {
+                            if (Active == null)
+                            {
+                                return;
+                            }
+                            activity.Trigger = trigger;
+                            Active.TriggerActivity = activity;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    List<GXTriggerActivity> Activities
+    {
+        get
+        {
+            foreach (var it in (triggers ?? []))
+            {
+                if (it.ClassName == SelectedTrigger)
+                {
+                    return it.Activities ?? [];
+                }
+            }
+            return new List<GXTriggerActivity>();
+        }
+    }
+
+    private IEnumerable<GXTrigger> triggers = [];
+    private bool _canViewTriggers;
+    private GXScriptMethod[]? _scriptMethods = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingWorkflow);
+            NotificationService?.RemoveByKey("Pages/Workflow/WorkflowGeneral.OnInitializedAsync");
+            if (Active?.Id == null && Id != null)
+            {
+                //Get workflow data.
+                var tmp = (await Http.GetAsJsonAsync<GetWorkflowResponse>(string.Format("api/Workflow?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+
+            var caller = (await Authentication.GetAuthenticationStateAsync()).User;
+            // Related catalogs are optional. Basic workflow fields must remain
+            // available when the user cannot browse scripts or triggers.
+            _scriptMethods = null;
+            if ((await Authorization.AuthorizeAsync(caller, null, GXScriptPolicies.View)).Succeeded)
+            {
+                var ret1 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", new ListScripts());
+                if (ret1.Scripts != null && ret1.Scripts.Any())
+                {
+                    List<GXScriptMethod> methods = [new GXScriptMethod()];
+                    foreach (var script in ret1.Scripts)
+                    {
+                        foreach (var method in (script.Methods ?? []))
+                        {
+                            if (method.IsFunction)
+                            {
+                                methods.Add(method);
+                            }
+                        }
+                    }
+                    _scriptMethods = methods.ToArray();
+                }
+            }
+            _canViewTriggers = (await Authorization.AuthorizeAsync(caller, null, GXTriggerPolicies.View)).Succeeded;
+            if (_canViewTriggers)
+            {
+                var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", new ListTriggers());
+                triggers = ret.Triggers ?? [];
+            }
+            if (Action == CrudAction.Create && triggers.Any() && Active.TriggerActivity == null)
+            {
+                //Select first item if trigger is not selected.
+                if (triggers.First().Activities is { Count: > 0 } activities)
+                {
+                    Active.TriggerActivity = activities.First();
+                    Active.TriggerActivity.Trigger = triggers.First();
+                }
+            }
+            SelectedTrigger = Active?.TriggerActivity?.Trigger?.ClassName;
+            SelectedCondition = Active?.TriggerMethod?.Name;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowGeneral.OnInitializedAsync");
+        }
+    }
+
+}

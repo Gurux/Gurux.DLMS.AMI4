@@ -1,0 +1,176 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Help"
+@using Gurux.UI.Components.Help
+@using Gurux.UI.Components.Enums
+@using System.Web
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject IServiceProvider Services
+
+@if (!Embedded)
+{
+    <PageTitle>Gurux.DLMS.AMI</PageTitle>
+    <img src="/images/gurux_dlms_ami_header.png"
+         alt="@Properties.Resources.GuruxDLMSAMI"
+         style="max-width: 100%; height: auto;" />
+    <GXHelpContext Topic="web-client-ui" />
+    <HeadContent>
+        <link href="css/readme.css?v=2" rel="stylesheet" />
+    </HeadContent>
+}
+
+<div class="relay-readme-container">
+    @if (_loading)
+    {
+        <p role="status">Loading help...</p>
+    }
+    else if (_loadFailed)
+    {
+        <p role="alert">Unable to load help. Try again later.</p>
+    }
+    else if (_content != null)
+    {
+        <GXHelpContentView Content="@_content" />
+    }
+    else if (_providerTopic && !_moduleTopic)
+    {
+        <p role="status">Help is not available for this topic.</p>
+    }
+    else
+    {
+        <GXMarkdownView Source="readme.md" OpenExternalLinksInNewTab="true" class="relay-readme" />
+    }
+</div>
+
+@code {
+    /// <summary>Shows documentation inside the existing application without replacing its help context.</summary>
+    [Parameter] public bool Embedded { get; set; }
+    /// <summary>Immutable documentation request supplied by the help side panel.</summary>
+    [Parameter] public GXHelpRequest? Request { get; set; }
+    private GXHelpRequest? _loadedRequest;
+    private GXHelpContent? _content;
+    private bool _providerTopic;
+    private bool _moduleTopic;
+    private bool _disposed;
+    private bool _loading;
+    private bool _loadFailed;
+    private long _generation;
+    private readonly CancellationTokenSource _lifetime = new();
+    GXHelpService? HelpService;
+
+    protected override void OnInitialized()
+    {
+        HelpService = Services.GetService<GXHelpService>();
+        if (!Embedded)
+        {
+            NavigationManager.LocationChanged += LocationChanged;
+        }
+    }
+
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (!_disposed)
+            {
+                await OnParametersSetAsync();
+                if (!_disposed)
+                {
+                    StateHasChanged();
+                }
+            }
+        });
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_disposed || HelpService == null)
+        {
+            return;
+        }
+        var uri = new Uri(NavigationManager.Uri);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        var request = Request ?? new GXHelpRequest(Uri.UnescapeDataString(uri.Fragment.TrimStart('#')), query["version"], query["culture"]);
+        if (_loadedRequest == request)
+        {
+            return;
+        }
+        _loadedRequest = request;
+        var generation = ++_generation;
+        var topic = request.Topic;
+        _moduleTopic = topic.StartsWith("module:", StringComparison.Ordinal);
+        _providerTopic = topic.StartsWith("cosem.", StringComparison.Ordinal) || _moduleTopic;
+        _content = null;
+        _loadFailed = false;
+        _loading = _providerTopic;
+        if (_providerTopic)
+        {
+            try
+            {
+                var content = await HelpService.GetHelpAsync(request, _lifetime.Token);
+                if (generation == _generation)
+                {
+                    _content = content;
+                }
+            }
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+            {
+            }
+            catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
+            {
+                if (generation == _generation)
+                {
+                    _loadFailed = true;
+                }
+            }
+            finally
+            {
+                if (generation == _generation)
+                {
+                    _loading = false;
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        NavigationManager.LocationChanged -= LocationChanged;
+        ++_generation;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

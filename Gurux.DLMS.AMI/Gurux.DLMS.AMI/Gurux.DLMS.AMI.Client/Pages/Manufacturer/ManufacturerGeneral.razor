@@ -1,0 +1,186 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXAmiConfirmation Confirmation
+<GXHelpContext Topic="ManufacturerGeneral" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                    <InputText id="name" disabled="disabled" @bind-Value="Active.Name" class="form-control"
+                               placeholder=@Properties.Resources.Name />
+                </div>
+                <table style="width:100%;">
+                    <thead>
+                        <tr>
+                            <td style="width:49%">
+                                @Gurux.DLMS.AMI.Client.Properties.Resources.Models
+                            </td>
+                            <td style="width:49%">
+                                @Gurux.DLMS.AMI.Client.Properties.Resources.Versions
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="vertical-align:top">
+                                <CascadingValue Value="this">
+                                    <Models @ref="_models"></Models>
+                                </CascadingValue>
+                            </td>
+                            <td style="vertical-align:top">
+                                <CascadingValue Value="this">
+                                    <Versions @ref="_versions"></Versions>
+                                </CascadingValue>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <CascadingValue Value="this">
+                    <Settings @ref="_settings"></Settings>
+                </CascadingValue>
+                @if (Active.CreationTime != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                                   @bind-Value="Active.CreationTime" />
+                    </div>
+                }
+                @if (Active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                                   @bind-Value="Active.Updated" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                                   @bind-Value="Active.Removed" />
+                    </div>
+                }
+                @if (Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+
+    
+}
+@code {
+
+    [CascadingParameter] public Manufacturer Owner { get; set; } = default!;
+    private bool DeleteTarget { get => Owner.DeleteTarget; set => Owner.DeleteTarget = value; }
+    
+
+    private Models? _models;
+    private Versions? _versions;
+    private Settings? _settings;
+
+    [Parameter, EditorRequired]
+    public GXManufacturer? Active { get; set; }
+
+    internal GXDeviceModel? Model { get => Owner.Model; set => Owner.Model = value; }
+    internal GXDeviceVersion? Version { get => Owner.Version; set => Owner.Version = value; }
+
+
+
+    public async Task ModelChanged(GXDeviceModel value)
+    {
+        if (Model?.Id != value.Id)
+        {
+            Owner.InstalledVersions = [];
+            Owner.InstalledSettings = [];
+            Version = null;
+        }
+        await Owner.SelectModelAsync(value);
+        if (_versions != null)
+        {
+            await _versions.Updated();
+        }
+    }
+
+    public async Task VersionChanged(GXDeviceVersion value)
+    {
+        if (Version?.Id != value.Id) {
+            Owner.InstalledSettings = [];
+        }
+        Version = value;
+        if (_settings != null)
+        {
+            await _settings.Updated();
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+
+
+
+}

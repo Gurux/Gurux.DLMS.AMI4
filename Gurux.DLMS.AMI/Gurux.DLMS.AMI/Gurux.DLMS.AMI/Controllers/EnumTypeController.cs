@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Client.Shared;
 using Microsoft.AspNetCore.Authorization;
@@ -40,34 +36,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the enum types.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class EnumTypeController : ControllerBase
+    public class EnumTypeController(IEnumTypeRepository repository) : ControllerBase
     {
-        private readonly IEnumTypeRepository _repository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public EnumTypeController(IEnumTypeRepository repository)
-        {
-            _repository = repository;
-        }
+        private readonly IEnumTypeRepository _repository = repository;
 
         /// <summary>
         /// Add enum type.
         /// </summary>
         /// <param name="request">Add enum type request parameters.</param>
         /// <returns>Add enum type response.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [Authorize(Policy = GXUserPolicies.Add)]
-        public async Task<ActionResult<AddEnumTypeResponse>> Post(AddEnumType request)
+        public async Task<ActionResult<AddEnumTypeResponse>> Post(AddEnumType request, CancellationToken cancellationToken = default)
         {
+            _ = cancellationToken;
             if (string.IsNullOrEmpty(request?.Item?.Type) || string.IsNullOrEmpty(request.Item.Name))
             {
-                throw new ArgumentNullException();
+                throw new ArgumentException("Enum type and name are required.", nameof(request));
             }
-            await _repository.GetLogTypeAsync(request.Item.Type, request.Item.Name);
+            await _repository.GetLogTypeAsync(request.Item.Type, request.Item.Name, cancellationToken);
             return new AddEnumTypeResponse();
         }
 
@@ -80,9 +73,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListEnumTypes request,
             CancellationToken cancellationToken)
         {
-            ListEnumTypesResponse ret = new ListEnumTypesResponse();
+            ListEnumTypesResponse ret = new();
             await _repository.ListAsync(request, ret, cancellationToken);
             return ret;
+        }
+
+        /// <summary>
+        /// Regenerates enum types items based on the specified identifiers.
+        /// </summary>
+        /// <param name="request">The request containing the identifiers of the enum types items to regenerate.</param>
+        /// <returns>A response indicating the result of the regeneration operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [HttpPost("Regenerate")]
+        [Authorize(Policy = GXUserPolicies.Edit)]
+        public async Task<ActionResult<RegenerateEnumTypesResponse>> Post(RegenerateEnumTypes request, CancellationToken cancellationToken = default)
+        {
+            if (request.Ids?.Any() == true)
+            {
+                await _repository.ResetToDefaultsAsync(request.Ids, cancellationToken);
+            }
+            else
+            {
+                await _repository.EnsureDefaultsAsync(cancellationToken);
+            }
+            return new RegenerateEnumTypesResponse();
         }
     }
 }

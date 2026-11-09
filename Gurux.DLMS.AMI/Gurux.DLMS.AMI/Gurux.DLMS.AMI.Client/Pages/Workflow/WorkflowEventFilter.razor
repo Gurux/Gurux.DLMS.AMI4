@@ -1,0 +1,159 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+
+@if (Active != null && ShowFilters)
+{
+    <fieldset disabled="@Disabled">
+        <legend class="fs-6">Device event filters (optional)</legend>
+        <div class="form-group">
+            <label>Event device</label>
+            <AuthorizeView Policy="@GXDevicePolicies.View" Context="eventDeviceAuthorization">
+                <Authorized>
+                    <Gurux.DLMS.AMI.Client.Pages.Device.DeviceDropdownSelector Value="@Device" ValueChanged="DeviceChanged" Disabled="@Disabled" />
+                </Authorized>
+                <NotAuthorized><span>@DeviceId</span></NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-link" disabled="@(Disabled || DeviceId == null)" @onclick="ClearDevice">Clear device filter</button>
+        </div>
+        <div class="form-group">
+            <label>Event device group</label>
+            <AuthorizeView Policy="@GXDeviceGroupPolicies.View" Context="eventGroupAuthorization">
+                <Authorized>
+                    <GXDropdownSearch class="form-control" disabled="@Disabled" Id="WorkflowEventDeviceGroup"
+                                    Formatter="@((GXDeviceGroup? group) => group?.Name)" RememberValue="true"
+                                    @bind-Value="Group" ItemsProvider="@GetGroups" />
+                </Authorized>
+                <NotAuthorized><span>@GroupId</span></NotAuthorized>
+            </AuthorizeView>
+            <button type="button" class="btn btn-link" disabled="@(Disabled || GroupId == null)" @onclick="ClearGroup">Clear device group filter</button>
+        </div>
+        <small class="form-text text-muted">Empty filters accept all events. If both are selected, the event device must match and currently belong to the group. These filters apply to device and value events.</small>
+    </fieldset>
+}
+
+@code {
+    [Parameter, EditorRequired] public GXWorkflow? Active { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    private bool ShowFilters => DeviceId != null || GroupId != null
+        || IsDeviceEvent(Active?.TriggerActivity?.Name) || IsDeviceEvent(Active?.TriggerActivity?.Permission);
+    private static bool IsDeviceEvent(string? value) => value?.StartsWith("device.", StringComparison.OrdinalIgnoreCase) == true
+        || value?.StartsWith("value.", StringComparison.OrdinalIgnoreCase) == true;
+    private GXDevice? _device;
+    private GXDeviceGroup? _group;
+    private GXDevice? Device => _device?.Id == DeviceId ? _device
+        : _device = DeviceId is Guid id ? new GXDevice { Id = id, Name = id.ToString() } : null;
+    private GXDeviceGroup? Group
+    {
+        get => _group?.Id == GroupId ? _group
+            : _group = GroupId is Guid id ? new GXDeviceGroup { Id = id, Name = id.ToString() } : null;
+        set => GroupChanged(value);
+    }
+
+    private void DeviceChanged(GXDevice? device)
+    {
+        if (Active == null || Disabled || device == null || device.Id == Guid.Empty) {
+            return;
+        }
+        _device = device;
+        if (DeviceId == device.Id) {
+            return;
+        }
+        SetFilter("event.device", device.Id);
+        Changed();
+    }
+    private void GroupChanged(GXDeviceGroup? group)
+    {
+        if (Active == null || Disabled || group == null || group.Id == Guid.Empty) {
+            return;
+        }
+        _group = group;
+        if (GroupId == group.Id) {
+            return;
+        }
+        SetFilter("event.device-group", group.Id);
+        Changed();
+    }
+    private void ClearDevice()
+    {
+        if (Active == null || Disabled || DeviceId == null) {
+            return;
+        }
+        SetFilter("event.device", null);
+        _device = null;
+        Changed();
+    }
+    private void ClearGroup()
+    {
+        if (Active == null || Disabled || GroupId == null) {
+            return;
+        }
+        SetFilter("event.device-group", null);
+        _group = null;
+        Changed();
+    }
+    private Guid? DeviceId => GetFilter("event.device");
+    private Guid? GroupId => GetFilter("event.device-group");
+    private Guid? GetFilter(string name)
+    {
+        var value = Active?.Properties?.FirstOrDefault(p => p.Module == null && p.Removed == null && p.Name == name)?.Value;
+        return Guid.TryParse(value, out var id) && id != Guid.Empty ? id : null;
+    }
+    private void SetFilter(string name, Guid? id)
+    {
+        Active!.Properties ??= [];
+        var property = Active.Properties.FirstOrDefault(p => p.Module == null && p.Removed == null && p.Name == name);
+        if (id == null)
+            {
+            Active.Properties.RemoveAll(p => p.Module == null && p.Name == name);
+        }
+        else if (property != null)
+            {
+            property.Value = id.Value.ToString();
+        }
+        else
+            {
+            Active.Properties.Add(new GXWorkflowProperty { Name = name, Value = id.Value.ToString() });
+        }
+    }
+    private void Changed() => GXEditContexts.For(Active!).NotifyFieldChanged(new FieldIdentifier(Active!, nameof(GXWorkflow.Properties)));
+    private async ValueTask<ItemsProviderResult<GXDeviceGroup?>> GetGroups(GXItemsProviderRequest request)
+    {
+        var response = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", new ListDeviceGroups
+        {
+            Index = (int)request.StartIndex, Count = (int)request.Count,
+            Filter = new GXDeviceGroup { Name = request.Filter }, OrderBy = request.OrderBy,
+            Descending = request.Descending, AllUsers = request.ShowAllUserData
+        }, request.CancellationToken);
+        return new ItemsProviderResult<GXDeviceGroup?>(response.DeviceGroups ?? [], ClientHelpers.ToVirtualizedCount(response.Count));
+    }
+}
+

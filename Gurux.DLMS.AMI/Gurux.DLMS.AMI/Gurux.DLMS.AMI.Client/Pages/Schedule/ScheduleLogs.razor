@@ -1,38 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/ScheduleLogs"
 
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Client.Internal
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -45,115 +43,126 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 
-@attribute [Authorize(Roles = "Admin, ScheduleLogManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject ConfirmBase Confirm
-@inject IGXNotifier2 Notifier
 @inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
 
 @implements IDisposable
 
+<GXHelpContext Topic="ScheduleLogs" />
+
 <PageTitle>@Properties.Resources.ScheduleLogs</PageTitle>
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLogManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="Close" Id="Edit" OnClick="@OnClose" />
-            <MenuItem Text="Clear" Id="Clear" OnClick="@OnClear" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Close" Id="close" OnClick="@OnClose" Policy="@GXScheduleLogPolicies.Close" />
+        <GXMenuEntry Text="@Properties.Resources.Clear" Id="clear" OnClick="@OnClear" Policy="@GXScheduleLogPolicies.Clear" />
+    </ChildContent>
+</GXMenuControl>
 
-<GXTable @ref="table"
-         Id="schedule-logs"
-         Context="error"
-         Active="@Active"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         Filter="@Filter"
-         ShowAllUsers="@Header"
-         CanEdit="@CanEdit"
-         OnSearch="@Updated">
-    <FilterContent>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
-            <GXDateTimeSelector Id="ScheduleLogs-CreationTime"
-                                @bind-Value="@filter.CreationTime"
-                                Placeholder="@Properties.Resources.FilterByCreationTime">
-            </GXDateTimeSelector>
-        </Fh>
-        <Fh Id="Type" Visibility="Visibility.Medium">
-            <EnumTypeSelector Type="@TargetType.ScheduleLog"
-                              @bind-Value="@filter.Type"
-                              OnSelected="@((int? e) => Updated())">
-            </EnumTypeSelector>
-        </Fh>
-        <th>
-            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Schedule.Name = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by message..."
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <GXInputDropdown class="form-select"
-                             Id="ScheduleLogs-TraceLevel"
-                             LastValue="true"
-                             @bind-Value="TraceLevel"
-                             OnSelected="@((TraceLevel e) => Updated())">
-            </GXInputDropdown>
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by close time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-    </FilterContent>
-    <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLog)
-                       Policy="@GXScheduleLogPolicies.View">
-            <ContextMenuItem Text="@Properties.Resources.Show" Id="Show" OnClick="@OnShow"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Close" Id="Edit" OnClick="@OnClose"></ContextMenuItem>
-        </AuthorizeView>
-    </MenuContent>
-    <HeaderContent>
-        <Th Name="CreationTime" Target="@error" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Type" Target="@error">@Properties.Resources.Type</Th>
-        <Th Name="Schedule" Target="@error">@Properties.Resources.Schedule</Th>
-        <Th Name="Message" Target="@error">@Properties.Resources.Message</Th>
-        <Th Name="Level" Target="@error">@Properties.Resources.Level</Th>
-        <Th Name="Closed" Target="@error">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("ScheduleLog/Edit/" + error.Id)">@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</Td>
-        <td>@(ResourceStorage.GetEnumType(TargetType.ScheduleLog, error.Type))</td>
-        <td>@error.Schedule?.Name</td>
-        <td>@error.Message</td>
-        <td>@ClientHelpers.LevelToString(error.Level)</td>
-        <td>@ResourceStorage.DateTimeOffsetToString(error.Closed)</td>
-    </ItemContent>
-</GXTable>
+@if (_viewDefaultsLoaded)
+{
+    <GXTable TItem="GXLog" @ref="table"
+             Id="schedule-logs"
+             Context="error"
+             @bind-Active="Active"
+             ItemsProvider="@GetItems"
+             SelectionMode="@DefaultSelectionMode"
+             AllowColumnCustomization="@GXViewSettings.CanCustomizeColumns(_viewDefaults, _isAdmin)"
+             ShowAllData="@(_viewDefaults?.ShowAllData ?? false)"
+             PageSize="@(_viewDefaults?.PageSize ?? 10)"
+             DefaultColumns="@_viewColumns"
+             DefaultColumnOrder="@_viewColumnOrder"
+             DefaultColumnVisibility="@_viewColumnVisibility"
+             OnColumnEditorReset="editor => GXViewColumnEditor.ResetAsync(editor, ScheduleLogColumns)"
+             ShowRemoved="false"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             CanEdit="@CanEdit"
+             OnSearch="@Updated">
+        <ColumnEditorContent Context="editor">
+            <GXViewColumnEditor Editor="editor" ViewName="@GXViews.ScheduleLog" Title="@Properties.Resources.ScheduleLogs"
+                                DefaultColumns="ScheduleLogColumns" View="_viewDefaults" Policies="ScheduleLogViewPolicies"
+                                ViewChanged="ApplyViewDefaults" />
+        </ColumnEditorContent>
+        <FilterContent>
+            <GXFh Id="CreationTime" Visibility="Visibility.Medium">
+                <GXDateTimeSelector Id="ScheduleLogs-CreationTime"
+                                    @bind-Value="@filter.CreationTime"
+                                    Placeholder="@Properties.Resources.FilterByCreationTime">
+                </GXDateTimeSelector>
+            </GXFh>
+            <GXFh Id="Type" Visibility="Visibility.Medium">
+                <EnumTypeSelector Type="@TargetType.ScheduleLog"
+                                  @bind-Value="@filter.Type"
+                                  OnSelected="@((int? e) => Updated())">
+                </EnumTypeSelector>
+            </GXFh>
+            <GXFh Id="Creator">
+                <GXDropdownSearch TValue="GXSchedule"
+                                Id="ScheduleLogs-Creator"
+                                Placeholder="@Properties.Resources.FilterByName"
+                                RememberValue="false"
+                                ShowItemsWhenEmpty="true"
+                                Items="@_creatorSchedules"
+                                Formatter="@(schedule => schedule?.Name ?? schedule?.Id.ToString())"
+                                @bind-Value="_creator"
+                                OnSelected="@CreatorSelectedAsync" />
+            </GXFh>
+            <GXFh Id="Message">
+                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByMessage"
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </GXFh>
+            <GXFh Id="Level">
+                <GXInputDropdown class="form-select"
+                                 Id="ScheduleLogs-TraceLevel"
+                                 RememberValue="true"
+                                 @bind-Value="TraceLevel"
+                                 OnSelected="@((TraceLevel e) => Updated())">
+                </GXInputDropdown>
+            </GXFh>
+            <GXFh Id="Closed">
+                <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </GXFh>
+        </FilterContent>
+        <MenuContent>
+            <GXContextMenuItem Text="@Properties.Resources.Show" Id="show" OnClick="@OnShow" Policy="@GXScheduleLogPolicies.View"></GXContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Close" Id="close" OnClick="@OnClose" Policy="@GXScheduleLogPolicies.Close"></GXContextMenuItem>
+        </MenuContent>
+        <HeaderContent>
+            <GXTh Name="CreationTime" Target="@error" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+            <GXTh Name="Type" Target="@error">@Properties.Resources.Type</GXTh>
+            <GXTh Id="Creator" Target="@error">@Properties.Resources.Schedule</GXTh>
+            <GXTh Name="Message" Target="@error">@Properties.Resources.Message</GXTh>
+            <GXTh Name="Level" Target="@error">@Properties.Resources.Level</GXTh>
+            <GXTh Name="Closed" Target="@error">@Properties.Resources.CloseTime</GXTh>
+        </HeaderContent>
+        <ItemContent>
+            <GXTd Id="CreationTime" Link="@NavigationManager.GetCurrentPagePath("/ScheduleLog/Edit/" + error.PublicId)">@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</GXTd>
+            <GXTd Id="Type">@(ResourceStorage.GetEnumType(TargetType.ScheduleLog, error.Type))</GXTd>
+            <GXTd Id="Creator"><LogCreatorLabel Creator="@error.Creator" Resource="Schedule" Property="Name" /></GXTd>
+            <GXTd Id="Message">@error.Message</GXTd>
+            <GXTd Id="Level">@ClientHelpers.LevelToString(error.Level)</GXTd>
+            <GXTd Id="Closed">@ResourceStorage.DateTimeOffsetToString(error.Closed)</GXTd>
+        </ItemContent>
+    </GXTable>
+}
 <br />
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
-</Confirm>
 
-<Confirm @ref="CloseConfirmation"
-         ConfirmationChanged="OnCloseConfirmation"
-         ConfirmationTitle="Confirm close"
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Close"
-         ConfirmationMessage="Are you sure you want to close selected items?">
-</Confirm>
+
+
 
 @code {
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected schedule group ID.
     /// </summary>
@@ -165,7 +174,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.ScheduleLogs;
+            return Properties.Resources.ScheduleLogs;
         }
     }
 
@@ -183,7 +192,7 @@
     {
         get
         {
-            return "oi oi-tablet";
+            return "schedule-log";
         }
     }
 
@@ -220,18 +229,140 @@
     /// <summary>
     /// Schedule error filter.
     /// </summary>
-    private GXScheduleLog filter = new GXScheduleLog()
+    private GXLog filter = new GXLog();
+    private GXSchedule? _creator;
+    private IEnumerable<GXSchedule> _creatorSchedules = [];
+
+    private async Task CreatorSelectedAsync(GXSchedule? schedule)
     {
-        Schedule = new GXSchedule()
-    };
-    /// <summary>
-    /// User is verified before schedule log are cleared.
-    /// </summary>
-    protected ConfirmBase? ClearConfirmation;
-    /// <summary>
-    /// User is verified before schedule logs are closed.
-    /// </summary>
-    protected ConfirmBase? CloseConfirmation;
+        _creator = schedule;
+        filter.Creator = schedule?.Id;
+        await Updated();
+    }
+
+    private async Task LoadCreatorSchedulesAsync()
+    {
+        try
+        {
+            using var progress = Progress?.ProgressStart(GXProgress.RetrievingSchedules);
+            NotificationService?.RemoveByKey("Pages/Schedule/ScheduleLogs.LoadCreatorSchedules");
+            var response = await Http.PostAsJson<ListSchedulesResponse>("api/Schedule/List", new ListSchedules
+            {
+                Count = 0,
+                AllUsers = true,
+                OrderBy = nameof(GXSchedule.Name)
+            });
+            _creatorSchedules = response.Schedules?.ToArray() ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleLogs.LoadCreatorSchedules");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var generation = _viewChangeGeneration;
+            var view = await GXViewSettings.ReadAsync(Http, GXViews.ScheduleLog, _viewStorage);
+            if (!_disposed && generation == _viewChangeGeneration)
+            {
+                ApplyViewDefaults(view);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleLogs.LoadViewDefaults");
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                if (_viewColumnOrder == null)
+                {
+                    ApplyViewDefaults(null);
+                }
+
+                _viewDefaultsLoaded = true;
+            }
+        }
+        if (Filter && !_disposed)
+        {
+            await LoadCreatorSchedulesAsync();
+        }
+    }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+    private bool _isAdmin;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isAdmin = AuthenticationState != null && (await AuthenticationState).User.IsInRole(GXRoles.Admin);
+    }
+
+    private GXView? _viewDefaults;
+    private IAmiViewStorage? _viewStorage;
+    private bool _disposed;
+    private long _viewChangeGeneration;
+    private static readonly List<string> ScheduleLogViewPolicies = [GXScheduleLogPolicies.View];
+    private static readonly GXViewColumn[] ScheduleLogColumns =
+    [
+        new("CreationTime") { Position = 0, Description = "CreationTime" },
+        new("Type") { Position = 1, Description = "Type" },
+        new("Creator") { Position = 2, Description = "Schedule" },
+        new("Message") { Position = 3, Description = "Message" },
+        new("Level") { Position = 4, Description = "Level" },
+        new("Closed") { Position = 5, Description = "CloseTime" }
+    ];
+    private bool _viewDefaultsLoaded;
+    private string[]? _viewColumns;
+    private string[]? _viewColumnOrder;
+    private IReadOnlyDictionary<string, Visibility>? _viewColumnVisibility;
+    private SelectionMode DefaultSelectionMode => _viewDefaults?.SelectionMode is byte mode && Enum.IsDefined((SelectionMode)mode)
+        ? (SelectionMode)mode : SelectionMode.Multiple;
+
+    private async void OnViewChanged(object? sender, GXViewChangedEventArgs args)
+    {
+        if (_disposed || !string.Equals(args.Name, GXViews.ScheduleLog, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+                ++_viewChangeGeneration;
+                ApplyViewDefaults(args.View);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            if (!_disposed)
+            {
+                NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleLogs.ViewChanged");
+            }
+        }
+    }
+
+    private void ApplyViewDefaults(GXView? view)
+    {
+        _viewDefaults = view?.Enabled == false ? null : view;
+        var columns = GXViewColumnDefaults.Merge(ScheduleLogColumns, _viewDefaults?.Columns);
+        _viewColumns = columns.Where(column => column.Visible).Select(column => column.Name!).ToArray();
+        _viewColumnOrder = columns.Select(column => column.Name!).ToArray();
+        _viewColumnVisibility = columns.Where(column => column.Visibility.HasValue && Enum.IsDefined((Visibility)column.Visibility.Value))
+            .ToDictionary(column => column.Name!, column => (Visibility)column.Visibility!.Value, StringComparer.Ordinal);
+    }
 
     /// <summary>
     /// Closed errors are shown.
@@ -241,21 +372,17 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXScheduleLog? Active { get; set; }
+    public GXLog? Active { get; set; }
 
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXScheduleLog>? table;
+    protected GXTable<GXLog>? table;
 
     /// <summary>
     /// Trace level.
     /// </summary>
-    private TraceLevel TraceLevel
-    {
-        get;
-        set;
-    }
+    private TraceLevel TraceLevel { get; set; }
 
     /// <summary>
     /// Update table.
@@ -266,45 +393,47 @@
         {
             if (table != null)
             {
-                Notifier.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Schedule/ScheduleLogs.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleLogs.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
+        _viewStorage = Services.GetService<IAmiViewStorage>();
+        if (_viewStorage != null)
+        {
+            _viewStorage.ViewChanged += OnViewChanged;
+        }
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScheduleLogs);
+            NotificationService?.RemoveByKey("Pages/Schedule/ScheduleLogs.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.On<IEnumerable<GXSchedule>?>(this, nameof(IGXHubEvents.ClearScheduleLog), async (logs) =>
-            {
-                ResourceStorage.ClearEnumTypes(TargetType.ScheduleLog);
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXScheduleLogPolicies.Add ||
+                       it.Type == GXScheduleLogPolicies.Close ||
+                       it.Type == GXScheduleLogPolicies.Clear)
+                    {
+                        _ = InvokeAsync(() => GXNotificationRefresh.RefreshAsync(table, items, Updated));
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXScheduleLog>>(this, nameof(IGXHubEvents.AddScheduleLog), async (error) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXScheduleLog>>(this, nameof(IGXHubEvents.CloseScheduleLog), async (error) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (table != null && Id != null)
             {
                 //Get last selected item.
-                Active = new GXScheduleLog() { Id = Id.Value };
+                Active = new GXLog() { PublicId = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -313,18 +442,14 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleLogs.OnInitialized");
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXScheduleLog>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingScheduleLogs);
         try
         {
             if (TraceLevel == TraceLevel.Off)
@@ -335,7 +460,7 @@
             {
                 filter.Level = (int)TraceLevel;
             }
-            ListScheduleLogs req = new ListScheduleLogs()
+            ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
@@ -350,12 +475,24 @@
             }
             //Get enum types.
             await ResourceStorage.RefreshEnumTypesAsync(TargetType.ScheduleLog);
-            var ret = await Http.PostAsJson<ListScheduleLogsResponse>("api/ScheduleLog/List", req, request.CancellationToken);
+            var ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=schedule", req, request.CancellationToken);
             if (ret.Logs != null)
             {
                 //Mark schedule logs as seen.
-                await Notifier.Mark(Http, TargetType.ScheduleLog, ret.Logs.Max(s => s.CreationTime));
-                return new ItemsProviderResult<GXScheduleLog>(ret.Logs, ret.Count);
+                if (ret.Logs.Any())
+                {
+                    if (Notifier != null)
+                    {
+                        await Notifier.Mark(Http, TargetType.ScheduleLog, ret.Logs.Max(s => s.CreationTime));
+                    }
+                }
+
+                if (Id is Guid id)
+                {
+                    Active = ret.Logs?.FirstOrDefault(log => log.PublicId == id);
+                }
+
+                return new ItemsProviderResult<GXLog>((ret.Logs ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -365,11 +502,7 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -381,12 +514,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Schedule/ScheduleLogs.OnShow");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ScheduleLog/Edit/" + table?.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "/ScheduleLog/Edit/" + table?.Active.PublicId);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -394,22 +527,29 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleLogs.OnShow");
         }
     }
 
     /// <summary>
     /// Close the selected error.
     /// </summary>
-    public void OnClose()
+    public async Task OnClose()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            CloseConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Message).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmClose, Properties.Resources.AreYouSureYouWantToCloseSelectedItems,
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Close,
+                    AllowDelete = false,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Message).ToArray()
+                });
+            await OnCloseConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -417,24 +557,25 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Close the selected logs.
     /// </summary>
-    public async Task OnCloseConfirmation(ConfirmArgs args)
+    public async Task OnCloseConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
-                CloseScheduleLog req = new CloseScheduleLog()
+                CloseLog req = new CloseLog()
                 {
-                    Logs = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    Ids = table.SingleOrDefault().Select(w => w.PublicId).ToArray()
                 };
-                await Http.PostAsJson<CloseScheduleLogResponse>("api/ScheduleLog/Close", req);
+                await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=schedule", req);
+                await Updated();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -443,41 +584,58 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _disposed = true;
+        if (_viewStorage != null)
+        {
+            _viewStorage.ViewChanged -= OnViewChanged;
+        }
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 
     /// <summary>
     /// Clear the schedule log list.
     /// </summary>
-    public void OnClear()
+    public async Task OnClear()
     {
-        Notifier.ClearStatus();
-        ClearConfirmation?.Show();
+        NotificationService?.RemoveByKey("Pages/Schedule/ScheduleLogs.OnClear");
+        var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearLog,
+            new AmiConfirmationOptions
+            {
+                ConfirmText = Properties.Resources.Clear,
+                AllowDelete = false
+            });
+        await OnClearConfirmation(confirmation);
     }
 
     /// <summary>
     /// Clear the schedule log list.
     /// </summary>
-    public async Task OnClearConfirmation(ConfirmArgs args)
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (args.Confirm)
             {
-                Notifier.ProgressStart();
+                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingScheduleLog);
                 try
                 {
-                    await Http.PostAsJson<ClearScheduleLogsResponse>("api/ScheduleLog/Clear", new ClearScheduleLogs());
+                    await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=schedule", new ClearLog());
+                    Active = null;
+                    await Updated();
                 }
                 finally
                 {
-                    Notifier.ProgressEnd();
                 }
             }
         }
@@ -487,7 +645,7 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 }

@@ -1,89 +1,76 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Client.Pages.Admin
-@using Gurux.DLMS.AMI.Client.Pages.Media;
-@using Gurux.DLMS.AMI.Client.Pages.Script
+
 @using Gurux.DLMS.AMI.Shared
-@using Gurux.DLMS.Enums
-@using Gurux.Net;
-@using Gurux.Serial;
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Client.Pages.Script
+@using Gurux.DLMS.AMI.Shared.DTOs.Script
+@using Gurux.DLMS.AMI.Shared.DTOs.Device
 @using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
-@using System.Diagnostics
 @inject HttpClient Http
-<HelpContext Topic="NotifyOptions" />
+<GXHelpContext Topic="RawNotificationOptions" />
 
 @if (Settings != null)
 {
-    <EditForm Model="@Settings">
+    <EditForm EditContext="@(GXEditContexts.For(Owner?.Active ?? (object)Settings))">
         <DataAnnotationsValidator />
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.Active"
-                                 @bind-Value="Settings.Active" />
+                    <GXInputSwitch Id="RawNotificationOptions-Active" Text="@Properties.Resources.Enabled" @bind-Value="Settings.Enabled" />
                     <br />
                 </div>
-                <fieldset disabled="@(!Settings.Active)">
+                <fieldset disabled="@(!Settings.Enabled)">
+                    <div class="form-group">
+                        <label for="RawNotificationOptions-Threads">@Properties.Resources.Threads</label>
+                        <GXInputNumber RememberValue="false" id="RawNotificationOptions-Threads" class="form-control" @bind-Value="Settings.Threads" Min="@GXNumberBounds.Minimum(Settings.Threads)" Max="@GXNumberBounds.Maximum(Settings.Threads)" />
+                        <ValidationMessage For="@(() => Settings.Threads)" />
+                    </div>
                     <div class="form-group row">
                         <label>@Properties.Resources.Script</label>
-                        <ScriptMethodSelector Scripts="@Scripts"
-                                              SelectionChanged="@SelectionChanged"
-                                              ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                        <ScriptMethodSelector Scripts="@Scripts" SelectionChanged="SelectionChanged"
+                                              ScriptMethod="@Settings.ScriptMethod" />
+                        <ValidationMessage For="@(() => Settings.ScriptMethod)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.DefaultDeviceTemplate</label>
-                        <DropdownSearch class="form-control"
-                                        Id="NotifyOptions-DefaultDeviceTemplate"
-                                        LastValue="true"
-                                        @bind-Value="DefaultDeviceTemplate"
-                                        ItemsProvider="@GetItems">
-                        </DropdownSearch>
+                        <GXDropdownSearch class="form-control"
+                                        Id="RawNotificationOptions-DefaultDeviceTemplate"
+                                        RememberValue="true" @bind-Value="DefaultDeviceTemplate" ItemsProvider="GetItems" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.TraceLevel</label>
                         <GXInputDropdown class="form-select"
-                                         Id="NotifyOptions-TraceLevel"
-                                         LastValue="true"
-                                         @bind-Value="Settings.TraceLevel">
-                        </GXInputDropdown>
+                                         Id="RawNotificationOptions-TraceLevel" RememberValue="true"
+                                         @bind-Value="Settings.TraceLevel" />
                     </div>
                 </fieldset>
             </div>
@@ -92,194 +79,94 @@
 }
 
 @code {
-    //Available scripts.
+    [CascadingParameter] public Agent? Owner { get; set; }
+
+    /// <summary>Available scripts from which the processing method can be selected.</summary>
     [Parameter]
     public IEnumerable<GXScript>? Scripts { get; set; }
 
+    /// <summary>Parser settings edited by this tab and serialized by the parent agent editor.</summary>
     [Parameter]
     public RawNotificationSettings? Settings { get; set; }
 
     private GXValidator? _validator;
+    private GXDeviceTemplate _defaultDeviceTemplate = new(Properties.Resources.Nothing);
 
-    InterfaceType[] InterfaceList = new InterfaceType[] {
-        InterfaceType.HDLC,
-        InterfaceType.WRAPPER,
-        InterfaceType.WirelessMBus,
-        InterfaceType.WiredMBus
-    };
-
-    Enums.Authentication[] Authentications = new Enums.Authentication[]
-    {
-        Enums.Authentication.None,
-        Enums.Authentication.Low,
-        Enums.Authentication.High,
-        Enums.Authentication.HighGMAC
-    };
-    Enums.Security[] Securities = new Enums.Security[] {
-        Enums.Security.None,
-        Enums.Security.Encryption,
-        Enums.Security.Authentication,
-        Enums.Security.AuthenticationEncryption
-    };
-
-    TraceLevel[] TraceLevels = new TraceLevel[] {
-        TraceLevel.Off,
-        TraceLevel.Error,
-        TraceLevel.Warning,
-        TraceLevel.Info,
-        TraceLevel.Verbose };
-
-    private GXSerialTemplate _serial = new GXSerialTemplate();
-    private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
-
-    private string? _serialPort;
-
-    GXDeviceTemplate _defaultDeviceTemplate = new GXDeviceTemplate(Properties.Resources.Nothing);
+    /// <summary>Maps the empty template selection to a null stored identifier.</summary>
     private GXDeviceTemplate DefaultDeviceTemplate
     {
-        get
-        {
-            return _defaultDeviceTemplate;
-        }
+        get => _defaultDeviceTemplate;
         set
         {
             _defaultDeviceTemplate = value;
             if (Settings != null)
             {
-                if (value.Id == Guid.Empty)
-                {
-                    Settings.DefaultDeviceTemplate = null;
-                }
-                else
-                {
-                    Settings.DefaultDeviceTemplate = value.Id;
-                }
+                Settings.DefaultDeviceTemplate = value.Id == Guid.Empty ? null : value.Id;
             }
         }
     }
 
-    /// <summary>
-    /// The serial port of the agent.
-    /// </summary>
-    [Parameter]
-    public string? SerialPort
+    /// <summary>Refreshes the template selection when another agent or settings instance is loaded.</summary>
+    protected override void OnParametersSet()
     {
-        get => _serialPort;
-        set
+        var selectedId = Settings?.DefaultDeviceTemplate ?? Guid.Empty;
+        if (_defaultDeviceTemplate.Id != selectedId)
         {
-            if (_serialPort != value)
-            {
-                _serialPort = value;
-                SerialPortChanged.InvokeAsync(value);
-            }
+            _defaultDeviceTemplate = new GXDeviceTemplate { Id = selectedId, Name = Properties.Resources.Nothing };
         }
     }
 
-    /// <summary>
-    /// Is serial port used.
-    /// </summary>
-    /// <returns></returns>
-    private bool IsSerialPort()
-    {
-        return !string.IsNullOrEmpty(_serialPort);
-    }
-
-    /// <summary>
-    /// Notified when settings are updated.
-    /// </summary>
-    [Parameter]
-    public EventCallback<string?> SerialPortChanged { get; set; }
-
-
-    NetworkSettings? networkSettings { get; set; }
-    SerialSettings? serialSettings { get; set; }
-
-    public async System.Threading.Tasks.Task ValidateAsync(GXValidator sender)
+    /// <summary>Adds parser validation errors to the parent agent form and this tab's form.</summary>
+    public async Task ValidateAsync(GXValidator sender)
     {
         OnValidate(sender);
         if (_validator != null)
         {
+            _validator.ClearErrors();
             await _validator.ValidateAsync();
         }
     }
 
+    /// <summary>Validates enabled processing settings; inactive settings do not block agent changes.</summary>
     public void OnValidate(GXValidator sender)
     {
-        @if (Settings != null && Settings.Active)
+        if (Settings?.Enabled == true && Settings.Threads < 1)
         {
+            sender.AddError(() => Settings.Threads, Properties.Resources.TheNumberOfRawNotificationWorkersMustBeGreaterThanZero);
+        }
+        if (Settings?.Enabled == true && (Settings.ScriptMethod == null || Settings.ScriptMethod == Guid.Empty))
+        {
+            sender.AddError(() => Settings.ScriptMethod, Properties.Resources.SelectARawNotificationParserScript);
         }
     }
 
-    ///<summary>
-    ///Script method has been changed.
-    ///</summary>
-    private void SelectionChanged(Guid? guid)
+    /// <summary>Stores the selected parser method identifier.</summary>
+    private void SelectionChanged(Guid? id)
     {
         if (Settings != null)
         {
-            Settings.ScriptMethod = guid;
+            Settings.ScriptMethod = id;
         }
     }
 
-    protected override void OnInitialized()
-    {
-        if (Settings?.DefaultDeviceTemplate is Guid templateId && templateId != Guid.Empty)
-        {
-            _defaultDeviceTemplate = new GXDeviceTemplate()
-            {
-                Id = templateId,
-                Name = Properties.Resources.Nothing
-            };
-        }
-    }
-
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
+    /// <summary>Loads matching device templates while retaining an explicit empty selection.</summary>
     private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
     {
-        GXDeviceTemplate? filter = null;
-        if (!string.IsNullOrEmpty(request.Filter))
+        var response = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", new ListDeviceTemplates {
+            Index = request.StartIndex, Count = request.Count,
+            Filter = string.IsNullOrEmpty(request.Filter) ? null : new GXDeviceTemplate { Name = request.Filter },
+            OrderBy = request.OrderBy, Descending = request.Descending, AllUsers = request.ShowAllUserData
+        }, request.CancellationToken);
+        List<GXDeviceTemplate> items = [new GXDeviceTemplate { Name = Properties.Resources.Nothing }];
+        if (response.Templates != null)
         {
-            //Search device templates by name
-            filter = new GXDeviceTemplate() { Name = request.Filter };
+            items.AddRange(response.Templates);
         }
-        ListDeviceTemplates req = new ListDeviceTemplates()
+        var selected = items.FirstOrDefault(item => item.Id == (Settings?.DefaultDeviceTemplate ?? Guid.Empty));
+        if (selected != null)
         {
-            Index = request.StartIndex,
-            Count = request.Count,
-            Filter = filter,
-            OrderBy = request.OrderBy,
-            Descending = request.Descending,
-            AllUsers = request.ShowAllUserData
-        };
-        var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
-        List<GXDeviceTemplate> list = new();
-        //Add empty device template.
-        list.Add(new GXDeviceTemplate() { Name = Properties.Resources.Nothing });
-        if (ret.Templates != null)
-        {
-            list.AddRange(ret.Templates);
+            _defaultDeviceTemplate = selected;
         }
-        if (Settings?.DefaultDeviceTemplate != null)
-        {
-            foreach (var it in list)
-            {
-                if (it.Id == Settings?.DefaultDeviceTemplate)
-                {
-                    _defaultDeviceTemplate = it;
-                    await InvokeAsync(StateHasChanged);
-                    break;
-                }
-            }
-        }
-        else
-        {
-            _defaultDeviceTemplate = list[0];
-        }
-
-        return new ItemsProviderResult<GXDeviceTemplate>(list, ret.Count);
+        return new ItemsProviderResult<GXDeviceTemplate>(items, ClientHelpers.ToVirtualizedCount(response.Count));
     }
 }

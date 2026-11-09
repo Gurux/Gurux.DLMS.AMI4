@@ -1,0 +1,680 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Log
+@using Gurux.UI.Components.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Diagnostics
+@using Gurux.DLMS.AMI.Module.Enums
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
+@implements IAsyncDisposable
+
+<GXHelpContext Topic="logs" />
+
+<PageTitle>@Properties.Resources.Logs</PageTitle>
+
+@if (string.IsNullOrWhiteSpace(LogTypeName))
+{
+<label for="Logs-LogType">@Properties.Resources.Type</label>
+<GXInputDropdown TValue="string" id="Logs-LogType" class="form-select" Value="@_source" ValueChanged="SourceChanged" Items="@LogTypeOptions" Formatter="@FormatLogType" RememberValue="false" />
+
+}
+else if (string.IsNullOrWhiteSpace(_source))
+{
+    <p role="status">@Properties.Resources.NoLogHistoryIsAvailableForThisModule</p>
+}
+
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        @if (!string.IsNullOrWhiteSpace(_source))
+        {
+            @if (CanEdit && Active != null && table?.SingleOrDefault().Any(l => l.Closable && l.Closed == null) == true)
+            {
+                <GXMenuEntry Text="@Properties.Resources.Close" Id="close" OnClick="@OnClose" Policy="@GXLogPolicies.Close" />
+            }
+            @if (!IsRecordingLog)
+            {
+                <GXMenuEntry Text="@Properties.Resources.Clear" Id="clear" OnClick="@OnClear" Policy="@GXLogPolicies.Clear" />
+            }
+        }
+    </ChildContent>
+</GXMenuControl>
+
+<ModuleViews @key="_contentVersion" Area="AmiViewArea.Log" Display="AmiViewDisplay.Replace" ViewKey="@LogViewKey" Target="@SelectedLogType" Parameters="@LogViewParameters">
+    @if (IsRecordingLog)
+    {
+        <LogClearMenu Source="@_source" OnClear="OnClear" />
+    }
+    <GXTable TItem="GXLog" @ref="table"
+             @bind-Active="Active"
+             Context="error"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             ShowRemoved="false"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             Columns="@Columns"
+             CanEdit="@CanEdit"
+             OnSearch="@Updated">
+        <FilterContent>
+            <GXFh Id="CreationTime" Visibility="Visibility.Medium">
+                <GXDateTimeSelector Id="Logs-CreationTime"
+                                    @bind-Value="@filter.CreationTime"
+                                    Placeholder="@Properties.Resources.FilterByCreationTime">
+                </GXDateTimeSelector>
+            </GXFh>
+            <GXFh Id="Type" Visibility="Visibility.Medium">
+                <EnumTypeSelector @key="EnumTypeTarget" Type="@EnumTypeTarget"
+                                  @bind-Value="@filter.Type"
+                                  OnSelected="@((int? e) => Updated())">
+                </EnumTypeSelector>
+            </GXFh>
+            <th>
+                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByMessage"
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                @*Data.*@
+            </th>
+            <th>
+                @*Duration filter.*@
+            </th>
+            <th>
+                <GXInputDropdown class="form-select"
+                                 Id="Logs-TraceLevel"
+                                 RememberValue="true"
+                                 @bind-Value="TraceLevel"
+                                 OnSelected="@((TraceLevel e) => Updated())">
+                </GXInputDropdown>
+            </th>
+            <th>
+                <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+        </FilterContent>
+        <MenuContent>
+            <GXContextMenuItem Text="@Properties.Resources.Show" Id="show" OnClick="@OnShow"></GXContextMenuItem>
+            @if (CanEdit && Active?.Closable == true && Active.Closed == null)
+            {
+                <GXContextMenuItem Text="@Properties.Resources.Close" Id="close" Policy="@GXLogPolicies.Close" OnClick="@OnClose"></GXContextMenuItem>
+            }
+        </MenuContent>
+        <HeaderContent>
+            <GXTh Name="CreationTime" Target="@error" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+            <GXTh Name="Type" Target="@error">@Properties.Resources.Type</GXTh>
+            <GXTh Target="@error">@Properties.Resources.Message</GXTh>
+            <GXTh Name="data" Target="@error">@Properties.Resources.Data</GXTh>
+            <GXTh Name="ExecutionTime" Target="@error">@Properties.Resources.Duration</GXTh>
+            <GXTh Name="Level" Target="@error">@Properties.Resources.Level</GXTh>
+            <GXTh Name="Closed" Target="@error">@Properties.Resources.CloseTime</GXTh>
+        </HeaderContent>
+        <ItemContent>
+            @*<GXTd Link="@NavigationManager.GetCurrentPagePath("/Log/Edit/" + error.PublicId)">@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</GXTd>*@
+            <td>@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</td>
+            <td>@(ResourceStorage.GetEnumType(GetEnumTypeTarget(error.LogType?.NormalizedName ?? LogViewKey), error.Type))</td>
+            <td>@error.Message</td>
+            <td>@error.Data</td>
+            <td>@error.Duration</td>
+            <td>@ClientHelpers.LevelToString(error.Level)</td>
+            <td>
+                @ResourceStorage.DateTimeOffsetToString(error.Closed)
+                @if (CanEdit && error.Closable && error.Closed == null)
+                {
+                    <AuthorizeView Policy="@GXLogPolicies.Close">
+                        <Authorized>
+                            <button type="button" class="btn btn-link" @onclick="() => ConfirmClose([error])" @onclick:stopPropagation="true">@Properties.Resources.Close</button>
+                        </Authorized>
+                    </AuthorizeView>
+                }
+            </td>
+        </ItemContent>
+    </GXTable>
+</ModuleViews>
+<br />
+
+
+
+@code {
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+    /// <summary>Restricts an embedded history view to one authorized log type without a source selector.</summary>
+    [Parameter] public string? LogTypeName { get; set; }
+    private IEnumerable<GXLogType> _logTypes = [];
+    private string? _source;
+    private IEnumerable<string> LogTypeOptions => new[] { string.Empty }.Concat(_logTypes.Select(type => type.PublicId.ToString()));
+    private string FormatLogType(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "-";
+        }
+        var name = _logTypes.FirstOrDefault(type => type.PublicId.ToString() == value)?.Name ?? value;
+        return name.StartsWith("builtin:", StringComparison.OrdinalIgnoreCase) ? name[8..] : name;
+    }
+
+    private GXLogType? SelectedLogType => _logTypes.FirstOrDefault(t => t.PublicId.ToString() == _source);
+    private string LogViewKey => SelectedLogType?.NormalizedName ?? SelectedLogType?.Name ?? string.Empty;
+    private string EnumTypeTarget => GetEnumTypeTarget(LogViewKey);
+    private static string GetEnumTypeTarget(string? name) => name?.ToUpperInvariant() switch
+    {
+        "BUILTIN:SYSTEM" => TargetType.SystemLog,
+        "BUILTIN:AGENT" => TargetType.AgentLog,
+        "BUILTIN:GATEWAY" => TargetType.GatewayLog,
+        "BUILTIN:MODULE" => TargetType.ModuleLog,
+        "BUILTIN:SCHEDULE" => TargetType.ScheduleLog,
+        "BUILTIN:WORKFLOW" => TargetType.WorkflowLog,
+        "BUILTIN:SCRIPT" => TargetType.ScriptLog,
+        "BUILTIN:KEY-MANAGEMENT" => TargetType.KeyManagementLog,
+        "BUILTIN:DEVICE-ERROR" => TargetType.DeviceLog,
+        "BUILTIN:DEVICE-ACTION" => TargetType.DeviceAction,
+        "BUILTIN:USER-ERROR" => TargetType.UserError,
+        "BUILTIN:USER-ACTION" => TargetType.UserAction,
+        _ => TargetType.Log
+    };
+    private bool IsRecordingLog => string.Equals(LogViewKey, "SQL", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(LogViewKey, "SignalR", StringComparison.OrdinalIgnoreCase);
+    private IDictionary<string, object> LogViewParameters => new Dictionary<string, object>
+    {
+        ["Source"] = _source!,
+        ["ShowClear"] = IsRecordingLog,
+        ["CanEdit"] = CanEdit,
+        ["Filter"] = Filter,
+        ["Header"] = Header,
+        ["Count"] = Count,
+        ["Columns"] = Columns!
+    };
+    private GXLog[] _closing = [];
+    private long _contentVersion;
+    private bool _disposed;
+
+    private static bool IsLogUpdate(string? policy)
+    {
+        if (string.IsNullOrEmpty(policy))
+        {
+            return false;
+        }
+        var separator = policy.LastIndexOf('.');
+        if (separator <= 0 || policy[(separator + 1)..] is not ("add" or "edit" or "clear" or "close" or "delete"))
+        {
+            return false;
+        }
+        return policy[..separator] is "log" or "system-log" or "agent-log" or "gateway-log" or "device-log"
+            or "device-action" or "module-log" or "schedule-log" or "script-log" or "workflow-log"
+            or "key-management-log" or "user-action" or "user-error";
+    }
+
+    private bool ShouldRefresh(GXTarget update)
+    {
+        if (!IsLogUpdate(update.Type))
+        {
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(_source))
+        {
+            return string.IsNullOrWhiteSpace(LogTypeName);
+        }
+        // Updates from older senders have no source and retain their previous behavior.
+        if (string.IsNullOrWhiteSpace(update.Source))
+        {
+            return true;
+        }
+        if (string.Equals(update.Source, _source, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        var selected = _logTypes.FirstOrDefault(t => t.PublicId.ToString() == _source);
+        return selected != null &&
+            (string.Equals(update.Source, selected.Name, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(update.Source, selected.NormalizedName, StringComparison.OrdinalIgnoreCase));
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier = Services.GetService<IGXNotifier2>();
+            Progress = Services.GetService<IGXProgress>();
+            NotificationService = Services.GetService<IGXNotificationService>();
+            var response = await Http.PostAsJson<ListLogTypesResponse>("api/LogType/List", new ListLogTypes { Filter = string.IsNullOrWhiteSpace(LogTypeName) ? null : new GXLogType { NormalizedName = LogTypeName.ToUpperInvariant() } });
+            _logTypes = (response.LogTypes ?? []).Where(type => string.IsNullOrWhiteSpace(LogTypeName) || string.Equals(type.NormalizedName, LogTypeName, StringComparison.OrdinalIgnoreCase)).ToArray();
+            _source = string.IsNullOrWhiteSpace(LogTypeName) ? null : _logTypes.FirstOrDefault()?.PublicId.ToString();
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            {
+                if (!_disposed && items.Any(ShouldRefresh))
+                {
+                    _ = InvokeAsync(() => GXNotificationRefresh.RefreshAsync(table, items, Updated));
+                }
+            });
+            if (Id.HasValue)
+            {
+                Active = new GXLog
+                {
+                    PublicId = Id.Value
+                };
+            }
+        
+            await Updated();
+        }
+        catch (Exception error)
+        {
+            NotificationService?.ReportError(error);
+        }
+    }
+
+    private async Task SourceChanged(string? source)
+    {
+        _source = string.IsNullOrWhiteSpace(source) || source == "-" ? null : source;
+        filter.Type = null;
+        Active = null;
+        if (table != null)
+        {
+            // Reset the existing table before it requests rows for the new category.
+#pragma warning disable BL0005
+            table.CurrentPage = 0;
+#pragma warning restore BL0005
+        }
+        await Updated();
+    }
+
+    private string SourceUrl(string action)
+    {
+        if (action == "List" && string.IsNullOrWhiteSpace(_source))
+        {
+            return "api/Log/List";
+        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(_source);
+        return "api/Log/" + action + "?source=" + Uri.EscapeDataString(_source);
+    }
+
+
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Properties.Resources.Logs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "log";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the workflow log shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Log filter.
+    /// </summary>
+    private GXLog filter = new GXLog();
+
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Get active item.
+    /// </summary>
+    public GXLog? Active { get; set; }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXLog>? table;
+
+    /// <summary>
+    /// Trace level.
+    /// </summary>
+    private TraceLevel TraceLevel { get; set; }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                NotificationService?.RemoveByKey("Pages/Logs.Updated");
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Logs.Updated");
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(LogTypeName) && string.IsNullOrWhiteSpace(_source))
+        {
+            return new ItemsProviderResult<GXLog>([], 0);
+        }
+        //Don't clear status or error is lost.
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingLogs);
+        try
+        {
+            if (ShowClosedErrors)
+            {
+                //Show closed errors.
+                filter.Closed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                //Show active errors.
+                filter.Closed = null;
+            }
+
+            if (TraceLevel == TraceLevel.Off)
+            {
+                filter.Level = null;
+            }
+            else
+            {
+                filter.Level = (int)TraceLevel;
+            }
+            ListLogs req = new ListLogs()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            //Get enum types.
+            await ResourceStorage.RefreshEnumTypesAsync(EnumTypeTarget);
+            var ret = await Http.PostAsJson<ListLogsResponse>(SourceUrl("List"), req, request.CancellationToken);
+            if (ret.Logs != null)
+            {
+                foreach (var target in ret.Logs.Select(log => GetEnumTypeTarget(log.LogType?.NormalizedName ?? LogViewKey)).Distinct())
+                {
+                    if (target != EnumTypeTarget)
+                    {
+                        await ResourceStorage.RefreshEnumTypesAsync(target);
+                    }
+                }
+                //Mark workflow logs as seen.
+                if (ret.Logs.Any())
+                {
+                    if (Notifier != null)
+                    {
+                        await Notifier.Mark(Http, TargetType.Log, ret.Logs.Max(s => s.CreationTime));
+                    }
+                }
+            
+                if (Id.HasValue)
+                {
+                    Active = ret.Logs.FirstOrDefault(log => log.PublicId == Id.Value) ?? Active;
+                }
+            
+                return new ItemsProviderResult<GXLog>(ret.Logs, ClientHelpers.ToVirtualizedCount(ret.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show workflow log details.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/Logs.OnShow");
+            if (table?.Active == null)
+            {
+                throw new Exception(Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Properties.Resources.LogEdit + table.Active.PublicId + Properties.Resources.Source2 + Uri.EscapeDataString(table.Active.LogType?.PublicId.ToString() ?? _source ?? throw new InvalidOperationException(Properties.Resources.LogSourceIsRequired)));
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Logs.OnShow");
+        }
+    }
+
+    /// <summary>
+    /// Close the selected error.
+    /// </summary>
+    public async Task OnClose()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Properties.Resources.NoItemIsSelected);
+            }
+            await ConfirmClose(table.SingleOrDefault());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    private async Task ConfirmClose(IEnumerable<GXLog> logs)
+    {
+        _closing = logs.Where(l => l.Closable && l.Closed == null).ToArray();
+        if (_closing.Length != 0)
+        {
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmClose, Properties.Resources.AreYouSureYouWantToCloseSelectedItems,
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Close,
+                    AllowDelete = false,
+                    Items = _closing.Select(l => l.Message).ToArray()
+                });
+            await OnCloseConfirmation(confirmation);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected logs.
+    /// </summary>
+    public async Task OnCloseConfirmation(AmiConfirmationResult args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                foreach (var group in _closing.GroupBy(log => log.LogType?.PublicId.ToString() ?? _source))
+                {
+                    ArgumentException.ThrowIfNullOrWhiteSpace(group.Key);
+                    var req = new CloseLog { Ids = group.Select(log => log.PublicId).ToArray() };
+                    await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=" + Uri.EscapeDataString(group.Key), req);
+                }
+                _closing = [];
+                await Updated();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
+        return ValueTask.CompletedTask;
+    }
+    /// <summary>
+    /// Clear the workflow log list.
+    /// </summary>
+
+    public async Task OnClear()
+    {
+        NotificationService?.RemoveByKey("Pages/Logs.OnClear");
+        var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearLog,
+            new AmiConfirmationOptions
+            {
+                ConfirmText = Properties.Resources.Clear,
+                AllowDelete = false
+            });
+        await OnClearConfirmation(confirmation);
+    }
+
+    /// <summary>
+    /// Clear the workflow log list.
+    /// </summary>
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingLog);
+                try
+                {
+                    await Http.PostAsJson<ClearLogResponse>(SourceUrl("Clear"), new ClearLog());
+                    Active = null;
+                    _closing = [];
+                    // The visible table can belong to a module rather than the fallback table reference.
+                    // Recreate the content after a successful clear so either view reloads its data.
+                    ++_contentVersion;
+                    await InvokeAsync(StateHasChanged);
+                }
+                finally
+                {
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+}

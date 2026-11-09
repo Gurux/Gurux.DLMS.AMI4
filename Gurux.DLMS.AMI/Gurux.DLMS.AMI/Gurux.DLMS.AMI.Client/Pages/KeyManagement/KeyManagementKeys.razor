@@ -1,39 +1,40 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Enums
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.DLMS.AMI.Client.Shared.KeyManagement
+@inject IServiceProvider Services
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 @using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using System.Net.Http.Json
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -48,24 +49,30 @@
 
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
+
+<GXHelpContext Topic="KeyManagementKeys" />
 
 <PageTitle>@Properties.Resources.KeyManagementKeys</PageTitle>
 
-<MenuControl RightCorner="true">
+<GXMenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
     </ChildContent>
-</MenuControl>
+</GXMenuControl>
+@if (KeyManagement?.Device == null)
+{
+    <label>@Gurux.DLMS.AMI.Client.Properties.Resources.MeterIDForDeploymentConfirmation <InputText @bind-Value="deploymentDeviceId" /></label>
+}
 
 @if (KeyAction != CrudAction.None)
 {
     @*Show key.*@
     <KeyManagementKey Parent="this"></KeyManagementKey>
 }
-<GXTable @ref="table"
-         TItem="GXKeyManagementKey"
+<GXViewTable ViewName="KeyManagement.KeyManagementKeys" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementPolicies.View })"
+         TItem="GXKeyManagementKey" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Single"
@@ -77,35 +84,105 @@
     <FilterContent>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
-        </AuthorizeView>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXKeyManagementPolicies.Edit"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXKeyManagementPolicies.Delete"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <Th Name="KeyType" Target="@item">@Properties.Resources.KeyManagementKeyType</Th>
-        <Th Name="CreationTime" Target="@item" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Updated" Target="@item">@Properties.Resources.Updated</Th>
+        <GXTh Id="KeyType" Name="KeyType" Target="@item">@Properties.Resources.KeyManagementKeyType</GXTh>
+        <GXTh Id="State">@Properties.Resources.State</GXTh>
+        <GXTh Id="Keystorage">@Properties.Resources.KeyStorage</GXTh>
+        <GXTh Id="Lifecycle">@Properties.Resources.Lifecycle</GXTh>
+        <GXTh Id="CreationTime" Name="CreationTime" Target="@item" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Id="Updated" Name="Updated" Target="@item">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>
-            <LinkButton Target="@item" OnClick="@Edit"
+        <GXTd Id="KeyType">
+            <GXLinkButton TItem="GXKeyManagementKey" Target="@item" OnClick="@Edit"
                         Text="@ClientHelpers.GetKeyTypeDescription(item.KeyType)" />
-        </td>
-        <td>@item.CreationTime</td>
-        <td>@item.Updated</td>
+        </GXTd>
+        <GXTd Id="State">@(item.State?.ToString() ?? Properties.Resources.RequiresMigration)</GXTd>
+        <GXTd Id="Keystorage">@(item.ProviderId ?? KeyManagement?.ProviderId ?? "local")</GXTd>
+        <GXTd Id="Lifecycle">
+            <AuthorizeView Policy="@GXKeyPermissions.Lifecycle">
+                @if (item.Id != Guid.Empty)
+                {
+                    @if (item.State == KeyState.PreActive)
+                    {
+                        <button type="button" @onclick="() => ChangeState(item, KeyState.Active)">@Gurux.DLMS.AMI.Client.Properties.Resources.Activate</button>
+                    }
+                    @if (item.State == KeyState.Active)
+                    {
+                        <button type="button" @onclick="() => ChangeState(item, KeyState.Deactivated)">@Gurux.DLMS.AMI.Client.Properties.Resources.Deactivate</button>
+                        <button type="button" @onclick="() => ConfirmDeployed(item)">@Gurux.DLMS.AMI.Client.Properties.Resources.ConfirmInstalledOnMeter</button>
+                    }
+                    @if (item.State is KeyState.PreActive or KeyState.Active or KeyState.Deactivated)
+                    {
+                        <button type="button" @onclick="() => ChangeState(item, KeyState.Compromised)">@Gurux.DLMS.AMI.Client.Properties.Resources.MarkCompromised</button>
+                    }
+                    @if (item.State is KeyState.PreActive or KeyState.Deactivated or KeyState.Compromised)
+                    {
+                        <button type="button" @onclick="() => ChangeState(item, item.State == KeyState.Compromised ? KeyState.DestroyedCompromised : KeyState.Destroyed)">@Gurux.DLMS.AMI.Client.Properties.Resources.DestroyMaterial</button>
+                    }
+                }
+            </AuthorizeView>
+        </GXTd>
+        <GXTd Id="CreationTime">@item.CreationTime</GXTd>
+        <GXTd Id="Updated">@item.Updated</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="DeleteConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         AllowDelete="false"
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("KeyType") { Position = 0, Description = "KeyManagementKeyType", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("State") { Position = 1, Description = "State", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Keystorage") { Position = 2, Description = Properties.Resources.KeyStorage, Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Lifecycle") { Position = 3, Description = "Lifecycle", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CreationTime") { Position = 4, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Updated") { Position = 5, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private string deploymentDeviceId = "";
+    private async Task ChangeState(GXKeyManagementKey item, KeyState target)
+    {
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/extensions/KeyManagement/Transition", new GXTransitionKeyRequest { KeyId = item.Id, Target = target, ExpectedStamp = item.ConcurrencyStamp });
+            response.EnsureSuccessStatusCode();
+            var updated = await response.Content.ReadFromJsonAsync<GXKeyManagementKey>() ?? throw new InvalidOperationException("Missing key metadata.");
+            int index = KeyManagement!.Keys!.FindIndex(k => k.Id == item.Id);
+            if (index >= 0)
+            {
+                KeyManagement.Keys[index] = updated;
+            }
+        
+            await Updated();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    private async Task ConfirmDeployed(GXKeyManagementKey item)
+    {
+        try
+        {
+            Guid deviceId = KeyManagement?.Device?.Id ?? (Guid.TryParse(deploymentDeviceId, out var parsed) ? parsed : throw new ArgumentException("Enter the meter ID whose installation has been confirmed."));
+            using var response = await Http.PostAsync($"api/extensions/KeyManagement/ConfirmDeployment/{deviceId}/{item.Id}", null);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+    private IGXNotifier? Notifier;
+
+    private IGXNotificationService? NotificationService;
+
     internal CrudAction KeyAction;
     internal GXKeyManagementKey? Active;
 
@@ -119,7 +196,7 @@
     }
 
     [Parameter]
-    public Gurux.DLMS.AMI.Client.Pages.KeyManagement.KeyManagement? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.KeyManagement.KeyManagementGeneral? Parent { get; set; }
 
     internal GXKeyManagement? KeyManagement
     {
@@ -133,15 +210,11 @@
     /// Key management key filter.
     /// </summary>
     private GXKeyManagementKey filter = new GXKeyManagementKey();
-    /// <summary>
-    /// User is verified before key management key is removed.
-    /// </summary>
-    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXKeyManagementKey>? table;
+    protected GXViewTable<GXKeyManagementKey>? table;
 
     /// <summary>
     /// Update table.
@@ -152,37 +225,38 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKeys.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKeys.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        try
+        Notifier = Services.GetService<IGXNotifier>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
         {
-            Notifier.On<IEnumerable<GXKeyManagement>>(this, nameof(IGXHubEvents.KeyManagementUpdate), async (keys) =>
+            return;
+        }
+
+        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXKeyManagementPolicies.Add ||
+                        it.Type == GXKeyManagementPolicies.Edit ||
+                        it.Type == GXKeyManagementPolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
     }
 
     private ValueTask<ItemsProviderResult<GXKeyManagementKey>> GetItems(GXItemsProviderRequest request)
@@ -203,11 +277,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -233,7 +303,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -246,13 +316,13 @@
         {
             if (table != null)
             {
-                table.Active = item;
+                table.RestoreSelection(item);
             }
             OnEdit();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -266,7 +336,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -287,7 +357,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -304,47 +374,64 @@
     /// <summary>
     /// Remove selected key management.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(GetKeyTypes(table.SingleOrDefault().Select(s => s.KeyType).ToArray()));
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = false,
+                    Items = GetKeyTypes(table.SingleOrDefault().Select(s => s.KeyType).ToArray())
+                });
+            OnDeleteConfirmation(confirmation);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected key management keys.
     /// </summary>
-    public void OnDeleteConfirmation(ConfirmArgs args)
+    public void OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm && Parent?.Active?.Keys != null)
             {
+                bool changed = false;
                 foreach (var it in table.SingleOrDefault())
                 {
-                    Parent.Active.Keys.Remove(it);
+                    changed |= Parent.Active.Keys.Remove(it);
+                }
+                if (changed)
+                    {
+                    GXEditContexts.For(Parent.Active).NotifyFieldChanged(new FieldIdentifier(Parent.Active, nameof(GXKeyManagement.Keys)));
                 }
                 InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

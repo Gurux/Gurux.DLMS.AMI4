@@ -1,75 +1,58 @@
-//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Client;
-using Gurux.DLMS.AMI.Client.Helpers;
-using Gurux.DLMS.AMI.Client.Helpers.Toaster;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Components;
-using Gurux.DLMS.AMI.Components.Account;
-using Gurux.DLMS.AMI.Data;
-using Gurux.DLMS.AMI.Hubs;
-using Gurux.DLMS.AMI.Internal;
-using Gurux.DLMS.AMI.Module;
-using Gurux.DLMS.AMI.Scheduler;
-using Gurux.DLMS.AMI.Server;
-using Gurux.DLMS.AMI.Server.Cron;
-using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Server.Midlewares;
-using Gurux.DLMS.AMI.Server.Prune;
-using Gurux.DLMS.AMI.Server.Services;
-using Gurux.DLMS.AMI.Services;
-using Gurux.DLMS.AMI.Shared;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.Mvc.ApplicationParts;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
-using Scalar.AspNetCore;
-using System.Diagnostics;
 using System.Net.Http.Headers;
-using System.Security.Claims;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using Yarp.ReverseProxy.Configuration;
+using Gurux.DLMS.AMI.Module;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Server.Services;
+using Gurux.DLMS.AMI.Services;
+using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Server.Midlewares;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Server;
+using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Components.Account;
+using Gurux.DLMS.AMI.Data;
+using Gurux.DLMS.AMI.Update;
+using Gurux.DLMS.AMI.Scheduler;
+using Gurux.DLMS.AMI.Server.Cron;
+using Gurux.DLMS.AMI.Server.Prune;
+using Gurux.DLMS.AMI.Hubs;
+using Gurux.DLMS.AMI.Components;
+using Gurux.DLMS.AMI.Server.Repository;
+using Gurux.DLMS.AMI.Db;
 
 namespace Gurux.DLMS.AMI
 {
@@ -78,10 +61,56 @@ namespace Gurux.DLMS.AMI
     /// </summary>
     internal class Program
     {
+        // Framework and static files are public: route them before cookie validation
+        // so parallel asset downloads cannot renew or clear the application session.
+        private static void MapPublicAssets(IEndpointRouteBuilder app)
+            => app.MapStaticAssets().ShortCircuit();
         private static async Task Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
-            ServerSettings.ServerAddress = builder.Configuration?.GetSection("Server")?.Get<ServerOptions>()?.Address;
+            if (args.Length == 1 && args[0] == "--health-check")
+            {
+                // The health-check process must not initialize or migrate the database again.
+                try
+                {
+                    using var probe = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                    string expected = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).FileVersion!;
+                    string actual = await probe.GetStringAsync(Environment.GetEnvironmentVariable("AMI_HEALTH_URL") ?? "http://127.0.0.1:8080/api/Configuration/Version");
+                    Environment.ExitCode = actual.Trim().Trim('"') == expected ? 0 : 1;
+                }
+                catch { Environment.ExitCode = 1; }
+                return;
+            }
+            CliCommand cliCommand = GXSettings.GetCliCommand(args, out string[] hostArgs);
+            var builder = WebApplication.CreateBuilder(hostArgs);
+            // Installation secrets and persistent paths survive release-directory switches.
+            string? deploymentSettings = Environment.GetEnvironmentVariable("AMI_SETTINGS_FILE");
+            if (!string.IsNullOrWhiteSpace(deploymentSettings))
+            {
+                if (!Path.IsPathFullyQualified(deploymentSettings))
+                {
+                    throw new InvalidOperationException("AMI_SETTINGS_FILE must be absolute.");
+                }
+                builder.Configuration.AddJsonFile(deploymentSettings, optional: false, reloadOnChange: false);
+                builder.Configuration.AddEnvironmentVariables();
+                builder.Configuration.AddCommandLine(hostArgs);
+            }
+            if (builder.Environment.IsDevelopment())
+            {
+                string? developmentSettings = Environment.GetEnvironmentVariable("AMI_DEVELOPMENT_SETTINGS");
+                builder.Configuration.AddJsonFile(developmentSettings ?? "appsettings.DevelopmentModules.json",
+                    optional: developmentSettings == null, reloadOnChange: false);
+                // Command-line overrides retain their usual highest precedence.
+                builder.Configuration.AddCommandLine(hostArgs);
+            }
+            using var loggerFactory = LoggerFactory.Create(logging => logging.AddConsole());
+            ILogger<GXConfiguration> logger = loggerFactory.CreateLogger<GXConfiguration>();
+            GXDbConnection? connection = await ServerSettings.ConnectToDatabase(builder, logger);
+            if (await GXSettings.TryHandleCliCommandAsync(connection, cliCommand, logger))
+            {
+                return;
+            }
+
+            ServerSettings.ServerAddress = builder.Configuration.GetSection("Server").Get<ServerOptions>()?.Address ?? throw new InvalidOperationException("The Server:Address setting is missing.");
             builder.Services.AddOutputCache(options =>
             {
                 //Add cache.
@@ -90,22 +119,25 @@ namespace Gurux.DLMS.AMI
             //Add connection manager.
             builder.Services.AddSingleton<IGXConnectionManager, GXConnectionManager>();
 
+            builder.Services.AddScoped<IGXAmiTemplateTokenProvider, Server.Token.GXSiteTemplateTokenProvider>();
+            builder.Services.AddScoped<IGXAmiTemplateTokenProvider, Server.Token.GXMaintenanceTemplateTokenProvider>();
+            builder.Services.AddScoped<IGXAmiTemplateTokenResolver, Server.Token.GXTemplateTokenResolver>();
             //Add module service.
             builder.Services.AddSingleton<IGXModuleService, GXModuleService>();
-            builder.Services.AddSingleton(PluginActionDescriptorChangeProvider.Instance);
-            builder.Services.AddSingleton<IActionDescriptorChangeProvider>(sp =>
-                sp.GetRequiredService<PluginActionDescriptorChangeProvider>());
-
-            //Add YARP reverse proxy.
-            builder.Services.AddReverseProxy();
-            builder.Services.AddSingleton<GXDbProxyConfigProvider>();
-            builder.Services.AddSingleton<IProxyConfigProvider>(sp => sp.GetRequiredService<GXDbProxyConfigProvider>());
-            builder.Services.AddHostedService<GXProxyConfigReloader>();
+            builder.Services.AddSingleton<Server.Module.GXDevelopmentModuleResolver>();
+            builder.Services.AddSingleton<Server.Module.GXModuleRuntime>();
+            builder.Services.AddSingleton<Server.Module.IGXModuleAuthenticationRuntime>(sp => sp.GetRequiredService<Server.Module.GXModuleRuntime>());
+            builder.Services.AddScoped<Server.Module.IGXModulePrincipalValidator, Server.Module.GXModulePrincipalValidator>();
+            builder.Services.AddSingleton<IGXAmiModuleServices>(sp => sp.GetRequiredService<Server.Module.GXModuleRuntime>());
+            builder.Services.AddSingleton<IGXAmiEmailSender, Server.Module.GXModuleEmailSender>();
+            builder.Services.AddSingleton<IGXNotification, Server.Module.GXModuleNotificationSender>();
+            builder.Services.AddSingleton<Hubs.GXWebPushNotifier>();
+            builder.Services.AddSingleton<Hubs.GXEmailNotifier>();
+            builder.Services.AddSingleton<Server.Module.GXModuleEndpointDataSource>();
+            builder.Services.AddHostedService<Server.Module.GXModuleStartupService>();
 
             builder.Services.Configure<CryptoOptions>(builder.Configuration.GetSection("Crypto"));
             CryptoOptions? signingKey = builder.Configuration.GetSection("Crypto").Get<CryptoOptions>();
-            builder.Services.AddScoped<IGXLocalStorage, GXLocalStorage>();
-            builder.Services.AddSingleton<IGXResourceStorage, GXResourceStorage>();
             builder.Services.AddHttpContextAccessor();
             //Suppor to GXLanguageService.
             builder.Services.AddSingleton<GXLanguageService>();
@@ -116,9 +148,17 @@ namespace Gurux.DLMS.AMI
                 .AddAuthenticationStateSerialization();
 
             builder.Services.AddScoped<ModuleLoader>();
+            builder.Services.AddScoped<GXConfirmationService>();
+            builder.Services.AddScoped<IGXAmiConfirmation>(sp => sp.GetRequiredService<GXConfirmationService>());
+            builder.Services.AddSingleton<IGXAmiModuleEventPublisher, Server.Module.GXModuleEventPublisher>();
+            builder.Services.AddScoped<Gurux.UI.Components.IGXProgress, Gurux.UI.Components.GXProgressService>();
+            builder.Services.AddScoped<Gurux.UI.Components.IGXNotificationService, Gurux.UI.Components.GXNotificationService>();
+            builder.Services.AddScoped<GXBackgroundTaskNotifications>();
+            builder.Services.AddScoped<Gurux.UI.Components.IGXMenuService, Gurux.UI.Components.GXMenuService>();
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
+            builder.Services.AddScoped<SignInManager<ApplicationUser>, GXApplicationSignInManager>();
 
             builder.Services.AddAuthentication(options =>
                 {
@@ -126,20 +166,12 @@ namespace Gurux.DLMS.AMI
                     //External signing e.g. Google is used.
                     options.DefaultSignInScheme = "AppAuth";
                 })
-            .AddPolicyScheme("AppAuth", "AppAuth", options =>
+            .AddPolicyScheme("AppAuth", displayName: null, options =>
             {
-                options.ForwardDefaultSelector = context =>
-                {
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    // Use JWT when Bearer-header.
-                    if (!string.IsNullOrEmpty(authHeader) &&
-                        authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return IdentityConstants.BearerScheme;
-                    }
-                    return IdentityConstants.ApplicationScheme;
-                };
+                options.ForwardDefaultSelector = Server.Module.GXModuleAuthenticationHandler.SelectScheme;
             })
+            .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Server.Module.GXModuleAuthenticationHandler>(
+                Server.Module.GXModuleAuthenticationHandler.SchemeName, _ => { })
             .AddIdentityCookies();
             if (signingKey != null)
             {
@@ -155,33 +187,13 @@ namespace Gurux.DLMS.AMI
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     RequireExpirationTime = true,
-                    ValidateLifetime = true
+                    ValidateLifetime = true,
+                    LifetimeValidator = GXPatValidator.ValidateLifetime
                 };
                 options.Events = new JwtBearerEvents
                 {
-                    //Signal-R needs special handling to get token from query string.
-                    OnMessageReceived = context =>
-                    {
-                        var path = context.HttpContext.Request.Path;
-                        var accessToken = context.Request.Query["access_token"];
-
-                        var authHeader = context.Request.Headers["Authorization"].ToString();
-                        Console.WriteLine($"[OnMessageReceived] path={path}");
-                        Console.WriteLine($"  access_token (query) = {accessToken}");
-                        Console.WriteLine($"  Authorization header = {authHeader}");
-
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/guruxami"))
-                        {
-                            context.Token = accessToken;
-                        }
-                        return Task.CompletedTask;
-                    },
-                    OnAuthenticationFailed = context =>
-                    {
-                        Console.WriteLine("[JwtBearer] Authentication failed: " +
-                                          context.Exception.Message);
-                        return Task.CompletedTask;
-                    }
+                    OnMessageReceived = GXPatValidator.ReadHubTokenAsync,
+                    OnTokenValidated = GXPatValidator.ValidateBearerAsync
                 };
             });
             }
@@ -191,38 +203,43 @@ namespace Gurux.DLMS.AMI
                     .RequireAuthenticatedUser()
                     .Build();
                 options.AddPolicy("NotBanned", policy => policy.RequireAssertion(ctx => !ctx.User.HasClaim(c => c.Type == "banned" && c.Value == "true")));
-                ServerRequirements.AddServerRequirements(options, ServerSettings.ServerAddress);
             });
-            GXActionDescriptorChangeProvider adcp = new GXActionDescriptorChangeProvider();
-            builder.Services.AddSingleton<IActionDescriptorChangeProvider>(adcp);
-            builder.Services.AddSingleton(adcp);
+            builder.Services.AddSingleton<IGXAmiPolicyRegistry, InMemoryPolicyRegistry>();
+            builder.Services.AddSingleton<IAuthorizationPolicyProvider, GXAuthorizationPolicyProvider>();
+            builder.Services.AddScoped<IAuthorizationHandler, GXAuthorizationRequirementHandler>();
 
-            using var loggerFactory = LoggerFactory.Create(s =>
-            {
-                s = builder.Logging;
-            });
-            ILogger<GXConfiguration> logger = loggerFactory.CreateLogger<GXConfiguration>();
-            IGXHost host = await ServerSettings.ConnectToDb(builder, logger);
-            ClaimsPrincipal? adminUser = null;
-            if (host != null)
-            {
-                adminUser = ServerSettings.GetDefaultAdminUser(host);
-            }
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
             builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddErrorDescriber<CustomIdentityErrorDescriber>()
                 .AddRoles<ApplicationRole>()  // Enable role management
                 .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddSignInManager()
+                .AddSignInManager<GXApplicationSignInManager>()
                 .AddDefaultTokenProviders();
+            //Black list is added after user is authenticated.
+            builder.Services.AddSingleton<GXCookieAuthenticationEvents>();
+            builder.Services.AddMemoryCache();
+            builder.Services.AddSingleton<GXUserPrincipalCache>();
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.EventsType = typeof(GXCookieAuthenticationEvents);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.ExpireTimeSpan = TimeSpan.FromDays(14);
+                options.SlidingExpiration = true;
+                options.LoginPath = "/Account/Login";
+                options.LogoutPath = "/Account/Logout";
+                options.AccessDeniedPath = "/Account/AccessDenied";
+            });
 
-            builder.Services.AddTransient<IGXAmiContextAccessor, GXAmiContextAccessor>();
-            builder.Services.AddScoped<IGXCookieStorage, GXCookieStorage>();
-            builder.Services.AddScoped<ConfirmBase>();
-            builder.Services.AddSingleton<IGXToasterService>(new GXToasterService());
+            builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, GXUserClaimsPrincipalFactory>();
+            builder.Services.AddScoped<ClientCacheService>();
+            builder.Services.AddScoped<CachedHttpClient>();
             //Add crypto service
-            builder.Services.AddTransient<IAmiCryptoService, GXCryptoService>();
-            // register the scope authorization handler
-            builder.Services.AddSingleton<IAuthorizationHandler, ScopedAccessHandler>();
+            builder.Services.AddTransient<IGXAmiCryptoService, GXCryptoService>();
+            builder.Services.AddScoped<Client.Shared.KeyManagement.IKeyIdentityResolver, Server.Services.KeyManagement.GXKeyIdentityResolver>();
+            builder.Services.AddScoped<Server.Services.KeyManagement.GXKeyAcquisitionService>();
+            builder.Services.AddScoped<Server.Services.KeyManagement.GXDeviceSettingsService>();
             builder.Services.AddControllersWithViews().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
@@ -233,15 +250,7 @@ namespace Gurux.DLMS.AMI
                      options.DataAnnotationLocalizerProvider = (type, factory) =>
                          factory.Create(typeof(Properties.Resources));
                  });
-            builder.Services.AddRazorPages().AddRazorPagesOptions(options =>
-            {
-                // Vain Admin-rooli voi avata /Account/Register
-                options.Conventions.AuthorizeAreaPage(
-                    areaName: "Identity",
-                    pageName: "/Account/Register",
-
-                    policy: "admin");
-            }); ;
+            builder.Services.AddRazorPages();
             // ForwardedHeaders for reverse-proxy (Nginx/Traefik)
             builder.Services.Configure<ForwardedHeadersOptions>(options =>
             {
@@ -249,27 +258,66 @@ namespace Gurux.DLMS.AMI
                 // Add trusted proxy addresses:
                 // options.KnownProxies.Add(IPAddress.Parse("10.0.0.1"));
             });
-
             //Add SignalR.
-            builder.Services.AddSignalR();
-            //Add performance settings.
-            builder.Services.AddSingleton<GXPerformanceSettings>();
+            builder.Services.AddSingleton<GXPatConnections>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<GXPatConnections>());
+            builder.Services.AddSignalR().AddHubOptions<GuruxAMiHub>(options => options.AddFilter<GXPatConnections>());
+            builder.Services.AddSingleton<NotificationCache>();
+            builder.Services.Configure<Server.Services.ImageStorageOptions>(builder.Configuration.GetSection("ImageStorage"));
+            builder.Services.AddSingleton<Server.Services.GXImageStorage>();
+            builder.Services.AddHostedService<GXServerNotificationConfiguration>();
+            builder.Services.AddHostedService<NotificationFlushService>();
+            builder.Services.AddSingleton<Gurux.DLMS.AMI.Module.AmiEventHub>(sp =>
+                new Gurux.DLMS.AMI.Module.AmiEventHub(error => sp.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("ModuleEvents").LogError(error, "Module event subscriber failed.")));
+            builder.Services.AddSingleton<Gurux.DLMS.AMI.Module.IGXAmiEvents>(sp =>
+                sp.GetRequiredService<Gurux.DLMS.AMI.Module.AmiEventHub>());
+            builder.Services.AddSingleton<Gurux.DLMS.AMI.Module.IGXAmiUserActivityStore, GXUserActivityStore>();
+            builder.Services.AddSingleton<GXDiagnosticsService>();
+            builder.Services.AddSingleton<Gurux.DLMS.AMI.Module.IGXAmiDiagnosticsSource>(sp => sp.GetRequiredService<GXDiagnosticsService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<GXDiagnosticsService>());
+
             //Add cron.
-            builder.Services.AddHostedService<IGXCronService, GXCronService>();
-            builder.Services.AddScoped<IGXCronTask, GXUpdater>();
+            builder.Services.AddSingleton<GXBackgroundTaskRunner>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<GXBackgroundTaskRunner>());
+            builder.Services.AddHostedService<IGXBackgroundService, GXCronService>();
+            builder.Services.Configure<CatalogUpdaterOptions>(builder.Configuration.GetSection("Updater"));
+            builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CatalogUpdaterOptions>>().Value);
+            builder.Services.AddScoped<GXCatalogStore>();
+            builder.Services.AddScoped<GXScriptCatalogStore>();
+            builder.Services.AddScoped<GXScriptCatalogService>();
+            builder.Services.AddScoped<GXUpdateStatusStore>();
+            builder.Services.AddScoped<GXUpdateSettingsStore>();
+            builder.Services.AddScoped<GXUpdateEmailNotifier>();
+            builder.Services.AddScoped<GXCatalogSynchronizer>();
+            builder.Services.AddHttpClient<GXLanguageCatalog>(client => client.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI/4"));
+            builder.Services.AddHttpClient<GXCatalogClient>(client => client.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI/4"));
+            builder.Services.AddHttpClient("TutorialVideos", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI/4");
+            });
+            builder.Services.AddHttpClient("ModulePackages");
+            builder.Services.AddHttpClient("ManufacturerUpdates");
+            builder.Services.AddAmiHttpProxy(builder.Configuration.GetSection("HttpProxyLimits"));
+            builder.Services.AddScoped<GXUpdater>();
+            builder.Services.AddScoped<IGXBackgroundTask>(sp => sp.GetRequiredService<GXUpdater>());
+            builder.Services.AddSingleton(new GXBackgroundTaskRegistration(GXBackgroundTaskIds.Update,
+                sp => sp.GetRequiredService<GXUpdater>(), Scheduled: true));
+            foreach (var taskId in new[] { GXBackgroundTaskIds.AgentUpdate, GXBackgroundTaskIds.ModuleUpdate, GXBackgroundTaskIds.ManufacturerUpdate })
+            {
+                builder.Services.AddSingleton(new GXBackgroundTaskRegistration(taskId,
+                    sp => new GXUpdateTask(taskId, sp.GetRequiredService<GXUpdater>())));
+            }
             //Add prune.
             builder.Services.AddHostedService<IGXPruneService, GXPruneService>();
 
             builder.Services.AddTransient<UserManager<ApplicationUser>, GXApplicationUserManager>();
 
             //Add task late bind service
-            builder.Services.AddSingleton<ITaskLateBindHandler, GXTaskLateBindService>();
-            //Add subtotal service
-            builder.Services.AddHostedService<ISubtotal, GXSubtotalService>();
-            //Add report service
-            builder.Services.AddHostedService<IReport, GXReportService>();
-            //Add events listener.
-            builder.Services.AddEventService();
+            builder.Services.AddSingleton<GXTaskLateBindService>();
+            builder.Services.AddSingleton<ITaskLateBindHandler>(sp => sp.GetRequiredService<GXTaskLateBindService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<GXTaskLateBindService>());
             //Add repositories.
             ServerSettings.AddRepositories(builder.Services);
             SchedulerOptions? s = builder.Configuration?.GetSection("Scheduler").Get<SchedulerOptions>();
@@ -289,15 +337,12 @@ namespace Gurux.DLMS.AMI
             {
                 logger.LogInformation("Scheduler service is disabled.");
             }
-            GXNotifierService n = new GXNotifierService(builder.Services.BuildServiceProvider());
-            builder.Services.AddSingleton(x => n);
-            builder.Services.AddSingleton<IGXNotifier>(x => n);
-            builder.Services.AddSingleton<IGXNotifier2>(x => n);
-            builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+            builder.Services.AddSingleton<IdentityNoOpEmailSender>();
+            builder.Services.AddSingleton<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<IdentityNoOpEmailSender>());
+            builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender>(sp => sp.GetRequiredService<IdentityNoOpEmailSender>());
             builder.Services.AddControllers();
             builder.Services.AddProblemDetails();
             builder.Services.AddExceptionHandler<GXExceptionHandler>();
-
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("Open", policy =>
@@ -321,10 +366,17 @@ namespace Gurux.DLMS.AMI
                 client.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });
+
             var app = builder.Build();
+            app.MapGroup("/account").MapIdentityApi<ApplicationUser>()
+                .Add(IdentityComponentsEndpointRouteBuilderExtensions.PreferIdentityConfirmationPage);
+            app.UseRouting();
+            // User action logging requires the authenticated request principal.
+            app.UseAuthentication();
+            app.UseMiddleware<Server.Module.GXModuleAuthenticationGuard>();
             //Logging must be before exception handler.
             app.UseRequestResponseLogging();
-            app.UseExceptionHandler();            
+            app.UseExceptionHandler();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -336,23 +388,21 @@ namespace Gurux.DLMS.AMI
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            //Swagger UI is used.
-            app.UseSwaggerUI(options =>
+            app.UseStatusCodePagesWithReExecute("/404");
+
+            if (connection != null && (await ServerSettings.GetDefaultAdminUserAsync(connection)) != null)
             {
-                options.SwaggerEndpoint("/openapi/v1.json", "Gurux.DLMS.AMI API v1");
-            });
-            //Add scalar API reference.
-            app.MapScalarApiReference();
+                app.UseMaintenanceModeHandler();
+            }
+            app.UseMiddleware<Server.Module.GXModuleMiddleware>();
             app.UseHttpsRedirection();
-            app.UseAuthentication();
-            //Black list is added after user is authenticated.
-            app.UseMiddleware<GXBlackListMidleware>();
-            app.MapHub<GuruxAMiHub>("/guruxami");
-            app.UseRouting();
+            app.MapHub<GuruxAMiHub>("/guruxami", options => options.CloseOnAuthenticationExpiration = true).RequireAuthorization();
             app.UseCors("Open");
             app.UseAuthorization();
+            app.UseRateLimiter();
             app.UseAntiforgery();
-            app.MapStaticAssets();
+            MapPublicAssets(app);
+            ((IEndpointRouteBuilder)app).DataSources.Add(app.Services.GetRequiredService<Server.Module.GXModuleEndpointDataSource>());
             var razor = app.MapRazorComponents<App>()
                 .AddInteractiveWebAssemblyRenderMode()
                 .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
@@ -360,84 +410,21 @@ namespace Gurux.DLMS.AMI
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
 
-            if (host != null && ServerSettings.GetDefaultAdminUser(host) != null)
-            {
-                app.UseMaintenanceModeHandler();
-            }
             app.MapControllers();
-            app.MapGet("/openapi/v1.json", async (HttpRequest req, CancellationToken ct) =>
+            // The deployment marker is added after publish, so it is absent from MapStaticAssets' build manifest.
+            app.MapGet("/version.json", (HttpContext context) =>
             {
-                return GXOpenApiSchemaFilter.MakeOpenApiDocument();
-            });
-            if (host != null && ServerSettings.GetDefaultAdminUser(host) != null &&
-                signingKey?.Key == "47757275784C746447757275784C746447757275784C746447757275784C7464")
+                context.Response.Headers.CacheControl = "no-store";
+                string marker = Path.Combine(app.Environment.WebRootPath, "version.json");
+                return System.IO.File.Exists(marker) ? (IResult)Results.File(marker, "application/json") : Results.NotFound();
+            }).AllowAnonymous();
+            await PolicyRepository.InitializeDefaultPolicies(app.Services.GetRequiredService<IDbConnectionFactory>(),
+                app.Services.GetRequiredService<IGXAmiPolicyRegistry>());
+            await using (var logMigration = await app.Services.GetRequiredService<IDbConnectionFactory>().GetConnectionAsync())
             {
-
-                using (var scope = app.Services.CreateScope())
-                {
-                    var log = new GXSystemLog(TraceLevel.Warning)
-                    {
-                        CreationTime = DateTime.Now,
-                        Message = "Change the default signing key to a custom one.",
-                    };
-                    var repository = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                    await repository.AddAsync(TargetType.System, [log]);
-                }
+                await GXLogStore.EnsureBuiltinTypesAsync(logMigration);
             }
-
-            //Create localized resources.
-            if (host != null && adminUser != null && !host.Connection.SelectAll<GXLocalizedResource>().Any())
-            {
-                using (var scope = app.Services.CreateScope())
-                {
-                    var admin = new GXUser() { Id = ClientHelpers.GetUserId(adminUser) };
-                    var enumTypeRepository = scope.ServiceProvider.GetRequiredService<IEnumTypeRepository>();
-                    var languages = host.Connection.SelectAll<GXLanguage>();
-                    await ServerHelpers.UpdateLanguageResourcesAsync(host,
-                        enumTypeRepository, languages, admin);
-                }
-            }
-            app.MapGet("/api/module/load", ([FromServices] IGXModuleService modules, string id) =>
-            {
-                /*
-                var module = modules.Get(id);
-                if (module == null ||
-                    string.IsNullOrEmpty(module.LoadContext?.Path) ||
-                    !System.IO.File.Exists(module.LoadContext.Path))
-                {
-                    return Results.NotFound();
-                }
-                return Results.File(File.ReadAllBytes(module.LoadContext.Path), "application/octet-stream", module.Name);
-                */
-            });
-
-
-            app.MapGet("/debug/controllers", (ApplicationPartManager pm) =>
-            {
-                var feature = new ControllerFeature();
-                pm.PopulateFeature(feature);
-                return feature.Controllers.Select(t => t.FullName).OrderBy(x => x);
-            });
-
-            app.MapGet("/debug/apis", (IApiDescriptionGroupCollectionProvider api) =>
-            {
-                return api.ApiDescriptionGroups.Items
-                    .SelectMany(g => g.Items)
-                    .Select(d => $"{d.HttpMethod} {d.RelativePath} -> {d.ActionDescriptor.DisplayName}")
-                    .OrderBy(x => x);
-            });
-
-            app.MapGet("/debug/endpoints", (IEnumerable<EndpointDataSource> sources) =>
-            {
-                return sources.SelectMany(s => s.Endpoints)
-                    .OfType<RouteEndpoint>()
-                    .Select(e => e.RoutePattern.RawText)
-                    .Distinct()
-                    .OrderBy(x => x);
-            });
-
             // Register the reverse proxy routes
-            app.MapReverseProxy();
             app.Run();
         }
     }

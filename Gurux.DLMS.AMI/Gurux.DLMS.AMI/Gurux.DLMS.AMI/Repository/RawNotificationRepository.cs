@@ -1,34 +1,29 @@
-//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using System.Data;
 using System.Data.Common;
@@ -36,9 +31,12 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
+using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -55,15 +53,20 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
     private readonly IDbConnectionFactory factory;
     private readonly ClaimsPrincipal user;
     private readonly IAuthorizationService authorization;
+    private readonly NotificationCache notifications;
 
     /// <summary>Creates a repository scoped to the authenticated request user.</summary>
     public RawNotificationRepository(IDbConnectionFactory dbFactory, IHttpContextAccessor context,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService, NotificationCache notificationCache)
     {
         factory = dbFactory;
         user = context.HttpContext?.User ?? throw new UnauthorizedAccessException();
-        if (user.Identity?.IsAuthenticated != true) throw new UnauthorizedAccessException();
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            throw new UnauthorizedAccessException();
+        }
         authorization = authorizationService;
+        notifications = notificationCache;
     }
 
     private GXSelectArgs Agents(Guid? id = null, bool allUsers = true)
@@ -85,7 +88,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
                 GXSql.Exists<GXAgentGroupAgent, GXAgentGroup>(m => m.AgentGroupId, g => g.Id, groups));
             query.Where.And<GXAgent>(a => GXSql.Exists<GXAgent, GXAgentGroupAgent>(a => a.Id, m => m.AgentId, agents));
         }
-        if (id.HasValue) query.Where.And<GXAgent>(a => a.Id == id.Value);
+        if (id.HasValue)
+        {
+            query.Where.And<GXAgent>(a => a.Id == id.Value);
+        }
         return query;
     }
 
@@ -98,11 +104,16 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
 
     private async Task AgentAsync(GXDbConnection db, DbTransaction tx, Guid id, CancellationToken ct)
     {
-        if (id == Guid.Empty) throw new ArgumentException("Agent identifier is required.");
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("Agent identifier is required.");
+        }
         var query = Agents(id);
-        query.Where.And<GXAgent>(a => a.Active == true);
+        query.Where.And<GXAgent>(a => a.Enabled == true);
         if (await db.SingleOrDefaultAsync<GXAgent>(tx, query, ct) == null)
+        {
             throw new UnauthorizedAccessException("Agent is inactive or inaccessible.");
+        }
     }
 
     private async Task<T> MutateAsync<T>(string policy,
@@ -112,25 +123,32 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         await MutationGate.WaitAsync(ct);
         try
         {
-            await using var db = await factory.GetConnectionAsync(ct);
+            await using var db = await factory.GetHistoryConnectionAsync(ct);
             await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, ct);
             var result = await action(db, tx);
             await tx.CommitAsync(ct);
             return result;
         }
-        finally { MutationGate.Release(); }
+        finally
+        {
+            MutationGate.Release();
+        }
     }
 
     private async Task AuthorizeAsync(string policy)
     {
         if (!(await authorization.AuthorizeAsync(user, policy)).Succeeded)
+        {
             throw new UnauthorizedAccessException();
+        }
     }
 
     private static DateTimeOffset Expires(TimeSpan duration)
     {
         if (duration < TimeSpan.FromMilliseconds(1))
+        {
             throw new ArgumentOutOfRangeException(nameof(duration), "Lease duration must be at least one millisecond.");
+        }
         return DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.Add(duration).ToUnixTimeMilliseconds());
     }
 
@@ -146,7 +164,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         query.Columns.Exclude<GXRawNotification>(n => n.Processor!);
         var rows = tx == null ? await db.SelectAsync<GXRawNotification>(query, ct)
             : await db.SelectAsync<GXRawNotification>(tx, query, ct);
-        if (rows.Count == 0) return rows;
+        if (rows.Count == 0)
+        {
+            return rows;
+        }
         var ids = rows.Select(n => n.Id).ToArray();
         var processorsQuery = GXSelectArgs.Select<GXRawNotification>(n => new { n.Id, n.Processor }, n => ids.Contains(n.Id));
         processorsQuery.Joins.AddLeftJoin<GXRawNotification, GXAgent>(n => n.Processor!, a => a.Id);
@@ -175,34 +196,45 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         Guid processorId, Guid token, CancellationToken ct)
     {
         await AgentAsync(db, tx, processorId, ct);
-        if (token == Guid.Empty) throw new ArgumentException("Lease token is required.");
+        if (token == Guid.Empty)
+        {
+            throw new ArgumentException("Lease token is required.");
+        }
         var query = Query();
         query.Where.And<GXRawNotification>(n => n.LeaseToken == token);
         var records = await SelectAsync(db, tx, query, ct);
         var now = DateTimeOffset.UtcNow;
         if (records.Count == 0 || records.Any(n => n.Processor?.Id != processorId || !Active(n, now)))
+        {
             throw new InvalidOperationException("The connection lease is missing, expired or owned by another processor.");
+        }
         return await ConnectionAsync(db, tx, records[0], ct);
     }
 
-    private static Task SaveAsync(GXDbConnection db, DbTransaction tx, GXRawNotification record, CancellationToken ct) =>
+    private static Task<int> SaveAsync(GXDbConnection db, DbTransaction tx, GXRawNotification record, CancellationToken ct) =>
         db.UpdateAsync(tx, GXUpdateArgs.Update(record, n => new {
             n.Status, n.Processor, n.LeaseToken, n.LeaseExpires, n.Attempts, n.NextAttempt, n.Processed, n.Error }), ct);
 
     /// <inheritdoc />
-    public Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXRawNotification> notifications, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXRawNotification> notifications, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(notifications);
         var input = notifications.ToArray();
-        if (input.Length == 0) throw new ArgumentException("Notifications are required.");
-        return MutateAsync<IEnumerable<Guid>>(GXRawNotificationPolicies.Add, async (db, tx) =>
+        if (input.Length == 0)
+        {
+            throw new ArgumentException("Notifications are required.");
+        }
+        var (Ids, Deliveries) = await MutateAsync(GXRawNotificationPolicies.Add, async (db, tx) =>
         {
             var ids = new List<Guid>();
+            var added = new List<GXRawNotification>();
             foreach (var item in input)
             {
                 if (item == null || item.Id == Guid.Empty || item.Agent == null || item.ConnectionId == Guid.Empty ||
                     item.SequenceNumber < 0 || item.Received == null || (!item.ConnectionClosed && (item.Value == null || item.Value.Length == 0)))
+                {
                     throw new ArgumentException("Each chunk requires an identifier, receiving agent, connection, sequence, timestamp and data (unless closing).");
+                }
                 await AgentAsync(db, tx, item.Agent.Id, cancellationToken);
                 // Check globally: an inaccessible duplicate must never overwrite another user's data.
                 var existing = (await SelectAsync(db, tx,
@@ -213,7 +245,9 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
                         existing.SequenceNumber != item.SequenceNumber || existing.Received?.ToUnixTimeMilliseconds() != item.Received.Value.ToUnixTimeMilliseconds() ||
                         existing.Interface != item.Interface || existing.ConnectionClosed != item.ConnectionClosed ||
                         !BytesEqual(existing.Sender, item.Sender) || !BytesEqual(existing.Value, item.Value))
+                    {
                         throw new ArgumentException("Notification identifier already exists with different content.");
+                    }
                     ids.Add(existing.Id);
                     continue;
                 }
@@ -221,7 +255,9 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
                 // Enforce transport ordering at ingestion so a parser never sees a later chunk before an earlier one.
                 if (connection.Any(n => n.ConnectionClosed || n.Status == RawNotificationStatus.Completed) ||
                     item.SequenceNumber != (connection.Count == 0 ? 0 : connection[^1].SequenceNumber + 1))
+                {
                     throw new ArgumentException("Chunks must arrive in sequence starting at zero; a closed connection cannot receive more data.");
+                }
                 var failed = connection.FirstOrDefault(n => n.Status == RawNotificationStatus.Failed);
                 var record = new GXRawNotification {
                     Id = item.Id, Agent = new GXAgent { Id = item.Agent.Id }, Sender = item.Sender,
@@ -232,9 +268,28 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
                 };
                 await db.InsertAsync(tx, GXInsertArgs.Insert(record), cancellationToken);
                 ids.Add(record.Id);
+                added.Add(record);
             }
-            return ids;
+            // Resolve recipients inside the write transaction, but publish only after it commits.
+            // An identical retry is not in added and must not wake parsers a second time.
+            var deliveries = new List<(List<string> Users, GXTarget Target)>();
+            foreach (var group in added.GroupBy(n => n.Agent!.Id))
+            {
+                var users = await GXRepositoryUsers.GetNotifiedUsersAsync(factory, typeof(GXAgent), group.Key,
+                    NotificationAction.Add, GXRawNotificationPolicies.View, db, tx, this.notifications);
+                foreach (var record in group)
+                {
+                    deliveries.Add((users, new GXTarget(GXRawNotificationPolicies.Add, record.Id)));
+                }
+            }
+            return (Ids: ids, Deliveries: deliveries);
         }, cancellationToken);
+        foreach (var (Users, Target) in Deliveries)
+        {
+            this.notifications.Add(Users, Target);
+        }
+
+        return Ids;
     }
 
     private static bool BytesEqual(byte[]? a, byte[]? b) => a == null ? b == null : b != null && a.AsSpan().SequenceEqual(b);
@@ -246,7 +301,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         {
             _ = Expires(leaseDuration);
             await AgentAsync(db, tx, processorId, cancellationToken);
-            if (receivingAgentId.HasValue) await AgentAsync(db, tx, receivingAgentId.Value, cancellationToken);
+            if (receivingAgentId.HasValue)
+            {
+                await AgentAsync(db, tx, receivingAgentId.Value, cancellationToken);
+            }
             var query = Query();
             query.Where.And<GXRawNotification>(n => n.Status != RawNotificationStatus.Completed);
             if (receivingAgentId.HasValue)
@@ -261,7 +319,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             var selected = candidates.GroupBy(n => (n.Agent!.Id, n.ConnectionId))
                 .Where(g => g.All(n => !Active(n, now) && (n.Status != RawNotificationStatus.Failed || n.NextAttempt <= now)))
                 .OrderBy(g => g.Min(n => n.Received)).ThenBy(g => g.Key.Id).ThenBy(g => g.Key.ConnectionId).FirstOrDefault();
-            if (selected == null) return Array.Empty<GXRawNotification>();
+            if (selected == null)
+            {
+                return [];
+            }
             var chunks = await ConnectionAsync(db, tx, selected.First(), cancellationToken);
             var token = Guid.NewGuid();
             var expiration = Expires(leaseDuration);
@@ -303,7 +364,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             var expiration = Expires(leaseDuration);
             var chunks = await LeaseAsync(db, tx, processorId, leaseToken, cancellationToken);
             var currentExpiration = chunks.First(n => n.LeaseToken == leaseToken).LeaseExpires!.Value;
-            if (expiration < currentExpiration) expiration = currentExpiration;
+            if (expiration < currentExpiration)
+            {
+                expiration = currentExpiration;
+            }
             foreach (var chunk in chunks.Where(n => n.LeaseToken == leaseToken))
             {
                 chunk.LeaseExpires = expiration;
@@ -318,7 +382,9 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         {
             var chunks = await LeaseAsync(db, tx, processorId, leaseToken, cancellationToken);
             if (!chunks[^1].ConnectionClosed || chunks.Any(n => n.LeaseToken != leaseToken))
+            {
                 throw new InvalidOperationException("Read all chunks including the connection-end record before completing the connection.");
+            }
             foreach (var chunk in chunks)
             {
                 chunk.Status = RawNotificationStatus.Completed;
@@ -334,7 +400,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
     public Task FailAsync(Guid processorId, Guid leaseToken, string error, DateTimeOffset? nextAttempt = null, CancellationToken cancellationToken = default) =>
         MutateAsync(GXRawNotificationPolicies.Edit, async (db, tx) =>
         {
-            if (string.IsNullOrWhiteSpace(error)) throw new ArgumentException("An error description is required.");
+            if (string.IsNullOrWhiteSpace(error))
+            {
+                throw new ArgumentException("An error description is required.");
+            }
             var chunks = await LeaseAsync(db, tx, processorId, leaseToken, cancellationToken);
             foreach (var chunk in chunks)
             {
@@ -354,15 +423,27 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         IEnumerable<Guid> notifications, CancellationToken ct)
     {
         var ids = notifications.Distinct().ToArray();
-        if (ids.Length == 0 || ids.Contains(Guid.Empty)) throw new ArgumentException("Notification identifiers are required.");
+        if (ids.Length == 0 || ids.Contains(Guid.Empty))
+        {
+            throw new ArgumentException("Notification identifiers are required.");
+        }
         var query = Query();
         query.Where.And<GXRawNotification>(n => ids.Contains(n.Id));
         var selected = await SelectAsync(db, tx, query, ct);
-        if (selected.Count != ids.Length) throw new UnauthorizedAccessException("A selected notification is missing or inaccessible.");
+        if (selected.Count != ids.Length)
+        {
+            throw new UnauthorizedAccessException("A selected notification is missing or inaccessible.");
+        }
         var result = new List<GXRawNotification>();
         foreach (var group in selected.GroupBy(n => (n.Agent!.Id, n.ConnectionId)))
+        {
             result.AddRange(await ConnectionAsync(db, tx, group.First(), ct));
-        if (result.Any(n => Active(n, DateTimeOffset.UtcNow))) throw new InvalidOperationException("The connection has an active lease.");
+        }
+
+        if (result.Any(n => Active(n, DateTimeOffset.UtcNow)))
+        {
+            throw new InvalidOperationException("The connection has an active lease.");
+        }
         return result;
     }
 
@@ -375,7 +456,9 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             if (chunks.GroupBy(n => (n.Agent!.Id, n.ConnectionId)).Any(g =>
                 g.Any(n => n.Status == RawNotificationStatus.Completed) ||
                 !g.Any(n => n.Status == RawNotificationStatus.Failed || n.Status == RawNotificationStatus.Processing)))
+            {
                 throw new InvalidOperationException("Only failed or expired connections can be restarted.");
+            }
             foreach (var chunk in chunks)
             {
                 chunk.Status = RawNotificationStatus.Pending;
@@ -391,7 +474,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         {
             ArgumentNullException.ThrowIfNull(notifications);
             foreach (var chunk in await SelectedConnectionsAsync(db, tx, notifications, cancellationToken))
+            {
                 await db.DeleteAsync(tx, GXDeleteArgs.Delete<GXRawNotification>(n => n.Id == chunk.Id), cancellationToken);
+            }
+
             return true;
         }, cancellationToken);
 
@@ -399,7 +485,10 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
     public Task ClearAsync(DateTimeOffset processedBefore, CancellationToken cancellationToken = default) =>
         MutateAsync(GXRawNotificationPolicies.Clear, async (db, tx) =>
         {
-            if (processedBefore == default) throw new ArgumentException("A retention cutoff is required.");
+            if (processedBefore == default)
+            {
+                throw new ArgumentException("A retention cutoff is required.");
+            }
             var query = Query();
             query.Where.And<GXRawNotification>(n => n.Status == RawNotificationStatus.Completed && n.Processed < processedBefore);
             var chunks = await SelectAsync(db, tx, query, cancellationToken);
@@ -407,8 +496,12 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             {
                 var connection = await ConnectionAsync(db, tx, group.First(), cancellationToken);
                 if (connection.All(n => n.Status == RawNotificationStatus.Completed && n.Processed < processedBefore))
+                {
                     foreach (var chunk in connection)
+                    {
                         await db.DeleteAsync(tx, GXDeleteArgs.Delete<GXRawNotification>(n => n.Id == chunk.Id), cancellationToken);
+                    }
+                }
             }
             return true;
         }, cancellationToken);
@@ -418,28 +511,48 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         ListRawNotificationsResponse? response = null, CancellationToken cancellationToken = default)
     {
         await AuthorizeAsync(GXRawNotificationPolicies.View);
-        if (request?.Index < 0 || request?.Count < 0) throw new ArgumentOutOfRangeException(nameof(request));
+        if (request?.Index < 0 || request?.Count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(request));
+        }
         var query = Query(request == null || request.AllUsers);
-        if (request?.Filter != null) query.Where.FilterBy(request.Filter);
-        if (request?.Included?.Any() == true) query.Where.And<GXRawNotification>(n => request.Included.Contains(n.Id));
-        if (request?.Exclude?.Any() == true) query.Where.And<GXRawNotification>(n => !request.Exclude.Contains(n.Id));
-        await using var db = await factory.GetConnectionAsync(cancellationToken);
+        if (request?.Filter != null)
+        {
+            query.Where.FilterBy(request.Filter);
+        }
+        if (request?.Included?.Any() == true)
+        {
+            query.Where.And<GXRawNotification>(n => request.Included.Contains(n.Id));
+        }
+        if (request?.Exclude?.Any() == true)
+        {
+            query.Where.And<GXRawNotification>(n => !request.Exclude.Contains(n.Id));
+        }
+        GXDateTimeFilters.Apply<GXRawNotification>(query, request?.DateFilters);
+        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
         await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         if (response != null)
         {
             var count = GXSelectArgs.Select<GXRawNotification>(n => GXSql.Count(1));
             count.Where.Append(query.Where);
-            response.Count = await db.SingleOrDefaultAsync<int>(tx, count, cancellationToken);
+            response.Count = await db.SingleOrDefaultAsync<long>(tx, count, cancellationToken);
         }
-        query.Index = (uint)(request?.Index ?? 0);
-        query.Count = (uint)(request?.Count ?? 0);
+        query.Index = (request?.Index ?? 0);
+        query.Count = (request?.Count ?? 0);
         query.Descending = request?.Descending ?? false;
-        if (!string.IsNullOrEmpty(request?.OrderBy)) query.OrderBy.Add<GXRawNotification>(request.OrderBy);
-        else query.OrderBy.Add<GXRawNotification>(n => n.Received!);
+        if (!string.IsNullOrEmpty(request?.OrderBy))
+        {
+            query.OrderBy.Add<GXRawNotification>(request.OrderBy);
+        }
+        else
+        {
+            query.OrderBy.Add<GXRawNotification>(n => n.Received!);
+        }
+
         query.OrderBy.Add<GXRawNotification>(n => n.Id);
         var rows = await SelectAsync(db, tx, query, cancellationToken);
         await tx.CommitAsync(cancellationToken);
-        if (response != null) response.RawNotifications = rows;
+        response?.RawNotifications = rows;
         return rows;
     }
 
@@ -451,7 +564,7 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         var query = Query();
         query.Where.And<GXRawNotification>(n => n.Id == id);
         if (columns != null) { query.Columns.Clear(); query.Columns.Add(columns); query.Columns.Add<GXRawNotification>(n => n.Id); }
-        await using var db = await factory.GetConnectionAsync(cancellationToken);
+        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
         await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var row = (await SelectAsync(db, tx, query, cancellationToken)).SingleOrDefault()
             ?? throw new KeyNotFoundException("Raw notification not found.");

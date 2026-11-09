@@ -1,0 +1,109 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@inject HttpClient Http
+@implements IDisposable
+
+@if (!string.IsNullOrWhiteSpace(_logo))
+{
+    @if (_logo.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+    {
+        <img src="@_logo" alt="" width="32" height="32" />
+    }
+    else
+    {
+        <GXImage Value="@_logo" Kind="Gurux.UI.Components.Enums.ImageType.Raster" Width="32" Height="32" />
+    }
+}
+else if (IconUrl is { } iconUrl && _failedIconUrl != iconUrl)
+{
+    <img @key="iconUrl" src="@iconUrl" alt="" width="32" height="32" loading="lazy"
+         @onerror="() => _failedIconUrl = iconUrl" />
+}
+else if (Entry.IsModule)
+{
+    <svg class="catalog-module-fallback" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M9 3h6v4h3a3 3 0 0 1 0 6h-3v8H3v-8h3a3 3 0 0 0 0-6H3V3h6Z" />
+    </svg>
+}
+else
+{
+    <img src="favicon.ico" alt="" width="32" height="32" loading="lazy" />
+}
+
+@code {
+    [Parameter, EditorRequired] public GXCatalogUpdateEntry Entry { get; set; } = default!;
+    private Guid? _loadedLogoId;
+    private string? _logo;
+    private CancellationTokenSource? _request;
+    private string? _currentIconUrl;
+    private string? _failedIconUrl;
+    private string? IconUrl => Uri.TryCreate(Entry.IconUrl, UriKind.Absolute, out var uri) &&
+        uri.Scheme is "https" or "http" && string.IsNullOrEmpty(uri.UserInfo) ? uri.AbsoluteUri : null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_currentIconUrl != IconUrl)
+        {
+            _currentIconUrl = IconUrl;
+            _failedIconUrl = null;
+        }
+        if (_loadedLogoId == Entry.ManufacturerLogoId) {
+            return;
+        }
+        _loadedLogoId = Entry.ManufacturerLogoId;
+        _logo = null;
+        _request?.Cancel();
+        _request?.Dispose();
+        _request = null;
+        if (_loadedLogoId is not { } id || id == Guid.Empty) {
+            return;
+        }
+        var request = _request = new CancellationTokenSource();
+        try
+        {
+            // Use the existing image endpoint so private image policies remain effective.
+            var image = await Http.GetFromJsonAsync<GetAppearanceResponse>($"api/Appearance?type={(int)ResourceType.Image}&id={id}", request.Token);
+            if (!request.IsCancellationRequested && _loadedLogoId == id) {
+                _logo = image?.Item?.Value;
+            }
+        }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            // Missing, inaccessible or unavailable logos keep the normal fallback icon.
+        }
+    }
+
+    public void Dispose() { _request?.Cancel(); _request?.Dispose(); }
+}

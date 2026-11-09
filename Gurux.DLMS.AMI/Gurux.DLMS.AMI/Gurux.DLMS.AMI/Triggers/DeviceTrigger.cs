@@ -1,34 +1,29 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.Enums;
 
@@ -39,6 +34,46 @@ namespace Gurux.DLMS.AMI.Server.Triggers
     /// </summary>
     public class DeviceTrigger : ITriggerAction
     {
+        /// <summary>Published device.read-started event.</summary>
+        [GXTriggerEvent("device.read-started")]
+        public const string ReadStarted = "device.read-started";
+
+        /// <summary>Published device.read-completed event.</summary>
+        [GXTriggerEvent("device.read-completed")]
+        public const string ReadCompleted = "device.read-completed";
+
+        /// <summary>Published device.read-failed event.</summary>
+        [GXTriggerEvent("device.read-failed")]
+        public const string ReadFailed = "device.read-failed";
+
+        /// <summary>Published device.read-cancelled event.</summary>
+        [GXTriggerEvent("device.read-cancelled")]
+        public const string ReadCancelled = "device.read-cancelled";
+
+        /// <summary>Published device.read-finished event.</summary>
+        [GXTriggerEvent("device.read-finished")]
+        public const string ReadFinished = "device.read-finished";
+
+        /// <summary>Published device.add event.</summary>
+        [GXTriggerEvent("device.add")]
+        public const string Added = "device.add";
+
+        /// <summary>Published device.edit event.</summary>
+        [GXTriggerEvent("device.edit")]
+        public const string Edited = "device.edit";
+
+        /// <summary>Published device.delete event.</summary>
+        [GXTriggerEvent("device.delete")]
+        public const string Deleted = "device.delete";
+
+        /// <summary>Published device.connected event.</summary>
+        [GXTriggerEvent("device.connected")]
+        public const string ReadConnected = "device.connected";
+
+        /// <summary>Published device.disconnected event.</summary>
+        [GXTriggerEvent("device.disconnected")]
+        public const string ReadDisconnected = "device.disconnected";
+
         /// <inheritdoc />
         public string Name => "Device";
 
@@ -54,14 +89,14 @@ namespace Gurux.DLMS.AMI.Server.Triggers
         /// <remarks>
         /// This trigger can be used to update the block cipher and authentication keys when the connection is stableished for the first time.
         /// </remarks>
-        public static string Add = "Add";
+        public const string Add = "Add";
         /// <summary>
         /// The connected is established to the meter for the first time.
         /// </summary>
         /// <remarks>
         /// This trigger can be used to update the block cipher and authentication keys when the connection is stableished for the first time.
         /// </remarks>
-        public static string Initialize = "Initialize";
+        public const string Initialize = "Initialize";
         /// <summary>
         /// The connected is established to the meter.
         /// </summary>
@@ -71,22 +106,22 @@ namespace Gurux.DLMS.AMI.Server.Triggers
         /// <remarks>
         /// This trigger can be used to update the clock for the meter.
         /// </remarks>
-        public static string Connected = "Connected";
+        public const string Connected = "Connected";
         /// <summary>
         /// The meter is disconnecing.
         /// </summary>
-        public static string Disconnecting = "Disconnecting";
+        public const string Disconnecting = "Disconnecting";
         /// <summary>
         /// Device is updated.
         /// </summary>
-        public static string Updated = "Updated";
+        public const string Updated = "Updated";
         /// <summary>
         /// Device error is occurred.
         /// </summary>
-        public static string Error = "Error";
+        public const string Error = "Error";
         /// <summary>
         /// Device is removed.
         /// </summary>
-        public static string Removed = "Removed";
+        public const string Removed = "Removed";
     }
 }

@@ -1,35 +1,32 @@
-﻿@*
+@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using System.Diagnostics.CodeAnalysis
 @using Gurux.DLMS.AMI.Shared.DIs;
 @using Gurux.DLMS.AMI.Shared.DTOs;
@@ -37,9 +34,11 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXProgress Progress
+@inject IGXNotificationService NotificationService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<FavoriteTile> Logger
 @implements IDisposable
 @inject IServiceProvider Services
 
@@ -48,15 +47,15 @@
     @ChildContent
     @if (Checked)
     {
-        <Tooltip Style="position: absolute; left:0;" Title="Remove from favorites">
-            <span @onclick="Unselect" style="color:deepskyblue"><h2>&#9733;</h2></span>
-        </Tooltip>
+        <GXTooltip Title="@Properties.Resources.RemoveFromFavorites">
+            <span @onclick="Unselect" style="color:deepskyblue"><span style="font-size:32px;">&#9733;</span></span>
+        </GXTooltip>
     }
     else
     {
-        <Tooltip Style="position: absolute; left:0;" Title="Add to favorites">
-            <span @onclick="Select" style="color:black"><h2>&#9734;</h2></span>
-        </Tooltip>
+        <GXTooltip Title="@Properties.Resources.AddToFavorites">
+            <span @onclick="Select" style="color:black"><span style="font-size:32px;">&#9734;</span></span>
+        </GXTooltip>
     }
 }
 
@@ -80,8 +79,8 @@
         {
             Checked = true;
             StateHasChanged();
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            NotificationService.RemoveByKey("An error occurred while adding a favorite.");
+            using var progressScope1 = Progress.ProgressStart(GXProgress.RetrievingFavoriteTile);
             //Add favorite.
             UpdateFavorite req = new UpdateFavorite();
             req.Favorites = new GXFavorite[]
@@ -105,11 +104,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService.ReportError(ex, "An error occurred while adding a favorite.");
         }
     }
 
@@ -121,9 +116,8 @@
         try
         {
             Checked = false;
-            StateHasChanged();
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            NotificationService.RemoveByKey("An error occurred while removing a favorite.");
+            using var progressScope2 = Progress.ProgressStart(GXProgress.RetrievingFavoriteTile);
             string path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
             foreach (var it in _favorites)
             {
@@ -144,15 +138,12 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService.ReportError(ex, "An error occurred while removing a favorite.");
         }
     }
 
     bool _hide;
+    bool _authenticated;
 
     /// <summary>
     /// Update check state.
@@ -163,7 +154,7 @@
         string path = NavigationManager.ToBaseRelativePath(e.Location);
         //Favorite title is not shown on the main page or favorites page.
         bool oldHide = _hide;
-        _hide = string.IsNullOrEmpty(path) || string.Compare(path, "Favorites", true) == 0;
+        _hide = !_authenticated || string.IsNullOrEmpty(path) || string.Compare(path, "Favorites", true) == 0;
         if (!_hide)
         {
             foreach (var it in _favorites)
@@ -183,113 +174,75 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    private bool isClient;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
-        try
+        if (firstRender)
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            NavigationManager.LocationChanged += OnLocationChanged;
-
-            Notifier.On<IEnumerable<GXFavorite>>(this, nameof(IGXHubEvents.FavoriteUpdate), (favorites) =>
-            {
-                foreach (var it in favorites)
-                {
-                    //Remove old item and add the updated one.
-                    var item = _favorites.Where(w => w.Id == it.Id).SingleOrDefault();
-                    if (item != null)
-                    {
-                        _favorites.Remove(item);
-                    }
-                    _favorites.Add(it);
-                }
-            });
-            Notifier.On<IEnumerable<GXFavorite>>(this, nameof(IGXHubEvents.FavoriteDelete), (favorites) =>
-            {
-                foreach (var it in favorites)
-                {
-                    var item = _favorites.Where(w => w.Id == it.Id).SingleOrDefault();
-                    if (item != null)
-                    {
-                        _favorites.Remove(item);
-                    }
-                }
-            });
-            //Get favorites if user is authenticated.
-            ListFavorites req = new ListFavorites();
-            GXFavorite[]? list;
-            using (IServiceScope scope = Services.CreateScope())
-            {
-                var fr = scope.ServiceProvider.GetService<IFavoriteRepository>();
-                if (fr != null)
-                {
-                    list = await fr.ListAsync(req);
-                }
-                else
-                {
-                    var tmp = await Http.PostAsJson<ListFavoritesResponse>("api/Favorite/List", req);
-                    list = tmp?.Favorites;
-                }
-            }
-            if (list != null)
-            {
-                _favorites.AddRange(list);
-                StateHasChanged();
-            }
-            //Update favorite star.
-            OnLocationChanged(null, new LocationChangedEventArgs(NavigationManager.Uri, false));
-
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            isClient = true;
+            await LoadFavoritesAsync(await AuthStateProvider.GetAuthenticationStateAsync());
         }
     }
 
-    private async void OnAuthStateChanged(AuthenticationState state)
+    protected override void OnInitialized()
     {
-        if (state.User.Identity?.IsAuthenticated == true)
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        NavigationManager.LocationChanged += OnLocationChanged;
+        _hide = true;
+    }
+
+    private async Task LoadFavoritesAsync(AuthenticationState state)
+    {
+        if (!isClient)
         {
-            //Get favorites if user is authenticated.
-            ListFavorites req = new ListFavorites();
-            GXFavorite[]? list;
-            using (IServiceScope scope = Services.CreateScope())
-            {
-                var fr = scope.ServiceProvider.GetService<IFavoriteRepository>();
-                if (fr != null)
-                {
-                    list = await fr.ListAsync(req);
-                }
-                else
-                {
-                    var tmp = await Http.PostAsJson<ListFavoritesResponse>("api/Favorite/List", req);
-                    list = tmp?.Favorites;
-                }
-            }
-            if (list != null)
-            {
-                _favorites.AddRange(list);
-                StateHasChanged();
-            }
-            //Update favorite star.
-            OnLocationChanged(null, new LocationChangedEventArgs(NavigationManager.Uri, false));
+            return;
         }
+        _authenticated = state.User.Identity?.IsAuthenticated == true;
+        _hide = !_authenticated;
+        Checked = false;
+        _favorites.Clear();
+        if (!_hide)
+        {
+            try
+            {
+                //Get favorites if user is authenticated.
+                ListFavorites req = new ListFavorites();
+                using var response = await Http.PostAsJsonAsync("api/Favorite/List", req);
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    // The API session can expire after the client authentication state was serialized.
+                    _authenticated = false;
+                    _hide = true;
+                    Checked = false;
+                    _favorites.Clear();
+                    Logger.LogInformation("Favorites are unavailable because the API session is not authenticated.");
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+                await response.EnsureSuccessAsync(CancellationToken.None);
+                var tmp = await response.Content.ReadFromJsonAsync<ListFavoritesResponse>();
+                IEnumerable<GXFavorite>? list = tmp?.Favorites;
+                if (list != null)
+                {
+                    _favorites.AddRange(list);
+                    StateHasChanged();
+                }
+                //Update favorite star.
+                OnLocationChanged(null, new LocationChangedEventArgs(NavigationManager.Uri, false));
+            }
+            catch (Exception ex)
+            {
+                NotificationService.ReportError(ex);
+            }
+        }
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> task)
     {
         var state = await task;
-        OnAuthStateChanged(state);
+        await InvokeAsync(() => LoadFavoritesAsync(state));
     }
 
     public void Dispose()

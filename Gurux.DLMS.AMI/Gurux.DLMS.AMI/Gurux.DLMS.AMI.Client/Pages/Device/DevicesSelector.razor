@@ -1,39 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Client.Pages.Gateway;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
-@using Gurux.DLMS.AMI.Client.Pages.Report
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -47,11 +42,12 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="DevicesSelector" />
 
 <SelectionContainer TItem="GXDevice" @ref="@_selectionContainer">
-    <SelectionList Title="Selected" @ref="_selected"
+    <SelectionList TItem="GXDevice" Title="@Properties.Resources.Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
                    OnAdded="OnAdded"
@@ -60,8 +56,8 @@
             @context.Name
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchSelectedByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
         </FilterContent>
         <ButtonContent>
             <div>
@@ -72,16 +68,16 @@
             </div>
         </ButtonContent>
     </SelectionList>
-    <SelectionList Title="Available" @ref="_available"
+    <SelectionList TItem="GXDevice" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
                    ItemsProvider="@GetItems">
         <DataContent>
             @context.Name
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchByName" />
-            <Search Placeholder="@Properties.Resources.FilterByUser"
-                    OnClickAsync="@SearchByUser" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByUser"
+                    ValueChanged="@SearchByUser" />
         </FilterContent>
         <ButtonContent>
             <div>
@@ -95,6 +91,9 @@
 </SelectionContainer>
 
 @code {
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected devices.
     /// </summary>
@@ -102,16 +101,13 @@
     public List<GXDevice>? Devices { get; set; }
 
     [CascadingParameter]
-    private DeviceGroupTab? DeviceGropParent { get; set; }
+    private DeviceGroup? DeviceGropParent { get; set; }
 
     [CascadingParameter]
-    private ScheduleTab? ScheduleParent { get; set; }
+    private Schedule? ScheduleParent { get; set; }
 
     [CascadingParameter]
-    private GatewayTab? GatewayParent { get; set; }
-
-    [CascadingParameter]
-    private ReportTab? ReportParent { get; set; }
+    private Gateway? GatewayParent { get; set; }
 
     SelectionList<GXDevice>? _selected;
     SelectionList<GXDevice>? _available;
@@ -142,7 +138,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -153,13 +149,13 @@
             if (_available != null)
             {
                 filter.Name = name;
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Device/DevicesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Device/DevicesSelector.SearchByName");
         }
     }
 
@@ -188,17 +184,17 @@
                     }
                     else
                     {
-                        user = dg.UserGroups[0].Users[0];
+                        user = GXFilterHelpers.GetOrAddUser(dg.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Device/DevicesSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Device/DevicesSelector.SearchByUser");
         }
     }
 
@@ -232,8 +228,8 @@
     /// <returns></returns>
     private async Task RemoveAll()
     {
-        List<GXDevice> devs = GetDevices();
-        devs.Clear();
+        List<GXDevice>? devs = GetDevices();
+        devs?.Clear();
         if (_selected != null)
         {
             await _selected.RefreshDataAsync();
@@ -249,8 +245,8 @@
     /// </summary>
     public async Task OnAdded(IEnumerable<GXDevice> items)
     {
-        List<GXDevice> devs = GetDevices();
-        devs.InsertRange(0, items);
+        List<GXDevice>? devs = GetDevices();
+        devs?.InsertRange(0, items);
         if (_selected != null)
         {
             await _selected.RefreshDataAsync();
@@ -262,8 +258,8 @@
     /// </summary>
     private async Task Removed(IEnumerable<GXDevice> items)
     {
-        List<GXDevice> devs = GetDevices();
-        devs.RemoveAll(w => items.Contains(w));
+        List<GXDevice>? devs = GetDevices();
+        devs?.RemoveAll(w => items.Contains(w));
         if (_selected != null)
         {
             await _selected.RefreshDataAsync();
@@ -288,7 +284,7 @@
         {
             return GatewayParent.Active.Devices;
         }
-        return ReportParent.Active.Devices;
+        return null;
     }
 
     /// <summary>
@@ -298,11 +294,11 @@
     /// <returns></returns>
     private ValueTask<ItemsProviderResult<GXDevice>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        var devs = GetDevices();
+        var devs = GetDevices() ?? [];
         int total = devs.Count;
         if (!string.IsNullOrEmpty(selectedFilter.Name))
         {
-            devs = devs.Where(w => w.Name.ToLower().Contains(selectedFilter.Name.ToLower())).ToList();
+            devs = devs.Where(w => (w.Name ?? string.Empty).ToLower().Contains((selectedFilter.Name ?? string.Empty).ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXDevice>(
         devs.Skip(request.StartIndex).Take(request.Count), total));
@@ -311,22 +307,22 @@
     private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDevices);
         try
         {
             ListDevices req = new ListDevices()
-                {
-                    Index = request.StartIndex,
-                    Count = request.Count,
-                    Filter = filter,
-                    Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData,
-                    Exclude = GetDevices().Select(s => s.Id).ToArray()
-                };
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData,
+                Exclude = (GetDevices() ?? []).Select(s => s.Id).ToArray()
+            };
             var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
             if (ret?.Devices != null && _selected != null)
             {
-                return new ItemsProviderResult<GXDevice>(ret.Devices, ret.Count);
+                return new ItemsProviderResult<GXDevice>(ret.Devices, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -336,23 +332,22 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingDevices);
+            NotificationService?.RemoveByKey("Pages/Device/DevicesSelector.OnInitializedAsync");
             if (_selected != null)
             {
                 await _selected.RefreshDataAsync();
@@ -365,11 +360,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Device/DevicesSelector.OnInitializedAsync");
         }
     }
 }

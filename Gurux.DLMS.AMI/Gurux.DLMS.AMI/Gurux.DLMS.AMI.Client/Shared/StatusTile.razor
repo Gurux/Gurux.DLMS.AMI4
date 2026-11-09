@@ -1,36 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Client.Helpers.Toaster
+
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -43,16 +39,16 @@
 @using System.Text.Json
 
 @inject ILogger<StatusTile> Logger
-@inject IGXNotifier Notifier
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IServiceProvider Services
 @implements IDisposable
 
 @if (MaintenanceMode && MaintenanceModeMessage != null)
 {
     <div class="alert alert-info alert-dismissible fade show" role="banner">
-        <p class='markup'>@((MarkupString)MaintenanceModeMessage)</p>
+        <p class='markup'>@MaintenanceModeMessage</p>
         @if (MaintenanceModeEnds != null)
         {
             <hr />
@@ -71,7 +67,7 @@
         <div class="@GetDivClass()" role="@GetRole()">
             @if (Closable)
             {
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close" @onclick="Close">
+                <button type="button" class="close" data-dismiss="alert" aria-label="@Properties.Resources.Close" @onclick="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             }
@@ -231,9 +227,17 @@
             }
             else
             {
-                Title = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    Title = ex.InnerException.Message;
+                    Logger.LogError("Error:ProcessError - Type: {0} Message: {1}, {2}", ex.InnerException.GetType(), ex.InnerException.Message, ex.InnerException.StackTrace);
+                }
+                else
+                {
+                    Title = ex.Message;
+                    Logger.LogError("Error:ProcessError - Type: {0} Message: {1}, {2}", ex.GetType(), ex.Message, ex.StackTrace);
+                }
                 Title = Title.Replace(Environment.NewLine, "<br>");
-                Logger.LogError("Error:ProcessError - Type: {0} Message: {1}, {2}", ex.GetType(), ex.Message, ex.StackTrace);
             }
         }
         InvokeAsync(StateHasChanged);
@@ -267,7 +271,7 @@
     /// Target.
     /// </summary>
     [Parameter]
-    public object Target { get; set; }
+    public object? Target { get; set; }
 
 
     protected async Task Close()
@@ -276,29 +280,28 @@
         await OnClose.InvokeAsync(Target);
     }
 
-
     protected override void OnInitialized()
     {
+        var notifier = Services.GetService<IGXNotifier2>();
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
         try
         {
             //If the maintenance mode has been changed.
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+            notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                foreach (var it in configurations)
+                foreach (var it in items)
                 {
-                    if (it.Name == GXConfigurations.Maintenance && !string.IsNullOrEmpty(it.Settings))
+                    if (it.Type == GXConfigurationPolicies.Edit)
                     {
-                        //Notification if maintenance has been updated.
-                        MaintenanceSettings? settings = JsonSerializer.Deserialize<MaintenanceSettings>(it.Settings);
-                        if (settings != null)
+                        if (it.Name == GXConfigurations.Maintenance)
                         {
-                            MaintenanceMode = settings.MaintenanceMode;
-                            MaintenanceModeMessage = settings.Message;
-                            MaintenanceModeEnds = settings.EndTime;
+                            _ = InvokeAsync(async () =>
+                            {
+                                try { await RefreshMaintenanceAsync(); }
+                                catch (Exception error) { Logger.LogWarning(error, "Unable to refresh maintenance notice."); }
+                            });
+                            break;
                         }
-                        InvokeAsync(StateHasChanged);
-                        break;
                     }
                 }
             });
@@ -309,40 +312,30 @@
         }
     }
 
-    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    private async Task RefreshMaintenanceAsync()
     {
-        var state = await task;
-        if (state.User.Identity?.IsAuthenticated == true)
+        var settings = await Http.GetAsJsonAsync<MaintenanceSettings>("api/Configuration/Maintenance");
+        if (settings != null)
         {
-            IsAdmin = state.User.IsInRole("Admin");
-            try
-            {
-                ListConfiguration req = new ListConfiguration()
-                    {
-                        Filter = new Gurux.DLMS.AMI.Shared.DTOs.GXConfiguration()
-                        {
-                            Name = GXConfigurations.Maintenance
-                        }
-                    };
-                var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
-                if (ret.Configurations != null && ret.Configurations.Length == 1 && !string.IsNullOrEmpty(ret.Configurations[0].Settings))
-                {
-                    MaintenanceSettings? settings = JsonSerializer.Deserialize<MaintenanceSettings>(ret.Configurations[0].Settings);
-                    if (settings != null)
-                    {
-                        MaintenanceMode = settings.MaintenanceMode;
-                        MaintenanceModeMessage = settings.Message;
-                        MaintenanceModeEnds = settings.EndTime;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ProcessError(ex);
-            }
+            MaintenanceMode = settings.IsActive(DateTimeOffset.UtcNow);
+            MaintenanceModeMessage = settings.Message;
+            MaintenanceModeEnds = settings.EndTime;
+            await InvokeAsync(StateHasChanged);
         }
     }
-
+    private async void OnAuthStateChanged(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            IsAdmin = state.User.IsInRole("admin");
+            await RefreshMaintenanceAsync();
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+        }
+    }
     /// <summary>
     /// Convert value to data time.
     /// </summary>
@@ -406,7 +399,7 @@
         }
         try
         {
-            return Guid.Parse(Convert.ToString(value));
+            return Guid.Parse(Convert.ToString(value) ?? string.Empty);
         }
         catch (Exception)
         {
@@ -637,7 +630,7 @@
         {
             return Convert.ToBoolean(value);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return false;
         }

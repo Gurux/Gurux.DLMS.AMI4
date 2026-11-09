@@ -1,0 +1,109 @@
+/*
+--------------------------------------------------------------------------
+Gurux Ltd
+
+Copyright (c) Gurux Ltd.
+
+This file is part of Gurux Device Framework.
+
+Commit: $Format:%H$
+Date:   $Format:%cI$
+
+This software is available under either of the following licenses:
+
+1. GNU General Public License, version 2 only (GPL-2.0-only).
+   See the LICENSE file included with this distribution.
+
+2. A commercial license granted by Gurux Ltd under a separate written
+   agreement. Use under this option requires a valid commercial license
+   and is governed by the terms of that agreement.
+
+If you have not obtained a commercial license from Gurux Ltd,
+use of this software is governed by GPL-2.0-only.
+
+Commercial licensing: https://www.gurux.fi/
+
+SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+--------------------------------------------------------------------------
+*/
+
+.block-module {
+    position: relative;
+    border-radius: 0.75rem;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.block-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.block-description {
+    margin: 0.4rem 0 0;
+    font-size: 0.86rem;
+}
+
+.block-content {
+    margin-top: 0.65rem;
+}
+
+.location-header {
+    background: #fff4cc;
+}
+
+.location-sidebarleft {
+    background: #d8efff;
+}
+
+.location-sidebarright {
+    background: #ffe3dc;
+}
+
+.location-content {
+    background: #defbe6;
+}
+
+.location-footer {
+    background: #eee5ff;
+}
+
+.location-contentheader {
+    background: #f3e8d5;
+}
+
+.location-contentfooter {
+    background: #dff5f2;
+}
+
+.location-component {
+    background: #ffeaf2;
+}
+
+.block-module.alert-dismissible {
+    padding-right: 3rem;
+}
+
+.block-module.sidebar-navigation {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    color: inherit;
+}
+
+.sidebar-navigation > .markup {
+    display: none;
+}
+
+.block-module.sidebar-navigation.sidebar-navigation-header {
+    flex: 0 0 auto;
+}
+
+.block-module.walkthroughs-block {
+    background: transparent;
+}

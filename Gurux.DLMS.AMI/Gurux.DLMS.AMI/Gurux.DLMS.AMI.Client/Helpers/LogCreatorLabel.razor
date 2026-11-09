@@ -1,0 +1,106 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using System.Text.Json
+@inject HttpClient Http
+@implements IDisposable
+
+<span title="@Creator" @attributes="AdditionalAttributes">@_label</span>
+
+@code {
+    [Parameter] public Guid? Creator { get; set; }
+    [Parameter, EditorRequired] public string Resource { get; set; } = default!;
+    [Parameter] public string Property { get; set; } = "Name";
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+    private string? _label;
+    private string? _key;
+    private CancellationTokenSource? _request;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = Resource + "/" + Creator + "/" + Property;
+        if (key == _key)
+        {
+            return;
+        }
+        _key = key;
+        _request?.Cancel(); _request?.Dispose();
+        _request = new CancellationTokenSource();
+        _label = Creator?.ToString();
+        if (!Creator.HasValue)
+        {
+            return;
+        }
+        var request = _request;
+        var token = request.Token;
+        try
+        {
+            using var response = await Http.GetAsync($"api/{Resource}?id={Creator}", token);
+            if (!response.IsSuccessStatusCode)
+            {
+                return;
+            }
+        
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
+            var item = json.RootElement;
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                return;
+            }
+        
+            var wrapper = item.EnumerateObject().FirstOrDefault(p => p.Name.Equals("Item", StringComparison.OrdinalIgnoreCase));
+            if (wrapper.Value.ValueKind == JsonValueKind.Object)
+            {
+                item = wrapper.Value;
+            }
+        
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                return;
+            }
+        
+            var name = item.EnumerateObject().FirstOrDefault(p => p.Name.Equals(Property, StringComparison.OrdinalIgnoreCase)).Value;
+            if (_request == request && name.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(name.GetString()))
+            {
+                _label = name.GetString();
+            }
+        }
+        catch (HttpRequestException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (JsonException)
+        {
+        }
+    }
+
+    public void Dispose() { _request?.Cancel(); _request?.Dispose(); }
+}

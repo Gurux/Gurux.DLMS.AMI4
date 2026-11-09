@@ -1,449 +1,228 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Server.Cron;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Update;
-using System.Text.Json;
+using CatalogProductType = Gurux.Updater.Enums.CatalogProductType;
+using System.Security.Claims;
+using System.Text.Json.Nodes;
+using Gurux.DLMS.AMI.Client.Rest;
+using Gurux.DLMS.AMI.Server.Internal;
+namespace Gurux.DLMS.AMI.Scheduler;
 
-namespace Gurux.DLMS.AMI.Scheduler
+internal sealed class GXUpdater(GXCatalogClient catalogClient, GXCatalogSynchronizer synchronizer, IServiceProvider services, IHttpContextAccessor accessor, IHttpClientFactory clients, GXUpdateStatusStore statusStore) : IGXBackgroundTask
 {
-    /// <summary>
-    /// Updater checks if there are modules or agents updates available.
-    /// </summary>
-    internal class GXUpdater : IGXCronTask
+    static readonly SemaphoreSlim FullChecks = new(1, 1);
+    public string TaskId => GXBackgroundTaskIds.Update;
+    IManufacturerRepository ManufacturerRepository => services.GetRequiredService<IManufacturerRepository>();
+    IConfigurationRepository ConfigurationRepository => services.GetRequiredService<IConfigurationRepository>();
+    ClaimsPrincipal User => accessor.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+    public async Task RunAsync(string taskId, CancellationToken cancellationToken = default)
     {
-        private readonly IModuleRepository _moduleRepository;
-        private readonly IAgentRepository _agentRepository;
-        private readonly ISystemLogRepository _systemLogRepository;
-        private readonly IManufacturerRepository _manufacturerRepository;
-        private readonly IConfigurationRepository _configurationRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXUpdater(IModuleRepository moduleRepository,
-            IAgentRepository agentRepository,
-            ISystemLogRepository systemLogRepository,
-            IManufacturerRepository manufacturerRepository,
-            IConfigurationRepository configurationRepository)
+        switch (taskId)
         {
-            _moduleRepository = moduleRepository;
-            _agentRepository = agentRepository;
-            _systemLogRepository = systemLogRepository;
-            _manufacturerRepository = manufacturerRepository;
-            _configurationRepository = configurationRepository;
-        }
-
-        private void AddModuleVersion(Shared.DTOs.Module.GXModule module, Update.GXVersion version)
-        {
-            var ver = new Shared.DTOs.Module.GXModuleVersion();
-            ver.Module = module;
-            ver.CreationTime = version.CreationTime;
-            ver.Number = version.Number;
-            ver.Url = version.Url;
-            ver.FileName = version.FileName;
-            ver.Prerelease = version.Prerelease;
-            ver.Description = version.Description;
-            if (module.Versions == null)
-            {
-                module.Versions = new List<Shared.DTOs.Module.GXModuleVersion>();
-            }
-            module.Versions.Add(ver);
-            try
-            {
-                if (string.IsNullOrEmpty(module.AvailableVersion) ||
-                    new Version(module.AvailableVersion) < new Version(version.Number))
-                {
-                    module.AvailableVersion = version.Number;
-                    module.NewVersion = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                _systemLogRepository.AddAsync("Updater", ex).Wait();
-            }
-        }
-
-        private static void AddAgentVersion(Shared.DTOs.Agent.GXAgent agent, Update.GXVersion version)
-        {
-            var ver = new Shared.DTOs.Agent.GXAgentVersion();
-            ver.Agent = agent;
-            ver.CreationTime = version.CreationTime;
-            ver.Number = version.Number;
-            ver.Url = version.Url;
-            ver.FileName = version.FileName;
-            ver.Prerelease = version.Prerelease;
-            ver.Description = version.Description;
-            if (agent.Versions == null)
-            {
-                agent.Versions = new List<Shared.DTOs.Agent.GXAgentVersion>();
-            }
-            agent.Versions.Add(ver);
-            agent.AvailableVersion = version.Number;
-        }
-
-        /// <summary>
-        /// Check new agent versions.
-        /// </summary>
-        public async Task CheckAgentsAsync()
-        {
-            var installerAgents = await _agentRepository.ListInstallersAsync(null, true, null);
-            //Check agents and update agent templates.
-            string address = "/ami4/agent/agent.json";
-            GXAgent? loadAgent = await GetAsync<GXAgent>(address);
-            List<Shared.DTOs.Agent.GXAgent> newAgents = new List<Shared.DTOs.Agent.GXAgent>();
-            if (loadAgent != null && loadAgent.Versions.Any() && installerAgents.Any())
-            {
-                foreach (var version in loadAgent.Versions)
-                {
-                    foreach (var a in installerAgents)
-                    {
-                        var installedVersion = a.Versions.Where(q => q.Number == version.Number).SingleOrDefault();
-                        if (installedVersion == null)
-                        {
-                            Shared.DTOs.Agent.GXAgent agent;
-                            if (!newAgents.Any())
-                            {
-                                agent = await _agentRepository.ReadAsync(a.Id);
-                                //Add agent only once.
-                                newAgents.Add(agent);
-                            }
-                            else
-                            {
-                                agent = a;
-                            }
-                            AddAgentVersion(agent, version);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Shared.DTOs.Agent.GXAgent a = new Shared.DTOs.Agent.GXAgent(loadAgent.Name);
-                a.Template = true;
-                if (a.Name == null)
-                {
-                    a.Name = "DLMS agent";
-                }
-                foreach (var version in loadAgent.Versions)
-                {
-                    AddAgentVersion(a, version);
-                }
-                newAgents.Add(a);
-            }
-            if (newAgents.Any())
-            {
-                await _agentRepository.UpdateAsync(newAgents);
-                //Propose agents to use the latest version.
-                string newVersion = newAgents.LastOrDefault().Versions.LastOrDefault().Number;
-                var agents = await _agentRepository.ListAsync(null, null, CancellationToken.None);
-                foreach (var agent in agents)
-                {
-                    agent.AvailableVersion = newVersion;
-                }
-                await _agentRepository.UpdateAsync(agents, u => u.AvailableVersion);
-            }
-            //Update check time.
-            ListConfiguration req = new ListConfiguration()
-            {
-                Filter = new
-                Shared.DTOs.GXConfiguration()
-                { Name = GXConfigurations.Agent }
-            };
-            var confs = _configurationRepository.ListAsync(req, null,
-                CancellationToken.None).Result;
-            foreach (var conf in confs)
-            {
-                if (conf.Name == GXConfigurations.Agent)
-                {
-                    AgentSettings? s = null;
-                    if (!string.IsNullOrEmpty(conf.Settings))
-                    {
-                        s = JsonSerializer.Deserialize<AgentSettings>(conf.Settings);
-                    }
-                    if (s == null)
-                    {
-                        s = new AgentSettings();
-                    }
-                    s.Checked = DateTime.Now;
-                    conf.Settings = JsonSerializer.Serialize(s);
-                    _configurationRepository.UpdateAsync([conf], true).Wait();
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Check new modules.
-        /// </summary>
-        public async Task CheckModulesAsync()
-        {
-            DateTime now = DateTime.Now;
-            var inatalledModules = await _moduleRepository.ListWithVersionsAsync();
-            //Check modules.
-            string address = "/ami4/modules/modules.json";
-            GXModule[]? availableModules = await GetAsync<GXModule[]>(address);
-            List<Shared.DTOs.Module.GXModule> newModules = new List<Shared.DTOs.Module.GXModule>();
-            if (availableModules != null)
-            {
-                foreach (var aModule in availableModules)
-                {
-                    Shared.DTOs.Module.GXModule? iModule = inatalledModules.Where(w => w.Id == aModule.Name).SingleOrDefault();
-                    if (iModule != null)
-                    {
-                        //Installed module.
-                        bool updated = false;
-                        foreach (var aVersion in aModule.Versions)
-                        {
-                            var iVersion = iModule.Versions?.Where(q => q.Number == aVersion.Number).SingleOrDefault();
-                            if (iVersion == null)
-                            {
-                                updated = true;
-                                AddModuleVersion(iModule, aVersion);
-                            }
-                            if (string.IsNullOrEmpty(iModule.AvailableVersion) ||
-                                new Version(iModule.AvailableVersion) < new Version(aVersion.Number))
-                            {
-                                iModule.AvailableVersion = aVersion.Number;
-                                updated = true;
-                            }
-                        }
-                        if (updated)
-                        {
-                            await _moduleRepository.UpdateAsync(iModule);
-                        }
-                    }
-                    else
-                    {
-                        //If new module.
-                        iModule = new Shared.DTOs.Module.GXModule(aModule.Name);
-                        iModule.CreationTime = now;
-                        iModule.Active = false;
-                        iModule.Status = ModuleStatus.Installable;
-                        foreach (var version in aModule.Versions)
-                        {
-                            AddModuleVersion(iModule, version);
-                        }
-                        newModules.Add(iModule);
-                    }
-                }
-            }
-            if (newModules.Any())
-            {
-                await _moduleRepository.AddAsync(newModules);
-            }
-            //Update check time.
-            ListConfiguration req = new ListConfiguration()
-            {
-                Filter = new
-                Shared.DTOs.GXConfiguration()
-                { Name = GXConfigurations.Modules }
-            };
-            var confs = _configurationRepository.ListAsync(req, null, CancellationToken.None).Result;
-            foreach (var conf in confs)
-            {
-                if (conf.Name == GXConfigurations.Modules)
-                {
-                    ModuleSettings? s = null;
-                    if (!string.IsNullOrEmpty(conf.Settings))
-                    {
-                        s = JsonSerializer.Deserialize<ModuleSettings>(conf.Settings);
-                    }
-                    if (s == null)
-                    {
-                        s = new ModuleSettings();
-                    }
-                    s.Checked = DateTime.Now;
-                    conf.Settings = JsonSerializer.Serialize(s);
-                    _configurationRepository.UpdateAsync(new Shared.DTOs.GXConfiguration[] { conf }, true).Wait();
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Check manufacturer settings.
-        /// </summary>
-        public async Task CheckManufacturersAsync()
-        {
-            List<GXManufacturer> installedManufacturers = new List<GXManufacturer>();
-            ListManufacturers request = new ListManufacturers()
-            {
-                //Get all template manufacturers.
-                AllUsers = true,
-                Filter = new GXManufacturer()
-                {
-                    Template = true
-                },
-                Select = ["Version"]
-            };
-            installedManufacturers.AddRange(await _manufacturerRepository.ListAsync(request, null, CancellationToken.None));
-            //Check manufacturers.
-            string address = "/ami4/manufacturers/manufacturers.json";
-            GXManufacturer[]? availableManufacturers = await GetAsync<GXManufacturer[]>(address);
-            List<GXManufacturer> updatedManufacturers = new List<GXManufacturer>();
-            if (availableManufacturers != null)
-            {
-                //Available manufacturer.
-                foreach (var aManufacturer in availableManufacturers)
-                {
-                    //Installed manufacturer.
-                    GXManufacturer? iManufacturer = installedManufacturers.Where(w => w.Name == aManufacturer.Name).SingleOrDefault();
-                    if (iManufacturer == null)
-                    {
-                        aManufacturer.Template = true;
-                        //If new manufacturer.
-                        updatedManufacturers.Add(aManufacturer);
-                    }
-                    else if (aManufacturer.Models != null)
-                    {
-                        //Check if there are new models.
-                        foreach (var aModel in aManufacturer.Models)
-                        {
-                            //Installed model.
-                            GXDeviceModel? iModel = iManufacturer.Models?.Where(w => w.Name == aModel.Name).SingleOrDefault();
-                            if (iModel == null)
-                            {
-                                //If new model.
-                                if (iManufacturer.Models == null)
-                                {
-                                    iManufacturer.Models = new List<GXDeviceModel>();
-                                }
-                                iManufacturer.Models.Add(aModel);
-                                updatedManufacturers.Add(iManufacturer);
-                            }
-                            else if (aModel.Versions != null)
-                            {
-                                //Check if there are new versions.
-                                foreach (var aVersion in aModel.Versions)
-                                {
-                                    //Installed manufacturer.
-                                    GXDeviceVersion? iVersion = iModel.Versions?.Where(w => w.Name == aVersion.Name).SingleOrDefault();
-                                    if (iVersion == null)
-                                    {
-                                        //If new version.
-                                        if (iModel.Versions == null)
-                                        {
-                                            iModel.Versions = new List<GXDeviceVersion>();
-                                        }
-                                        iModel.Versions.Add(aVersion);
-                                        updatedManufacturers.Add(iManufacturer);
-                                    }
-                                    else if (aVersion.Settings != null)
-                                    {
-                                        //Check if there are new settings.
-                                        foreach (var aSettings in aVersion.Settings)
-                                        {
-                                            var iSetting = iVersion.Settings?.Where(w => string.Compare(w.Location, aSettings.Location, true) == 0).SingleOrDefault();
-                                            if (iSetting == null)
-                                            {
-                                                //If new setting.
-                                                if (iVersion.Settings == null)
-                                                {
-                                                    iVersion.Settings = new List<GXDeviceSettings>();
-                                                }
-                                                iVersion.Settings.Add(aSettings);
-                                                updatedManufacturers.Add(iManufacturer);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        //Add new settings.
-                                        iVersion.Settings = aVersion.Settings;
-                                        updatedManufacturers.Add(iManufacturer);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if (updatedManufacturers.Any())
-            {
-                await _manufacturerRepository.UpdateAsync(updatedManufacturers);
-            }
-            //Update check time.
-            ListConfiguration req = new ListConfiguration()
-            {
-                Filter = new
-                Shared.DTOs.GXConfiguration()
-                { Name = GXConfigurations.Manufacturer }
-            };
-            var confs = _configurationRepository.ListAsync(req, null, CancellationToken.None).Result;
-            foreach (var conf in confs)
-            {
-                if (conf.Name == GXConfigurations.Manufacturer)
-                {
-                    Client.Shared.ManufacturerSettings? s = null;
-                    if (!string.IsNullOrEmpty(conf.Settings))
-                    {
-                        s = JsonSerializer.Deserialize<Client.Shared.ManufacturerSettings>(conf.Settings);
-                    }
-                    if (s == null)
-                    {
-                        s = new Client.Shared.ManufacturerSettings();
-                    }
-                    s.Checked = DateTime.Now;
-                    conf.Settings = JsonSerializer.Serialize(s);
-                    _configurationRepository.UpdateAsync(new Shared.DTOs.GXConfiguration[] { conf }, true).Wait();
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Check new updates.
-        /// </summary>
-        public async Task RunAsync()
-        {
-            await CheckModulesAsync();
-            await CheckAgentsAsync();
-            await CheckManufacturersAsync();
-        }
-
-        public static async Task<T?> GetAsync<T>(string url)
-        {
-            var http = new HttpClient();
-            http.BaseAddress = new Uri("https://www.gurux.fi");
-            HttpResponseMessage response = await http.GetAsync(url + "?" + Guid.NewGuid());
-            await AMI.Shared.Helpers.ValidateStatusCode(response, default);
-            return await response.Content.ReadFromJsonAsync<T>();
+            case GXBackgroundTaskIds.Update:
+                await RunAsync(cancellationToken);
+                break;
+            case GXBackgroundTaskIds.ModuleUpdate:
+                await synchronizer.SynchronizeAsync(await catalogClient.GetAsync(cancellationToken), CatalogProductType.Module, cancellationToken);
+                break;
+            case GXBackgroundTaskIds.AgentUpdate:
+                await synchronizer.SynchronizeAsync(await catalogClient.GetAsync(cancellationToken), CatalogProductType.Agent, cancellationToken);
+                break;
+            case GXBackgroundTaskIds.ManufacturerUpdate:
+                await CheckManufacturersCoreAsync(cancellationToken);
+                break;
+            default:
+                throw new ArgumentException("Unknown update task.", nameof(taskId));
         }
     }
+    public async Task RunAsync(CancellationToken cancellationToken = default)
+    {
+        await FullChecks.WaitAsync(cancellationToken);
+        try
+        {
+            var catalog = await catalogClient.GetAsync(cancellationToken);
+            await synchronizer.SynchronizeAsync(catalog, null, cancellationToken);
+            var profiles = await CheckManufacturersCoreAsync(cancellationToken);
+            await statusStore.SaveCheckAsync(catalog, profiles, cancellationToken);
+            await services.GetRequiredService<GXUpdateSettingsStore>().MarkCheckedAsync(cancellationToken);
+            await services.GetRequiredService<GXUpdateEmailNotifier>().NotifyAsync(await statusStore.ReadAsync(cancellationToken), cancellationToken);
+        }
+        finally
+        {
+            FullChecks.Release();
+        }
+    }
+    async Task<GXAvailableUpdate> CheckManufacturersCoreAsync(CancellationToken cancellationToken)
+    {
+        using var client = clients.CreateClient("ManufacturerUpdates");
+        using var response = await client.GetAsync("https://gurux.github.io/Gurux.DLMS.DeviceProfiles/manufacturers.json", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var availableManufacturers = GXManufacturerIndex.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        int availableCount = availableManufacturers.Length;
+        List<GXManufacturer> installedManufacturers = [];
+        ListManufacturers request = new()
+        {
+            //Get all template manufacturers.
+            AllUsers = true,
+            Filter = new GXManufacturer()
+            {
+                Template = true
+            },
+            Select = ["Version"]
+        };
+        installedManufacturers.AddRange(await ManufacturerRepository.ListAsync(request, null, cancellationToken));
+        //Check manufacturers.
+
+        List<GXManufacturer> updatedManufacturers = [];
+        if (availableManufacturers != null)
+        {
+            //Available manufacturer.
+            foreach (var aManufacturer in availableManufacturers)
+            {
+                //Installed manufacturer.
+                GXManufacturer? iManufacturer = installedManufacturers.Where(w => w.Name == aManufacturer.Name).SingleOrDefault();
+                if (iManufacturer != null)
+                {
+                    bool installed = (iManufacturer.Models ?? []).SelectMany(model => model.Versions ?? []).SelectMany(version => version.Settings ?? []).Any(settings => settings.Removed == null && settings.InstallationTime != null && settings.Template?.Id != Guid.Empty && settings.Template != null);
+                    bool initializeVersion = installed && string.IsNullOrWhiteSpace(iManufacturer.Version);
+                    if (initializeVersion)
+                    {
+                        iManufacturer.Version = iManufacturer.AvailableVersion ?? aManufacturer.AvailableVersion;
+                    }
+
+                    if (initializeVersion || iManufacturer.AvailableVersion != aManufacturer.AvailableVersion || iManufacturer.ProfilesInstalled != installed)
+                    {
+                        iManufacturer.AvailableVersion = aManufacturer.AvailableVersion;
+                        iManufacturer.ProfilesInstalled = installed;
+                        updatedManufacturers.Add(iManufacturer);
+                    }
+                }
+
+                if (iManufacturer == null)
+                {
+                    aManufacturer.Template = true;
+                    //If new manufacturer.
+                    updatedManufacturers.Add(aManufacturer);
+                }
+                else if (aManufacturer.Models != null)
+                {
+                    //Check if there are new models.
+                    foreach (var aModel in aManufacturer.Models)
+                    {
+                        //Installed model.
+                        GXDeviceModel? iModel = iManufacturer.Models?.Where(w => w.Name == aModel.Name).SingleOrDefault();
+                        if (iModel == null)
+                        {
+                            //If new model.
+                            iManufacturer.Models ??= [];
+
+                            iManufacturer.Models.Add(aModel);
+                            updatedManufacturers.Add(iManufacturer);
+                        }
+                        else if (aModel.Versions != null)
+                        {
+                            //Check if there are new versions.
+                            foreach (var aVersion in aModel.Versions)
+                            {
+                                //Installed manufacturer.
+                                GXDeviceVersion? iVersion = iModel.Versions?.Where(w => w.Name == aVersion.Name).SingleOrDefault();
+                                if (iVersion == null)
+                                {
+                                    //If new version.
+                                    iModel.Versions ??= [];
+
+                                    iModel.Versions.Add(aVersion);
+                                    updatedManufacturers.Add(iManufacturer);
+                                }
+                                else if (aVersion.Settings != null)
+                                {
+                                    //Check if there are new settings.
+                                    foreach (var aSettings in aVersion.Settings)
+                                    {
+                                        iVersion.Settings ??= [];
+                                        if (GXManufacturerIndex.MergeProfile(iVersion.Settings, aSettings))
+                                        {
+                                            updatedManufacturers.Add(iManufacturer);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    //Add new settings.
+                                    iVersion.Settings = aVersion.Settings;
+                                    updatedManufacturers.Add(iManufacturer);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (updatedManufacturers.Count != 0)
+        {
+            await ManufacturerRepository.UpsertAsync(updatedManufacturers.Distinct(), null, cancellationToken);
+        }
+        //Update check time.
+        ListConfiguration req = new()
+        {
+            Filter = new
+            Shared.DTOs.GXConfiguration()
+            {
+                Name = GXConfigurations.Manufacturer
+            }
+        };
+        var confs = await ConfigurationRepository.ListAsync(User, req, null, cancellationToken);
+        foreach (var conf in confs)
+        {
+            if (conf.Name == GXConfigurations.Manufacturer)
+            {
+                var settings = string.IsNullOrWhiteSpace(conf.Settings) ? [] : JsonNode.Parse(conf.Settings)?.AsObject() ?? [];
+                settings["Checked"] = DateTimeOffset.UtcNow;
+                conf.Settings = settings.ToJsonString();
+                await ConfigurationRepository.UpsertAsync(User, [conf], true, cancellationToken);
+                break;
+            }
+        }
+        int localCount = installedManufacturers.Select(m => m.Name).Union(updatedManufacturers.Select(m => m.Name)).Count();
+        return new GXAvailableUpdate
+        {
+            Id = catalogClient.ManufacturerProductId,
+            Name = "Device profiles",
+            Status = GXUpdateStatus.Unknown,
+            Description = $"Local manufacturer templates: {localCount}. Public index: {availableCount} manufacturers. The public device-profile index does not publish release versions."
+        };
+    }
+
+
 }

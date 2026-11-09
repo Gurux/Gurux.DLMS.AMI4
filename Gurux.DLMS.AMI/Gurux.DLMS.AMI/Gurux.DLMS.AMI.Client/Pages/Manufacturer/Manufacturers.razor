@@ -1,37 +1,36 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @using Gurux.DLMS.AMI.Client.Pages.Config;
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
@@ -47,89 +46,94 @@
 @using System.Globalization
 @using System.Text.Json
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 @implements IGXConfigUpdate
 
+<GXHelpContext Topic="Manufacturers" />
+
 <PageTitle>@Properties.Resources.Manufacturers</PageTitle>
 
-<MenuControl RightCorner="true">
+<GXMenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Install" Id="Install" OnClick="@OnInstall"></MenuItem>
+        <GXMenuEntry Text="@Properties.Resources.Install" Id="Install" OnClick="@OnInstall"></GXMenuEntry>
     </ChildContent>
-</MenuControl>
+</GXMenuControl>
 
 @if (_settings != null)
 {
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@GXEditContexts.For(_settings)">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    @if (_settings?.Checked != null)
-                    {
-                        <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings?.Checked))</label>
-                    }
+                    <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings.Checked))</label>
                     <button type="button" class="btn btn-link" @onclick="@OnCheck">(@Properties.Resources.CheckManually)</button>
                 </div>
             </div>
         </div>
     </EditForm>
 }
-<GXTable @ref="table"
-         Context="manufacturer"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         ShowAllUsers="false"
-         ShowAllData="true"
-         OnCheckboxDisabled="@OnCheckboxDisabled"
-         OnSearch="@Updated">
+<GXViewTable ViewName="Manufacturer.Manufacturers" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXManufacturerPolicies.View })" TItem="GXManufacturer" @ref="table"
+             Context="manufacturer"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             ShowRemoved="false"
+             ShowAllUsers="false"
+             ShowAllData="true"
+             OnCheckboxDisabled="@OnCheckboxDisabled"
+             OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-        </th>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="Manufacturers-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <th>
-            <input class="form-control" placeholder="Filter by update time..."
+        </GXFh>
+        <GXFh Id="Updated">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
-        </th>
+        </GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ManufacturerManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Install" Id="Install" OnClick="@OnInstall"></ContextMenuItem>
-        </AuthorizeView>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXManufacturerPolicies.Edit"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Install" Id="Install" OnClick="@OnInstall" Policy="@GXManufacturerPolicies.Edit"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <Th Name="Name" Target="@manufacturer">@Properties.Resources.Name</Th>
-        <Th Name="CreationTime" Target="@manufacturer" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Updated" Target="@manufacturer">@Properties.Resources.Updated</Th>
+        <GXTh Name="Name" Target="@manufacturer">@Properties.Resources.Name</GXTh>
+        <GXTh Name="CreationTime" Target="@manufacturer" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Name="Updated" Target="@manufacturer">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
     <ItemContent>
-        <Td Link="@("config/Manufacturer/Edit/" + manufacturer.Id)">@manufacturer.Name</Td>
-        <td>@manufacturer.CreationTime</td>
-        <td>@manufacturer.Updated</td>
+        <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath("/config/Manufacturer/Edit/" + manufacturer.Id)">@manufacturer.Name</GXTd>
+        <GXTd Id="CreationTime">@manufacturer.CreationTime</GXTd>
+        <GXTd Id="Updated">@manufacturer.Updated</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="InstallConfirmation"
-         ConfirmationChanged="OnInstallConfirmation"
-         OkTitle="@Properties.Resources.Install"
-         ConfirmationMessage=""
-         AllowDelete="false"
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToInstallSelectedItems">
-</Confirm>
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
+        new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
+        new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Visibility.All },
+    ];
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Parent component.
     /// </summary>
@@ -140,10 +144,6 @@
     /// Manufacturer filter.
     /// </summary>
     private GXManufacturer filter = new GXManufacturer();
-    /// <summary>
-    /// User is verified before manufacturer is removed.
-    /// </summary>
-    protected ConfirmBase? InstallConfirmation;
 
     /// <summary>
     /// Table reference.
@@ -175,13 +175,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Manufacturer/Manufacturers.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/Manufacturers.Updated");
         }
     }
 
@@ -219,47 +219,42 @@
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingManufacturers);
+            NotificationService?.RemoveByKey("Pages/Manufacturer/Manufacturers.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
-           {
-               try
-               {
-                   if (configurations != null)
-                   {
-                       foreach (var it in configurations)
-                       {
-                           if (it.Name == GXConfigurations.Manufacturer && !string.IsNullOrEmpty(it.Settings))
-                           {
-                               _settings = JsonSerializer.Deserialize<ManufacturerSettings>(it.Settings);
-                               InvokeAsync(StateHasChanged);
-                               break;
-                           }
-                       }
-                   }
-               }
-               catch (Exception ex)
-               {
-                   Notifier?.ProcessError(ex);
-               }
-           });
-            Notifier.On<IEnumerable<GXManufacturer>>(this, nameof(IGXHubEvents.ManufacturerUpdate), async (manufacturer) =>
-            {
-                await Updated();
+                _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Manufacturer, configuration =>
+                {
+                    if (Parent?.Parent?.Active?.Id != configuration.Id) {
+                        return;
+                    }
+                    Parent.Parent.Active.Settings = configuration.Settings;
+                    Update();
+                }, () => true, NotificationService));
             });
-            Notifier.On<IEnumerable<GXManufacturer>>(this, nameof(IGXHubEvents.ManufacturerDelete), async (manufacturer) =>
-            {
-                await Updated();
-            });
-            //Clear buttons.
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+             {
+                 foreach (var it in items)
+                 {
+                     if (it.Type == GXManufacturerPolicies.Add ||
+                             it.Type == GXManufacturerPolicies.Edit ||
+                             it.Type == GXManufacturerPolicies.Delete)
+                     {
+                         _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                         break;
+                     }
+                 }
+             });
             if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
             {
                 _settings = JsonSerializer.Deserialize<ManufacturerSettings>(Parent.Parent.Active.Settings);
@@ -275,18 +270,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/Manufacturers.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXManufacturer>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingManufacturers);
         try
         {
             if (request.Removed)
@@ -310,7 +301,7 @@
                 Select = new string[] { "Version" }
             };
             ListManufacturersResponse ret = await Http.PostAsJson<ListManufacturersResponse>("api/Manufacturer/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXManufacturer>(ret.Manufacturers, ret.Count);
+            return new ItemsProviderResult<GXManufacturer>((ret.Manufacturers ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
         catch (TaskCanceledException)
         {
@@ -319,11 +310,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -335,12 +322,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Manufacturer/Manufacturers.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "config/Manufacturer/Edit/" + table?.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "config/Manufacturer/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -348,22 +335,29 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/Manufacturers.OnEdit");
         }
     }
 
     /// <summary>
     /// Install selected manufacturers.
     /// </summary>
-    void OnInstall()
+    private async Task OnInstall()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            InstallConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToInstallSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Install,
+                    AllowDelete = false,
+                    Items = table.SingleOrDefault().Select(s => s.Name).ToArray()
+                });
+            await OnInstallConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -371,20 +365,20 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Install the selected manufacturers.
     /// </summary>
-    public async Task OnInstallConfirmation(ConfirmArgs args)
+    public async Task OnInstallConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
-                Notifier?.ProgressStart();
+                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingManufacturer);
                 List<GXManufacturer> manufacturers = new List<GXManufacturer>();
                 foreach (var manufacturer in table.SingleOrDefault())
                 {
@@ -403,39 +397,39 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Check manufacturers manually.
     /// </summary>
-    public async void OnCheck()
+    public async Task OnCheck()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope4 = Progress?.ProgressStart(GXProgress.CheckingManufacturers);
+        NotificationService?.RemoveByKey("update.manufacturers");
         try
         {
-            CheckManufacturer req = new CheckManufacturer();
-            await Http.PostAsJson<CheckManufacturerResponse>("api/Manufacturer/Check", req);
+            await Services.GetRequiredService<GXBackgroundTaskNotifications>()
+                .CheckManufacturersAsync(progressScope4?.CancellationToken ?? CancellationToken.None);
         }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+        catch (OperationCanceledException) when (progressScope4?.CancellationToken.IsCancellationRequested == true) { }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "update.manufacturers");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _configurationRefresh.Dispose();
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

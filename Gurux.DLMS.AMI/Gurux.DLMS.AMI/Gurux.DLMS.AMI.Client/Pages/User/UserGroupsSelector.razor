@@ -1,48 +1,43 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Client.Pages.Agent;
 @using Gurux.DLMS.AMI.Client.Pages.Block;
 @using Gurux.DLMS.AMI.Client.Pages.ComponentView;
-@using Gurux.DLMS.AMI.Client.Pages.ContentType
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
 @using Gurux.DLMS.AMI.Client.Pages.Gateway;
 @using Gurux.DLMS.AMI.Client.Pages.KeyManagement;
+@using Gurux.DLMS.AMI.Client.Pages.Menu
 @using Gurux.DLMS.AMI.Client.Pages.Module;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Client.Pages.Script;
-@using Gurux.DLMS.AMI.Client.Pages.Report
 @using Gurux.DLMS.AMI.Client.Pages.Trigger;
 @using Gurux.DLMS.AMI.Client.Pages.Workflow;
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -58,74 +53,80 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
+@inject NavigationManager NavigationManager
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="UserGroupsSelector" />
 
 <SelectionContainer TItem="GXUserGroup" @ref="@_selectionContainer">
-    <SelectionList Title="Selected" @ref="_selected"
+    <SelectionList TItem="GXUserGroup" Title="@Properties.Resources.Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems">
         <DataContent>
             @context.Name
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchSelectedByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
-    <SelectionList Title="Available" @ref="_available"
+    <SelectionList TItem="GXUserGroup" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
                    ItemsProvider="@GetItems">
         <DataContent>
             @context.Name
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchByName" />
-            <Search Placeholder="@Properties.Resources.FilterByUser"
-                    OnClickAsync="@SearchByUser" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByUser"
+                    ValueChanged="@SearchByUser" />
         </FilterContent>
     </SelectionList>
 </SelectionContainer>
 
 @code {
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     [CascadingParameter]
-    private UserTab? UserParent { get; set; }
+    private User? UserParent { get; set; }
     [CascadingParameter]
-    private DeviceGroupTab? DeviceGroupParent { get; set; }
+    private DeviceGroup? DeviceGroupParent { get; set; }
     [CascadingParameter]
-    private AgentGroupTab? AgentGroupParent { get; set; }
+    private AgentGroup? AgentGroupParent { get; set; }
     [CascadingParameter]
-    private ModuleGroupTab? ModuleGroupParent { get; set; }
+    private ModuleGroup? ModuleGroupParent { get; set; }
     [CascadingParameter]
-    private WorkflowGroupTab? WorkflowGroupParent { get; set; }
+    private WorkflowGroup? WorkflowGroupParent { get; set; }
 
     [CascadingParameter]
-    private TriggerGroupTab? TriggerGroupParent { get; set; }
+    private TriggerGroup? TriggerGroupParent { get; set; }
     [CascadingParameter]
-    private BlockGroupTab? BlockGroupParent { get; set; }
+    private BlockGroup? BlockGroupParent { get; set; }
 
     [CascadingParameter]
-    private ComponentViewGroupTab? ComponentViewGroupParent { get; set; }
+    private ComponentViewGroup? ComponentViewGroupParent { get; set; }
     [CascadingParameter]
-    private ScriptGroupTab? ScriptGroupParent { get; set; }
+    private Gurux.DLMS.AMI.Client.Pages.View.ViewGroup? ViewGroupParent { get; set; }
     [CascadingParameter]
-    private DeviceTemplateGroupTab? DeviceTemplateParent { get; set; }
+    private ScriptGroup? ScriptGroupParent { get; set; }
+    [CascadingParameter]
+    private DeviceTemplateGroup? DeviceTemplateParent { get; set; }
 
     [CascadingParameter]
-    private KeyManagementGroupTab? KeyManagementParent { get; set; }
+    private KeyManagementGroup? KeyManagementParent { get; set; }
 
     [CascadingParameter]
-    private ScheduleGroupTab? ScheduleGroupParent { get; set; }
+    private ScheduleGroup? ScheduleGroupParent { get; set; }
 
     [CascadingParameter]
-    private GatewayGroupTab? GatewayGroupParent { get; set; }
+    private GatewayGroup? GatewayGroupParent { get; set; }
+
+
 
     [CascadingParameter]
-    private ReportGroupTab? ReportGroupParent { get; set; }
-
-    [CascadingParameter]
-    private ContentTypeGroupTab? ContentTypeGroupParent { get; set; }
+    private MenuGroup? MenuGroupParent { get; set; }
 
     SelectionList<GXUserGroup>? _selected;
     SelectionList<GXUserGroup>? _available;
@@ -148,19 +149,19 @@
                     name = name.ToLower();
                     foreach (var it in _selected.Items)
                     {
-                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        if (it.Name != null && !(it.Name ?? string.Empty).ToLower().Contains(name))
                         {
                             _selected.HiddenItems.Add(it);
                         }
                     }
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/User/UserGroupsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/UserGroupsSelector.SearchSelectedByName");
         }
     }
 
@@ -171,13 +172,13 @@
             if (_available != null)
             {
                 filter.Name = name;
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/User/UserGroupsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/UserGroupsSelector.SearchByName");
         }
     }
 
@@ -201,13 +202,13 @@
                     }
                     user.UserName = userName;
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/User/UserGroupsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/UserGroupsSelector.SearchByUser");
         }
     }
 
@@ -229,22 +230,22 @@
     private async ValueTask<ItemsProviderResult<GXUserGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUserGroups);
         try
         {
             ListUserGroups req = new ListUserGroups()
-                {
-                    Index = request.StartIndex,
-                    Count = request.Count,
-                    Filter = filter,
-                    Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
-                };
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData,
+                Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+            };
             var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req, request.CancellationToken);
             if (ret?.UserGroups != null && _selected != null)
             {
-                return new ItemsProviderResult<GXUserGroup>(ret.UserGroups, ret.Count);
+                return new ItemsProviderResult<GXUserGroup>(ret.UserGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -254,23 +255,22 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingUserGroups);
+            NotificationService?.RemoveByKey("Pages/User/UserGroupsSelector.OnInitializedAsync");
             if (_selectionContainer == null || _selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -280,77 +280,78 @@
             if (ScheduleGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = ScheduleGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(ScheduleGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, ScheduleGroupParent.Action);
             }
             else if (DeviceTemplateParent?.Active?.UserGroups != null)
             {
                 _selected.Items = DeviceTemplateParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(DeviceTemplateParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, DeviceTemplateParent.Action);
             }
             else if (DeviceGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = DeviceGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(DeviceGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, DeviceGroupParent.Action);
             }
             else if (AgentGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = AgentGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(AgentGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, AgentGroupParent.Action);
             }
             else if (ModuleGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = ModuleGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(ModuleGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, ModuleGroupParent.Action);
             }
             else if (WorkflowGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = WorkflowGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(WorkflowGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, WorkflowGroupParent.Action);
             }
             else if (TriggerGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = TriggerGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(TriggerGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, TriggerGroupParent.Action);
             }
             else if (BlockGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = BlockGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(BlockGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, BlockGroupParent.Action);
             }
             else if (ComponentViewGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = ComponentViewGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(ComponentViewGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, ComponentViewGroupParent.Action);
+            }
+            else if (ViewGroupParent?.Active?.UserGroups != null)
+            {
+                _selected.Items = ViewGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(NavigationManager, ViewGroupParent.Action);
             }
             else if (ScriptGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = ScriptGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(ScriptGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, ScriptGroupParent.Action);
             }
             else if (UserParent?.Active?.UserGroups != null)
             {
                 _selected.Items = UserParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(UserParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, UserParent.Action);
             }
             else if (KeyManagementParent?.Active?.UserGroups != null)
             {
                 _selected.Items = KeyManagementParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(KeyManagementParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, KeyManagementParent.Action);
             }
             else if (GatewayGroupParent?.Active?.UserGroups != null)
             {
                 _selected.Items = GatewayGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(GatewayGroupParent.Action);
+                action = ClientHelpers.GetAction(NavigationManager, GatewayGroupParent.Action);
             }
-            else if (ReportGroupParent?.Active?.UserGroups != null)
+
+            else if (MenuGroupParent?.Active?.UserGroups != null)
             {
-                _selected.Items = ReportGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(ReportGroupParent.Action);
-            }
-            else if (ContentTypeGroupParent?.Active?.UserGroups != null)
-            {
-                _selected.Items = ContentTypeGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(ContentTypeGroupParent.Action);
+                _selected.Items = MenuGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(NavigationManager, MenuGroupParent.Action);
             }
             else
             {
@@ -361,14 +362,14 @@
             {
                 //Show default groups when new group is added.
                 ListUserGroups req = new ListUserGroups()
+                {
+                    Filter = new GXUserGroup()
                     {
-                        Filter = new GXUserGroup()
-                        {
-                            Default = true
-                        },
-                        Count = _selectionContainer.PageSize,
-                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
-                    };
+                        Default = true
+                    },
+                    Count = _selectionContainer.PageSize,
+                    Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                };
                 var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req);
                 if (ret?.UserGroups != null)
                 {
@@ -387,11 +388,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/User/UserGroupsSelector.OnInitializedAsync");
         }
     }
 }

@@ -1,38 +1,38 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Server.Services;
+
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -46,68 +46,123 @@ using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
+
     /// <inheritdoc />
     public class DeviceRepository : IDeviceRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IServiceProvider _serviceProvider;
         private readonly IDeviceGroupRepository _deviceGroupRepository;
         private readonly IUserRepository _userRepository;
         private readonly IKeyManagementRepository _keyManagementRepository;
         private readonly IAttributeRepository _attributeRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public DeviceRepository(
-            IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+            IAuthorizationService authorizationService,
+            IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
             IServiceProvider serviceProvider,
             IDeviceGroupRepository deviceGroupRepository,
-            IGXEventsNotifier eventsNotifier,
             IUserRepository userRepository,
             IKeyManagementRepository keyManagementRepository,
             IAttributeRepository attributeRepository,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
+            if (httpContextAccessor.HttpContext?.User == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
-            _eventsNotifier = eventsNotifier;
             _deviceGroupRepository = deviceGroupRepository;
             _userRepository = userRepository;
             _keyManagementRepository = keyManagementRepository;
             _attributeRepository = attributeRepository;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
+        }
+
+        private void PublishDeviceEvent(string code, Guid id, IReadOnlyList<Guid>? groupIds = null)
+            => _serviceProvider.GetRequiredService<IWorkflowHandler>().Publish(new GXWorkflowEventContext
+            {
+                EventCode = code,
+                TargetId = id.ToString(),
+                DeviceId = id,
+                DeviceGroupIds = groupIds,
+                OperationId = Guid.NewGuid(),
+                OccurredAt = DateTimeOffset.UtcNow,
+                Outcome = "success"
+            }, User);
+
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXDevice), id, action, GXDevicePolicies.View, connection, transaction, notifications: _notificationCache);
+
+        private async Task EnsureDeviceScopeAsync(IEnumerable<Guid> deviceIds, CancellationToken cancellationToken)
+        {
+            if (User.IsInRole(GXRoles.Admin))
+            {
+                return;
+            }
+            string userId = ServerHelpers.GetUserId(User);
+            var ids = deviceIds.Distinct().ToArray();
+            if (ids.Length == 0)
+            {
+                return;
+            }
+            var visible = GXQuery.GetDevicesByUser(d => d.Id, userId);
+            visible.Where.And<GXDevice>(d => ids.Contains(d.Id) && d.Removed == null);
+            visible.Joins.AddInnerJoin<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId);
+            visible.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(m => m.DeviceGroupId, g => g.Id);
+            visible.Joins.AddInnerJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(g => g.Id, m => m.DeviceGroupId);
+            visible.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(m => m.UserGroupId, g => g.Id);
+            visible.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(g => g.Id, m => m.UserGroupId);
+            visible.Where.And<GXDeviceGroupDevice>(m => m.Removed == null);
+            visible.Where.And<GXDeviceGroup>(g => g.Removed == null);
+            visible.Where.And<GXUserGroupDeviceGroup>(m => m.Removed == null);
+            visible.Where.And<GXUserGroup>(g => g.Removed == null);
+            visible.Where.And<GXUserGroupUser>(m => m.UserId == userId && m.Removed == null);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
+            var allowed = (await connection.SelectAsync<GXDevice>(visible, cancellationToken))
+                .Select(d => d.Id).ToHashSet();
+            if (ids.Any(id => !allowed.Contains(id)))
+            {
+                throw new GXAmiForbiddenException(string.Join(", ", ids.Where(id => !allowed.Contains(id))));
+            }
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? deviceId)
+        public async Task<List<string>> GetUsersAsync(Guid? deviceId, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Device) &&
-                !User.IsInRole(GXRoles.DeviceManager) &&
-                //If agent
-                !User.Claims.Where(w => w.Type.Equals("scope") && w.Value.Equals(GXAgentPolicies.View)).Any()))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByDevice(ServerHelpers.GetUserId(User), deviceId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (deviceId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXDevice), deviceId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -116,19 +171,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceIds, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.HasScope(GXDevicePolicies.View) &&
-                !User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Device) &&
-                !User.IsInRole(GXRoles.DeviceManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByDevices(ServerHelpers.GetUserId(User), deviceIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -138,77 +187,128 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task DeleteAsync(IEnumerable<Guid> devices,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
+            devices = devices.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXDevice, Guid>(_dbFactory, User, _serviceProvider, devices,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Delete);
+            devices = devices.Distinct().ToArray();
+            await EnsureDeviceScopeAsync(devices, cancellationToken);
             GXSelectArgs arg = GXSelectArgs.Select<GXDevice>(a => a.Id, q => devices.Contains(q.Id));
-            List<GXDevice> list = _host.Connection.Select<GXDevice>(arg);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXDevice> list = connection.Select<GXDevice>(arg);
             DateTime now = DateTime.Now;
-            Dictionary<GXDevice, List<string>> updates = new Dictionary<GXDevice, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            Dictionary<GXDevice, List<string>> updates = [];
+            Dictionary<Guid, IReadOnlyList<Guid>> removedGroups = [];
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             try
             {
                 foreach (var it in list)
                 {
+                    await GXLogStore.DeleteOwnedAsync(connection, transaction, "device", [it.Id], cancellationToken);
+                    var memberships = await connection.SelectAsync<GXDeviceGroupDevice>(transaction,
+                        GXSelectArgs.Select<GXDeviceGroupDevice>(g => g.DeviceGroupId, g => g.DeviceId == it.Id));
+                    removedGroups[it.Id] = memberships.Select(g => g.DeviceGroupId).ToArray();
                     it.Removed = now;
-                    List<string> users = await GetUsersAsync(it.Id);
+                    List<string> users = await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection, transaction);
                     if (!delete)
                     {
-                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                        connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed!));
+                        _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection, transaction),
+                            new GXTarget(GXDevicePolicies.Delete, it.Id, it.Name));
                     }
                     updates[it] = users;
                 }
+                //Delete tasks.
+                arg = GXSelectArgs.Select<GXTask>(s => s.Id, w => list.Contains(w.Device!));
+                var tasks = connection.Select<GXTask>(transaction, arg, cancellationToken).Select(t => t.Id).ToArray();
+                if (tasks.Length != 0)
+                {
+                    ITaskRepository taskRepository = _serviceProvider.GetRequiredService<ITaskRepository>();
+                    await taskRepository.DeleteAsync(tasks, cancellationToken);
+                }
                 if (delete)
                 {
+                    // Keep managed-key history while retiring the deleted device's key assignments.
+                    var ownedKeys = await connection.SelectAsync<GXKeyManagement>(transaction,
+                        GXSelectArgs.Select<GXKeyManagement>(k => new { k.Id, k.ConcurrencyStamp }, k => list.Contains(k.Device!)), cancellationToken);
+                    foreach (var key in ownedKeys)
+                    {
+                        key.Device = null;
+                        key.Removed = now;
+                        await connection.UpdateAsync(transaction,
+                            GXUpdateArgs.Update(key, k => new { k.Device, k.Removed }), cancellationToken);
+                    }
+                    //Delete tasks.
+                    var devs = devices.Cast<Guid?>();
+                    var args = GXDeleteArgs.Delete<GXTask>(q => devs.Contains(q.TargetDevice));
+                    await connection.DeleteAsync(transaction, args, cancellationToken);
                     GXDeleteArgs args1;
                     //////////////////////////////////////////////////////
                     //It's faster to remove atribute templates, object templates and device templates with own query than removing just device templates.
                     //////////////////////////////////////////////////////
                     //Delete attributes.
                     arg = GXSelectArgs.Select<GXObject>(a => a.Id);
-                    arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device!, j => j.Id);
                     arg.Where.And<GXDevice>(q => devices.Contains(q.Id));
-                    args1 = GXDeleteArgs.Delete<GXAttribute>(w => GXSql.Exists<GXAttribute, GXObject>(j => j.Object, j => j.Id, arg));
-                    await _host.Connection.DeleteAsync(transaction, args1);
+                    args1 = GXDeleteArgs.Delete<GXAttribute>(w => GXSql.Exists<GXAttribute, GXObject>(j => j.Object!, j => j.Id, arg));
+                    await connection.DeleteAsync(transaction, args1, cancellationToken);
                     //Delete objects.
                     arg = GXSelectArgs.Select<GXDevice>(a => a.Id, q => devices.Contains(q.Id));
-                    args1 = GXDeleteArgs.Delete<GXObject>(w => GXSql.Exists<GXObject, GXDevice>(j => j.Device, j => j.Id, arg));
-                    await _host.Connection.DeleteAsync(transaction, args1);
+                    args1 = GXDeleteArgs.Delete<GXObject>(w => GXSql.Exists<GXObject, GXDevice>(j => j.Device!, j => j.Id, arg));
+                    await connection.DeleteAsync(transaction, args1, cancellationToken);
+                    args = GXDeleteArgs.Delete<GXDeviceGroupDevice>(w => devices.Contains(w.DeviceId));
+                    await connection.DeleteAsync(transaction, args, cancellationToken);
                     //Delete devices.
-                    var args = GXDeleteArgs.Delete<GXDevice>(q => devices.Contains(q.Id));
-                    await _host.Connection.DeleteAsync(transaction, args);
-                    // var args = GXDeleteArgs.DeleteRange(list);
-                    // await _host.Connection.DeleteAsync(transaction, args);
+                    args = GXDeleteArgs.Delete<GXDevice>(q => devices.Contains(q.Id));
+                    await connection.DeleteAsync(transaction, args, cancellationToken);
                 }
-                _host.Connection.CommitTransaction(transaction);
+                await transaction.CommitAsync(cancellationToken);
+                foreach (var removed in list)
+                    {
+                    PublishDeviceEvent("device.delete", removed.Id, removedGroups[removed.Id]);
+                }
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(devices, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (Exception)
             {
-                _host.Connection.RollbackTransaction(transaction);
+                transaction.Rollback();
                 throw;
             }
-            foreach (var it in updates)
-            {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.Device, NotificationAction.Remove);
-                if (users == null)
-                {
-                    break;
-                }
-                await _eventsNotifier.DeviceDelete(users, [it.Key]);
-            }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXDevice[]> ListAsync(
-
+        public async Task<IEnumerable<GXDevice>> ListAsync(
             ListDevices? request,
             ListDevicesResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (User == null)
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
             GXSelectArgs arg;
             bool all = request != null && request.AllUsers &&
                 User.IsInRole(GXRoles.Admin);
@@ -223,7 +323,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg = GXQuery.GetDevicesByUser(s => "*", userId);
             }
             arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Type, s.Name });
-            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template!, j => j.Id);
             //If devices are filtered by user.
             if (request?.Filter?.DeviceGroups != null &&
                 request.Filter.DeviceGroups.SingleOrDefault() is GXDeviceGroup dg)
@@ -231,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (dg.UserGroups != null &&
                     dg.UserGroups.SingleOrDefault() is GXUserGroup ug)
                 {
-                    if (ug?.Users != null && ug.Users.Any())
+                    if (ug?.Users != null && ug.Users.Count != 0)
                     {
                         var user2 = ug.Users.FirstOrDefault();
                         if (user2 != null)
@@ -241,7 +341,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             userGroups.Joins.AddLeftJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
                             userGroups.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
                             userGroups.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
-                            userGroups.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            userGroups.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId!, j => j.Id!);
                             userGroups.Where.FilterBy(user2);
                             arg.Where.And<GXDevice>(q => GXSql.Exists<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId, userGroups));
                         }
@@ -254,10 +354,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //If devices are filtered by attribute. E.g. logical device name.
                 request.Filter.Objects = null;
-                arg.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
-                arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
-                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
-                arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
+                arg.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device!);
+                arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object!);
+                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate!);
+                arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate!);
                 arg.Where.And<GXObjectTemplate>(w => w.LogicalName == ldn);
                 arg.Where.And<GXAttribute>(w => w.Value == att);
             }
@@ -269,14 +369,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request?.Select != null && request.Select.Contains("DeviceTemplate"))
             {
                 arg.Columns.Add<GXDeviceTemplate>();
-                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template!, y => y.Id);
                 arg.Where.And<GXDeviceTemplate>(w => w.Removed == null);
             }
             arg.Columns.Exclude<GXDevice>(e => new { e.Settings, e.MediaSettings });
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXDevice>(w => !request.Exclude.Contains(w.Id));
                 }
@@ -286,18 +386,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
             }
             arg.Distinct = true;
+            GXDateTimeFilters.Apply<GXDevice>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXDevice>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXDevice>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -307,39 +414,40 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 arg.Descending = true;
-                arg.OrderBy.Add<GXDevice>(q => q.CreationTime);
+                arg.OrderBy.Add<GXDevice>(q => q.CreationTime!);
             }
-            GXDevice[] devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToArray();
+            var devices = (await connection.SelectAsync<GXDevice>(arg)).ToArray();
             //Empty non needed values.
             foreach (var it in devices)
             {
                 it.Actions = null;
                 it.DeviceGroups = null;
                 it.Errors = null;
-                it.Parameters = null;
+                it.Properties = null;
                 it.Tasks = null;
                 it.Traces = null;
                 it.Keys = null;
                 if (request?.Select != null && request.Select.Contains(TargetType.Object))
                 {
                     //Get objects.
-                    arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
+                    arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template }, w => w.Device == it && w.Removed == null);
                     if (request.Select.Contains(TargetType.ObjectTemplate))
                     {
                         arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.Attributes });
-                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template!, j => j.Id);
                     }
                     if (request.Select.Contains(TargetType.Attribute))
                     {
-                        arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template });
-                        arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                        arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template, s.Object });
+                        arg.Columns.Exclude<GXAttribute>(e => e.Object!);
+                        arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object!);
                         if (request.Select.Contains(TargetType.AttributeTemplate))
                         {
                             arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
-                            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template!, j => j.Id);
                         }
                     }
-                    it.Objects = (await _host.Connection.SelectAsync<GXObject>(arg)).ToList();
+                    it.Objects = [.. (await connection.SelectAsync<GXObject>(arg))];
                 }
                 else
                 {
@@ -352,7 +460,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
                     arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
                     arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.Id);
-                    it.DeviceGroups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToList();
+                    it.DeviceGroups = [.. (await connection.SelectAsync<GXDeviceGroup>(arg))];
                 }
             }
 
@@ -368,243 +476,186 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXDevice> ReadAsync(Guid id)
+        public async Task<GXDevice> ReadAsync(Guid id, Expression<Func<GXDevice, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Device) &&
-                !User.IsInRole(GXRoles.DeviceManager) &&
-                //If agent
-                !User.Claims.Where(w => w.Type.Equals("scope") && w.Value.Equals(GXAgentPolicies.View)).Any()))
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            string userId = ServerHelpers.GetUserId(User);
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>();
-            GXQuery.GetDevicesByUser(arg, userId, id);
-            arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
-            arg.Columns.Add<GXDeviceTemplate>();
-            arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices);
-            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
-            GXDevice device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg);
-            if (device == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            //Get device groups.
-            arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
-            arg.Where.And<GXDeviceGroupDevice>(q => q.DeviceId == device.Id && q.Removed == null);
-            device.DeviceGroups = await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
-            //Get device parameters.
-            arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
-            arg.Columns.Add<GXModule>(s => s.Id);
-            arg.Columns.Exclude<GXModule>(e => e.DeviceParameters);
-            arg.Joins.AddInnerJoin<GXDeviceParameter, GXModule>(j => j.Module, j => j.Id);
-            device.Parameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
-            //Get device password. This is obsolete.
-            //The Agent ask keys from the key management.
-            if (!string.IsNullOrEmpty(device.Settings))
-            {
-                var s = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(device.Settings);
-                if (s != null && s.HexPassword == null)
-                {
-                    if (s.Authentication != (byte)Enums.Authentication.None ||
-                        s.Security != (byte)Enums.Security.None)
-                    {
-                        ListKeyManagements req = new ListKeyManagements()
-                        {
-                            Filter = new GXKeyManagement()
-                            {
-                                Device = device
-                            },
-                            Select = new string[] { "KeyManagementKey" }
-                        };
-                        var list = await _keyManagementRepository.ListAsync(req, null, default);
-                        //Update password.
-                        foreach (var it in list)
-                        {
-                            if (it.Keys != null)
-                            {
-                                foreach (var key in it.Keys)
-                                {
-                                    if ((byte)key.KeyType.GetValueOrDefault(0) == s.Authentication &&
-                                        !string.IsNullOrEmpty(key.Data))
-                                    {
-                                        if (key.IsHex.GetValueOrDefault(false))
-                                        {
-                                            s.HexPassword = GXDLMSTranslator.HexToBytes(key.Data);
-                                        }
-                                        else
-                                        {
-                                            s.HexPassword = ASCIIEncoding.ASCII.GetBytes(key.Data);
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        }
 
-                        //Update block cipher key.
-                        if (s.Authentication == (byte)Enums.Authentication.HighGMAC ||
-                            s.Security != 0)
-                        {
-                            foreach (var it in list)
-                            {
-                                if (it.Keys != null)
-                                {
-                                    foreach (var key in it.Keys)
-                                    {
-                                        if (key.KeyType.GetValueOrDefault(0) == KeyManagementType.BlockCipher &&
-                                            !string.IsNullOrEmpty(key.Data))
-                                        {
-                                            if (key.IsHex.GetValueOrDefault(false))
-                                            {
-                                                s.BlockCipherKey = key.Data;
-                                            }
-                                            else
-                                            {
-                                                var bytes = ASCIIEncoding.ASCII.GetBytes(key.Data);
-                                                s.BlockCipherKey = GXDLMSTranslator.ToHex(bytes, false);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        //Update authentication key.
-                        if (s.Authentication == (byte)Enums.Authentication.HighGMAC ||
-                            s.Security != 0)
-                        {
-                            foreach (var it in list)
-                            {
-                                if (it.Keys != null)
-                                {
-                                    foreach (var key in it.Keys)
-                                    {
-                                        if (key.KeyType.GetValueOrDefault(0) == KeyManagementType.Authentication &&
-                                            !string.IsNullOrEmpty(key.Data))
-                                        {
-                                            if (key.IsHex.GetValueOrDefault(false))
-                                            {
-                                                s.AuthenticationKey = key.Data;
-                                            }
-                                            else
-                                            {
-                                                var bytes = ASCIIEncoding.ASCII.GetBytes(key.Data);
-                                                s.AuthenticationKey = GXDLMSTranslator.ToHex(bytes, false);
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        device.Settings = JsonSerializer.Serialize(s);
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
+                string userId = ServerHelpers.GetUserId(User);
+                GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>();
+                GXQuery.GetDevicesByUser(arg, userId, id);
+                arg.Joins.AddLeftJoin<GXDevice, GXAppearance>(d => d.ProfilePicture!, a => a.Id);
+                arg.Columns.Add<GXAppearance>(a => a.Id);
+                arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
+                arg.Columns.Add<GXDeviceTemplate>();
+                arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices!);
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template!, y => y.Id);
+                bool isAdmin = User.IsInRole(GXRoles.Admin);
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXDevice? device = await connection.SingleOrDefaultAsync<GXDevice>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                // Materialize the template as the query root; joined device reads can omit this reference.
+                arg = GXSelectArgs.SelectAll<GXDeviceTemplate>(t => t.Removed == null);
+                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXDevice>(t => t.Id, d => d.Template!);
+                arg.Where.And<GXDevice>(d => d.Id == id);
+                device.Template = await connection.SingleOrDefaultAsync<GXDeviceTemplate>(arg)
+                    ?? throw new GXAmiForbiddenException(id.ToString());
+                //Get device groups.
+                arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                arg.Where.And<GXDeviceGroupDevice>(q => q.DeviceId == device.Id && q.Removed == null);
+                device.DeviceGroups = await connection.SelectAsync<GXDeviceGroup>(arg);
+                //Get device properties.
+                device.Properties = await GXPropertyStores.Device.ListAsync(connection, null, device, cancellationToken);
+                // Storage reads stay redacted; the authorized Device endpoint can add operational keys to its response snapshot.
+                if (!string.IsNullOrEmpty(device.Settings))
+                {
+                    var settings = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(device.Settings);
+                    if (settings != null)
+                    {
+                        settings.Password = null;
+                        settings.BlockCipherKey = null;
+                        settings.AuthenticationKey = null;
+                        settings.BroadcastKey = null;
+                        device.Settings = JsonSerializer.Serialize(settings);
                     }
                 }
-            }
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXDevice, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXDevice>(w => w.Id == id);
-            device.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return device;
-        }
+                //Get creator with own query. It's faster for some DBs.
+                arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXDevice, GXUser>(s => s.Creator!, o => o.Id!);
+                arg.Where.And<GXDevice>(w => w.Id == id);
+                device.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
+                return device;
 
-        private void UpdateKeys(GXKeyManagement management, KeyManagementType type, string? data, byte[]? hexData)
-        {
-            bool found = false;
-            bool isHex = hexData != null && hexData.Any();
-            if (management.Keys == null)
-            {
-                management.Keys = new List<GXKeyManagementKey>();
             }
-            foreach (var key in management.Keys)
+            catch (GXDatabaseException ex)
             {
-                if (key.KeyType == type)
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
                 {
-                    found = true;
-                    key.IsHex = isHex;
-                    key.Data = isHex ? GXDLMSTranslator.ToHex(hexData) : data;
-                    break;
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
                 }
             }
-            if (!found)
-            {
-                management.Keys.Add(new GXKeyManagementKey()
-                {
-                    KeyType = type,
-                    IsHex = isHex,
-                    Data = isHex ? GXDLMSTranslator.ToHex(hexData) : data
-                });
-            }
+        }
+
+        private static void UpdateKeys(GXKeyManagement management, KeyManagementType type, byte[]? value)
+        {
+            management.Keys ??= [];
+            // Rotation creates a fresh PreActive identity; it never overwrites active material.
+            management.Keys.Add(new GXKeyManagementKey { KeyType = type, Key = value });
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
+        public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns,
+            Expression<Func<GXDevice, object>>? columns,
             bool lateBinding,
             IEnumerable<GXDeviceGroup>? groups)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceManager) &&
-                //If agent
-                !User.Claims.Where(w => w.Type.Equals("scope") && w.Value.Equals(GXAgentPolicies.View)).Any()))
+            devices = devices.ToArray();
+            // Capture only pre-existing devices. The history result must not contain inserted IDs.
+            var updatedDevices = devices.Where(d => d.Id != Guid.Empty).ToArray();
+            if (updatedDevices.Length == 0)
             {
-                throw new UnauthorizedAccessException();
+                // Keep related writes and deferred effects atomic without capturing device history.
+                return await GXHistoryScope.RunAsync(_dbFactory,
+                    _ => UpsertCoreAsync(devices, cancellationToken, columns, lateBinding, groups), cancellationToken);
             }
+            IEnumerable<Guid> ids = [];
+            await GXHistoryMutation.RunAsync<GXDevice>(_dbFactory, User, _serviceProvider, updatedDevices,
+                async () => { ids = await UpsertCoreAsync(devices, cancellationToken, columns, lateBinding, groups); },
+                cancellationToken);
+            return ids;
+        }
+
+        private async Task<IEnumerable<Guid>> UpsertCoreAsync(
+            IEnumerable<GXDevice> devices,
+            CancellationToken cancellationToken,
+            Expression<Func<GXDevice, object>>? columns,
+            bool lateBinding,
+            IEnumerable<GXDeviceGroup>? groups)
+        {
             DateTime now = DateTime.Now;
-            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            List<Guid> updated = new List<Guid>();
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
             var newDevices = devices.Where(w => w.Id == Guid.Empty).ToList();
             var updatedDevices = devices.Where(w => w.Id != Guid.Empty).ToList();
-            Dictionary<GXDevice, List<GXDeviceGroup>> deviceGroups = new Dictionary<GXDevice, List<GXDeviceGroup>>();
+            var notificationVersions = updatedDevices.GroupBy(d => d.Id)
+                .ToDictionary(g => g.Key, g => g.First().ConcurrencyStamp);
+            Dictionary<GXDevice, List<GXDeviceGroup>> deviceGroups = [];
             List<GXDeviceGroup>? defaultGroups = null;
             //Get notified users.
-            if (newDevices.Any())
+            if (newDevices.Count != 0)
             {
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Add);
                 if (defaultGroups == null)
                 {
                     //Get default device groups.
-                    ListDeviceGroups request = new ListDeviceGroups()
+                    ListDeviceGroups request = new()
                     {
                         Filter = new GXDeviceGroup() { Default = true }
                     };
-                    defaultGroups = new List<GXDeviceGroup>(await _deviceGroupRepository.ListAsync(request, null, CancellationToken.None));
-                    if (!defaultGroups.Any())
+                    defaultGroups = [.. await _deviceGroupRepository.ListAsync(request)];
+                    if (defaultGroups.Count == 0)
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }
                 }
                 foreach (var it in newDevices)
                 {
-                    if (it.DeviceGroups == null || !it.DeviceGroups.Any())
+                    if (it.DeviceGroups == null || it.DeviceGroups.Count == 0)
                     {
                         it.DeviceGroups = defaultGroups;
                     }
                 }
             }
-            foreach (var it in updatedDevices)
+            if (updatedDevices.Count != 0)
             {
-                //Get mapped device groups.
-                ListDeviceGroups request = new ListDeviceGroups()
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Edit);
+                await EnsureDeviceScopeAsync(updatedDevices.Select(d => d.Id), cancellationToken);
+                if (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.Name)))
                 {
-                    Filter = new GXDeviceGroup() { Default = true }
-                };
-                deviceGroups.Add(it, await _deviceGroupRepository.GetDeviceGroupsByDeviceId(it.Id));
-                if (!deviceGroups[it].Any())
-                {
-                    throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                    foreach (var it in updatedDevices)
+                    {
+                        //Get mapped device groups.
+                        ListDeviceGroups request = new()
+                        {
+                            Filter = new GXDeviceGroup() { Default = true }
+                        };
+                        deviceGroups.Add(it, await _deviceGroupRepository.GetDeviceGroupsByDeviceId(it.Id));
+                        if (deviceGroups[it].Count == 0)
+                        {
+                            throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                        }
+                    }
                 }
             }
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            // Validate resource policies before starting the device transaction: policy readers use their own commands.
+            foreach (var device in devices)
+            {
+                if (device.Id == Guid.Empty || columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.ProfilePicture)))
+                {
+                    await Gurux.DLMS.AMI.Server.Services.GXProfilePictures.ValidateAsync(connection, _authorizationService, User, device.ProfilePicture?.Id, cancellationToken);
+                }
+            }
+            await using var transaction = await connection.BeginTransactionAsync();
             try
             {
                 //Add batch device groups.
@@ -615,8 +666,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         if (group.Id == Guid.Empty)
                         {
-                            await _deviceGroupRepository.UpdateAsync(
-                                new GXDeviceGroup[] { group });
+                            await _deviceGroupRepository.UpsertAsync(
+                                [group]);
                         }
                         defaultGroups?.Add(group);
                     }
@@ -626,7 +677,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         deviceGroups[it].AddRange(groups);
                     }
                 }
-                List<GXKeyManagement> keys = new List<GXKeyManagement>();
+                List<GXKeyManagement> keys = [];
                 foreach (GXDevice device in devices)
                 {
                     if (string.IsNullOrEmpty(device.Name) && (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.Name))))
@@ -638,20 +689,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException("Invalid device template identifier.");
                     }
-                    GXKeyManagement[]? tmp = null;
+                    IEnumerable<GXKeyManagement>? tmp = null;
                     //Get device keys and save them to key manager table.
                     if (!string.IsNullOrEmpty(device.Settings))
                     {
                         var s = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(device.Settings);
-                        if (s?.HexPassword != null ||
-                            !string.IsNullOrEmpty(s?.Password) ||
-                            !string.IsNullOrEmpty(s?.BlockCipherKey) ||
-                            !string.IsNullOrEmpty(s?.AuthenticationKey))
+                        if (s?.Password?.Length > 0 ||
+                            s?.BlockCipherKey?.Length > 0 ||
+                            s?.AuthenticationKey?.Length > 0)
                         {
                             if (device.Id != Guid.Empty)
                             {
                                 //There is no need to get the managemenet keys when a new device is added.
-                                ListKeyManagements req = new ListKeyManagements()
+                                ListKeyManagements req = new()
                                 {
                                     Filter = new GXKeyManagement()
                                     {
@@ -663,9 +713,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             if (tmp?.FirstOrDefault() == null)
                             {
                                 //Check that device system title is not assigned for other meter.
-                                if (!string.IsNullOrEmpty(s.DeviceSystemTitle))
+                                if (s.DeviceSystemTitle?.Length > 0)
                                 {
-                                    ListKeyManagements req = new ListKeyManagements()
+                                    ListKeyManagements req = new()
                                     {
                                         Filter = new GXKeyManagement()
                                         {
@@ -676,233 +726,80 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                     //Check that system title is not used yet.
                                     foreach (var it in tmp)
                                     {
-                                        if (!string.IsNullOrEmpty(it.SystemTitle))
+                                        if (it.SystemTitle?.Length > 0)
                                         {
                                             throw new ArgumentException(string.Format(Properties.Resources.SystemTitleIsAlreadyInUse,
                                                 s.DeviceSystemTitle));
                                         }
                                     }
                                 }
-                                tmp = new GXKeyManagement[] { new GXKeyManagement(
+                                tmp = [ new(
                                     s.DeviceSystemTitle)
                                 {
                                     Name = device.Name,
                                     Device = device
                                 }
-                                };
+                                ];
                             }
                             else
                             {
                                 //Read all key management information.
-                                tmp = new GXKeyManagement[] { await _keyManagementRepository.ReadAsync(tmp[0].Id) };
+                                tmp = [await _keyManagementRepository.ReadAsync(tmp.First().Id)];
                             }
-                            if (s?.HexPassword != null || !string.IsNullOrEmpty(s?.Password))
+                            if (s?.Password?.Length > 0)
                             {
                                 if (s.Authentication == (byte)Enums.Authentication.Low)
                                 {
-                                    UpdateKeys(tmp[0], KeyManagementType.LLSPassword, s.Password, s.HexPassword);
+                                    UpdateKeys(tmp.First(), KeyManagementType.LLSPassword, s.Password);
                                 }
                                 else if (s.Authentication == (byte)Enums.Authentication.High)
                                 {
-                                    UpdateKeys(tmp[0], KeyManagementType.HLSPassword, s.Password, s.HexPassword);
+                                    UpdateKeys(tmp.First(), KeyManagementType.HLSPassword, s.Password);
                                 }
-                                s.HexPassword = null;
                                 s.Password = null;
                             }
-                            if (!string.IsNullOrEmpty(s?.BlockCipherKey))
+                            if (s?.BlockCipherKey?.Length > 0)
                             {
-                                byte[] tmp2 = GXDLMSTranslator.HexToBytes(s.BlockCipherKey);
                                 if (s.SecuritySuite == 2)
                                 {
-                                    if (tmp2.Length != 32)
+                                    if (s.BlockCipherKey.Length != 32)
                                     {
                                         throw new Exception("Invalid block cipher key.");
                                     }
                                 }
-                                else if (tmp2.Length != 16)
+                                else if (s.BlockCipherKey.Length != 16)
                                 {
                                     throw new Exception("Invalid block cipher key.");
                                 }
-                                UpdateKeys(tmp[0], KeyManagementType.BlockCipher, null, tmp2);
+                                UpdateKeys(tmp.First(), KeyManagementType.BlockCipher, s.BlockCipherKey);
                                 s.BlockCipherKey = null;
                             }
-                            if (!string.IsNullOrEmpty(s?.AuthenticationKey))
+                            if (s?.AuthenticationKey?.Length > 0)
                             {
-                                byte[] tmp2 = GXDLMSTranslator.HexToBytes(s.AuthenticationKey);
                                 if (s.SecuritySuite == 2)
                                 {
-                                    if (tmp2.Length != 32)
+                                    if (s.AuthenticationKey.Length != 32)
                                     {
                                         throw new Exception("Invalid authentication key.");
                                     }
                                 }
-                                else if (tmp2.Length != 16)
+                                else if (s.AuthenticationKey.Length != 16)
                                 {
                                     throw new Exception("Invalid authentication key.");
                                 }
-                                UpdateKeys(tmp[0], KeyManagementType.Authentication, null, tmp2);
+                                UpdateKeys(tmp.First(), KeyManagementType.Authentication, s.AuthenticationKey);
                                 s.AuthenticationKey = null;
                             }
-                            keys.Add(tmp[0]);
+                            keys.Add(tmp.First());
                             device.Settings = JsonSerializer.Serialize(s);
                         }
                     }
                 }
 
-                if (newDevices.Any())
-                {
-                    if (lateBinding)
-                    {
-                        foreach (var device in newDevices)
-                        {
-                            if (device.TraceLevel == null)
-                            {
-                                device.TraceLevel = TraceLevel.Off;
-                            }
-                            device.Creator = creator;
-                            device.CreationTime = now;
-                        }
-                        GXInsertArgs args = GXInsertArgs.InsertRange(newDevices);
-                        args.Exclude<GXDevice>(e => new
-                        {
-                            e.Objects,
-                            e.Updated,
-                            e.Removed,
-                            e.DeviceGroups,
-                            e.Parameters
-                        });
-                        await _host.Connection.InsertAsync(transaction, args);
-                        foreach (var device in newDevices)
-                        {
-                            //Add device parameters.
-                            await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
-                            //Add device to the default device group.
-                            await AddDeviceToDeviceGroups(transaction, device.Id, device?.DeviceGroups, cancellationToken);
-                        }
-                        updated = newDevices.Select(s => s.Id).ToList();
-                    }
-                    else
-                    {
-                        foreach (GXDevice device in newDevices)
-                        {
-                            //Add new device.
-                            if (device.TraceLevel == null)
-                            {
-                                device.TraceLevel = TraceLevel.Off;
-                            }
-                            device.Type = device.Template.Type;
-                            GXInsertArgs args = GXInsertArgs.Insert(device);
-                            args.Exclude<GXDevice>(q => new
-                            {
-                                q.Objects,
-                                q.DeviceGroups,
-                                q.Updated,
-                                q.Parameters
-                            });
-                            device.Creator = creator;
-                            device.CreationTime = now;
-                            await _host.Connection.InsertAsync(transaction, args, cancellationToken);
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(q => q.Removed == null);
-                            arg.Distinct = true;
-                            arg.Columns.Add<GXAttributeTemplate>();
-                            arg.Joins.AddLeftJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate);
-                            arg.Joins.AddLeftJoin<GXObjectTemplate, GXDeviceTemplate>(o => o.DeviceTemplate, a => a.Id);
-                            arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
-                            arg.Where.And<GXDeviceTemplate>(q => q.Removed == null && q.Id == device.Template.Id);
-                            arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
-                            List<GXObjectTemplate> l = await _host.Connection.SelectAsync<GXObjectTemplate>(arg, cancellationToken);
-                            foreach (GXObjectTemplate it in l)
-                            {
-                                GXObject obj = new GXObject(it)
-                                {
-                                    CreationTime = now,
-                                    Device = device,
-                                };
-                                await _host.Connection.InsertAsync(transaction, GXInsertArgs.Insert(obj), cancellationToken);
-                                foreach (GXAttributeTemplate ait in it.Attributes)
-                                {
-                                    GXAttribute a = new GXAttribute();
-                                    a.Object = obj;
-                                    a.Template = ait;
-                                    a.CreationTime = now;
-                                    a.ExpirationTime = ait.ExpirationTime;
-                                    obj.Attributes.Add(a);
-                                }
-                                ;
-                                //Update object values e.g. logical device name.
-                                if (device.Objects != null)
-                                {
-                                    foreach (var obj2 in device.Objects)
-                                    {
-                                        if (obj?.Template?.LogicalName == obj2?.Template?.LogicalName &&
-                                            obj2?.Attributes != null)
-                                        {
-                                            foreach (var att in obj2.Attributes)
-                                            {
-                                                if (!string.IsNullOrEmpty(att.Value))
-                                                {
-                                                    if (att.Template == null)
-                                                    {
-                                                        throw new ArgumentException("Template is missing.");
-                                                    }
-                                                    if (att.Template.Id == Guid.Empty)
-                                                    {
-                                                        if (lateBinding)
-                                                        {
-                                                            obj2.CreationTime = now;
-                                                            obj2.Device = device;
-                                                            await _host.Connection.InsertAsync(transaction, GXInsertArgs.Insert(obj), cancellationToken);
-                                                        }
-                                                        else
-                                                        {
-                                                            //Get object by logical name.
-                                                            int ot = obj2.Template.ObjectType.Value;
-                                                            string ln = obj2.Template.LogicalName;
-                                                            arg = GXSelectArgs.SelectAll<GXObject>();
-                                                            arg.Columns.Add<GXAttribute>();
-                                                            arg.Columns.Add<GXAttributeTemplate>();
-                                                            arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
-                                                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
-                                                            arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
-                                                            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
-                                                            arg.Where.And<GXObjectTemplate>(w => w.ObjectType == ot && w.LogicalName == ln);
-                                                            arg.Where.And<GXDevice>(w => w.Id == device.Id);
-                                                            GXObject tmp = await _host.Connection.SingleOrDefaultAsync<GXObject>(transaction, arg);
-                                                            var tmp2 = tmp?.Attributes?.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
-                                                            if (tmp2?.Template != null)
-                                                            {
-                                                                //Template is null if object is added.
-                                                                att.Template = tmp2.Template;
-                                                            }
-                                                        }
-                                                    }
-                                                    var tmp3 = obj.Attributes.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
-                                                    if (tmp3 != null)
-                                                    {
-                                                        tmp3.Value = att.Value;
-                                                    }
-                                                }
-                                            }
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                await _host.Connection.InsertAsync(transaction,
-                                    GXInsertArgs.InsertRange(obj.Attributes),
-                                    cancellationToken);
-                            }
-                            //Add device parameters.
-                            await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
-                            //Add device to the default device group.
-                            await AddDeviceToDeviceGroups(transaction, device.Id, device.DeviceGroups, cancellationToken);
-                            updated.Add(device.Id);
-                        }
-                    }
-                }
+                await UpsertAsync(connection, transaction, newDevices, creator, now, lateBinding, cancellationToken);
                 foreach (GXDevice device in updatedDevices)
                 {
-                    if ((device.DeviceGroups == null || !device.DeviceGroups.Any()) &&
+                    if ((device.DeviceGroups == null || device.DeviceGroups.Count == 0) &&
                         (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups))))
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
@@ -914,8 +811,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.Objects,
                         q.CreationTime,
                         q.DeviceGroups,
-                        device.Type,
-                        q.Parameters,
+                        q.Type,
+                        q.Properties,
                         q.Template,
                     });
                     if (!User.IsInRole(GXRoles.Admin) ||
@@ -923,55 +820,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
                        string.IsNullOrEmpty(device.Creator.Id))
                     {
                         //Only admin can update the creator.
-                        args.Exclude<GXDevice>(q => q.Creator);
+                        args.Exclude<GXDevice>(q => q.Creator!);
                     }
-                    _host.Connection.Update(transaction, args);
+                    connection.Update(transaction, args);
                     //Update objects if exists.
                     if (device.Objects != null)
                     {
-                        GXAttribute a = new GXAttribute();
+                        GXAttribute a = new();
                         foreach (var obj in device.Objects)
                         {
                             if (obj.Attributes != null)
                             {
-                                await _attributeRepository.UpdateAsync(obj.Attributes,
-                                    c => a.Value);
+                                await _attributeRepository.UpsertAsync(obj.Attributes,
+                                    c => a.Value!);
                             }
                         }
                     }
                     {
-                        //Update device parameters.
-                        if (device.Parameters == null)
+                        //Update device properties.
+                        if (device.Properties == null)
                         {
-                            if (ServerHelpers.Contains(columns, nameof(GXDevice.Parameters)))
+                            if (ServerHelpers.Contains(columns, nameof(GXDevice.Properties)))
                             {
                                 throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                             }
                         }
                         else
                         {
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
-                            var deviceParameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
-                            var comparer = new UniqueComparer<GXDeviceParameter, Guid>();
-                            List<GXDeviceParameter> removedDeviceParameters = deviceParameters.Except(device.Parameters, comparer).ToList();
-                            List<GXDeviceParameter> addedDeviceGroupParameters = device.Parameters.Except(deviceParameters, comparer).ToList();
-                            List<GXDeviceParameter> updatedDeviceGroupParameters = device.Parameters.Union(deviceParameters, comparer).ToList();
-                            if (removedDeviceParameters.Any())
-                            {
-                                RemoveDeviceParameters(transaction, removedDeviceParameters);
-                            }
-                            if (addedDeviceGroupParameters.Any())
-                            {
-                                await AddDeviceParameters(transaction, device, addedDeviceGroupParameters, cancellationToken);
-                            }
-                            if (updatedDeviceGroupParameters.Any())
-                            {
-                                foreach (var it in updatedDeviceGroupParameters)
-                                {
-                                    GXUpdateArgs u = GXUpdateArgs.Update(it, c => new { c.Settings, c.Updated });
-                                    await _host.Connection.UpdateAsync(u);
-                                }
-                            }
+                            await GXPropertyStores.Device.ReplaceAsync(connection, transaction, device, device.Properties, cancellationToken);
                         }
                     }
                     //Map device groups to device.
@@ -986,69 +862,170 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         else
                         {
-                            List<GXDeviceGroup> removedDeviceGroups = deviceGroups[device].Except(device.DeviceGroups, comparer).ToList();
-                            List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups[device], comparer).ToList();
-                            if (removedDeviceGroups.Any())
+                            List<GXDeviceGroup> removedDeviceGroups = [.. deviceGroups[device].Except(device.DeviceGroups, comparer)];
+                            List<GXDeviceGroup> addedDeviceGroups = [.. device.DeviceGroups.Except(deviceGroups[device], comparer)];
+                            if (removedDeviceGroups.Count != 0)
                             {
-                                RemoveDevicesFromDeviceGroup(transaction, device.Id, removedDeviceGroups);
+                                RemoveDevicesFromDeviceGroup(connection, transaction, device.Id, removedDeviceGroups);
                             }
-                            if (addedDeviceGroups.Any())
+                            if (addedDeviceGroups.Count != 0)
                             {
-                                await AddDeviceToDeviceGroups(transaction, device.Id, addedDeviceGroups, cancellationToken);
+                                await AddDeviceToDeviceGroups(connection, transaction, device.Id, addedDeviceGroups, cancellationToken);
                             }
                         }
                     }
                 }
-                _host.Connection.CommitTransaction(transaction);
-                if (keys != null)
+                await transaction.CommitAsync();
+                foreach (var added in newDevices)
+                    {
+                    PublishDeviceEvent("device.add", added.Id);
+                }
+                foreach (var edited in updatedDevices)
+                    {
+                    PublishDeviceEvent("device.edit", edited.Id);
+                }
+                if (keys.Count != 0)
                 {
                     //Management keys must update after the devices are added for the DB.
-                    await _keyManagementRepository.UpdateAsync(keys);
+                    await _keyManagementRepository.UpsertAsync(keys);
+                }
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(devices, linkedCts.Token, columns, lateBinding, groups);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
                 }
             }
             catch (Exception)
             {
-                _host.Connection.RollbackTransaction(transaction);
+                transaction.Rollback();
                 throw;
             }
-            Dictionary<GXDevice, List<string>> updates = new Dictionary<GXDevice, List<string>>();
-            if (newDevices.Any())
+            foreach (var it in newDevices)
             {
-                var first = newDevices.First();
-                var users = await GetUsersAsync(first.Id);
-                foreach (var it in newDevices)
-                {
-                    updates[it] = users;
-                }
+                _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Add, connection),
+                       new GXTarget(GXDevicePolicies.Add, it.Id, it.Name) { ConcurrencyStamp = it.ConcurrencyStamp });
             }
             foreach (var it in updatedDevices)
             {
-                var users = await GetUsersAsync(it.Id);
-                updates[it] = users;
+                _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Edit, connection),
+                       new GXTarget(GXDevicePolicies.Edit, it.Id, it.Name)
+                       {
+                           ConcurrencyStamp = it.ConcurrencyStamp != notificationVersions[it.Id] ? it.ConcurrencyStamp : null
+                       });
             }
-            foreach (var it in updates)
+            return [.. devices.Select(s => s.Id)];
+        }
+
+        /// <summary>Insert validated new devices using the caller's transaction, without device history.</summary>
+        private static async Task UpsertAsync(GXDbConnection connection, IDbTransaction transaction,
+            List<GXDevice> newDevices, GXUser creator, DateTime now, bool lateBinding,
+            CancellationToken cancellationToken)
+        {
+            if (newDevices.Count != 0)
             {
-                await _eventsNotifier.DeviceUpdate(it.Value,
-                    [new GXDevice() { Id = it.Key.Id, Name = it.Key.Name }]);
+                if (lateBinding)
+                {
+                    foreach (var device in newDevices)
+                    {
+                        device.TraceLevel ??= TraceLevel.Off;
+                        device.Creator = creator;
+                        device.CreationTime = now;
+                    }
+                    GXInsertArgs args = GXInsertArgs.InsertRange(newDevices);
+                    args.Exclude<GXDevice>(e => new
+                    {
+                        e.Objects,
+                        e.Updated,
+                        e.Removed,
+                        e.DeviceGroups,
+                        e.Properties
+                    });
+                    await connection.InsertAsync(transaction, args);
+                    foreach (var device in newDevices)
+                    {
+                        //Add device properties.
+                        await AddDeviceProperties(connection, transaction, device, device.Properties, cancellationToken);
+                        //Add device to the default device group.
+                        await AddDeviceToDeviceGroups(connection, transaction, device.Id, device?.DeviceGroups, cancellationToken);
+                    }
+                }
+                else
+                {
+                    foreach (GXDevice device in newDevices)
+                    {
+                        //Add new device.
+                        device.TraceLevel ??= TraceLevel.Off;
+                        device.Type = device.Template!.Type;
+                        GXInsertArgs args = GXInsertArgs.Insert(device);
+                        args.Exclude<GXDevice>(q => new
+                        {
+                            q.Objects,
+                            q.DeviceGroups,
+                            q.Updated,
+                            q.Properties
+                        });
+                        device.Creator = creator;
+                        device.CreationTime = now;
+                        await connection.InsertAsync(transaction, args, cancellationToken);
+                        GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(q => q.Removed == null);
+                        arg.Distinct = true;
+                        arg.Columns.Add<GXAttributeTemplate>();
+                        arg.Joins.AddLeftJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate!);
+                        arg.Joins.AddLeftJoin<GXObjectTemplate, GXDeviceTemplate>(o => o.DeviceTemplate!, a => a.Id);
+                        arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
+                        arg.Where.And<GXDeviceTemplate>(q => q.Removed == null && q.Id == device.Template.Id);
+                        arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
+                        List<GXObjectTemplate> l = await connection.SelectAsync<GXObjectTemplate>(transaction, arg, cancellationToken);
+                        foreach (GXObjectTemplate it in l)
+                        {
+                            var initial = device.Objects?.FirstOrDefault(o => o.Template?.Id == it.Id ||
+                                (o.Template?.ObjectType == it.ObjectType && o.Template?.LogicalName == it.LogicalName));
+                            await ObjectRepository.CreateObjectAsync(connection, transaction, device, it, now,
+                                initial?.Attributes, cancellationToken);
+                        }
+                        //Add device properties.
+                        await AddDeviceProperties(connection, transaction, device, device.Properties, cancellationToken);
+                        //Add device to the default device group.
+                        await AddDeviceToDeviceGroups(connection, transaction, device.Id, device.DeviceGroups, cancellationToken);
+                    }
+                }
             }
-            return updated.ToArray();
         }
 
         /// <summary>
         /// Map device template to device groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateId">Device ID.</param>
         /// <param name="groups">Device groups where the device is added.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public Task AddDeviceToDeviceGroups(IDbTransaction transaction,
+        private static Task<int> AddDeviceToDeviceGroups(GXDbConnection connection, IDbTransaction transaction,
             Guid deviceTemplateId,
             IEnumerable<GXDeviceGroup>? groups,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             DateTime now = DateTime.Now;
-            List<GXDeviceGroupDevice> list = new List<GXDeviceGroupDevice>();
-            foreach (GXDeviceGroup it in groups)
+            List<GXDeviceGroupDevice> list = [];
+            foreach (GXDeviceGroup it in (groups ?? []))
             {
                 list.Add(new GXDeviceGroupDevice()
                 {
@@ -1057,101 +1034,75 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            return _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(list), cancellationToken);
+            return connection.InsertAsync(transaction, GXInsertArgs.InsertRange(list), cancellationToken);
         }
 
         /// <summary>
         /// Remove map between device group and device.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateId">Device template ID.</param>
         /// <param name="groups">Device template groups where the device template is removed.</param>
-        public void RemoveDevicesFromDeviceGroup(
-            IDbTransaction transaction,
+        private static void RemoveDevicesFromDeviceGroup(
+            GXDbConnection connection, IDbTransaction transaction,
             Guid deviceTemplateId,
             IEnumerable<GXDeviceGroup> groups)
         {
             foreach (var it in groups)
             {
-                _host.Connection.Delete(transaction, GXDeleteArgs.Delete<GXDeviceGroupDevice>(w => w.DeviceId == deviceTemplateId && w.DeviceGroupId == it.Id));
+                connection.Delete(transaction, GXDeleteArgs.Delete<GXDeviceGroupDevice>(w => w.DeviceId == deviceTemplateId && w.DeviceGroupId == it.Id));
             }
         }
 
         /// <summary>
         /// Add device parameters.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
         /// <param name="device">Device where parameters are added.</param>
         /// <param name="parameters">Added device parameters.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public Task AddDeviceParameters(IDbTransaction transaction,
-            GXDevice device,
-            IEnumerable<GXDeviceParameter>? parameters,
-            CancellationToken cancellationToken)
+        private static async Task AddDeviceProperties(GXDbConnection connection, IDbTransaction transaction,
+            GXDevice device, IEnumerable<GXDeviceProperty>? parameters,
+            CancellationToken cancellationToken = default)
         {
             if (parameters != null)
             {
-                DateTime now = DateTime.Now;
-                foreach (GXDeviceParameter it in parameters)
-                {
-                    it.CreationTime = now;
-                    it.Device = device;
-                }
-                return _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(parameters), cancellationToken);
+                await GXPropertyStores.Device.ReplaceAsync(connection, transaction, device, parameters, cancellationToken);
             }
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Remove device parameters from the device.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="parameters">Removed device parameters.</param>
-        public void RemoveDeviceParameters(
-            IDbTransaction transaction,
-            IEnumerable<GXDeviceParameter> parameters)
-        {
-            foreach (GXDeviceParameter it in parameters)
-            {
-                _host.Connection.Delete(transaction, GXDeleteArgs.DeleteById<GXDeviceParameter>(it.Id));
-            }
-            //_host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
         }
 
         /// <inheritdoc />
         public async Task UpdateStatusAsync(
-
             Guid deviceId,
-            DeviceStatus status)
+            DeviceStatus status, CancellationToken cancellationToken)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name },
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Edit);
+            GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Status },
                 where => where.Id == deviceId && where.Removed == null);
-            GXDevice device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(args);
-            if (device == null)
-            {
-                throw new GXAmiNotFoundException(Properties.Resources.Device + " " +
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            GXDevice? device = await connection.SingleOrDefaultAsync<GXDevice>(args) ?? throw new GXAmiNotFoundException(Properties.Resources.Device + " " +
                     Properties.Resources.Id + " " + deviceId.ToString());
-            }
+            var previousStatus = device.Status;
             device.Status = status;
             device.Detected = DateTime.Now;
             GXUpdateArgs update;
             update = GXUpdateArgs.Update(device, c => new { c.Status, c.Detected });
-            await _host.Connection.UpdateAsync(update);
-            //Only part of the device properties are send.
-            GXDevice tmp = new GXDevice()
-            {
-                Id = device.Id,
-                Name = device.Name,
-                Detected = device.Detected,
-                Status = device.Status
-            };
-            if (_performanceSettings.Notification(TargetType.Device))
-            {
-                await _eventsNotifier.DeviceStatusChange(await GetUsersAsync(device.Id), new GXDevice[] { tmp });
+            await connection.UpdateAsync(update, cancellationToken);
+            if (previousStatus != status && (status == DeviceStatus.Connected || status == DeviceStatus.Disconnected))
+                {
+                PublishDeviceEvent(status == DeviceStatus.Connected ? "device.connected" : "device.disconnected", device.Id);
             }
+            _notificationCache.Add(await GetNotifiedUsers(device.Id, NotificationAction.StatusChange, connection),
+                       new GXTarget(GXDevicePolicies.Edit, device.Id, device.Name,
+                       Properties.Resources.Detected + device.Detected + " " + Properties.Resources.Status + " " + device.Status));
+
             //Update device state for the device log.
-            GXDeviceError? log = new GXDeviceError(TraceLevel.Info);
-            log.Device = device;
+            GXLog? log = new(TraceLevel.Info)
+            {
+                Creator = device.Id
+            };
             switch (status)
             {
                 case DeviceStatus.Connected:
@@ -1170,8 +1121,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (log != null)
             {
                 //Add device log. Idle status is not logged.
-                IDeviceErrorRepository repository = _serviceProvider.GetRequiredService<IDeviceErrorRepository>();
-                await repository.AddAsync(TargetType.Device, [log]);
+                ILogRepository repository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("device-error");
+                await repository.AddAsync(TargetType.Device, [log], default);
             }
         }
 

@@ -1,283 +1,196 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@rendermode RenderMode.InteractiveWebAssembly
 
-@using Gurux.DLMS.AMI.Client.Module
 @using Gurux.DLMS.AMI.Shared.DIs
-
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using System.IO
-@using Gurux.DLMS.AMI.Module
-@using System.Linq
-@using System.Net.Http.Headers
-@using System.Text.Json
-@using Microsoft.Extensions.Logging
-@using Microsoft.Extensions.Options
-@using Microsoft.AspNetCore.Components
-@using System.Reflection
+@using Gurux.DLMS.AMI.Shared.DTOs;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@using System.Net.Http.Headers
+@using Gurux.DLMS.AMI.Client.Layout
+@inject ModuleLoader Loader
+@using Gurux.DLMS.AMI.Module.Enums
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
-@inject ILogger<Module> Logger
-@inject ModuleLoader Registry
+<GXHelpContext Topic="Module" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        @if (isAdding)
-        {
-            <tr>
-                <th>
-                    <LocalizedText Value="@Properties.Resources.UploadModule" />
-                </th>
-                <th>
-                    <FileSelector @bind-Value="@_value"
-                                  Style="width:100%"
-                                  MaxFileSize="10000000"
-                                  OnLoaded="@UpdateFile"
-                                  Filter=".zip" />
-                </th>
-            </tr>
-        }
-        else
-        {
-            <div class="row">
-                <div style="width:100%">
-                    <div class="form-group">
-                        <InputNullableSwitch Text="@Properties.Resources.Active"
-                                             @bind-Value="Active.Active" />
-                        <br />
-                    </div>
-                    <div class="form-group">
-                        <label>@Properties.Resources.Name</label>
-                        <InputText id="name" class="form-control" readonly="readonly" @bind-Value="Active.Name" />
-                    </div>
-                    <div class="form-group">
-                        <label>@Properties.Resources.TraceLevel</label>
-                        <GXInputDropdown class="form-select"
-                                         Id="Agent.TraceLevel"
-                                         LastValue="@(action == CrudAction.Create)"
-                                         @bind-Value="Active.TraceLevel">
-                        </GXInputDropdown>
-                        <ValidationMessage For="@(() => Active.TraceLevel)" />
-                    </div>
-                    @if (_configurationUI != null)
-                    {
-                        <ModuleWrapper @ref="_module"
-                                       ComponentType="_configurationUI"
-                                       @bind-Settings="Active.Settings" />
-                    }
-                    <div class="form-group">
-                        <label>@Properties.Resources.Version</label>
-                        <InputText id="version" class="form-control" readonly="readonly" @bind-Value="Active.Version" />
-                    </div>
-                    <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                                        Updated="@Active.Updated" />
-                </div>
-            </div>
-        }
-    </EditForm>
-
-    <Confirm @ref="RestartConfirmation"
-             ConfirmationChanged="OnRestartConfirmation"
-             ConfirmationTitle="Confirm restart"
-             AllowDelete="false"
-             OkTitle="@Properties.Resources.Restart"
-             ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
-    </Confirm>
-}
-
-@code {
-    [CascadingParameter]
-    private ModuleTab? Parent { get; set; }
-
-    private GXModule? _active;
-    private byte[]? _value;
-
-    private GXModule? Active
-    {
-        get
-        {
-            if (_active != null)
+<h1>
+    @Title
+</h1>
+<ModuleRemovalDialog @ref="_removalDialog" Removed="OnModuleRemovedAsync" />
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
             {
-                return _active;
+                <TabHeader Name="@GXMenus.ModuleDetailsTab" Parameters="@TabParameters" />
             }
-            return Parent?.Active;
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+@if (_ready && _configurationUI != null)
+{
+    <div hidden="@(!GeneralVisible)"><EditForm EditContext="@FormContext"><ModuleErrorBoundary @key="_configurationUI" ModuleId="@Active.Id"><CascadingValue Name="GXHelpActive" Value="@GeneralVisible"><ModuleWrapper Target="@Active" ModuleId="@Active.Id" @ref="_module" ComponentType="_configurationUI" Settings="@Active.GetSettings()" SettingsChanged="@((string? value) => Active.SetSettings(value))" /></CascadingValue></ModuleErrorBoundary></EditForm></div>
+}
+<br />
+@code {
+    private GXEditorMenu? _editorMenu;
+    private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
+    private EditContext FormContext => GXEditContexts.For(Active);
+    internal byte[]? _value;
+    internal CrudAction action;
+    internal bool isAdding;
+    private ModuleWrapper? _module;
+    private Type? _configurationUI;
+    private ModuleRemovalDialog? _removalDialog;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _disposed;
+    internal bool GeneralVisible;
+    internal void SetGeneralVisible(bool visible)
+    {
+        GeneralVisible = visible;
+        if (!_disposed) {
+            _ = InvokeAsync(StateHasChanged);
         }
     }
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active,
+        ["Action"] = _action,
+        ["Id"] = Id!
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
     /// <summary>
-    /// User action.
+    /// Action.
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
     /// <summary>
-    /// Selected item.
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
     /// </summary>
     [Parameter]
     public string? Id { get; set; }
 
     /// <summary>
-    /// User is verified before server is restart.
+    /// Page title.
     /// </summary>
-    protected ConfirmBase? RestartConfirmation;
-
-    ModuleWrapper? _module;
-    Type? _configurationUI;
-
-    private string? fileName = null;
-    private bool isAdding = false;
+    private string? Title;
 
     /// <summary>
-    /// Update custom module.
+    /// Active item.
     /// </summary>
-    /// <param name="xml"></param>
-    private void UpdateFile(byte[]? value, string? fileName)
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            Notifier.ProgressStart();
-            InvokeAsync(StateHasChanged);
-        }
-        catch (Exception ex)
-        {
-            fileName = null;
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
-            InvokeAsync(StateHasChanged);
-        }
-    }
-
-    /// <summary>
-    /// Show module settings.
-    /// </summary>
-    /// <returns></returns>
-    internal async Task ShowModuleSettings()
-    {
-        if (Active != null && _configurationUI == null)
-        {
-            if (!Registry.AddIns.Any())
-            {
-                await Registry.RefreshAsync();
-            }
-            var type = await Registry.GetComponentTypeAsync(Active.Id);
-            if (typeof(IAmiModule).IsAssignableFrom(type))
-            {
-                IAmiModule? obj = (IAmiModule?)Activator.CreateInstance(type)!;
-                _configurationUI = obj.Configuration;
-            }
-        }
-        if (_module != null)
-        {
-            await _module.NotifyInitializedAsync();
-        }
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_module != null)
-        {
-            await ShowModuleSettings();
-        }
-        await base.OnParametersSetAsync();
-    }
+    public GXModule Active = new GXModule("");
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            action = ClientHelpers.GetAction(Action);
-            if (action != CrudAction.Create && (Active?.Id == null && Id != null))
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Id + " " + Properties.Resources.Module;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModule);
+            NotificationService?.RemoveByKey("Pages/Module/Module.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get module data.
-                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>(string.Format("api/Module?id={0}", Id)));
+                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>("api/Module?id=" + Id));
                 if (tmp?.Item != null)
                 {
-                    _active = tmp.Item;
+                    Active = tmp.Item;
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            await ShowModuleSettings();
-            action = ClientHelpers.GetAction(Action);
+            action = _action;
             isAdding = action == CrudAction.Create;
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "Remove", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            Loader.Changed += OnLoaderChanged;
+            await ShowModuleSettings();
+            _ready = true;
+            EditorMenu.Set(Active, action, OnSave, OnCancel);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/Module.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Save module.
-    ///</summary>
-    public async void OnSave()
+    public async Task OnSave()
     {
         HttpResponseMessage response;
         try
@@ -286,46 +199,41 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                _removalDialog?.Show([Active]);
+                return;
+            }
+            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingModule);
+            NotificationService?.RemoveByKey("Pages/Module/ModuleGeneral.OnSave");
             if (action == CrudAction.Create)
             {
                 if (_value == null)
                 {
-                    throw new Exception("Module file is not selected.");
+                    throw new Exception(Properties.Resources.ModuleFileIsNotSelected);
                 }
                 var content = new ByteArrayContent(_value);
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                 response = await Http.PostAsync("api/Module/Add", content);
-                await AMI.Shared.Helpers.ValidateStatusCode(response, default);
+                await response.EnsureSuccessAsync(default);
                 AddModuleResponse? ret = await response.Content.ReadFromJsonAsync<AddModuleResponse>();
                 if (ret != null && ret.Modules != null && ret.Modules.Any())
                 {
-                    _active = ret.Modules[0];
+                    Active = ret.Modules.First();
                     if (Active != null)
                     {
                         isAdding = false;
-                        Notifier.UpdateData(GXPages.Modules, Active);
-                        Active.Modified = true;
+                        EditorMenu.Set(Active, action, OnSave, OnCancel);
+                        FormContext.NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXModule.Properties)));
                         await ShowModuleSettings();
-                        Notifier.Action = CrudAction.Update;
+                        action = CrudAction.Update;
+                        Action = "Edit";
+                        EditorMenu.Set(Active, action, OnSave, OnCancel);
                         StateHasChanged();
                     }
-                    if (ret.Restart)
-                    {
-                        RestartConfirmation?.Show();
-                    }
                 }
             }
-            else if (action == CrudAction.Delete)
-            {
-                var ret = await Http.PostAsJson<RemoveModuleResponse>
-                    ("api/Module/Delete", new RemoveModule() { Modules = new string[] { Active.Id } });
-                if (ret.Restart)
-                {
-                    RestartConfirmation?.Show();
-                }
-            }
+
             else if (action == CrudAction.Update)
             {
                 if (_module != null)
@@ -336,12 +244,26 @@
                 UpdateModule req = new UpdateModule() { Module = Active };
                 await Http.PostAsJson<UpdateModuleResponse>
                     ("api/Module/Update", req);
-                Notifier.ShowInformation("Settings saved.", true);
+                // Saving rotates property concurrency tokens, including when only Enabled
+                // changed. Keep the form's model instance, but use the persisted versions
+                // before the newly activated settings editor can issue another save.
+                var saved = (await Http.GetFromJsonAsync<GetModuleResponse>(
+                    "api/Module?id=" + Uri.EscapeDataString(Active.Id), _lifetime.Token))?.Item
+                    ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+                Active.Properties = saved.Properties;
+                Active.ConcurrencyStamp = saved.ConcurrencyStamp;
+                Active.Updated = saved.Updated;
+                Active.Enabled = saved.Enabled;
+                Active.Status = saved.Status;
+                Active.RuntimeState = saved.RuntimeState;
+                FormContext.MarkAsUnmodified();
+                NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.SettingsSaved, string.Empty, Closable: true));
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
+            await Loader.RefreshAsync(_lifetime.Token);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -349,46 +271,115 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModuleGeneral.OnSave");
         }
     }
-
-    /// <summary>
-    /// Cancel.
-    ///</summary>
     private async Task OnCancel()
     {
         if (_module != null)
         {
             await _module.NotifyCancelAsync();
         }
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
-
-    /// <summary>
-    /// Clear the workflow log list.
-    ///</summary>
-    public async Task OnRestartConfirmation(ConfirmArgs args)
+    public async Task ShowModuleSettings()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        var token = _lifetime.Token;
         try
         {
-            if (args.Confirm)
+            if (Active != null && _configurationUI == null)
             {
-                StopApplicationRequest req = new StopApplicationRequest();
-                await Http.PostAsJson("api/Configuration/Restart", req);
+                if (!Loader.IsInitialized)
+                {
+                    await Loader.RefreshAsync(token);
+                }
+
+                if (_disposed)
+                {
+                    return;
+                }
+
+                var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == Active.Id)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Configuration && v.Key == null);
+                if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await Authentication.GetAuthenticationStateAsync()).User, declaredView.Policy)).Succeeded)
+                {
+                    return;
+                }
+
+                var configurationUI = await Loader.GetViewTypeAsync(Active.Id, AmiViewArea.Configuration, cancellationToken: token);
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _configurationUI = configurationUI;
+            }
+
+            if (_module != null)
+            {
+                await _module.NotifyInitializedAsync();
             }
         }
-        catch (AccessTokenNotAvailableException exception)
+        catch (OperationCanceledException)when (_disposed)
         {
-            exception.Redirect();
         }
-        catch (Exception ex)
+    }
+    private async Task OnModuleRemovedAsync(IReadOnlyList<ModuleRemovalResult> results)
+    {
+        await Loader.RefreshAsync(_lifetime.Token);
+        if (results.Any(r => r.ModuleId == Active?.Id && r.Success))
         {
-            Notifier?.ProcessError(ex);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
+    }
+    private void OnLoaderChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _configurationUI = null;
+            _module = null;
+            StateHasChanged();
+            try
+            {
+                if (Loader.RefreshError != null)
+                {
+                    NotificationService?.ReportError(Loader.RefreshError);
+                }
+
+                await ShowModuleSettings();
+            }
+            catch (OperationCanceledException)when (_disposed)
+            {
+            }
+            catch (Exception ex)
+            {
+                NotificationService?.ReportError(ex);
+            }
+            if (!_disposed)
+            {
+                StateHasChanged();
+            }
+        });
+    }
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        _editorMenu?.Dispose();
+        Loader.Changed -= OnLoaderChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        _configurationUI = null;
+        _module = null;
     }
 }

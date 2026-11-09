@@ -1,0 +1,72 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IGXMenuService Menu
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@implements IDisposable
+
+@code {
+    [Parameter] public string? Source { get; set; }
+    [Parameter] public EventCallback OnClear { get; set; }
+    private GXPageMenu? _menu;
+    private bool _disposed;
+    private long _version;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var version = ++_version;
+        if (_disposed)
+        {
+            return;
+        }
+        _menu ??= new GXPageMenu(Menu);
+        _menu.Clear();
+        if (string.IsNullOrWhiteSpace(Source))
+        {
+            return;
+        }
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var allowed = await Authorization.AuthorizeAsync(user, GXLogPolicies.Clear);
+        if (_disposed || version != _version || !allowed.Succeeded)
+        {
+            return;
+        }
+        _menu.AddMenuItems(new GXMenuItem(Properties.Resources.Clear, "clear", OnClear));
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        ++_version;
+        _menu?.Dispose();
+    }
+}

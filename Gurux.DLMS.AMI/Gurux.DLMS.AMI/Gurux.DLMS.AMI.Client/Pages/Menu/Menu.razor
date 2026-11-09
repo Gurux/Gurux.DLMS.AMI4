@@ -1,209 +1,86 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/config/menu/{Id:guid?}"
+@page "/config/menu/{Action}/{Id:guid?}"
+@page "/config/tab/{Id:guid?}"
+@page "/config/tab/{Action}/{Id:guid?}"
+@using MenuKind = Gurux.DLMS.AMI.Shared.DTOs.Enums.MenuKind
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Module
-@using System.Globalization
-@using Gurux.DLMS.AMI.Shared.DTOs.Enums
-@using System.Text.Json
+@using Gurux.DLMS.AMI.Shared.DTOs;
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.MenuManager)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
-@inject ILogger<Menu> Logger
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Title</label>
-                    <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Title" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Description</label>
-                    <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Description" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Publish</label>
-                    <InputDate Type="@InputDateType.DateTimeLocal" id="publish" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.PublishTime" />
-                </div>
-                <CascadingValue Value="this">
-                    <Links></Links>
-                </CascadingValue>
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                                    Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
-}
+<GXHelpContext Topic="Menu" />
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
+            {
+                <TabHeader Name="@GXMenus.MenuDetailsTab" Parameters="@TabParameters" />
+            }
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
 @code {
-    [CascadingParameter]
-    private MenuTab? Parent { get; set; }
-
-    private GXMenu? _active;
-
-    internal GXMenu? Active
+    private GXEditorMenu? _editorMenu;
+    public bool DeleteTarget { get; set; }
+    public EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+    private void InitializeEditorMenu()
     {
-        get
-        {
-            if (Parent?.Active != null)
-            {
-                return Parent.Active;
-            }
-            return _active;
-        }
+        _editorMenu ??= new GXEditorMenu(SharedMenuService);
+        _editorMenu.Set(Active, _action, OnSave, OnCancel);
     }
-
-    void OnEdit(object? value)
+    private Task OnCancel()
     {
-
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
     }
-
-
-    /// <summary>
-    /// User action.
-    /// </summary>
-    [Parameter]
-    public string? Action { get; set; }
-
-    private CrudAction action;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    [Parameter]
-    public Guid? Id { get; set; }
-
-    private bool DeleteTarget;
-
-    private object? Target = null;
-
-    public string? IsDeleting
-    {
-        get
-        {
-            if (Notifier.Action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
-            {
-                //Get menu data.
-                var tmp = (await Http.GetAsJsonAsync<GetMenuResponse>(string.Format("api/Menu?id={0}", Id)));
-                if (tmp?.Item != null)
-                {
-                    _active = tmp.Item;
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("404");
-                }
-            }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
-    }
-
-    /// <summary>
-    /// Save menu.
-    /// </summary>
-    public async void OnSave()
+    public void Dispose() => _editorMenu?.Dispose();
+    private async Task OnSave()
     {
         try
         {
@@ -211,10 +88,10 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            InvokeAsync(StateHasChanged);
-            if (action == CrudAction.Delete)
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingMenu);
+            NotificationService?.RemoveByKey("Pages/Menu/MenuGeneral.OnSave");
+            await InvokeAsync(StateHasChanged);
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveMenuResponse>("api/Menu/Delete", new RemoveMenu()
                 {
@@ -225,11 +102,11 @@
             else
             {
                 string address;
-                if (action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
                     address = "api/Menu/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (_action == CrudAction.Update)
                 {
                     address = "api/Menu/Update";
                 }
@@ -239,7 +116,8 @@
                 }
                 await Http.PostAsJson<UpdateMenuResponse>(address, new UpdateMenu() { Menus = new List<GXMenu>() { Active } });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            FormContext.MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -247,25 +125,106 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Menu/MenuGeneral.OnSave");
         }
     }
 
-    public void Updated()
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        InvokeAsync(StateHasChanged);
-    }
+        ["Active"] = Active,
+        ["Action"] = _action
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
     /// <summary>
-    /// Cancel update.
+    /// Action.
     /// </summary>
-    private void OnCancel()
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXMenu Active = new GXMenu(null);
+
+    protected override async Task OnInitializedAsync()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Active.Kind = NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
+                        .StartsWith("config/tab/", StringComparison.OrdinalIgnoreCase) ? MenuKind.Tabs : MenuKind.Navigation;
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.Menu;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingMenu);
+            NotificationService?.RemoveByKey("Pages/Menu/Menu.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get menu data.
+                var tmp = (await Http.GetAsJsonAsync<GetMenuResponse>(string.Format("api/Menu?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    if (Active.Links == null)
+                    {
+                        Active.Links = new List<GXMenuLink>();
+                    }
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                    return;
+                }
+            }
+            InitializeEditorMenu();
+            _ready = true;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Menu/Menu.OnInitializedAsync");
+        }
     }
 }
-

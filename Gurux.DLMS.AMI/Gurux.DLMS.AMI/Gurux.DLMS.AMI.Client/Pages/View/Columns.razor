@@ -1,0 +1,393 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Pages.Config
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Accordion
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXAmiConfirmation Confirmation
+
+<GXHelpContext Topic="Columns" />
+
+<h1>@Properties.Resources.Columns</h1>
+
+@if (Active != null)
+{
+    <GXDialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Close"
+            OkButtonTitle="@Properties.Resources.Save"
+            OnOk="Save">
+        <EditForm EditContext="@GXEditContexts.For(Active)">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator"
+                         OnValidate="OnValidate" />
+            <PolicyTabs>
+                <GeneralContent>
+                    <div class="row">
+                        <div style="width:100%">
+                            <div class="form-group">
+                                <GXInputSwitch Text="@Properties.Resources.Enabled"
+                                             @bind-Value="Active.Enabled" />
+                            </div>
+                            <div class="form-group">
+                                <GXInputSwitch Text="@Properties.Resources.Visible" @bind-Value="Active.Visible" />
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.Visibility</label>
+                                <GXInputDropdown class="form-select" @bind-Value="Active.Visibility" RememberValue="false" Items="@(Enum.GetValues<Visibility>().Select(it => (byte?)it))" ><Template Context="visibility"><GXLocalizedText Value="@(((Visibility)visibility!.Value).ToString())" /></Template></GXInputDropdown>
+                            </div>
+                            <div class="form-group">
+                                <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                                <InputText id="name" class="form-control"
+                                           @bind-Value="Active.Name" />
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.Description</label>
+                                <InputText id="description" class="form-control"
+                                           @bind-Value="Active.Description" />
+                            </div>
+                        </div>
+
+                    </div>
+                </GeneralContent>
+                <PolicyContent>
+                    <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+                </PolicyContent>
+            </PolicyTabs>
+        </EditForm>
+    </GXDialog>
+}
+<p>
+    <GXMenuControl RightCorner=true>
+        <ChildContent>
+            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+            <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" />
+        </ChildContent>
+    </GXMenuControl>
+</p>
+<GXViewTable ViewName="View.Columns" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXViewPolicies.View })"
+         TItem="GXViewColumn" @ref="table"
+         Context="link"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         Total="false"
+         RearrangeRows="true"
+         ItemKey="@(column => column)"
+         OnItemMoved="@OnItemMoved"
+         ShowAllData="true"
+         OnSearch="@Updated">
+    <FilterContent>
+        <GXFh Id="Name">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </GXFh>
+    </FilterContent>
+    <HeaderContent>
+        <GXTh Id="Name" Name="Name" Target="@link">@Properties.Resources.Name</GXTh>
+        <GXTh Id="Visible" Name="Visible" Target="@link"><GXLocalizedText Value="@Properties.Resources.Visible" /></GXTh>
+        <GXTh Id="Visibility" Name="Visibility" Target="@link">@Properties.Resources.Visibility</GXTh>
+        <GXTh Id="Description" Name="Description" Target="@link">@Properties.Resources.Description</GXTh>
+        <GXTh Id="Policies" Name="Policies" Target="@link">@Properties.Resources.Policy</GXTh>
+    </HeaderContent>
+    <ItemContent>
+        <GXTd Id="Name"><GXLinkButton TItem="GXViewColumn" Target="@link" OnClick="@Edit" Text="@link.Name" /></GXTd>
+        <GXTd Id="Visible"><input type="checkbox" aria-label="@link.Name" @bind="link.Visible" @bind:after="ColumnsChanged" /></GXTd>
+        <GXTd Id="Visibility">
+            <GXInputDropdown class="form-select" aria-label="@Properties.Resources.Visibility" @bind-Value="link.Visibility" @bind-Value:after="ColumnsChanged" RememberValue="false" Items="@(Enum.GetValues<Visibility>().Select(it => (byte?)it))" ><Template Context="visibility"><GXLocalizedText Value="@(((Visibility)visibility!.Value).ToString())" /></Template></GXInputDropdown>
+        </GXTd>
+        <GXTd Id="Description">@link.Description</GXTd>
+        <GXTd Id="Policies">@string.Join(", ", link.Policies ?? new List<string>())</GXTd>
+    </ItemContent>
+</GXViewTable>
+<br />
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Visible") { Position = 1, Description = "Visible", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Visibility") { Position = 2, Description = "Visibility", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Description") { Position = 3, Description = "Description", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Policies") { Position = 4, Description = "Policy", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    protected override void OnInitialized()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+    }
+
+    private IGXNotifier2? Notifier;
+
+    private IGXNotificationService? NotificationService;
+
+    private GXValidator? _validator;
+    CrudAction Action;
+    GXViewColumn? Active;
+    private GXViewColumn? _editingColumn;
+
+    private void ColumnsChanged() => GXEditContexts.For(View).NotifyFieldChanged(new FieldIdentifier(View, nameof(GXView.Columns)));
+
+    [Parameter, EditorRequired]
+    public GXView View { get; set; } = default!;
+
+    async Task OnItemMoved((GXViewColumn Item, int Index) moved)
+    {
+        var (item, index) = moved;
+        if (View?.Columns != null)
+        {
+            var columns = View.Columns.OrderBy(c => c.Position).ToList();
+            columns.Remove(item);
+            columns.Insert(Math.Clamp(index, 0, columns.Count), item);
+            View.Columns = columns;
+            int order = 0;
+            foreach (var it in View.Columns)
+            {
+                it.Position = order++;
+            }
+            ColumnsChanged();
+            await Updated();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// View filter.
+    /// </summary>
+    private GXView filter = new GXView();
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXViewColumn>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Add new link .
+    /// </summary>
+    public void OnAdd()
+    {
+        _editingColumn = null;
+        Active = new GXViewColumn(null)
+        {
+            Policies = View.Policies?.ToList(),
+            Position = (View.Columns?.Max(c => (int?)c.Position) ?? -1) + 1,
+            Visibility = (byte)Visibility.All
+        };
+        Action = CrudAction.Create;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Remove selected links.
+    /// </summary>
+    public async Task OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Properties.Resources.NoItemIsSelected);
+            }
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = false,
+                    Items = table.SingleOrDefault().Select(s => s.Name).ToArray()
+                });
+            OnDeleteConfirmation(confirmation);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected views.
+    /// </summary>
+    public void OnDeleteConfirmation(AmiConfirmationResult args)
+    {
+        try
+        {
+            if (View?.Columns != null && table != null && args.Confirm)
+            {
+                foreach (var it in table.SingleOrDefault().ToArray())
+                {
+                    View.Columns.Remove(it);
+                }
+                ColumnsChanged();
+                _ = Updated();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, Properties.Resources.InvalidName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Edit view link.
+    /// </summary>
+
+    private void Edit(GXViewColumn col)
+    {
+        Action = CrudAction.Update;
+        _editingColumn = col;
+        Active = ClientHelpers.Clone<GXViewColumn>(col);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private ValueTask<ItemsProviderResult<GXViewColumn>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (View?.Columns != null)
+            {
+                return new(new ItemsProviderResult<GXViewColumn>(View.Columns.OrderBy(c => c.Position).ToArray(), View.Columns.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Save link objects.
+    ///</summary>
+    public async System.Threading.Tasks.Task Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !await _validator.ValidateAsync())
+            {
+                return;
+            }
+            if (Active != null && View != null)
+            {
+                if (Action == CrudAction.Create)
+                {
+                    (View.Columns ??= []).Add(Active);
+                }
+                else if (_editingColumn != null)
+                {
+                    ClientHelpers.Copy(Active, _editingColumn);
+                }
+                ColumnsChanged();
+            }
+            Active = null;
+            _editingColumn = null;
+            await Updated();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide link dialog.
+    /// </summary>
+    public void Cancel()
+    {
+        Active = null;
+        _editingColumn = null;
+        InvokeAsync(StateHasChanged);
+    }
+}
+

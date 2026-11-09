@@ -1,0 +1,230 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.UI.Components.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.Extensions.Logging
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ILogger<ScriptGeneral> _logger;
+
+<GXHelpContext Topic="ScriptGeneral" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@FormContext">
+        <PolicyTabs>
+            <GeneralContent>
+                <div class="row">
+                    <div style="width:100%">
+                        <div class="form-group">
+                            <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Active.Enabled" />
+                            <br />
+                        </div>
+                        <div class="form-group">
+                            <Microsoft.AspNetCore.Components.Forms.InputCheckbox @bind-Value="Active.ServerSide" />
+                            <label>@Properties.Resources.ServerSide</label>
+                        </div>
+                        <div class="form-group">
+                            <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                            <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Description</label>
+                            <InputText id="name" disabled="@IsDeleting" class="form-control"
+                                       @bind-Value="Active.Description" />
+                        </div>
+                        @if (Active.CatalogId != null)
+                        {
+                            <div class="form-group">
+                                <label>@Properties.Resources.ScriptCatalog</label>
+                                <p>@Active.CatalogId @Active.CatalogVersion</p>
+                                <a href="/updates">@Properties.Resources.ManageScriptCatalogUpdates</a>
+                            </div>
+                        }
+                        <ScriptEditor @bind-SourceCode="Active.SourceCode" @bind-SourceCode:event="ScriptChanged" />
+                        <button class="btn button" @onclick="OnValidate">
+                            <div class="oi oi-flash"></div>
+                            &nbsp;Validate
+                        </button>
+                        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                            Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                        @if (Action == CrudAction.Delete)
+                        {
+                            <hr />
+                            <p>
+                            </p>
+                            <div class="form-group">
+                                <InputRadioGroup @bind-Value="DeleteTarget">
+                                    <InputRadio Value="false">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                                    <InputRadio Value="true">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDeleteQuestion</label>
+                                </InputRadioGroup>
+                                <br />
+                            </div>
+                        }
+                    </div>
+                </div>
+            </GeneralContent>
+            <PolicyContent>
+                <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+            </PolicyContent>
+        </PolicyTabs>
+    </EditForm>
+}
+@code {
+    protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public GXScript? Active { get; set; }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter] public Script? Editor { get; set; }
+    private bool DeleteTarget { get => Editor?.DeleteTarget ?? false; set { if (Editor != null) {
+        Editor.DeleteTarget = value;
+    } } }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        try
+        {
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScriptView);
+            NotificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnInitializedAsync");
+            if (Active == null && Id != null)
+            {
+                //Get script data.
+                var tmp = (await Http.GetAsJsonAsync<GetScriptResponse>(string.Format("api/Script?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnInitializedAsync");
+        }
+    }
+
+    /// <summary>
+    /// Validate the script.
+    /// </summary>
+    public async void OnValidate()
+    {
+        try
+        {
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingScriptView);
+            NotificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnValidate");
+            if (string.IsNullOrEmpty(Active?.SourceCode))
+            {
+                throw new Exception(Properties.Resources.NoScriptToExecute);
+            }
+            ValidateScript req = new ValidateScript() { Script = Active.SourceCode };
+            var ret = await Http.PostAsJson<ValidateScriptResponse>("api/Script/Validate", req);
+            GXScriptException[]? errors = null;
+            if (!string.IsNullOrEmpty(ret.Errors))
+            {
+                errors = JsonSerializer.Deserialize<GXScriptException[]>(ret.Errors);
+            }
+            if (errors != null)
+            {
+                foreach (var error in errors)
+                {
+                    NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error,
+                        error.Message, string.Empty, Closable: false));
+                }
+            }
+            else
+            {
+                NotificationService?.Add(new GXNotificationItem(NotificationLevel.Information, string.Format(Properties.Resources.ScriptBuild0BuildTime1Ms, DateTime.Now, ret.CompileTime), string.Empty, Closable: false));
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnValidate");
+        }
+    }
+
+}

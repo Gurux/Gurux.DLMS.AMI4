@@ -1,0 +1,155 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Module.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@rendermode RenderMode.InteractiveWebAssembly
+
+@using System.IO
+@using System.Linq
+@using System.Net.Http.Headers
+@using System.Reflection
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Client.Layout
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Options
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ILogger<ModuleGeneral> Logger
+@inject ModuleLoader Loader
+@implements IDisposable
+@if (!string.IsNullOrWhiteSpace(Active?.Id))
+{
+    <CascadingValue TValue="string" Name="@GXHelpContext.ScopeName" Value="@((string)null!)" IsFixed="true">
+        <GXHelpContext Topic="@("module:" + Active.Id)" />
+    </CascadingValue>
+}
+else
+{
+    <GXHelpContext Topic="ModuleGeneral" />
+}
+
+
+@if (Active != null)
+{
+    <EditForm EditContext="@FormContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        @if (PoliciesOnly)
+        {
+            <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+        }
+        else
+        {
+                @if (isAdding)
+                {
+                    <tr>
+                        <th>
+                            <GXLocalizedText Value="@Properties.Resources.UploadModule" />
+                        </th>
+                        <th>
+                            <GXFileSelector TType="byte[]" @bind-Value="@_value"
+                                          Style="width:100%"
+                                          MaxFileSize="10000000"
+                                          OnLoaded="@UpdateFile"
+                                          Filter=".zip" />
+                        </th>
+                    </tr>
+                }
+                else
+                {
+                    <div class="row">
+                        <div style="width:100%">
+                            <div class="mb-3">
+                                <h2 class="h5 mb-1">@(Active.Name ?? Active.Id)</h2>
+                                <div class="d-flex align-items-center gap-2 text-muted">
+                                    <span title="@Properties.Resources.Installation" aria-label="@($"{Properties.Resources.Installation}: {GXModulePresentation.For(Active).Installation}")">@GXModulePresentation.For(Active).Installation</span>
+                                    <span aria-hidden="true">·</span>
+                                    <span title="@Properties.Resources.Runtime" aria-label="@($"{Properties.Resources.Runtime}: {GXModulePresentation.For(Active).Runtime}")">@GXModulePresentation.For(Active).Runtime</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <GXInputSwitch Text="@Properties.Resources.Enabled"
+                                                     @bind-Value="Active.Enabled" />
+                                <br />
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.TraceLevel</label>
+                                <GXInputDropdown class="form-select"
+                                                 Id="Agent.TraceLevel"
+                                                 RememberValue="@(action == CrudAction.Create)"
+                                                 @bind-Value="Active.TraceLevel">
+                                </GXInputDropdown>
+                                <ValidationMessage For="@(() => Active.TraceLevel)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label>@Properties.Resources.Version</label>
+                                <InputText id="version" class="form-control" readonly="readonly" @bind-Value="Active.Version" />
+                            </div>
+                            <AuthoringInformationDateTimeOffset Action="@action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                                Updated="@Active.Updated" />
+                        </div>
+                    </div>
+                }
+        }
+    </EditForm>
+
+}
+
+@code {
+    [CascadingParameter] public Module Owner { get; set; } = default!;
+    [Parameter, EditorRequired] public GXModule? Active { get; set; }
+    [Parameter, EditorRequired] public CrudAction Action { get; set; }
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public bool PoliciesOnly { get; set; }
+    private EditContext FormContext => GXEditContexts.For(Active!);
+    private byte[]? _value { get => Owner._value; set => Owner._value = value; }
+    private CrudAction action => Owner.action;
+    private bool isAdding => Owner.isAdding;
+    private void UpdateFile((byte[]? Value, string FileName) loaded)
+    {
+        Owner._value = loaded.Value;
+        FormContext.NotifyFieldChanged(new FieldIdentifier(Active!, nameof(Owner._value)));
+    }
+    protected override void OnInitialized() => Owner.SetGeneralVisible(!PoliciesOnly);
+    public void Dispose() => Owner.SetGeneralVisible(false);
+}

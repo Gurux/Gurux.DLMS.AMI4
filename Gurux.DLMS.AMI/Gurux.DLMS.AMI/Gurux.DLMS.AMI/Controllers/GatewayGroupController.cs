@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -40,33 +36,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the gateway groups.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class GatewayGroupController : ControllerBase
+    public class GatewayGroupController(
+        IGatewayGroupRepository GatewayGroupRepository) : ControllerBase
     {
-        private readonly IGatewayGroupRepository _GatewayGroupRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GatewayGroupController(
-            IGatewayGroupRepository GatewayGroupRepository)
-        {
-            _GatewayGroupRepository = GatewayGroupRepository;
-        }
+        private readonly IGatewayGroupRepository _GatewayGroupRepository = GatewayGroupRepository;
 
         /// <summary>
         /// Get gateway group information.
         /// </summary>
         /// <param name="id">Gateway group id.</param>
         /// <returns>Gateway group.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXGatewayGroupPolicies.View)]
-        public async Task<ActionResult<GetGatewayGroupResponse>> Get(Guid id)
+        public async Task<ActionResult<GetGatewayGroupResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
             return new GetGatewayGroupResponse()
             {
-                Item = (await _GatewayGroupRepository.ReadAsync(id))
+                Item = (await _GatewayGroupRepository.ReadAsync(id, null, cancellationToken))
             };
         }
 
@@ -76,10 +68,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXGatewayGroupPolicies.Add)]
-        public async Task<ActionResult<AddGatewayGroupResponse>> Post(AddGatewayGroup request)
+        public async Task<ActionResult<AddGatewayGroupResponse>> Post(AddGatewayGroup request, CancellationToken cancellationToken = default)
         {
-            await _GatewayGroupRepository.UpdateAsync(request.GatewayGroups);
-            return new AddGatewayGroupResponse() { Ids = request.GatewayGroups.Select(s => s.Id).ToArray() };
+            await _GatewayGroupRepository.UpsertAsync(request.GatewayGroups, null, cancellationToken);
+            return new AddGatewayGroupResponse() { Ids = [.. request.GatewayGroups.Select(s => s.Id)] };
         }
 
         /// <summary>
@@ -91,20 +83,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListGatewayGroups request,
             CancellationToken cancellationToken)
         {
-            ListGatewayGroupsResponse ret = new ListGatewayGroupsResponse();
+            ListGatewayGroupsResponse ret = new();
             await _GatewayGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
+        /// <summary>
+        /// Deletes the specified gateway groups based on provided IDs and delete option.
+        /// </summary>
+        /// <param name="request">Contains the IDs of the gateway groups to delete and a flag indicating whether to perform a soft delete.</param>
+        /// <returns>A response indicating the outcome of the delete operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXGatewayGroupPolicies.Delete)]
-        public async Task<ActionResult<RemoveGatewayGroupResponse>> Post(RemoveGatewayGroup request)
+        public async Task<ActionResult<RemoveGatewayGroupResponse>> Post(RemoveGatewayGroup request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _GatewayGroupRepository.DeleteAsync(request.Ids, request.Delete);
+            await _GatewayGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveGatewayGroupResponse();
         }
     }

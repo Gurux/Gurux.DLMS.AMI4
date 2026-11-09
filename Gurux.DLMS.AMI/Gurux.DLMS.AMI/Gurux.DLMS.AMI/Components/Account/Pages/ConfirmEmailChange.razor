@@ -1,4 +1,33 @@
-﻿@page "/Account/ConfirmEmailChange"
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/ConfirmEmailChange"
 
 @using System.Text
 @using Microsoft.AspNetCore.Identity
@@ -9,9 +38,9 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email change</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmailChange</PageTitle>
 
-<h1>Confirm email change</h1>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmailChange</h1>
 
 <StatusMessage Message="@message" />
 
@@ -41,7 +70,7 @@
         var user = await UserManager.FindByIdAsync(UserId);
         if (user is null)
         {
-            message = "Unable to find user with Id '{userId}'";
+            message = Gurux.DLMS.AMI.Properties.Resources.UnableToFindUserWithIdUserId;
             return;
         }
 
@@ -49,7 +78,7 @@
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
-            message = "Error changing email.";
+            message = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingEmail;
             return;
         }
 
@@ -58,11 +87,11 @@
         var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
         if (!setUserNameResult.Succeeded)
         {
-            message = "Error changing user name.";
+            message = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingUserName;
             return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        message = "Thank you for confirming your email change.";
+        message = Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmailChange;
     }
 }

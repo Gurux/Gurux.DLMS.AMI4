@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/activeSystemLogs"
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -40,12 +37,12 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
 
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@implements IAmiComponent
+@implements IGXAmiComponent
 @implements IDisposable
 
-@attribute [Authorize(Roles = "Admin, SystemLogManager")]
+<GXHelpContext Topic="ActiveSystemErrors" />
 
 @if (ActiveErrors != null)
 {
@@ -60,6 +57,10 @@
     @ChildContent
 </CascadingValue>
 @code {
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     /// <summary>
     /// Amount of the errors shown on the view.
@@ -67,7 +68,7 @@
     [Parameter]
     public int Count { get; set; } = 5;
 
-    TraceLevel GetTraceLevel(GXSystemLog item)
+    TraceLevel GetTraceLevel(GXLog item)
     {
         return (TraceLevel)item.Level.GetValueOrDefault();
     }
@@ -82,7 +83,7 @@
     {
         get
         {
-            return "Active system errors";
+            return Properties.Resources.ActiveSystemErrors;
         }
     }
 
@@ -100,14 +101,14 @@
     {
         get
         {
-            return "SystemErrorsIcon";
+            return "system-errors";
         }
     }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
-    GXSystemLog[] ActiveErrors = null;
+    IEnumerable<GXLog>? ActiveErrors = null;
 
     /// <summary>
     /// Update virtualized items.
@@ -116,39 +117,44 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.Updated");
             ActiveErrors = null;
             await GetActiveErrors();
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On(this, nameof(IGXHubEvents.ClearSystemLogs), async () =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.AddSystemLogs), async (errors) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.CloseSystemLogs), async (errors) =>
-            {
-                await Updated();
-            });
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingActiveSystemErrors);
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (logs) =>
+           {
+               foreach (var it in logs)
+               {
+                   if (it.Type == GXSystemLogPolicies.Add ||
+                       it.Type == GXSystemLogPolicies.Clear ||
+                       it.Type == GXSystemLogPolicies.Close)
+                   {
+                       _ = GXNotificationRefresh.RefreshViewAsync(this, logs, Updated);
+                       break;
+                   }
+               }
+           });
             await GetActiveErrors();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -157,11 +163,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.OnInitializedAsync");
         }
     }
 
@@ -172,12 +174,12 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            GXSystemLog filter = new GXSystemLog();
-            ListSystemLogs req = new ListSystemLogs() { Filter = filter };
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingActiveSystemErrors);
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.GetActiveErrors");
+            GXLog filter = new GXLog();
+            ListLogs req = new ListLogs() { Filter = filter };
             req.Count = Count;
-            ListSystemLogsResponse ret = await Http.PostAsJson<ListSystemLogsResponse>("api/SystemLog/List", req);
+            ListLogsResponse ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=system", req);
             ActiveErrors = ret.Logs;
         }
         catch (AccessTokenNotAvailableException exception)
@@ -186,17 +188,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.GetActiveErrors");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -208,14 +207,18 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            CloseSystemLog arg = new CloseSystemLog();
-            arg.Logs = new Guid[] { (sender as GXSystemLog).Id };
-            await Http.PostAsJson<GXSystemLog>("api/SystemLog/Close", arg);
-            List<GXSystemLog> list = new List<GXSystemLog>();
-            list.AddRange(ActiveErrors);
-            list.Remove(sender as GXSystemLog);
+            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingActiveSystemError);
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.OnClose");
+            CloseLog arg = new CloseLog();
+            if (sender is not GXLog log)
+            {
+                return;
+            }
+            arg.Ids = new Guid[] { log.PublicId };
+            await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=system", arg);
+            List<GXLog> list = new List<GXLog>();
+            list.AddRange(ActiveErrors ?? []);
+            list.Remove(log);
             ActiveErrors = list.ToArray();
             await Updated();
         }
@@ -225,11 +228,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.OnClose");
         }
     }
 
@@ -244,8 +243,8 @@
         {
             if (confirm)
             {
-                Notifier?.ProgressStart();
-                await Http.PostAsJson<ClearSystemLogResponse>("api/SystemLog/Clear", new ClearSystemLog());
+                using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingActiveSystemError);
+                await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=system", new ClearLog());
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -255,11 +254,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
     }
 }

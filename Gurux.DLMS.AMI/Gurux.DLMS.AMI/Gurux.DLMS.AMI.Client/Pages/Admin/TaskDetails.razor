@@ -1,0 +1,86 @@
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@inject IGXResourceStorage ResourceStorage
+@implements IDisposable
+
+@if (_loading)
+{
+    <p role="status">@Properties.Resources.Loading</p>
+}
+else if (_error != null)
+{
+    <div class="alert alert-danger" role="alert">@_error</div>
+}
+else if (_task != null)
+{
+    <dl class="row">
+        <dt class="col-sm-3">@Properties.Resources.Id</dt><dd class="col-sm-9">@_task.Id</dd>
+        <dt class="col-sm-3">@Properties.Resources.Target</dt><dd class="col-sm-9">@_task.Target</dd>
+        <dt class="col-sm-3">@Properties.Resources.TaskType</dt><dd class="col-sm-9">@_task.TaskType</dd>
+        <dt class="col-sm-3">@Properties.Resources.CreationTime</dt><dd class="col-sm-9">@ResourceStorage.DateTimeOffsetToString(_task.CreationTime)</dd>
+        <dt class="col-sm-3">@Properties.Resources.StartTime</dt><dd class="col-sm-9">@ResourceStorage.DateTimeOffsetToString(_task.Start)</dd>
+        <dt class="col-sm-3">@Properties.Resources.CompletedTime</dt><dd class="col-sm-9">@ResourceStorage.DateTimeOffsetToString(_task.Ready)</dd>
+    </dl>
+    <h2>@Properties.Resources.Result</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@_task.Result</pre>
+    <h2>@Properties.Resources.Error</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@_task.Error</pre>
+    <h2>@Properties.Resources.Data</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@_task.Data</pre>
+    <details>
+        <summary>@Properties.Resources.Show</summary>
+        <pre class="text-break" style="white-space:pre-wrap">@JsonSerializer.Serialize(_task, JsonOptions)</pre>
+    </details>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
+    private GXTask? _task;
+    private string? _error;
+    private bool _loading;
+    private CancellationTokenSource? _load;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _load?.Cancel();
+        using var load = new CancellationTokenSource();
+        _load = load;
+        _loading = true;
+        _task = null;
+        _error = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/Task/List", new ListTasks { Included = [Id], Count = 1, AllUsers = true }, load.Token);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<ListTasksResponse>(load.Token);
+            load.Token.ThrowIfCancellationRequested();
+            _task = result?.Tasks?.SingleOrDefault(t => t.Id == Id)
+                ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+        }
+        catch (OperationCanceledException) when (load.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            if (!load.IsCancellationRequested)
+            {
+                _error = error.Message;
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_load, load))
+            {
+                _loading = false;
+                _load = null;
+            }
+        }
+    }
+
+    public void Dispose() => _load?.Cancel();
+}

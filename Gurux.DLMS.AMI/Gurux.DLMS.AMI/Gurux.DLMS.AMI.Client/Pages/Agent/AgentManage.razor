@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/Agent/Logs"
+@page "/Agent/Groups"
 @page "/Agent"
 @page "/AgentGroup"
 @page "/AgentLog/{Id:guid?}"
@@ -44,19 +43,19 @@
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Agent + "," +
-    GXRoles.AgentManager + "," + GXRoles.AgentGroup + "," + GXRoles.AgentLog + "," + GXRoles.AgentLogManager)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 @*If user adds a new item or modifies the existing one.*@
+<GXHelpContext Topic="AgentManage" />
+
 @if (Path != null && string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
 {
     @if (string.Compare(Path, "AgentGroup", true) == 0)
     {
-        <AgentGroupTab Action="@Action" Id="@Id"></AgentGroupTab>
+        <AgentGroup Action="@Action" Id="@Id"></AgentGroup>
     }
     else if (string.Compare(Path, "Agent", true) == 0)
     {
@@ -66,7 +65,7 @@
         }
         else
         {
-            <AgentTab Action="@Action" Id="@Id"></AgentTab>
+            <Agent Action="@Action" Id="@Id"></Agent>
         }
     }
     else if (string.Compare(Path, "AgentLog", true) == 0)
@@ -76,40 +75,27 @@
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="Agent" Active="@Path" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
-            @context.Text            
-            <Badge Value="@context.PadgeCount" Label="@context.Padge"
+            <GXImage Id="@context.Icon" />
+        <GXLocalizedText Value="@context.Text" />        
+            <GXBadge Value="@context.PadgeCount" Label="@context.Padge"
                    TraceLevel="@context.PadgeType">
-            </Badge>
+            </GXBadge>
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent, GXRoles.AgentManager)>
-                <TabPage Path="Agent" Text=@Properties.Resources.Agents Icon="Agents">
-                    <Agents Id="@Id"></Agents>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroup, GXRoles.AgentGroup)>
-                <TabPage Path="AgentGroup" Text=@Properties.Resources.AgentGroups Icon="AgentGroups">
-                    <AgentGroups Id="@Id"></AgentGroups>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentLog, GXRoles.AgentLogManager)>
-                <TabPage Path="AgentLog"
-                         Text=@Properties.Resources.AgentLogs
-                         Padge="New agent logs"
-                         PadgeCount="@_log.GetCount()"
-                         PadgeType="@_log.GetTraceLevel()"
-                         Icon="AgentLog">
-                    <AgentLogs Id="@Id"></AgentLogs>
-                </TabPage>
-            </AuthorizeView>
+            <TabHeader Name="@GXMenus.AgentTab"></TabHeader>
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 <br />
 @code {
+    protected override void OnParametersSet()
+    {
+        Path = GXTabRoutes.Active(NavigationManager, "Agent", 0, Path);
+    }
+
+    private IGXNotifier2? Notifier;
 
     /// <summary>
     /// User action.
@@ -133,17 +119,23 @@ else
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        _log = Notifier.GetUserStamps(TargetType.AgentLog);
-        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        Path = GXTabRoutes.Active(NavigationManager, "Agent", 0, Path);
+        _log = Notifier?.GetUserStamps(TargetType.AgentLog) ?? new GXUserStamp { TargetType = TargetType.AgentLog };
+        Notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
         {
             bool updated = false;
             foreach (var it in stamps)
@@ -162,7 +154,9 @@ else
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }
+
+
 

@@ -1,4 +1,33 @@
-﻿@page "/Account/Manage/ResetAuthenticator"
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/Manage/ResetAuthenticator"
 
 @using Microsoft.AspNetCore.Identity
 @using Gurux.DLMS.AMI.Data
@@ -9,24 +38,23 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ResetAuthenticator> Logger
 
-<PageTitle>Reset authenticator key</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ResetAuthenticatorKey</PageTitle>
 
 <StatusMessage />
-<h3>Reset authenticator key</h3>
+<h3>@Gurux.DLMS.AMI.Properties.Resources.ResetAuthenticatorKey</h3>
 <div class="alert alert-warning" role="alert">
     <p>
         <span class="glyphicon glyphicon-warning-sign"></span>
-        <strong>If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong>
+        <strong>@Gurux.DLMS.AMI.Properties.Resources.IfYouResetYourAuthenticatorKeyYourAuthenticatorAppWillNotWorkUntilYouReconfigureIt</strong>
     </p>
     <p>
-        This process disables 2FA until you verify your authenticator app.
-        If you do not complete your authenticator app configuration you may lose access to your account.
+        @Gurux.DLMS.AMI.Properties.Resources.ThisProcessDisables2FAUntilYouVerifyYourAuthenticatorAppIfYouDoNotCompleteYourAuthent
     </p>
 </div>
 <div>
     <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
         <AntiforgeryToken />
-        <button class="btn btn-danger" type="submit">Reset authenticator key</button>
+        <button class="btn btn-danger" type="submit">@Gurux.DLMS.AMI.Properties.Resources.ResetAuthenticatorKey</button>
     </form>
 </div>
 

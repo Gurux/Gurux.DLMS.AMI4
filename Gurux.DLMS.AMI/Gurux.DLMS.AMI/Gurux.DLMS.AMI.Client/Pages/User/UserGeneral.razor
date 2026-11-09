@@ -1,0 +1,370 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Pages.Config
+@using Gurux.UI.Components.Accordion
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<GXHelpContext Topic="UserGeneral" />
+
+@if (Active != null && _languagesReady)
+{
+    <EditForm EditContext="@FormContext">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <GXInputSwitch Text="@Properties.Resources.Blocked" @bind-Value="Blocked" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.GivenName">@Properties.Resources.GivenName</GXCopyButton>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.GivenName" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.Surname">@Properties.Resources.Surname</GXCopyButton>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Surname" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.Email">@Properties.Resources.Email</GXCopyButton>
+                    <InputText id="user-email" autocomplete="email" disabled="@IsDisabled" class="form-control"
+                               @bind-Value="Active.Email" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.LastLogin">@Properties.Resources.LastLogin</GXCopyButton>
+                    <GXDateTimeSelector Id="user-lastLogin" Save="false" Disabled="true" class="form-control"
+                                        @bind-Value="Active.LastLogin" />
+                </div>
+                <div class="form-group">
+                    <GXCopyButton Value="@Active.ConnectionInfo">@Properties.Resources.IpAddress</GXCopyButton>
+                    <GXInputIpAddress Id="user-connectionInfo" readonly="readonly" class="form-control"
+                                      Value="@Active.ConnectionInfo" />
+                </div>
+                <div class="form-group">
+                    <GXLabel>@Properties.Resources.Language</GXLabel>
+                    <GXDropdownSearch class="form-control"
+                                    @ref="Languages"
+                                    Id="user-language"
+                                    RememberValue="false"
+                                    @bind-Value="Language"
+                                    ItemsProvider="@GetLanguages">
+                    </GXDropdownSearch>
+                </div>
+                <div class="form-group">
+                    <GXLabel>@Properties.Resources.TimeZone</GXLabel>
+                    <InputSelect class="form-select" id="user-timeZone" TValue="string"
+                                 Value="@Active.TimeZone"
+                                 ValueChanged="@((string value) => Active.TimeZone = string.IsNullOrEmpty(value) ? null : value)"
+                                 ValueExpression="@(() => Active.TimeZone)">
+                        <option value="">@Properties.Resources.Default</option>
+                        @if (!string.IsNullOrEmpty(Active.TimeZone) && !TimeZones.ContainsKey(Active.TimeZone))
+                        {
+                            <option value="@Active.TimeZone">@Active.TimeZone</option>
+                        }
+                        @foreach (var zone in TimeZones.Values)
+                        {
+                            <option value="@zone.Id">@zone.DisplayName</option>
+                        }
+                    </InputSelect>
+                </div>
+
+            </div>
+            @if (Active.CreationTime != DateTime.MinValue)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.CreationTime</label>
+                    <GXDateTimeSelector Id="user-creationTime" Save="false" Disabled="true" class="form-control"
+                                        @bind-Value="Active.CreationTime" />
+                </div>
+            }
+            @if (Active.Updated != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Updated</label>
+                    <GXDateTimeSelector Id="user-updated" Save="false" Disabled="true" class="form-control"
+                                        @bind-Value="Active.Updated" />
+                </div>
+            }
+            @if (Active.Removed != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Removed</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                               @bind-Value="Active.Removed" />
+                </div>
+            }
+            @if (Action == CrudAction.Delete)
+            {
+                <hr />
+                <p>
+                </p>
+                <div class="form-group">
+                    <InputRadioGroup @bind-Value="DeleteTarget">
+                        <InputRadio Value="false">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                        <InputRadio Value="true">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDeleteQuestion</label>
+                    </InputRadioGroup>
+                    <br />
+                </div>
+            }
+        </div>
+    </EditForm>
+}
+
+@code {
+    /// <summary>Form state shared by the user tabs without adding fields to the user DTO.</summary>
+    protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.NoUserIsSelected));
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>Role editor used to refresh the assignments after user changes.</summary>
+    protected RoleEditor? _roleEditor;
+    private string? _availableRoles;
+    private GXDropdownSearch<GXLanguage>? Languages;
+
+    private static readonly IReadOnlyDictionary<string, TimeZoneInfo> TimeZones =
+        TimeZoneInfo.GetSystemTimeZones().ToDictionary(zone => zone.Id);
+
+    [Parameter, EditorRequired]
+    public GXUser? Active { get; set; }
+
+    private bool Blocked
+    {
+        get
+        {
+            return Active?.LockoutEnd == DateTimeOffset.MaxValue;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                if (value)
+                {
+                    Active.LockoutEnd = DateTimeOffset.MaxValue;
+                    Active.LockoutEnabled = true;
+                }
+                else
+                {
+                    Active.LockoutEnd = null;
+                    Active.LockoutEnabled = false;
+                }
+            }
+        }
+    }
+
+    private IEnumerable<GXLanguage>? _languages = null;
+    private bool _languagesReady;
+
+    private GXLanguage? Language
+    {
+        get
+        {
+            return _languages?.Where(w => w.Id == Active?.Language).SingleOrDefault();
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Language = value?.Id;
+            }
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXLanguage?>> GetLanguages(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUser);
+        try
+        {
+            ListLanguages req = new ListLanguages()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                //Only enabled languages are shown in the user editor,
+                // so that the user can select a language that is actually available.
+                Filter = new GXLanguage() { Enabled = true }
+            };
+            if (_languages == null || !_languages.Any())
+            {
+                var ret = await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", req, request.CancellationToken);
+                var languages = ret.Languages?.ToList() ?? new List<GXLanguage>();
+                // Retain a user's saved language even if it is no longer enabled.
+                if (!string.IsNullOrEmpty(Active?.Language) && !languages.Any(l => l.Id == Active.Language))
+                {
+                    languages.Add(new GXLanguage { Id = Active.Language, EnglishName = Active.Language, NativeName = Active.Language });
+                }
+                _languages = languages;
+            }
+            if (_languages != null)
+            {
+                IEnumerable<GXLanguage> list = _languages;
+                if (!string.IsNullOrEmpty(request.Filter))
+                {
+                    string name = request.Filter.ToLower();
+                    list = _languages.Where(w => w.EnglishName.ToLower().Contains(name) ||
+                                                 w.NativeName.ToLower().Contains(name));
+                    req.Filter = new GXLanguage() { Id = request.Filter };
+                }
+                // A missing saved language must not silently select the first option.
+                var items = list.Cast<GXLanguage?>().ToList();
+                if (Active?.Language == null) {
+                    items.Insert(0, null);
+                }
+                return new ItemsProviderResult<GXLanguage?>(items, items.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter] public User? Editor { get; set; }
+    private bool DeleteTarget { get => Editor?.DeleteTarget ?? false; set { if (Editor != null) {
+        Editor.DeleteTarget = value;
+    } } }
+
+
+
+    /// <summary>Available roles and their current assignment state.</summary>
+    protected List<GXRole> RoleCatalog => Editor?.RoleCatalog ?? new List<GXRole>();
+
+    /// <summary>Applies role assignments to the shared user being edited.</summary>
+    protected void RolesChanged(List<GXRole> roles)
+    {
+        if (Active == null)
+        {
+            return;
+        }
+        Active.Roles = roles.Where(r => r.Default == true && r.Name != null).Select(r => r.Name!).ToList();
+        _availableRoles = string.Join(",", Active.Roles);
+        FormContext.NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXUser.Roles)));
+    }
+
+
+    /// <summary>Permission definitions available to the user editor.</summary>
+    protected GXPermission[] PermissionCatalog => Editor?.PermissionCatalog ?? Array.Empty<GXPermission>();
+
+    /// <summary>Whether permission changes are disabled for the current operation.</summary>
+    protected bool PermissionsDisabled => Action == CrudAction.Delete;
+
+    public string? IsDisabled
+    {
+        get
+        {
+            if (Action == CrudAction.Create)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public void Update()
+    {
+        _availableRoles = null;
+        if (Active != null)
+        {
+            var roles = GXRole.GetRoles(RoleCatalog, Active.Roles, false, false);
+            if (Active.Roles != null)
+            {
+                _availableRoles = string.Join(",", Active.Roles);
+            }
+
+            foreach (var role in roles)
+            {
+                role.Default = true;
+            }
+
+            _roleEditor?.Update();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Resolve the bound language before the dropdown initializes its selection.
+        await GetLanguages(new GXItemsProviderRequest(0, 0));
+        _languagesReady = true;
+    }
+
+}

@@ -1,386 +1,384 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Shared;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Net.Http;
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.Rest;
-using Gurux.Service.Orm;
+using System.Threading;
+using System.Threading.Tasks;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
+using Gurux.DLMS.AMI.Properties;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
-using System.Linq.Expressions;
-using System.Data;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.Rest;
+using Gurux.Service.Orm;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 
-namespace Gurux.DLMS.AMI.Server.Repository
+namespace Gurux.DLMS.AMI.Server.Repository;
+
+/// <inheritdoc />
+public class DeviceGroupRepository : IDeviceGroupRepository
 {
-    /// <inheritdoc />
-    public class DeviceGroupRepository : IDeviceGroupRepository
+    private readonly ClaimsPrincipal User;
+
+    private readonly IDbConnectionFactory _dbFactory;
+
+    private readonly IUserRepository _userRepository;
+
+    private readonly IUserGroupRepository _userGroupRepository;
+
+    private readonly NotificationCache _notificationCache;
+
+    private readonly IAuthorizationService _authorizationService;
+
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    public DeviceGroupRepository(IAuthorizationService authorizationService, IDbConnectionFactory dbFactory, IHttpContextAccessor httpContextAccessor, IUserRepository userRepository, IUserGroupRepository userGroupRepository, NotificationCache notificationCache)
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IUserRepository _userRepository;
-        private readonly IGXEventsNotifier _eventsNotifier;
-        private readonly IUserGroupRepository _userGroupRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public DeviceGroupRepository(
-            IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
-            IUserRepository userRepository,
-            IUserGroupRepository userGroupRepository,
-            IGXEventsNotifier eventsNotifier,
-            GXPerformanceSettings performanceSettings)
+        if (httpContextAccessor.HttpContext?.User == null)
         {
-            User = contextAccessor?.User;
-            _host = host;
-            _userRepository = userRepository;
-            _eventsNotifier = eventsNotifier;
-            _userGroupRepository = userGroupRepository;
-            _performanceSettings = performanceSettings;
+            throw new UnauthorizedAccessException();
         }
+        User = httpContextAccessor.HttpContext.User;
+        _dbFactory = dbFactory;
+        _userRepository = userRepository;
+        _userGroupRepository = userGroupRepository;
+        _notificationCache = notificationCache;
+        _authorizationService = authorizationService;
+    }
 
-        /// <summary>
-        /// Returns agent groups where device group belongs.
-        /// </summary>
-        /// <param name="deviceGroupId">Device group ID</param>
-        /// <returns>List of agent groups where device group id belongs.</returns>
-        public List<GXAgentGroup> GetAgentGroupsByDeviceGroupId(Guid deviceGroupId)
+    /// <summary>
+    /// Returns agent groups where device group belongs.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="deviceGroupId">Device group ID</param>
+    /// <returns>List of agent groups where device group id belongs.</returns>
+    /// <param name="transaction">The database transaction.</param>
+    private static List<GXAgentGroup> GetAgentGroupsByDeviceGroupId(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId)
+    {
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXAgentGroup where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXAgentGroup gXAgentGroup) => gXAgentGroup.Id, (GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.AgentGroupId);
+        arg.Joins.AddInnerJoin((GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.DeviceGroupId, (GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id);
+        arg.Where.And((GXDeviceGroup where) => where.Removed == null && where.Id == deviceGroupId);
+        return connection.Select<GXAgentGroup>(transaction, arg);
+    }
+
+    private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action, GXDbConnection? connection = null, IDbTransaction? transaction = null)
+    {
+        return GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXDeviceGroup), id, action, "device-group.view", connection, transaction, notifications: _notificationCache);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<GXDeviceGroup>> GetDeviceGroupsByDeviceId(Guid deviceId)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXDeviceGroup where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id, (GXDeviceGroupDevice gXDeviceGroupDevice) => gXDeviceGroupDevice.DeviceGroupId);
+        arg.Joins.AddInnerJoin((GXDeviceGroupDevice gXDeviceGroupDevice) => gXDeviceGroupDevice.DeviceId, (GXDevice gXDevice) => gXDevice.Id);
+        arg.Where.And((GXDevice where) => where.Removed == null && where.Id == deviceId);
+        List<GXDeviceGroup> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgentGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(a => a.Id, b => b.AgentGroupId);
-            arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
-            arg.Where.And<GXDeviceGroup>(where => where.Removed == null && where.Id == deviceGroupId);
-            return _host.Connection.Select<GXAgentGroup>(arg);
+            result = await connection.SelectAsync<GXDeviceGroup>(arg);
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public async Task<List<GXDeviceGroup>> GetDeviceGroupsByDeviceId(Guid deviceId)
+    /// <inheritdoc />
+    public async Task<List<GXUserGroup>> GetJoinedUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXUserGroup where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXUserGroup gXUserGroup) => gXUserGroup.Id, (GXUserGroupDeviceGroup gXUserGroupDeviceGroup) => gXUserGroupDeviceGroup.UserGroupId);
+        arg.Joins.AddInnerJoin((GXUserGroupDeviceGroup gXUserGroupDeviceGroup) => gXUserGroupDeviceGroup.DeviceGroupId, (GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id);
+        arg.Where.And((GXDeviceGroup where) => where.Removed == null && where.Id == deviceGroupId);
+        return await connection.SelectAsync<GXUserGroup>(transaction, arg);
+    }
+
+    /// <inheritdoc />
+    public static List<GXDevice> GetDevicessByDeviceGroupId(GXDbConnection connection, IDbTransaction transaction, ClaimsPrincipal user, Guid deviceGroupId)
+    {
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXDevice where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXDevice gXDevice) => gXDevice.Id, (GXDeviceGroupDevice gXDeviceGroupDevice) => gXDeviceGroupDevice.DeviceId);
+        arg.Joins.AddInnerJoin((GXDeviceGroupDevice gXDeviceGroupDevice) => gXDeviceGroupDevice.DeviceGroupId, (GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id);
+        arg.Joins.AddInnerJoin((GXDeviceGroup j) => j.Id, (GXUserGroupDeviceGroup j) => j.DeviceGroupId);
+        arg.Joins.AddInnerJoin((GXUserGroupDeviceGroup x) => x.UserGroupId, (GXUserGroup y) => y.Id);
+        arg.Joins.AddInnerJoin((GXUserGroup x) => x.Id, (GXUserGroupUser y) => y.UserGroupId);
+        arg.Joins.AddInnerJoin((GXUserGroupUser x) => x.UserId!, (GXUser y) => y.Id!);
+        string id = ServerHelpers.GetUserId(user);
+        arg.Where.And((GXUser q) => q.Removed == null && q.Id == id);
+        arg.Where.And((GXDeviceGroup where) => where.Removed == null && where.Id == deviceGroupId);
+        return connection.Select<GXDevice>(transaction, arg);
+    }
+
+    /// <inheritdoc />
+    public async Task<List<GXAgentGroup>> GetJoinedAgentGroups(Guid deviceGroupId)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXAgentGroup where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXAgentGroup gXAgentGroup) => gXAgentGroup.Id, (GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.AgentGroupId);
+        arg.Joins.AddInnerJoin((GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.DeviceGroupId, (GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id);
+        arg.Where.And((GXDeviceGroup where) => where.Removed == null && where.Id == deviceGroupId);
+        List<GXAgentGroup> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager) &&
-                //If agent
-                !User.Claims.Where(w => w.Type.Equals("scope") && w.Value.Equals(GXAgentPolicies.View)).Any()))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceGroupId);
-            arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(a => a.DeviceId, b => b.Id);
-            arg.Where.And<GXDevice>(where => where.Removed == null && where.Id == deviceId);
-            return (await _host.Connection.SelectAsync<GXDeviceGroup>(arg));
+            result = await connection.SelectAsync<GXAgentGroup>(arg);
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public async Task<List<GXUserGroup>> GetJoinedUserGroups(Guid deviceGroupId)
+    /// <inheritdoc />
+    public async Task<List<GXDeviceGroup>> GetDeviceGroupsByAgentId(Guid agentGroupId)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXDeviceGroup where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id, (GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.DeviceGroupId);
+        arg.Joins.AddInnerJoin((GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.AgentGroupId, (GXAgentGroup gXAgentGroup) => gXAgentGroup.Id);
+        arg.Where.And((GXAgentGroup where) => where.Removed == null && where.Id == agentGroupId);
+        List<GXDeviceGroup> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
-            arg.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
-            arg.Where.And<GXDeviceGroup>(where => where.Removed == null && where.Id == deviceGroupId);
-            return (await _host.Connection.SelectAsync<GXUserGroup>(arg));
+            result = await connection.SelectAsync<GXDeviceGroup>(arg);
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public static List<GXDevice> GetDevicessByDeviceGroupId(IGXHost host,
-            ClaimsPrincipal User,
-            Guid deviceGroupId)
+    /// <inheritdoc />
+    public async Task<List<GXDeviceGroup>> GetDeviceGroupsByGatewayId(Guid gatewayGroupId)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs arg = GXSelectArgs.SelectAll((GXDeviceGroup where) => where.Removed == null);
+        arg.Joins.AddInnerJoin((GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id, (GXGatewayDeviceGroup gXGatewayDeviceGroup) => gXGatewayDeviceGroup.DeviceGroupId);
+        arg.Joins.AddInnerJoin((GXGatewayDeviceGroup gXGatewayDeviceGroup) => gXGatewayDeviceGroup.GatewayId, (GXGatewayGroup gXGatewayGroup) => gXGatewayGroup.Id);
+        arg.Where.And((GXGatewayGroup where) => where.Removed == null && where.Id == gatewayGroupId);
+        List<GXDeviceGroup> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXDevice, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceId);
-            arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
-
-            arg.Joins.AddInnerJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
-            arg.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(x => x.UserGroupId, y => y.Id);
-            arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(x => x.Id, y => y.UserGroupId);
-            arg.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(x => x.UserId, y => y.Id);
-            var id = ServerHelpers.GetUserId(User);
-            arg.Where.And<GXUser>(q => q.Removed == null && q.Id == id);
-            arg.Where.And<GXDeviceGroup>(where => where.Removed == null && where.Id == deviceGroupId);
-            return host.Connection.Select<GXDevice>(arg);
+            result = await connection.SelectAsync<GXDeviceGroup>(arg);
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public async Task<List<GXAgentGroup>> GetJoinedAgentGroups(Guid deviceGroupId)
+    /// <inheritdoc />
+    public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs args = GXQuery.GetUsersByDeviceGroup(s => s.Id!, ServerHelpers.GetUserId(User), groupId);
+        List<string> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
+            if (groupId.HasValue)
             {
-                throw new UnauthorizedAccessException();
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXDeviceGroup), groupId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
             }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgentGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(a => a.Id, b => b.AgentGroupId);
-            arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
-            arg.Where.And<GXDeviceGroup>(where => where.Removed == null && where.Id == deviceGroupId);
-            return (await _host.Connection.SelectAsync<GXAgentGroup>(arg));
+            List<string> ret = [.. (await connection.SelectAsync<GXUser>(args)).Select(s => s.Id).OfType<string>()];
+            if (User != null && User.IsInRole("admin"))
+            {
+                IList self = ret;
+                self.AddDistinct(await _userRepository.GetUserIdsInRoleAsync(["admin"]));
+            }
+            result = ret;
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public async Task<List<GXDeviceGroup>> GetDeviceGroupsByAgentId(Guid agentGroupId)
+    /// <inheritdoc />
+    public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs args = GXQuery.GetUsersByDeviceGroups(s => s.Id!, ServerHelpers.GetUserId(User), groupIds);
+        List<string> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
+            List<string> ret = [.. (await connection.SelectAsync<GXUser>(args)).Select(s => s.Id).OfType<string>()];
+            if (User != null && User.IsInRole("admin"))
             {
-                throw new UnauthorizedAccessException();
+                IList self = ret;
+                self.AddDistinct(await _userRepository.GetUserIdsInRoleAsync(["admin"]));
             }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXDeviceGroup, GXAgentGroupDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
-            arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXAgentGroup>(a => a.AgentGroupId, b => b.Id);
-            arg.Where.And<GXAgentGroup>(where => where.Removed == null && where.Id == agentGroupId);
-            return await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
+            result = ret;
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public async Task<List<GXDeviceGroup>> GetDeviceGroupsByGatewayId(Guid gatewayGroupId)
+    /// <inheritdoc />
+    public async Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
+    {
+        groups = groups.ToArray();
+        await GXHistoryMutation.RunDeleteAsync<GXDeviceGroup, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, groups,
+    async () =>
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.delete");
+        await using GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync();
+        IEnumerable<GXDeviceGroup> exists;
+        if (User.IsInRole("admin"))
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXDeviceGroup, GXGatewayDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
-            arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXGatewayGroup>(a => a.GatewayId, b => b.Id);
-            arg.Where.And<GXGatewayGroup>(where => where.Removed == null && where.Id == gatewayGroupId);
-            return await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
+            GXSelectArgs arg = GXSelectArgs.Select(s => new { s.Id, s.Name }, (GXDeviceGroup w) => groups.Contains(w.Id));
+            exists = connection.Select<GXDeviceGroup>(arg);
         }
-
-        /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? groupId)
+        else
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
+            GXSelectArgs arg2 = GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(User), columns: s => new { s.Id, s.Name }, groupId: null, removed: DateTimeOffset.MinValue, exclude: null, include: groups);
+            exists = connection.Select<GXDeviceGroup>(arg2);
+            if (!exists.Any())
             {
-                throw new UnauthorizedAccessException();
+                throw new GXAmiForbiddenException(string.Join(", ", groups));
             }
-            GXSelectArgs args = GXQuery.GetUsersByDeviceGroup(s => s.Id,
-                ServerHelpers.GetUserId(User), groupId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
-            if (User != null && User.IsInRole(GXRoles.Admin))
-            {
-                ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
-            }
-            return ret;
         }
-
-        /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds)
+        DateTime now = DateTime.Now;
+        await using DbTransaction transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
+            foreach (GXDeviceGroup it in exists)
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs args = GXQuery.GetUsersByDeviceGroups(s => s.Id,
-                ServerHelpers.GetUserId(User), groupIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
-            if (User != null && User.IsInRole(GXRoles.Admin))
-            {
-                ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
-            }
-            return ret;
-        }
-
-        /// <inheritdoc />
-        public async Task DeleteAsync(
-            IEnumerable<Guid> userGroups,
-            bool delete)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-
-            GXSelectArgs arg = GXSelectArgs.Select<GXDeviceGroup>(a => new { a.Id, a.Name }, q => userGroups.Contains(q.Id));
-            List<GXDeviceGroup> list = _host.Connection.Select<GXDeviceGroup>(arg);
-            DateTime now = DateTime.Now;
-            Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
-            try
-            {
-                foreach (var it in list)
+                if (!groups.Contains(it.Id))
                 {
-                    it.Removed = now;
-                    List<string> users = await GetUsersAsync(it.Id);
-                    if (!delete)
-                    {
-                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
-                    }
-                    updates[it] = users;
+                    throw new GXAmiForbiddenException(it.Id.ToString());
                 }
-                if (delete)
+                it.Removed = now;
+                NotificationCache notificationCache = _notificationCache;
+                notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection, transaction), new GXTarget("device-group.delete", it.Id, it.Name));
+                if (!delete)
                 {
-                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
+                    connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed!));
                 }
-                _host.Connection.CommitTransaction(transaction);
             }
-            catch (Exception)
+            if (delete)
             {
-                _host.Connection.RollbackTransaction(transaction);
-                throw;
+                await connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(exists), cancellationToken);
             }
-            foreach (var it in updates)
-            {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.DeviceGroup, NotificationAction.Remove);
-                if (users == null)
-                {
-                    break;
-                }
-                GXDeviceGroup tmp = new GXDeviceGroup() { Id = it.Key.Id, Name = it.Key.Name };
-                await _eventsNotifier.DeviceGroupDelete(users, [tmp]);
-            }
+            await transaction.CommitAsync(cancellationToken);
         }
-
-        /// <inheritdoc />
-        public async Task<GXDeviceGroup[]> ListAsync(
-            ListDeviceGroups? request,
-            ListDeviceGroupsResponse? response,
-            CancellationToken cancellationToken)
+        catch (GXDatabaseException ex)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
+            if (ex.ErrorType == DatabaseErrorType.Deadlock)
             {
-                throw new UnauthorizedAccessException();
+                CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5L));
+                try
+                {
+                    using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                    await Task.Delay(1000, linkedCts.Token);
+                    await DeleteAsync(groups, delete, notify, linkedCts.Token);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    throw ex;
+                }
+                return;
             }
+            throw;
+        }
+        catch (Exception)
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }, cancellationToken);
+    }
 
-            GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+    /// <inheritdoc />
+    public async Task<IEnumerable<GXDeviceGroup>> ListAsync(ListDeviceGroups? request, ListDeviceGroupsResponse? response, CancellationToken cancellationToken = default)
+    {
+        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        GXSelectArgs arg = ((request == null || !request.AllUsers || !User.IsInRole("admin")) ? GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(User), columns: s => "*", groupId: null, removed: request?.Filter?.Removed, exclude: request?.Exclude, include: request?.Included) : GXSelectArgs.SelectAll<GXDeviceGroup>());
+        if (request != null)
+        {
+            if (request.Included != null && request.Included.Any())
             {
-                //Admin can see all the device groups.
-                arg = GXSelectArgs.SelectAll<GXDeviceGroup>();
+                arg.Where.And((GXDeviceGroup w) => request.Included.Contains(w.Id));
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetDeviceGroupsByUser(s => "*", userId);
-            }
-            if (request != null)
-            {
-                //Get only included device groups.
-                if (request.Included != null && request.Included.Any())
+                if (request.Filter?.UserGroups != null)
                 {
-                    arg.Where.And<GXDeviceGroup>(w => request.Included.Contains(w.Id));
-                }
-                else
-                {
-                    //If device groups are filtered by user.
-                    if (request.Filter?.UserGroups != null)
+                    GXUserGroup? ug = request.Filter.UserGroups.FirstOrDefault();
+                    if (ug?.Users != null && ug.Users.Count != 0)
                     {
-                        var ug = request.Filter.UserGroups.FirstOrDefault();
-                        if (ug?.Users != null && ug.Users.Any())
+                        GXUser? user = ug.Users.FirstOrDefault();
+                        if (user != null)
                         {
-                            var user = ug.Users.FirstOrDefault();
-                            if (user != null)
-                            {
-                                arg.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
-                                arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
-                                arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
-                                arg.Where.FilterBy(user);
-                            }
+                            arg.Joins.AddLeftJoin((GXUserGroupDeviceGroup j) => j.UserGroupId, (GXUserGroup j) => j.Id);
+                            arg.Joins.AddLeftJoin((GXUserGroup j) => j.Id, (GXUserGroupUser j) => j.UserGroupId);
+                            arg.Joins.AddLeftJoin((GXUserGroupUser j) => j.UserId!, (GXUser j) => j.Id!);
+                            arg.Where.FilterBy(user);
                         }
-                        request.Filter.UserGroups = null;
                     }
-                    arg.Where.FilterBy(request.Filter);
+                    request.Filter.UserGroups = null;
                 }
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXDeviceGroup>(w => !request.Exclude.Contains(w.Id));
-                }
-                if (request?.Included != null && request.Included.Any())
-                {
-                    arg.Where.And<GXDeviceGroup>(w => request.Included.Contains(w.Id));
-                }
+                arg.Where.FilterBy(request.Filter);
             }
+            if (request.Exclude?.Any() ?? false)
+            {
+                arg.Where.And((GXDeviceGroup w) => !request.Exclude.Contains(w.Id));
+            }
+            if (request.Included?.Any() ?? false)
+            {
+                arg.Where.And((GXDeviceGroup w) => request.Included.Contains(w.Id));
+            }
+        }
+        GXDateTimeFilters.Apply<GXDeviceGroup>(arg, request?.DateFilters);
+        IEnumerable<GXDeviceGroup> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
+        {
             if (request != null && request.Count != 0)
             {
-                //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXDeviceGroup>(q => GXSql.DistinctCount(q.Id));
+                var total = GXSelectArgs.Select<GXDeviceGroup>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -390,395 +388,424 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 arg.Descending = true;
-                arg.OrderBy.Add<GXDeviceGroup>(q => q.CreationTime);
+                arg.OrderBy.Add((GXDeviceGroup q) => q.CreationTime!);
             }
-            GXDeviceGroup[] groups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToArray();
-            if (request?.Select != null && request.Select.Contains(TargetType.Device))
+            GXDeviceGroup[] groups = [.. (await connection.SelectAsync<GXDeviceGroup>(arg))];
+            if (request?.Select != null && request.Select.Contains("device"))
             {
-                foreach (var it in groups)
+                GXDeviceGroup[] array = groups;
+                foreach (GXDeviceGroup it in array)
                 {
-                    //Get the devices for the device group.
-                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name }, w => w.Removed == null);
-                    arg.Joins.AddInnerJoin<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId);
-                    arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-                    arg.Where.And<GXDeviceGroup>(w => w.Removed == null && w.Id == it.Id);
-                    if (request.Select.Contains(TargetType.DeviceTemplate))
+                    arg = GXSelectArgs.Select(s => new { s.Id, s.Name }, (GXDevice w) => w.Removed == null);
+                    arg.Joins.AddInnerJoin((GXDevice j) => j.Id, (GXDeviceGroupDevice j) => j.DeviceId);
+                    arg.Joins.AddInnerJoin((GXDeviceGroupDevice j) => j.DeviceGroupId, (GXDeviceGroup j) => j.Id);
+                    arg.Where.And((GXDeviceGroup w) => w.Removed == null && w.Id == it.Id);
+                    if (request.Select.Contains("device-template"))
                     {
                         arg.Columns.Add<GXDeviceTemplate>();
-                        arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                        arg.Joins.AddInnerJoin((GXDevice j) => j.Template!, (GXDeviceTemplate j) => j.Id);
                     }
-                    it.Devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToList();
+                    GXDeviceGroup gXDeviceGroup = it;
+                    gXDeviceGroup.Devices = await connection.SelectAsync<GXDevice>(arg);
                 }
             }
             if (response != null)
             {
                 response.DeviceGroups = groups;
             }
-            return groups;
+            result = groups;
         }
+        return result;
+    }
 
-        /// <inheritdoc />
-        public async Task<GXDeviceGroup> ReadAsync(Guid id)
+    /// <inheritdoc />
+    public async Task<GXDeviceGroup> ReadAsync(Guid id, Expression<Func<GXDeviceGroup, object>>? columns = null, CancellationToken cancellationToken = default)
+    {
+        try
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroup) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                //Admin can see all the groups.
-                arg = GXSelectArgs.SelectAll<GXDeviceGroup>(w => w.Id == id);
-            }
-            else
-            {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetDeviceGroupsByUser(s => "*", userId, id);
-            }
-            arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices);
+            await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+            GXSelectArgs arg = ((!User.IsInRole("admin")) ? GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(User), columns: s => "*", groupId: id) : GXSelectArgs.SelectAll((GXDeviceGroup w) => w.Id == id));
+            arg.Columns.Exclude((GXDeviceGroup gXDeviceGroup5) => gXDeviceGroup5.Devices!);
             arg.Distinct = true;
-            var group = (await _host.Connection.SingleOrDefaultAsync<GXDeviceGroup>(arg));
-            if (group == null)
+            GXDeviceGroup result;
+            await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
             {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            ////////////////////////////////////////////////////
-            //Get devices that belongs for this device group.
-            arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
-            arg.Where.And<GXDeviceGroupDevice>(q => q.Removed == null && q.DeviceGroupId == id);
-            group.Devices = await _host.Connection.SelectAsync<GXDevice>(arg);
-
-            ////////////////////////////////////////////////////
-            //Get user groups that belongs for this device group.
-            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
-            arg.Where.And<GXUserGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
-            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            ////////////////////////////////////////////////////
-            //Get agent groups that belong for this device group.
-            arg = GXSelectArgs.Select<GXAgentGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
-            arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-            arg.Where.And<GXDeviceGroup>(q => q.Removed == null);
-            arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
-            group.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
-            ////////////////////////////////////////////////////
-            //Get gateway groups that belong for this device group.
-            arg = GXSelectArgs.Select<GXGatewayGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXGatewayGroup, GXGatewayDeviceGroup>(j => j.Id, j => j.GatewayId);
-            arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-            arg.Where.And<GXDeviceGroup>(q => q.Removed == null);
-            arg.Where.And<GXGatewayDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
-            group.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
-            //TODO: Read parameters.
-
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXDeviceGroup, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXDeviceGroup>(w => w.Id == id);
-            group.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return group;
-        }
-
-        /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
-            IEnumerable<GXDeviceGroup> deviceGroups,
-            Expression<Func<GXDeviceGroup, object?>>? columns)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceGroupManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            DateTime now = DateTime.Now;
-            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            List<Guid> list = new List<Guid>();
-            Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
-            var newGroups = deviceGroups.Where(w => w.Id == Guid.Empty).ToList();
-            var updatedGroups = deviceGroups.Where(w => w.Id != Guid.Empty).ToList();
-            //Get notified users.
-            if (newGroups.Any())
-            {
-                var first = newGroups.First();
-                var users = await GetUsersAsync(first.Id);
-                foreach (var it in newGroups)
+                GXDeviceGroup? group = await connection.SingleOrDefaultAsync<GXDeviceGroup>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                arg = GXSelectArgs.Select(s => new { s.Id, s.Name }, (GXDevice w) => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin((GXDeviceGroupDevice j) => j.DeviceId, (GXDevice j) => j.Id);
+                arg.Where.And((GXDeviceGroupDevice q) => q.Removed == null && q.DeviceGroupId == id);
+                GXDeviceGroup gXDeviceGroup = group;
+                gXDeviceGroup.Devices = await connection.SelectAsync<GXDevice>(arg);
+                arg = GXSelectArgs.Select(s => new { s.Id, s.Name }, (GXUserGroup w) => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin((GXUserGroupDeviceGroup j) => j.UserGroupId, (GXUserGroup j) => j.Id);
+                arg.Where.And((GXUserGroupDeviceGroup q) => q.Removed == null && q.DeviceGroupId == id);
+                GXDeviceGroup gXDeviceGroup2 = group;
+                gXDeviceGroup2.UserGroups = await connection.SelectAsync<GXUserGroup>(arg);
+                arg = GXSelectArgs.Select(s => new { s.Id, s.Name }, (GXAgentGroup w) => w.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin((GXAgentGroup j) => j.Id, (GXAgentGroupDeviceGroup j) => j.AgentGroupId);
+                arg.Joins.AddInnerJoin((GXAgentGroupDeviceGroup j) => j.DeviceGroupId, (GXDeviceGroup j) => j.Id);
+                arg.Where.And((GXDeviceGroup q) => q.Removed == null);
+                arg.Where.And((GXAgentGroupDeviceGroup q) => q.Removed == null && q.DeviceGroupId == id);
+                GXDeviceGroup gXDeviceGroup3 = group;
+                gXDeviceGroup3.AgentGroups = await connection.SelectAsync<GXAgentGroup>(arg);
+                arg = GXSelectArgs.Select(s => new { s.Id, s.UserName }, (GXUser q) => q.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin((GXDeviceGroup s) => s.Creator!, (GXUser o) => o.Id!);
+                arg.Where.And((GXDeviceGroup w) => w.Id == id);
+                GXDeviceGroup gXDeviceGroup4 = group;
+                gXDeviceGroup4.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
+                if (columns == null || ServerHelpers.Contains(columns, nameof(GXDeviceGroup.Properties)))
                 {
-                    updates[it] = users;
+                    group.Properties = await GXPropertyStores.DeviceGroup.ListAsync(connection, null, group, cancellationToken);
+                }
+                result = group;
+            }
+            return result;
+        }
+        catch (GXDatabaseException ex)
+        {
+            GXDatabaseException ex2 = ex;
+            if (ex2.ErrorType == DatabaseErrorType.Deadlock)
+            {
+                CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5L));
+                try
+                {
+                    using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                    await Task.Delay(1000, linkedCts.Token);
+                    return await ReadAsync(id, columns, linkedCts.Token);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    throw ex2;
                 }
             }
-            foreach (var it in updatedGroups)
-            {
-                updates[it] = await GetUsersAsync(it.Id);
-            }
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
-            try
-            {
-                foreach (GXDeviceGroup it in deviceGroups)
-                {
-                    if (string.IsNullOrEmpty(it.Name))
-                    {
-                        throw new ArgumentException(Properties.Resources.InvalidName);
-                    }
-                    //Check the agents groups are already inserted.
-                    if (it.AgentGroups != null && it.AgentGroups.Where(w => w.Id == Guid.Empty).Any())
-                    {
-                        throw new ArgumentException(Properties.Resources.JoinedGroupsAreNotInserted);
-                    }
-                    //Check the devices are already inserted.
-                    if (it.Devices != null && it.Devices.Where(w => w.Id == Guid.Empty).Any())
-                    {
-                        throw new ArgumentException(Properties.Resources.JoinedGroupsAreNotInserted);
-                    }
+            throw;
+        }
+    }
 
-                    if (it.UserGroups == null || !it.UserGroups.Any())
+    /// <summary>Inserts a new group and its memberships in the caller's transaction without notifications or history.</summary>
+    internal static async Task UpsertAsync(GXDbConnection connection, System.Data.IDbTransaction transaction,
+        GXDeviceGroup group, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(transaction);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (group.Id != Guid.Empty)
+            {
+            throw new ArgumentException("This overload only inserts new groups.", nameof(group));
+        }
+        if (string.IsNullOrEmpty(group.Name))
+            {
+            throw new ArgumentException(Gurux.DLMS.AMI.Properties.Resources.InvalidName);
+        }
+        if (string.IsNullOrEmpty(group.Creator?.Id))
+            {
+            throw new ArgumentException("A group creator is required.", nameof(group));
+        }
+        group.CreationTime ??= DateTime.Now;
+        if (group.UserGroups?.Count is not > 0 || group.UserGroups.Any(g => g.Id == Guid.Empty))
+            {
+            throw new ArgumentException(Gurux.DLMS.AMI.Properties.Resources.TargetMustBelongToOneGroup);
+        }
+        var args = GXInsertArgs.Insert(group);
+        args.Exclude<GXDeviceGroup>(group => new { group.Updated, group.Removed, group.UserGroups, group.AgentGroups, group.Properties });
+        await connection.InsertAsync(transaction, args, cancellationToken);
+        var memberships = group.UserGroups.Select(userGroup => new GXUserGroupDeviceGroup
+        {
+            UserGroupId = userGroup.Id,
+            DeviceGroupId = group.Id,
+            CreationTime = DateTime.Now
+        }).ToArray();
+        await connection.InsertAsync(transaction, GXInsertArgs.InsertRange(memberships), cancellationToken);
+        if (group.AgentGroups?.Count > 0)
+        {
+            var agents = group.AgentGroups.Select(agent => new GXAgentGroupDeviceGroup
+            {
+                AgentGroupId = agent.Id, DeviceGroupId = group.Id, CreationTime = DateTime.Now
+            }).ToArray();
+            await connection.InsertAsync(transaction, GXInsertArgs.InsertRange(agents), cancellationToken);
+        }
+        if (group.Properties != null)
+            {
+            await GXPropertyStores.DeviceGroup.ReplaceAsync(connection, transaction, group, group.Properties, cancellationToken);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXDeviceGroup> deviceGroups, Expression<Func<GXDeviceGroup, object>>? columns, CancellationToken cancellationToken = default)
+    {
+        deviceGroups = deviceGroups.ToArray();
+        return await GXHistoryMutation.RunAsync<GXDeviceGroup, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, deviceGroups,
+    async () =>
+    {
+        DateTime now = DateTime.Now;
+        List<GXDeviceGroup> newGroups = [.. deviceGroups.Where(w => w.Id == Guid.Empty)];
+        List<GXDeviceGroup> updatedGroups = [.. deviceGroups.Where(w => w.Id != Guid.Empty)];
+        IEnumerable<Guid> result;
+        await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
+        {
+            IEnumerable<Guid> enumerable;
+            await using (DbTransaction transaction = await connection.BeginTransactionAsync(cancellationToken))
+            {
+                try
+                {
+                    foreach (GXDeviceGroup it in deviceGroups)
                     {
-                        //Get default user groups.
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(
-                            ServerHelpers.GetUserId(User));
-                        if (it.UserGroups == null || !it.UserGroups.Any())
+                        if (string.IsNullOrEmpty(it.Name))
                         {
-                            throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                            throw new ArgumentException(Resources.InvalidName);
                         }
+                        if (it.AgentGroups != null && it.AgentGroups.Where(w => w.Id == Guid.Empty).Any())
+                        {
+                            throw new ArgumentException(Resources.JoinedGroupsAreNotInserted);
+                        }
+                        if (it.Devices != null && it.Devices.Where(w => w.Id == Guid.Empty).Any())
+                        {
+                            throw new ArgumentException(Resources.JoinedGroupsAreNotInserted);
+                        }
+                        List<GXUserGroup>? userGroups = it.UserGroups;
+                        if (userGroups == null || userGroups.Count == 0)
+                        {
+                            GXDeviceGroup gXDeviceGroup = it;
+                            gXDeviceGroup.UserGroups = await _userGroupRepository.GetDefaultUserGroupsAsync(ServerHelpers.GetUserId(User));
+                            List<GXUserGroup>? userGroups2 = it.UserGroups;
+                            if (userGroups2 == null || userGroups2.Count == 0)
+                            {
+                                throw new ArgumentException(Resources.TargetMustBelongToOneGroup);
+                            }
+                        }
+                    }
+                    if (newGroups.Count != 0)
+                    {
+                        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.add");
+                        foreach (var it in newGroups)
+                        {
+                            it.Creator = new GXUser { Id = ServerHelpers.GetUserId(User) };
+                            it.CreationTime = now;
+                            await UpsertAsync(connection, transaction, it, cancellationToken);
+                            _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Add, connection, transaction), new GXTarget("device-group.add", it.Id, it.Name) { ConcurrencyStamp = it.ConcurrencyStamp });
+                        }
+                    }
+                    if (updatedGroups.Count != 0)
+                    {
+                        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.edit");
+                        foreach (GXDeviceGroup it4 in updatedGroups)
+                        {
+                            GXSelectArgs m = GXSelectArgs.Select(q => q.ConcurrencyStamp!, (GXDeviceGroup where) => where.Id == it4.Id);
+                            string? updated = connection.SingleOrDefault<string>(transaction, m);
+                            if (!string.IsNullOrEmpty(updated) && updated != it4.ConcurrencyStamp)
+                            {
+                                throw new ArgumentException(Resources.ContentEdited);
+                            }
+                            it4.Updated = now;
+                            it4.ConcurrencyStamp = Guid.NewGuid().ToString();
+                            GXUpdateArgs args2 = GXUpdateArgs.Update(it4, columns);
+                            args2.Exclude((GXDeviceGroup q) => new { q.UserGroups, q.CreationTime, q.Devices, q.AgentGroups, q.Properties });
+                            if (!User.IsInRole("admin") || it4.Creator == null || string.IsNullOrEmpty(it4.Creator.Id))
+                            {
+                                args2.Exclude((GXDeviceGroup q) => q.Creator!);
+                            }
+                            connection.Update(transaction, args2);
+                            List<Guid> groups = [.. (await GetJoinedUserGroups(connection, transaction, it4.Id)).Select(s => s.Id)];
+                            Guid[] tmp = [.. (it4.UserGroups ?? []).Select(s => s.Id)];
+                            Guid[] removed = [.. groups.Except(tmp)];
+                            Guid[] added = [.. tmp.Except(groups)];
+                            if (added.Length != 0)
+                            {
+                                AddDeviceGroupToUserGroups(connection, transaction, it4.Id, added);
+                            }
+                            if (removed.Length != 0)
+                            {
+                                RemoveDeviceGroupFromUserGroups(connection, transaction, it4.Id, removed);
+                            }
+                            if (it4.Devices != null)
+                            {
+                                List<GXDevice> devices = GetDevicessByDeviceGroupId(connection, transaction, User, it4.Id);
+                                UniqueComparer<GXDevice, Guid> comparer2 = new();
+                                List<GXDevice> removedDevices = [.. devices.Except(it4.Devices, comparer2)];
+                                List<GXDevice> addedDevices = [.. it4.Devices.Except(devices, comparer2)];
+                                if (removedDevices.Count != 0)
+                                {
+                                    RemoveDevicesFromDeviceGroup(connection, transaction, it4.Id, removedDevices);
+                                }
+                                if (addedDevices.Count != 0)
+                                {
+                                    AddDevicesToDeviceGroup(connection, transaction, it4.Id, addedDevices);
+                                }
+                            }
+                            if (it4.AgentGroups != null)
+                            {
+                                List<GXAgentGroup> agentGroups = GetAgentGroupsByDeviceGroupId(connection, transaction, it4.Id);
+                                UniqueComparer<GXAgentGroup, Guid> comparer3 = new();
+                                List<GXAgentGroup> removedAgentGroups = [.. agentGroups.Except(it4.AgentGroups, comparer3)];
+                                List<GXAgentGroup> addedAgentGroups = [.. it4.AgentGroups.Except(agentGroups, comparer3)];
+                                if (removedAgentGroups.Count != 0)
+                                {
+                                    RemoveAgenGroupsFromDeviceGroup(connection, transaction, it4.Id, removedAgentGroups);
+                                }
+                                if (addedAgentGroups.Count != 0)
+                                {
+                                    AddAgentGroupsToDeviceGroup(connection, transaction, it4.Id, addedAgentGroups);
+                                }
+                            }
+                            NotificationCache notificationCache2 = _notificationCache;
+                            if (it4.Properties != null)
+                            {
+                                await GXPropertyStores.DeviceGroup.ReplaceAsync(connection, transaction, it4, it4.Properties, cancellationToken);
+                            }
+                            notificationCache2.Add(await GetNotifiedUsers(it4.Id, NotificationAction.Edit, connection, transaction), new GXTarget("device-group.edit", it4.Id, it4.Name) { ConcurrencyStamp = it4.ConcurrencyStamp });
+                        }
+                    }
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch (GXDatabaseException ex)
+                {
+                    if (ex.ErrorType != DatabaseErrorType.Deadlock)
+                    {
+                        throw;
+                    }
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(deviceGroups, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
                     }
                 }
-                if (newGroups.Any())
+                catch (Exception)
                 {
-                    foreach (var it in newGroups)
-                    {
-                        it.Creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-                        it.CreationTime = now;
-                    }
-                    GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
-                    args.Exclude<GXDeviceGroup>(e => new
-                    {
-                        e.Updated,
-                        e.Removed,
-                        //User groups must hanlde separetly.
-                        e.UserGroups
-                    });
-                    await _host.Connection.InsertAsync(transaction, args);
-                    //Map user group to device group.
-                    foreach (var it in newGroups)
-                    {
-                        if (it.UserGroups != null)
-                        {
-                            AddDeviceGroupToUserGroups(transaction, it.Id, it.UserGroups.Select(s => s.Id).ToArray());
-                        }
-                    }
-                    foreach (var it in newGroups)
-                    {
-                        list.Add(it.Id);
-                    }
+                    transaction.Rollback();
+                    throw;
                 }
-                foreach (var it in updatedGroups)
-                {
-                    GXSelectArgs m = GXSelectArgs.Select<GXAgentGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
-                    if (!string.IsNullOrEmpty(updated) && updated != it.ConcurrencyStamp)
-                    {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
-                    }
-                    it.Updated = now;
-                    it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXDeviceGroup>(q => new
-                    {
-                        q.UserGroups,
-                        q.CreationTime,
-                        q.Devices,
-                        q.AgentGroups
-                    });
-                    if (!User.IsInRole(GXRoles.Admin) ||
-                       it.Creator == null ||
-                       string.IsNullOrEmpty(it.Creator.Id))
-                    {
-                        //Only admin can update the creator.
-                        args.Exclude<GXDeviceGroup>(q => q.Creator);
-                    }
-                    _host.Connection.Update(args);
-                    //Map user group to device group.
-                    List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);
-                    List<Guid> groups = list2.Select(s => s.Id).ToList();
-                    Guid[] tmp = it.UserGroups.Select(s => s.Id).ToArray();
-                    Guid[] removed = groups.Except(tmp).ToArray();
-                    Guid[] added = tmp.Except(groups).ToArray();
-                    if (added.Length != 0)
-                    {
-                        AddDeviceGroupToUserGroups(transaction, it.Id, added);
-                    }
-                    if (removed.Length != 0)
-                    {
-                        RemoveDeviceGroupFromUserGroups(transaction, it.Id, removed);
-                    }
-                    //Map devices to device group.
-                    if (it.Devices != null)
-                    {
-                        List<GXDevice> devices = GetDevicessByDeviceGroupId(_host, User, it.Id);
-                        var comparer2 = new UniqueComparer<GXDevice, Guid>();
-                        List<GXDevice> removedDevices = devices.Except(it.Devices, comparer2).ToList();
-                        List<GXDevice> addedDevices = it.Devices.Except(devices, comparer2).ToList();
-                        if (removedDevices.Any())
-                        {
-                            RemoveDevicesFromDeviceGroup(transaction, it.Id, removedDevices);
-                        }
-                        if (addedDevices.Any())
-                        {
-                            AddDevicesToDeviceGroup(transaction, it.Id, addedDevices);
-                        }
-                    }
-                    //Map agent groups to device groups.
-                    if (it.AgentGroups != null)
-                    {
-                        List<GXAgentGroup> agentGroups = GetAgentGroupsByDeviceGroupId(it.Id);
-                        var comparer2 = new UniqueComparer<GXAgentGroup, Guid>();
-                        List<GXAgentGroup> removedAgentGroups = agentGroups.Except(it.AgentGroups, comparer2).ToList();
-                        List<GXAgentGroup> addedAgentGroups = it.AgentGroups.Except(agentGroups, comparer2).ToList();
-                        if (removedAgentGroups.Any())
-                        {
-                            RemoveAgenGroupsFromDeviceGroup(transaction, it.Id, removedAgentGroups);
-                        }
-                        if (addedAgentGroups.Any())
-                        {
-                            AddAgentGroupsToDeviceGroup(transaction, it.Id, addedAgentGroups);
-                        }
-                    }
-                }
-                _host.Connection.CommitTransaction(transaction);
+                enumerable = [.. deviceGroups.Select(s => s.Id)];
             }
-            catch (Exception)
-            {
-                _host.Connection.RollbackTransaction(transaction);
-                throw;
-            }
-            foreach (var it in updates)
-            {
-                await _eventsNotifier.DeviceGroupUpdate(it.Value, new GXDeviceGroup[] { it.Key });
-            }
-            return list.ToArray();
+            result = enumerable;
         }
+        return result;
+    }, cancellationToken);
+    }
 
-        /// <summary>
-        /// Map device group to user groups.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="deviceGroupId">Device group ID.</param>
-        /// <param name="groups">Group IDs of the device groups where the device is added.</param>
-        public void AddDeviceGroupToUserGroups(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<Guid> groups)
+    /// <summary>
+    /// Map device group to user groups.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="transaction">Transaction.</param>
+    /// <param name="deviceGroupId">Device group ID.</param>
+    /// <param name="groups">Group IDs of the device groups where the device is added.</param>
+    public void AddDeviceGroupToUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId, IEnumerable<Guid> groups)
+    {
+        DateTime now = DateTime.Now;
+        List<GXUserGroupDeviceGroup> list = [];
+        foreach (Guid ug in groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXUserGroupDeviceGroup> list = new List<GXUserGroupDeviceGroup>();
-            foreach (var ug in groups)
+            list.Add(new GXUserGroupDeviceGroup
             {
-                list.Add(new GXUserGroupDeviceGroup()
-                {
-                    DeviceGroupId = deviceGroupId,
-                    UserGroupId = ug,
-                    CreationTime = now
-                });
-            }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+                DeviceGroupId = deviceGroupId,
+                UserGroupId = ug,
+                CreationTime = now
+            });
         }
+        connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+    }
 
-        /// <summary>
-        /// Remove map between device group and user groups.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="deviceGroupId">Device group ID.</param>
-        /// <param name="groups">Group IDs of the device groups where the device is removed.</param>
-        public void RemoveDeviceGroupFromUserGroups(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<Guid> groups)
+    /// <summary>
+    /// Remove map between device group and user groups.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="transaction">Transaction.</param>
+    /// <param name="deviceGroupId">Device group ID.</param>
+    /// <param name="groups">Group IDs of the device groups where the device is removed.</param>
+    public void RemoveDeviceGroupFromUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId, IEnumerable<Guid> groups)
+    {
+        foreach (Guid ug in groups)
         {
-            foreach (var ug in groups)
-            {
-                _host.Connection.Delete(transaction, GXDeleteArgs.Delete<GXUserGroupDeviceGroup>(w => w.UserGroupId == ug && w.DeviceGroupId == deviceGroupId));
-            }
+            connection.Delete(transaction, GXDeleteArgs.Delete((GXUserGroupDeviceGroup w) => w.UserGroupId == ug && w.DeviceGroupId == deviceGroupId));
         }
+    }
 
-        /// <summary>
-        /// Map devices to device group.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="deviceGroupId">Device group ID.</param>
-        /// <param name="groups">Group IDs of the device groups where the device is added.</param>
-        public void AddDevicesToDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXDevice> groups)
+    /// <summary>
+    /// Map devices to device group.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="transaction">Transaction.</param>
+    /// <param name="deviceGroupId">Device group ID.</param>
+    /// <param name="groups">Group IDs of the device groups where the device is added.</param>
+    public void AddDevicesToDeviceGroup(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXDevice> groups)
+    {
+        DateTime now = DateTime.Now;
+        List<GXDeviceGroupDevice> list = [];
+        foreach (GXDevice it in groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXDeviceGroupDevice> list = new List<GXDeviceGroupDevice>();
-            foreach (var it in groups)
+            list.Add(new GXDeviceGroupDevice
             {
-                list.Add(new GXDeviceGroupDevice()
-                {
-                    DeviceGroupId = deviceGroupId,
-                    DeviceId = it.Id,
-                    CreationTime = now
-                });
-            }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+                DeviceGroupId = deviceGroupId,
+                DeviceId = it.Id,
+                CreationTime = now
+            });
         }
+        connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+    }
 
-        /// <summary>
-        /// Remove map between devices and device group.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="deviceGroupId">Device group ID.</param>
-        /// <param name="groups">Device groups where the device is removed.</param>
-        public void RemoveDevicesFromDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXDevice> groups)
+    /// <summary>
+    /// Remove map between devices and device group.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="transaction">Transaction.</param>
+    /// <param name="deviceGroupId">Device group ID.</param>
+    /// <param name="groups">Device groups where the device is removed.</param>
+    public void RemoveDevicesFromDeviceGroup(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXDevice> groups)
+    {
+        GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXDeviceGroupDevice>();
+        foreach (GXDevice it in groups)
         {
-            GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXDeviceGroupDevice>();
-            foreach (var it in groups)
-            {
-                args.Where.Or<GXDeviceGroupDevice>(w => w.DeviceId == it.Id &&
-                    w.DeviceGroupId == deviceGroupId);
-            }
-            _host.Connection.Delete(transaction, args);
+            args.Where.Or((GXDeviceGroupDevice w) => w.DeviceId == it.Id && w.DeviceGroupId == deviceGroupId);
         }
+        connection.Delete(transaction, args);
+    }
 
-        /// <summary>
-        /// Map agent groups to device group.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="deviceGroupId">Device group ID.</param>
-        /// <param name="groups">Agent groups where the agent is added.</param>
-        public void AddAgentGroupsToDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
+    /// <summary>
+    /// Map agent groups to device group.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="transaction">Transaction.</param>
+    /// <param name="deviceGroupId">Device group ID.</param>
+    /// <param name="groups">Agent groups where the agent is added.</param>
+    public void AddAgentGroupsToDeviceGroup(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
+    {
+        DateTime now = DateTime.Now;
+        List<GXAgentGroupDeviceGroup> list = [];
+        foreach (GXAgentGroup it in groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXAgentGroupDeviceGroup> list = new List<GXAgentGroupDeviceGroup>();
-            foreach (var it in groups)
+            list.Add(new GXAgentGroupDeviceGroup
             {
-                list.Add(new GXAgentGroupDeviceGroup()
-                {
-                    DeviceGroupId = deviceGroupId,
-                    AgentGroupId = it.Id,
-                    CreationTime = now
-                });
-            }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+                DeviceGroupId = deviceGroupId,
+                AgentGroupId = it.Id,
+                CreationTime = now
+            });
         }
+        connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+    }
 
-        /// <summary>
-        /// Remove map between device groups and agent groups.
-        /// </summary>
-        /// <param name="transaction">Transaction.</param>
-        /// <param name="deviceGroupId">Device group ID.</param>
-        /// <param name="groups">Agent groups where the agent is removed.</param>
-        public void RemoveAgenGroupsFromDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
+    /// <summary>
+    /// Remove map between device groups and agent groups.
+    /// </summary>
+    /// <param name="connection">DB connection.</param>
+    /// <param name="transaction">Transaction.</param>
+    /// <param name="deviceGroupId">Device group ID.</param>
+    /// <param name="groups">Agent groups where the agent is removed.</param>
+    public void RemoveAgenGroupsFromDeviceGroup(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
+    {
+        GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupDeviceGroup>();
+        foreach (GXAgentGroup it in groups)
         {
-            GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupDeviceGroup>();
-            foreach (var it in groups)
-            {
-                args.Where.Or<GXAgentGroupDeviceGroup>(w => w.AgentGroupId == it.Id &&
-                    w.DeviceGroupId == deviceGroupId);
-            }
-            _host.Connection.Delete(transaction, args);
+            args.Where.Or((GXAgentGroupDeviceGroup w) => w.AgentGroupId == it.Id && w.DeviceGroupId == deviceGroupId);
         }
+        connection.Delete(transaction, args);
     }
 }

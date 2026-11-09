@@ -1,0 +1,199 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+
+<GXHelpContext Topic="UserPermissionEditor" />
+
+<details class="accordion-item" open>
+    <summary class="accordion-header p-3">
+        <strong><GXLocalizedText Value="@Properties.Resources.Permissions" /></strong>
+        <div class="small text-break">@string.Join(", ", User.Permissions ?? new List<string>())</div>
+    </summary>
+    <div class="accordion-body">
+        <h6><GXLocalizedText Value="@Properties.Resources.DirectPermissions" /></h6>
+        <label class="visually-hidden" for="@(_id + "-filter")"><GXLocalizedText Value="@Properties.Resources.FilterPermissionsByName" /></label>
+        <input id="@(_id + "-filter")" data-testid="user-permission-filter" class="form-control" type="search" placeholder="@Properties.Resources.FilterByName"
+               @bind="_filter" @bind:event="oninput" @bind:after="RefreshGroups" disabled="@Disabled" />
+        <hr />
+        <div class="d-flex gap-2 mb-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@Disabled" @onclick="SelectVisible"><GXLocalizedText Value="@Properties.Resources.SelectVisible" /></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@Disabled" @onclick="ClearVisible"><GXLocalizedText Value="@Properties.Resources.ClearVisible" /></button>
+        </div>
+        <GXViewTable ViewName="User.UserPermissionEditor" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXUserPolicies.View })"
+         TItem="PermissionGroup" Context="group" @ref="_table" @key="_catalogKey"
+                 ItemsProvider="GetGroups" ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+            <HeaderContent>
+                <GXTh Id="Name"><GXLocalizedText Value="@Properties.Resources.Name" /></GXTh>
+                <GXTh Id="Permissions"><GXLocalizedText Value="@Properties.Resources.Permissions" /></GXTh>
+            </HeaderContent>
+            <ItemContent>
+                <GXTd Id="Name"><GXLocalizedText Value="@ClientHelpers.KebabToTitle(group.Name)" /></GXTd>
+                <GXTd Id="Permissions">
+                    <Gurux.UI.Components.Accordion.GXAccordion Id="@(_id + "-" + group.Name)">
+                        <HeaderTemplate>
+                            <span>@string.Join(", ", group.Names.Where(IsSelected).Select(n => ClientHelpers.KebabToTitle(PermissionAction(n))))</span>
+                        </HeaderTemplate>
+                        <ChildContent>
+                            @foreach (var name in group.Names)
+                            {
+                                <div class="d-flex align-items-center gap-2 mb-2" data-testid="@("permission-" + name)" @key="name">
+                                    <GXInputSwitch Inline="true" TValue="bool" Value="@IsSelected(name)" Save="false" Disabled="@Disabled"
+                                            ValueChanged="@((bool selected) => SetPermission(name, selected))" />
+                                    <GXLocalizedText Value="@ClientHelpers.KebabToTitle(PermissionAction(name))" />
+                                </div>
+                            }
+                        </ChildContent>
+                    </Gurux.UI.Components.Accordion.GXAccordion>
+                </GXTd>
+            </ItemContent>
+        </GXViewTable>
+    </div>
+</details>
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Permissions") { Position = 1, Description = "Permissions", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private readonly string _id = "user-permissions-" + Guid.NewGuid().ToString("N");
+    private string? _filter;
+    private GXTable<PermissionGroup>? _table;
+    private string _catalogKey = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        // The permission catalog arrives asynchronously after the editor's first render.
+        // Recreate the table only when its available rows or target user change.
+        _catalogKey = User.Id + "|" + string.Join(",", PermissionNames);
+    }
+
+    [CascadingParameter]
+    public EditContext? EditContext { get; set; }
+
+    public sealed record PermissionGroup(string Name, string[] Names);
+
+    private static string GroupName(string name)
+    {
+        var separator = name.LastIndexOf('.');
+        return separator > 0 ? name[..separator] : name;
+    }
+
+    private static string PermissionAction(string name)
+    {
+        var separator = name.LastIndexOf('.');
+        return separator >= 0 ? name[(separator + 1)..] : name;
+    }
+
+    private ValueTask<ItemsProviderResult<PermissionGroup>> GetGroups(GXItemsProviderRequest request)
+    {
+        var groups = PermissionNames.GroupBy(GroupName, StringComparer.OrdinalIgnoreCase)
+            .Where(g => string.IsNullOrWhiteSpace(_filter)
+                || (ClientHelpers.KebabToTitle(g.Key) ?? string.Empty).Contains(_filter, StringComparison.OrdinalIgnoreCase)
+                || g.Any(n => n.Contains(_filter, StringComparison.OrdinalIgnoreCase)))
+            .Select(g => new PermissionGroup(g.Key, g.OrderBy(PermissionAction, StringComparer.OrdinalIgnoreCase).ToArray()))
+            .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        return new(new ItemsProviderResult<PermissionGroup>(groups, groups.Length));
+    }
+
+    private async Task RefreshGroups()
+    {
+        if (_table != null)
+        {
+            await _table.RefreshDataAsync(true);
+        }
+    }
+
+    [Parameter, EditorRequired]
+    public GXUser User { get; set; } = default!;
+
+    [Parameter]
+    public IEnumerable<GXPermission> Catalog { get; set; } = Array.Empty<GXPermission>();
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private IEnumerable<string> PermissionNames => Catalog.Select(p => p.Name)
+        .Where(n => !string.IsNullOrEmpty(n)).Select(n => n!)
+        .Concat(User.Permissions ?? Enumerable.Empty<string>())
+        .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(n => n);
+
+    private string[] VisibleNames => PermissionNames.GroupBy(GroupName, StringComparer.OrdinalIgnoreCase)
+        .Where(g => string.IsNullOrWhiteSpace(_filter)
+            || (ClientHelpers.KebabToTitle(g.Key) ?? string.Empty).Contains(_filter, StringComparison.OrdinalIgnoreCase)
+            || g.Any(n => n.Contains(_filter, StringComparison.OrdinalIgnoreCase)))
+        .SelectMany(g => g).ToArray();
+    private bool IsSelected(string name) => User.Permissions?.Contains(name, StringComparer.OrdinalIgnoreCase) == true;
+
+    private void SelectVisible()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+        foreach (var name in VisibleNames)
+        {
+            SetPermission(name, true);
+        }
+    }
+
+    private void ClearVisible()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+        foreach (var name in VisibleNames)
+        {
+            SetPermission(name, false);
+        }
+    }
+
+    private void SetPermission(string name, bool selected)
+    {
+        if (Disabled)
+        {
+            return;
+        }
+        if (IsSelected(name) == selected)
+        {
+            return;
+        }
+        User.Permissions ??= new List<string>();
+        User.Permissions.RemoveAll(n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+        if (selected)
+        {
+            User.Permissions.Add(name);
+        }
+        EditContext?.NotifyFieldChanged(new FieldIdentifier(User, nameof(GXUser.Permissions)));
+    }
+}

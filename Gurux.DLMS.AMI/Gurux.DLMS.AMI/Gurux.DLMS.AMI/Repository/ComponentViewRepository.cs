@@ -1,94 +1,109 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
-using System.Security.Claims;
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Client.Pages.ComponentView;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
+using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Module;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
+
     /// <inheritdoc />
     public class ComponentViewRepository : IComponentViewRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IComponentViewGroupRepository _componentViewGroupRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
+
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public ComponentViewRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+        public ComponentViewRepository(IAuthorizationService authorizationService,
+            IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
             IUserRepository userRepository,
             IServiceProvider serviceProvider,
             IComponentViewGroupRepository componentViewGroupRepository,
-            IGXEventsNotifier eventsNotifier,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
-            _eventsNotifier = eventsNotifier;
-            _userRepository = userRepository;
-            _serviceProvider = serviceProvider;
-            _componentViewGroupRepository = componentViewGroupRepository;
-            _performanceSettings = performanceSettings;
-        }
-
-        /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? componentViewId)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ComponentViewManager)))
+            if (httpContextAccessor.HttpContext?.User == null)
             {
                 throw new UnauthorizedAccessException();
             }
-            GXSelectArgs args = GXQuery.GetUsersByComponentView(s => s.Id,
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
+            _userRepository = userRepository;
+            _serviceProvider = serviceProvider;
+            _componentViewGroupRepository = componentViewGroupRepository;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
+        }
+
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXComponentView), id, action, GXComponentViewPolicies.View, connection, transaction, notifications: _notificationCache);
+
+        /// <inheritdoc />
+        public async Task<List<string>> GetUsersAsync(Guid? componentViewId, CancellationToken cancellationToken = default)
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByComponentView(s => s.Id!,
                 ServerHelpers.GetUserId(User), componentViewId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (componentViewId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXComponentView), componentViewId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -97,18 +112,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? componentViewIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ComponentViewManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs args = GXQuery.GetUsersByComponentViews(s => s.Id,
-                ServerHelpers.GetUserId(User), componentViewIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByComponentViews(s => s.Id!,
+                ServerHelpers.GetUserId(User), Ids);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -119,57 +130,84 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(
             IEnumerable<Guid> componentViews,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ComponentViewManager)))
+            componentViews = componentViews.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXComponentView, Guid>(_dbFactory, User, _serviceProvider, componentViews,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Delete);
+            componentViews.ValidateIds();
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.Select<GXComponentView>(a => a.Id, q => componentViews.Contains(q.Id));
-            List<GXComponentView> list = _host.Connection.Select<GXComponentView>(arg);
-            DateTime now = DateTime.Now;
-            Dictionary<GXComponentView, List<string>> updates = new Dictionary<GXComponentView, List<string>>();
-            foreach (GXComponentView it in list)
-            {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(it.Id);
-                if (delete)
+                GXSelectArgs arg = GXSelectArgs.Select<GXComponentView>(a => a.Id);
+                if (componentViews?.Any() == true)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXComponentView>(it.Id));
+                    arg.Where.And<GXComponentView>(q => componentViews.Contains(q.Id));
+                }
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                List<GXComponentView> list = connection.Select<GXComponentView>(arg);
+                DateTime now = DateTime.Now;
+                Dictionary<GXComponentView, List<string>> updates = [];
+                foreach (GXComponentView it in list)
+                {
+                    it.Removed = now;
+                    List<string> users = await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection);
+                    if (delete)
+                    {
+                        await connection.DeleteAsync(GXDeleteArgs.DeleteById<GXComponentView>(it.Id), cancellationToken);
+                    }
+                    else
+                    {
+                        connection.Update(GXUpdateArgs.Update(it, q => q.Removed!));
+                    }
+                    updates[it] = users;
+                }
+                foreach (var it in updates)
+                {
+                    var users = it.Value;
+                    if (users == null)
+                    {
+                        break;
+                    }
+                    GXComponentView tmp = new() { Id = it.Key.Id };
+                    _notificationCache.Add(users, new GXTarget(GXComponentViewPolicies.Delete, tmp.Id));
+                }
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(componentViews, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                    throw;
                 }
-                updates[it] = users;
             }
-            foreach (var it in updates)
-            {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.ComponentView, NotificationAction.Remove);
-                if (users == null)
-                {
-                    break;
-                }
-                GXComponentView tmp = new GXComponentView() { Id = it.Key.Id };
-                await _eventsNotifier.ComponentViewDelete(users, [tmp]);
-            }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXComponentView[]> ListAsync(
+        public async Task<IEnumerable<GXComponentView>> ListAsync(
             ListComponentViews? request,
             ListComponentViewsResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ComponentViewManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.View);
             GXSelectArgs arg;
             if (request != null && User.IsInRole(GXRoles.Admin))
             {
@@ -186,28 +224,35 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXComponentView>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXComponentView>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;
+            GXDateTimeFilters.Apply<GXComponentView>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXComponentView>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXComponentView>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -218,7 +263,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.OrderBy.Add<GXComponentView>(q => q.Id);
             }
-            GXComponentView[] componentViews = (await _host.Connection.SelectAsync<GXComponentView>(arg)).ToArray();
+            GXComponentView[] componentViews = [.. (await connection.SelectAsync<GXComponentView>(arg))];
             if (response != null)
             {
                 response.ComponentViews = componentViews;
@@ -231,139 +276,189 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXComponentView> ReadAsync(Guid id)
+        public async Task<GXComponentView> ReadAsync(Guid id, Expression<Func<GXComponentView, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ComponentViewManager)))
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                //Admin can see all the component views.
-                arg = GXSelectArgs.SelectAll<GXComponentView>(w => w.Id == id);
-                arg.Joins.AddLeftJoin<GXComponentView, GXComponentViewGroupComponentView>(x => x.Id, y => y.ComponentViewId);
-                arg.Joins.AddLeftJoin<GXComponentViewGroupComponentView, GXComponentViewGroup>(j => j.ComponentViewGroupId, j => j.Id);
-            }
-            else
-            {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetComponentViewsByUser(s => "*", userId, id);
-                arg.Joins.AddInnerJoin<GXComponentViewGroupComponentView, GXComponentViewGroup>(j => j.ComponentViewGroupId, j => j.Id);
-            }
-            arg.Columns.Add<GXComponentViewGroup>();
-            arg.Columns.Exclude<GXComponentViewGroup>(e => e.ComponentViews);
-            arg.Distinct = true;
-            GXComponentView view = await _host.Connection.SingleOrDefaultAsync<GXComponentView>(arg);
-            if (view == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            //Get creator with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXComponentView, GXUser>(s => s.Creator, o => o.Id);
-            arg.Where.And<GXComponentView>(w => w.Id == id);
-            view.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            return view;
-        }
 
-        /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
-            IEnumerable<GXComponentView> componentViews,
-            Expression<Func<GXComponentView, object?>>? columns)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.ComponentViewManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            DateTime now = DateTime.Now;
-            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            List<Guid> list = new List<Guid>();
-            Dictionary<GXComponentView, List<string>> updates = new Dictionary<GXComponentView, List<string>>();
-            foreach (GXComponentView componentView in componentViews)
-            {
-                if (string.IsNullOrEmpty(componentView.Name))
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.View);
+                GXSelectArgs arg;
+                if (User.IsInRole(GXRoles.Admin))
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
-                }
-                if (componentView.ComponentViewGroups == null || !componentView.ComponentViewGroups.Any())
-                {
-                    ListComponentViewGroups request = new ListComponentViewGroups()
-                    {
-                        Filter = new GXComponentViewGroup() { Default = true }
-                    };
-                    componentView.ComponentViewGroups = new List<GXComponentViewGroup>();
-                    componentView.ComponentViewGroups.AddRange(await _componentViewGroupRepository.ListAsync(request, null, CancellationToken.None));
-                    //It's OK if component doesn't belong to component group.
-                }
-                if (componentView.Id == Guid.Empty)
-                {
-                    componentView.CreationTime = now;
-                    componentView.Creator = creator;
-                    GXInsertArgs args = GXInsertArgs.Insert(componentView);
-                    args.Exclude<GXComponentView>(q => new
-                    {
-                        q.Updated,
-                        q.ComponentViewGroups
-                    });
-                    _host.Connection.Insert(args);
-                    list.Add(componentView.Id);
-                    AddComponentViewToComponentViewGroups(componentView.Id, componentView.ComponentViewGroups);
+                    //Admin can see all the component views.
+                    arg = GXSelectArgs.SelectAll<GXComponentView>(w => w.Id == id);
+                    arg.Joins.AddLeftJoin<GXComponentView, GXComponentViewGroupComponentView>(x => x.Id, y => y.ComponentViewId);
+                    arg.Joins.AddLeftJoin<GXComponentViewGroupComponentView, GXComponentViewGroup>(j => j.ComponentViewGroupId, j => j.Id);
                 }
                 else
                 {
-                    GXSelectArgs m = GXSelectArgs.Select<GXComponentView>(q => q.Updated, where => where.Id == componentView.Id);
-                    DateTimeOffset? updated = _host.Connection.SingleOrDefault<DateTimeOffset?>(m);
-                    if (updated != null && updated != componentView.Updated)
+                    string userId = ServerHelpers.GetUserId(User);
+                    arg = GXQuery.GetComponentViewsByUser(s => "*", userId, id);
+                    arg.Joins.AddInnerJoin<GXComponentViewGroupComponentView, GXComponentViewGroup>(j => j.ComponentViewGroupId, j => j.Id);
+                }
+                arg.Columns.Add<GXComponentViewGroup>();
+                arg.Columns.Exclude<GXComponentViewGroup>(e => e.ComponentViews!);
+                arg.Distinct = true;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXComponentView? view = await connection.SingleOrDefaultAsync<GXComponentView>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                //Get creator with own query. It's faster for some DBs.
+                arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, q => q.Removed == null);
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXComponentView, GXUser>(s => s.Creator!, o => o.Id!);
+                arg.Where.And<GXComponentView>(w => w.Id == id);
+                view.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
+                return view;
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
                     {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
                     }
-                    List<string> users = await GetUsersAsync(componentView.Id);
-                    GXUpdateArgs args = GXUpdateArgs.Update(componentView, columns);
-                    args.Exclude<GXComponentView>(q => new
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
                     {
-                        q.CreationTime,
-                        q.ComponentViewGroups
-                    });
-                    if (!User.IsInRole(GXRoles.Admin) ||
-                        componentView.Creator == null ||
-                        string.IsNullOrEmpty(componentView.Creator.Id))
-                    {
-                        //Only admin can update the creator.
-                        args.Exclude<GXComponentViewGroup>(q => q.Creator);
+                        throw ex;
                     }
-                    _host.Connection.Update(args);
-                    //Map component view groups to component view.
-                    List<GXComponentViewGroup> componentViewGroups;
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
-                    {
-                        IComponentViewGroupRepository componentViewGroupRepository = scope.ServiceProvider.GetRequiredService<IComponentViewGroupRepository>();
-                        componentViewGroups = await componentViewGroupRepository.GetJoinedComponentViewGroups(componentView.Id);
-                    }
-                    var comparer = new UniqueComparer<GXComponentViewGroup, Guid>();
-                    List<GXComponentViewGroup> removedComponentViewGroups = componentViewGroups.Except(componentView.ComponentViewGroups, comparer).ToList();
-                    List<GXComponentViewGroup> addedComponentViewGroups = componentView.ComponentViewGroups.Except(componentViewGroups, comparer).ToList();
-                    if (removedComponentViewGroups.Any())
-                    {
-                        RemoveComponentViewsFromComponentViewGroup(componentView.Id, removedComponentViewGroups);
-                    }
-                    if (addedComponentViewGroups.Any())
-                    {
-                        AddComponentViewToComponentViewGroups(componentView.Id, addedComponentViewGroups);
-                    }
-                    updates[componentView] = users;
+                }
+                else
+                {
+                    throw;
                 }
             }
-            foreach (var it in updates)
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Guid>> UpsertAsync(
+            IEnumerable<GXComponentView> componentViews,
+            Expression<Func<GXComponentView, object>>? columns, CancellationToken cancellationToken = default)
+        {
+            componentViews = componentViews.ToArray();
+            return await GXHistoryMutation.RunAsync<GXComponentView, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, componentViews,
+        async () =>
+        {
+            try
             {
-                await _eventsNotifier.ComponentViewUpdate(it.Value, [it.Key]);
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Add, GXComponentViewPolicies.Edit);
+                DateTime now = DateTime.Now;
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                Dictionary<GXComponentView, List<string>> updates = [];
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                foreach (GXComponentView componentView in componentViews)
+                {
+                    if (string.IsNullOrEmpty(componentView.Name))
+                    {
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
+                    if (componentView.ComponentViewGroups == null || componentView.ComponentViewGroups.Count == 0)
+                    {
+                        ListComponentViewGroups request = new()
+                        {
+                            Filter = new GXComponentViewGroup() { Default = true }
+                        };
+                        componentView.ComponentViewGroups =
+                        [
+                            .. await _componentViewGroupRepository.ListAsync(request, null, CancellationToken.None),
+                        ];
+                        //It's OK if component doesn't belong to component group.
+                    }
+                    if (componentView.Id == Guid.Empty)
+                    {
+                        componentView.CreationTime = now;
+                        componentView.Creator = creator;
+                        GXInsertArgs args = GXInsertArgs.Insert(componentView);
+                        args.Exclude<GXComponentView>(q => new
+                        {
+                            q.Updated,
+                            q.ComponentViewGroups
+                        });
+                        connection.Insert(args);
+                        AddComponentViewToComponentViewGroups(connection, componentView.Id, componentView.ComponentViewGroups);
+                    }
+                    else
+                    {
+                        GXSelectArgs m = GXSelectArgs.Select<GXComponentView>(q => q.Updated!, where => where.Id == componentView.Id);
+                        DateTimeOffset? updated = connection.SingleOrDefault<DateTimeOffset?>(m);
+                        if (updated != null && updated != componentView.Updated)
+                        {
+                            throw new ArgumentException(Properties.Resources.ContentEdited);
+                        }
+                        List<string> users = await GetNotifiedUsers(componentView.Id, NotificationAction.Edit, connection);
+                        GXUpdateArgs args = GXUpdateArgs.Update(componentView, columns);
+                        args.Exclude<GXComponentView>(q => new
+                        {
+                            q.CreationTime,
+                            q.ComponentViewGroups
+                        });
+                        if (!User.IsInRole(GXRoles.Admin) ||
+                            componentView.Creator == null ||
+                            string.IsNullOrEmpty(componentView.Creator.Id))
+                        {
+                            //Only admin can update the creator.
+                            args.Exclude<GXComponentViewGroup>(q => q.Creator!);
+                        }
+                        connection.Update(args);
+                        //Map component view groups to component view.
+                        List<GXComponentViewGroup> componentViewGroups;
+                        using (IServiceScope scope = _serviceProvider.CreateScope())
+                        {
+                            IComponentViewGroupRepository componentViewGroupRepository = scope.ServiceProvider.GetRequiredService<IComponentViewGroupRepository>();
+                            componentViewGroups = await componentViewGroupRepository.GetJoinedComponentViewGroups(componentView.Id);
+                        }
+                        var comparer = new UniqueComparer<GXComponentViewGroup, Guid>();
+                        List<GXComponentViewGroup> removedComponentViewGroups = [.. componentViewGroups.Except(componentView.ComponentViewGroups, comparer)];
+                        List<GXComponentViewGroup> addedComponentViewGroups = [.. componentView.ComponentViewGroups.Except(componentViewGroups, comparer)];
+                        if (removedComponentViewGroups.Count != 0)
+                        {
+                            RemoveComponentViewsFromComponentViewGroup(connection, componentView.Id, removedComponentViewGroups);
+                        }
+                        if (addedComponentViewGroups.Count != 0)
+                        {
+                            AddComponentViewToComponentViewGroups(connection, componentView.Id, addedComponentViewGroups);
+                        }
+                        updates[componentView] = users;
+                    }
+                }
+                foreach (var it in updates)
+                {
+                    _notificationCache.Add(await GetNotifiedUsers(it.Key.Id, NotificationAction.Edit, connection),
+                        new GXTarget(GXComponentViewPolicies.Edit, it.Key.Id, it.Key.Name));
+                }
+                return [.. componentViews.Select(s => s.Id)];
+
+
             }
-            return list.ToArray();
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(componentViews, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }, cancellationToken);
         }
 
         /// <summary>
@@ -371,10 +466,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="componentViewId">Component view ID.</param>
         /// <param name="groups">Group IDs of the component view groups where the component view is added.</param>
-        public void AddComponentViewToComponentViewGroups(Guid componentViewId, IEnumerable<GXComponentViewGroup> groups)
+        /// <param name="connection">The database connection.</param>
+        private static void AddComponentViewToComponentViewGroups(GXDbConnection connection, Guid componentViewId, IEnumerable<GXComponentViewGroup> groups)
         {
             DateTime now = DateTime.Now;
-            List<GXComponentViewGroupComponentView> list = new List<GXComponentViewGroupComponentView>();
+            List<GXComponentViewGroupComponentView> list = [];
             foreach (GXComponentViewGroup it in groups)
             {
                 list.Add(new GXComponentViewGroupComponentView()
@@ -384,7 +480,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            connection.Insert(GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
@@ -392,13 +488,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="componentViewId">Component view ID.</param>
         /// <param name="groups">Group IDs of the component view groups where the component view is removed.</param>
-        public void RemoveComponentViewsFromComponentViewGroup(Guid componentViewId, IEnumerable<GXComponentViewGroup> groups)
+        /// <param name="connection">The database connection.</param>
+        private static void RemoveComponentViewsFromComponentViewGroup(GXDbConnection connection, Guid componentViewId, IEnumerable<GXComponentViewGroup> groups)
         {
             foreach (var it in groups)
             {
                 GXDeleteArgs args = GXDeleteArgs.Delete<GXComponentViewGroupComponentView>(
                     w => w.ComponentViewId == componentViewId && w.ComponentViewGroupId == it.Id);
-                _host.Connection.Delete(args);
+                connection.Delete(args);
             }
         }
 
@@ -406,20 +503,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Refresh component view(s).
         /// </summary>
-        public async Task<bool> RefrestAsync()
+        public async Task<bool> RefrestAsync(CancellationToken cancellationToken = default)
         {
-            Dictionary<GXComponentView, List<string>> updates = new Dictionary<GXComponentView, List<string>>();
-            List<GXComponentView> insertList = new List<GXComponentView>();
-            List<GXComponentView> updateList = new List<GXComponentView>();
+            Dictionary<GXComponentView, List<string>> updates = [];
+            List<GXComponentView> insertList = [];
+            List<GXComponentView> updateList = [];
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             foreach (Type it in typeof(Client.Pages.Admin.ActiveDeviceErrors).Assembly.GetTypes())
             {
-                if (typeof(IAmiComponent).IsAssignableFrom(it) && it.FullName != null)
+                if (typeof(IGXAmiComponent).IsAssignableFrom(it) && it.FullName != null)
                 {
                     GXSelectArgs args = GXSelectArgs.SelectAll<GXComponentView>(where => where.ClassName == it.FullName);
-                    GXComponentView? item = await _host.Connection.SingleOrDefaultAsync<GXComponentView>(args);
-                    IAmiComponent? tmp = (IAmiComponent?)Activator.CreateInstance(it);
+                    GXComponentView? item = await connection.SingleOrDefaultAsync<GXComponentView>(args);
+                    IGXAmiComponent tmp = (IGXAmiComponent?)Activator.CreateInstance(it)
+                        ?? throw new InvalidOperationException($"Unable to create component {it.FullName}.");
                     string? configurationUI = null;
-                    if (tmp?.ConfigurationUI != null)
+                    if (tmp.ConfigurationUI != null)
                     {
                         configurationUI = tmp.ConfigurationUI.FullName;
                     }
@@ -433,7 +532,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             Icon = tmp.Icon
                         };
                         insertList.Add(item);
-                        updates[item] = await GetUsersAsync(item.Id);
+                        updates[item] = await GetNotifiedUsers(item.Id, NotificationAction.Edit, connection);
                     }
                     else
                     {
@@ -443,18 +542,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             item.Name = tmp.Name;
                             item.ConfigurationUI = configurationUI;
                             updateList.Add(item);
-                            updates[item] = await GetUsersAsync(item.Id);
+                            updates[item] = await GetNotifiedUsers(item.Id, NotificationAction.Edit, connection);
                         }
                     }
                 }
             }
-            await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(insertList));
-            await _host.Connection.UpdateAsync(GXUpdateArgs.UpdateRange(updateList));
+            await connection.InsertAsync(GXInsertArgs.InsertRange(insertList), cancellationToken);
+            await connection.UpdateAsync(GXUpdateArgs.UpdateRange(updateList), cancellationToken);
             foreach (var it in updates)
             {
-                await _eventsNotifier.ComponentViewUpdate(it.Value, new GXComponentView[] { it.Key });
+                _notificationCache.Add(await GetNotifiedUsers(it.Key.Id, NotificationAction.Edit, connection),
+                    new GXTarget(GXComponentViewPolicies.Edit, it.Key.Id, it.Key.Name));
             }
-            return insertList.Any();
+            return insertList.Count != 0;
         }
     }
 }

@@ -1,231 +1,242 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Client.Pages.User
-@using Gurux.DLMS.AMI.Shared.DIs
 
-@using Gurux.DLMS.AMI.Shared.DTOs.Schedule
+@page "/Schedule/{Id:guid?}"
+@page "/Schedule/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Shared.DTOs.Menu
+@using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
+@using Gurux.DLMS.AMI.Client.Pages.Module
+@using Gurux.DLMS.AMI.Client.Pages.Objects
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Module
-@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization;
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Schedule)]
 @inject NavigationManager NavigationManager
+@inject IGXProgress Progress
+@inject IGXNotificationService NotificationService
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IServiceProvider Services
 
-@if (Active != null)
+<GXHelpContext Topic="Schedule" />
+
+@if (_modulesSelector?.Active != null)
 {
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <GXValidator @ref="_scheduleValidator" OnValidate="OnValidate" />
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control"
-                               placeholder=@Properties.Resources.ScheduleName />
-                    <ValidationMessage For="@(() => Active.Name)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Description</label>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Description" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Start">@Properties.Resources.ScheduleExecutionTime</CopyLabel>
-                    <input type="text" id="start" disabled="@IsDeleting" value="@GetDateTime()" class="form-control"
-                           @onchange="@((ChangeEventArgs __e) => SetDateTime(Convert.ToString(__e.Value)))" placeholder=@Properties.Resources.ScheduleExecutionTime />
-                    <ValidationMessage For="@(() => Active.Start)" />
-                </div>
-                <label>@Properties.Resources.TraceLevel</label>
-                <GXInputDropdown class="form-select"
-                                     Id="Agent.TraceLevel"
-                                     LastValue="@(action == CrudAction.Create)"
-                                     @bind-Value="Active.TraceLevel">
-                </GXInputDropdown>
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
+    <ScheduleEdit @ref="_scheduleEdit"
+                  Module="@_modulesSelector.Active"
+                  Schedule="@Active" Closed="@CloseModuleAsync"></ScheduleEdit>
 }
+else
+{
+    <CascadingValue Value="this">
+        <GXTabControl PersistSelectionInUrl="true" Active="@_activeTab" NavigateOnSelection="false">
+            <TabTextTemplate>
+                <GXTabIcon Id="@context.Icon" Color="@context.IconColor" />
+                @context.Text
+            </TabTextTemplate>
+            <ChildContent>
+                @if (_ready)
+                {
+                    <TabHeader Name="@GXMenus.ScheduleDetailsTab" Parameters="@TabParameters" ParametersForLink="@GetTabParameters">
+                        <ContentForLink Context="link">
+                            @if (Type.GetType(link.TargetType ?? string.Empty) == typeof(ModulesSelector))
+                            {
+                                <ModulesSelector ModuleGroup="@null" @ref="_modulesSelector" />
+                            }
+                            else if (!string.IsNullOrEmpty(link.TargetType))
+                            {
+                                var componentType = Type.GetType(link.TargetType);
+                                <DynamicComponent Type="@componentType" Parameters="@GXTabParameters.Filter(componentType!, TabParameters, GetTabParameters(link))" />
+                            }
+                        </ContentForLink>
+                    </TabHeader>
+                }
+                <ModuleViews Area="AmiViewArea.Schedule" Target="@Active" Parameters="@TabParameters" />
+            </ChildContent>
+        </GXTabControl>
+    </CascadingValue>
+}
+<ModuleViews Area="AmiViewArea.Schedule" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
+@implements IDisposable
 @code {
-    private bool DeleteTarget;
-    [CascadingParameter]
-    private ScheduleTab? Parent { get; set; }
+    private bool _ready;
 
-    private GXSchedule? _active;
-
-    private GXSchedule? Active
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        get
+        ["Active"] = Active,
+        ["Action"] = _action == CrudAction.Clone ? CrudAction.Create : _action,
+        ["AcceptChanges"] = (Func<bool, Task<bool>>)AcceptChanges
+    };
+
+    private IDictionary<string, object>? GetTabParameters(GXMenuLink link)
+    {
+        var type = Type.GetType(link.TargetType ?? string.Empty);
+        if (type == typeof(DeviceSelector))
         {
-            if (Parent?.Active != null)
+            return new Dictionary<string, object>
             {
-                return Parent.Active;
-            }
-            return _active;
+                ["Devices"] = Active.Devices!,
+                ["ObjectTemplates"] = Active.DeviceObjectTemplates!,
+                ["AttributeTemplates"] = Active.DeviceAttributeTemplates!
+            };
         }
+        if (type == typeof(DeviceGroupSelector))
+        {
+            return new Dictionary<string, object>
+            {
+                ["DeviceGroups"] = Active.DeviceGroups!,
+                ["ObjectTemplates"] = Active.DeviceGroupObjectTemplates!,
+                ["AttributeTemplates"] = Active.DeviceGroupAttributeTemplates!
+            };
+        }
+        return type == typeof(ModulesSelector)
+            ? new Dictionary<string, object> { ["ModuleGroup"] = null! } : null;
     }
 
-    private GXValidator? _scheduleValidator;
-
-    /// <summary>
-    /// User action.
-    /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
+    private CrudAction _action;
+
+    private string? _activeTab;
+
     [Parameter]
     public Guid? Id { get; set; }
 
-    public string? IsDeleting
+    ModulesSelector? _modulesSelector;
+    ScheduleEdit? _scheduleEdit;
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXSchedule Active = new GXSchedule(null)
     {
-        get
+        Start = new Gurux.Scheduling.GXDateTime(@"*/*/* *:00:00", CultureInfo.InvariantCulture).ToFormatString(CultureInfo.CurrentUICulture)
+    };
+
+    /// <summary>
+    /// Close module edit if user is editing
+    /// the schedule module.
+    /// </summary>
+    /// <returns>True, if user is edit the module settings.</returns>
+    internal async Task<bool> AcceptChanges(bool cancel)
+    {
+        if (_modulesSelector != null &&
+            _modulesSelector.Active != null)
         {
-            if (action != CrudAction.Delete)
+            if (!cancel && _scheduleEdit != null)
             {
-                return null;
+                await _scheduleEdit.SaveAsync();
             }
-            return "disabled";
+            _activeTab = "Modules";
+            _modulesSelector.Active = null;
+            await InvokeAsync(StateHasChanged);
+            return true;
         }
+        return false;
+    }
+
+    private async Task CloseModuleAsync()
+    {
+        await AcceptChanges(true);
     }
 
     /// <summary>
-    /// Convert date-string from invaliant culture to user format.
+    /// ModulesSelector asks schedule to update the UI.
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    string? GetDateTime()
+    internal void Update()
     {
-        try
-        {
-            if (!string.IsNullOrEmpty(Active?.Start))
-            {
-                GXDateTime tm = new GXDateTime(Active.Start, CultureInfo.InvariantCulture);
-                return tm.ToFormatString(CultureInfo.CurrentUICulture);
-            }
-            return "";
-        }
-        catch (Exception)
-        {
-            return Active?.Start;
-        }
-    }
-    /// <summary>
-    /// Date time is serialized to invariant culture.
-    /// </summary>
-    /// <param name="value"></param>
-    void SetDateTime(string value)
-    {
-        try
-        {
-            if (Active != null)
-            {
-                Notifier?.ClearStatus();
-                GXDateTime tm = new GXDateTime(value, CultureInfo.CurrentUICulture);
-                Active.Start = tm.ToFormatString();
-            }
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
+        InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
+            _action = ClientHelpers.GetAction(NavigationManager, Action);
+            switch (_action)
+            {
+                case CrudAction.Create:
+                case CrudAction.Clone:
+                    Title = Properties.Resources.Add;
+                    Action = "Add";
+                    break;
+                case CrudAction.Update:
+                    Title = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.Schedule;
+            using var progressScope1 = Progress.ProgressStart(GXProgress.RetrievingSchedule);
+            NotificationService.RemoveByKey("Pages/Schedule/ScheduleTab.OnInitializedAsync");
+            if (_action != CrudAction.Create)
             {
                 //Get schedule data.
                 var tmp = (await Http.GetAsJsonAsync<GetScheduleResponse>(string.Format("api/Schedule?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
-                    _active = tmp.Item;
+                    Active = tmp.Item;
+                    //Convert start time from invariant culture to UI culture.
+                    Active.Start = new GXDateTime(Active.Start, CultureInfo.InvariantCulture).ToFormatString();
+                    if (_action == CrudAction.Clone)
+                    {
+                        Active.Id = Guid.Empty;
+                        Active.Name += "-" + Properties.Resources.Clone;
+                        Active.Updated = null;
+                        Active.CreationTime = null;
+                        Active.Creator = null;
+                    }
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            _editorMenu = new GXEditorMenu(Services.GetRequiredService<IGXMenuService>());
+            _editorMenu.Set(Active, EditorAction, SaveEditorAsync, CancelEditorAsync);
+            _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -233,59 +244,31 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService.ReportError(ex, "Pages/Schedule/ScheduleTab.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Validate the schedule content.
-    /// </summary>
-    /// <param name="sender"></param>
-    private void OnValidate(GXValidator sender)
+    private GXEditorMenu? _editorMenu;
+    internal bool DeleteTarget;
+    private CrudAction EditorAction => _action == CrudAction.Clone ? CrudAction.Create : _action;
+    private async Task SaveEditorAsync()
     {
-        if (Active != null)
+        if (!await AcceptChanges(false))
         {
-            if (string.IsNullOrEmpty(Active.Name))
-            {
-                sender.AddError(() => Active.Name, "Invalid name.");
-            }
-            //Check schedule start time.
             try
             {
-                GXDateTime tm = new GXDateTime(Active.Start);
-            }
-            catch (Exception ex)
-            {
-                sender.AddError(() => Active.Start, "Invalid start time.");
-            }
-        }
-    }
 
-    /// <summary>
-    /// Save Active.
-    /// </summary>
-    public async void OnSave()
-    {
-        if (!(Parent != null && await Parent.AcceptChanges(false)))
-        {
-            try
-            {
-                _scheduleValidator?.ClearErrors();
                 if (Active == null)
                 {
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
-                if (_scheduleValidator != null && !_scheduleValidator.Validate())
-                {
+
+                if (EditorAction != CrudAction.Delete && !ValidateEditor()) {
                     return;
                 }
-                Notifier.ProgressStart();
-                Notifier.ClearStatus();
-                if (action == CrudAction.Delete)
+                using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingSchedule);
+                NotificationService?.RemoveByKey("Pages/Schedule/Schedule.OnSave");
+                if (EditorAction == CrudAction.Delete)
                 {
                     await Http.PostAsJson<RemoveScheduleResponse>("api/Schedule/Delete",
                         new RemoveSchedule()
@@ -298,11 +281,11 @@
                 else
                 {
                     string address;
-                    if (action == CrudAction.Create)
+                    if (EditorAction == CrudAction.Create)
                     {
                         address = "api/Schedule/Add";
                     }
-                    else if (action == CrudAction.Update)
+                    else if (EditorAction == CrudAction.Update)
                     {
                         address = "api/Schedule/Update";
                     }
@@ -325,7 +308,7 @@
                         Active.Start = dt;
                     }
                 }
-                ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                ClientHelpers.NavigateToLastPage(NavigationManager);
             }
             catch (AccessTokenNotAvailableException exception)
             {
@@ -333,25 +316,37 @@
             }
             catch (Exception ex)
             {
-                Notifier?.ProcessError(ex);
+                NotificationService?.ReportError(ex, "Pages/Schedule/Schedule.OnSave");
             }
             finally
             {
-                Notifier.ProgressEnd();
-                InvokeAsync(StateHasChanged);
+                StateHasChanged();
             }
         }
     }
-
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
-    private void OnCancel()
+    private bool ValidateEditor()
     {
-        if (!(Parent != null && Parent.AcceptChanges(true).Result))
+        string? error = null;
+        if (string.IsNullOrWhiteSpace(Active.Name)) {
+            error = Properties.Resources.InvalidName;
+        }
+        else
         {
-            //Close schedule UI.
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            try { _ = new GXDateTime(Active.Start); }
+            catch { error = Properties.Resources.InvalidStartTime; }
+        }
+        if (error == null) {
+            return true;
+        }
+        _editorMenu?.AddValidationError(string.IsNullOrWhiteSpace(Active.Name) ? nameof(Active.Name) : nameof(Active.Start), error);
+        NotificationService?.ReportError(new ArgumentException(error));
+        return false;
+    }
+    private async Task CancelEditorAsync()
+    {
+        if (!await AcceptChanges(true)) {
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
     }
+    public void Dispose() => _editorMenu?.Dispose();
 }

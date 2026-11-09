@@ -70,7 +70,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to For information about Gurux products see:.
+        ///   Looks up a localized string similar to For information about Gurux products, see:.
         /// </summary>
         internal static string AboutInfo {
             get {
@@ -88,11 +88,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Access control.
+        /// </summary>
+        internal static string AccessControl {
+            get {
+                return ResourceManager.GetString("AccessControl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage roles and access policies..
+        /// </summary>
+        internal static string AccessControlDescription {
+            get {
+                return ResourceManager.GetString("AccessControlDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Access failed.
         /// </summary>
         internal static string AccessFailed {
             get {
                 return ResourceManager.GetString("AccessFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Access rights.
+        /// </summary>
+        internal static string AccessRights {
+            get {
+                return ResourceManager.GetString("AccessRights", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Access visibility.
+        /// </summary>
+        internal static string AccessVisibility {
+            get {
+                return ResourceManager.GetString("AccessVisibility", resourceCulture);
             }
         }
         
@@ -115,11 +151,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Action tasks added..
+        /// </summary>
+        internal static string ActionTasksAdded {
+            get {
+                return ResourceManager.GetString("ActionTasksAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Activate.
         /// </summary>
         internal static string Activate {
             get {
                 return ResourceManager.GetString("Activate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Activation.
+        /// </summary>
+        internal static string Activation {
+            get {
+                return ResourceManager.GetString("Activation", resourceCulture);
             }
         }
         
@@ -142,6 +196,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Active system errors.
+        /// </summary>
+        internal static string ActiveSystemErrors {
+            get {
+                return ResourceManager.GetString("ActiveSystemErrors", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Activities.
+        /// </summary>
+        internal static string Activities {
+            get {
+                return ResourceManager.GetString("Activities", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add.
         /// </summary>
         internal static string Add {
@@ -160,6 +232,42 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add device.
+        /// </summary>
+        internal static string AddDevice {
+            get {
+                return ResourceManager.GetString("AddDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add missing defaults.
+        /// </summary>
+        internal static string AddMissingNotificationDefaults {
+            get {
+                return ResourceManager.GetString("AddMissingNotificationDefaults", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add schedule.
+        /// </summary>
+        internal static string AddSchedule {
+            get {
+                return ResourceManager.GetString("AddSchedule", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add to favorites.
+        /// </summary>
+        internal static string AddToFavorites {
+            get {
+                return ResourceManager.GetString("AddToFavorites", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Administrator.
         /// </summary>
         internal static string Admin {
@@ -174,6 +282,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string AdministratorSettings {
             get {
                 return ResourceManager.GetString("AdministratorSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Advanced.
+        /// </summary>
+        internal static string Advanced {
+            get {
+                return ResourceManager.GetString("Advanced", resourceCulture);
             }
         }
         
@@ -205,6 +322,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Agent ID.
+        /// </summary>
+        internal static string AgentID {
+            get {
+                return ResourceManager.GetString("AgentID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Agent logs.
         /// </summary>
         internal static string AgentLogs {
@@ -223,7 +349,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You have successfully added a new agent access token. Copy the token now!.
+        ///   Looks up a localized string similar to Agent access token created. Copy the token now; you will not be able to view it again..
         /// </summary>
         internal static string AgentTokenCreateSucceeded {
             get {
@@ -237,6 +363,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string AgentUpdates {
             get {
                 return ResourceManager.GetString("AgentUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Agent updates.
+        /// </summary>
+        internal static string AgentUpdatesTitle {
+            get {
+                return ResourceManager.GetString("AgentUpdatesTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Algorithm.
+        /// </summary>
+        internal static string Algorithm {
+            get {
+                return ResourceManager.GetString("Algorithm", resourceCulture);
             }
         }
         
@@ -259,7 +403,79 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Gurux.DLMS.AMI forum..
+        ///   Looks up a localized string similar to All newer versions.
+        /// </summary>
+        internal static string AllNewerVersions {
+            get {
+                return ResourceManager.GetString("AllNewerVersions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allow clients to retrieve feeds and map tiles through this server..
+        /// </summary>
+        internal static string AllowClientsToRetrieveFeedsAndMapTilesThroughThisServer {
+            get {
+                return ResourceManager.GetString("AllowClientsToRetrieveFeedsAndMapTilesThroughThisServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allow column customization.
+        /// </summary>
+        internal static string AllowColumnCustomization {
+            get {
+                return ResourceManager.GetString("AllowColumnCustomization", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable lockout for new users.
+        /// </summary>
+        internal static string AllowedForNewUsers {
+            get {
+                return ResourceManager.GetString("AllowedForNewUsers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allowed server origins (one per line).
+        /// </summary>
+        internal static string AllowedServerOriginsOnePerLine {
+            get {
+                return ResourceManager.GetString("AllowedServerOriginsOnePerLine", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Allowed username characters.
+        /// </summary>
+        internal static string AllowedUserNameCharacters {
+            get {
+                return ResourceManager.GetString("AllowedUserNameCharacters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All (AND).
+        /// </summary>
+        internal static string AllRequirements {
+            get {
+                return ResourceManager.GetString("AllRequirements", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Also available.
+        /// </summary>
+        internal static string AlsoAvailable {
+            get {
+                return ResourceManager.GetString("AlsoAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gurux.DLMS.AMI forum.
         /// </summary>
         internal static string AmiForum {
             get {
@@ -268,7 +484,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to If you have questions or problems you can ask them in.
+        ///   Looks up a localized string similar to If you have questions or need help, visit the.
         /// </summary>
         internal static string AMiQuestions {
             get {
@@ -277,7 +493,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Amount of the rows shown on the view.
+        ///   Looks up a localized string similar to Number of rows shown in the view.
         /// </summary>
         internal static string AmountOfTheRowsShownOnTheView {
             get {
@@ -304,6 +520,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to An unhandled error has occurred..
+        /// </summary>
+        internal static string AnUnhandledErrorHasOccurred {
+            get {
+                return ResourceManager.GetString("AnUnhandledErrorHasOccurred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to At least one (OR).
+        /// </summary>
+        internal static string AnyRequirement {
+            get {
+                return ResourceManager.GetString("AnyRequirement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Appearance.
         /// </summary>
         internal static string Appearance {
@@ -322,7 +556,61 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to clear errors?.
+        ///   Looks up a localized string similar to Application settings.
+        /// </summary>
+        internal static string ApplicationSettings {
+            get {
+                return ResourceManager.GetString("ApplicationSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Review the server settings and configure the options needed for your installation..
+        /// </summary>
+        internal static string ApplicationSettingsDescription {
+            get {
+                return ResourceManager.GetString("ApplicationSettingsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply built-in defaults?.
+        /// </summary>
+        internal static string ApplyBuiltInDefaults {
+            get {
+                return ResourceManager.GetString("ApplyBuiltInDefaults", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply defaults.
+        /// </summary>
+        internal static string ApplyDefaults {
+            get {
+                return ResourceManager.GetString("ApplyDefaults", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A remote object identifier is required..
+        /// </summary>
+        internal static string ARemoteObjectIdentifierIsRequired {
+            get {
+                return ResourceManager.GetString("ARemoteObjectIdentifierIsRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear device history? This action cannot be undone..
+        /// </summary>
+        internal static string AreYouSureYouWantToClearDeviceHistoryThisActionCannotBeUndone {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToClearDeviceHistoryThisActionCannotBeUndone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear the errors?.
         /// </summary>
         internal static string AreYouSureYouWantToClearErrors {
             get {
@@ -331,11 +619,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to clear log?.
+        ///   Looks up a localized string similar to Are you sure you want to clear history? This action cannot be undone..
+        /// </summary>
+        internal static string AreYouSureYouWantToClearHistoryThisActionCannotBeUndone {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToClearHistoryThisActionCannotBeUndone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear the log?.
         /// </summary>
         internal static string AreYouSureYouWantToClearLog {
             get {
                 return ResourceManager.GetString("AreYouSureYouWantToClearLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear the history of object {0}? This action cannot be undone..
+        /// </summary>
+        internal static string AreYouSureYouWantToClearObject0HistoryThisActionCannotBeUndone {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToClearObject0HistoryThisActionCannotBeUndone", resourceCulture);
             }
         }
         
@@ -349,7 +655,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to clear tasks?.
+        ///   Looks up a localized string similar to Are you sure you want to clear the tasks?.
         /// </summary>
         internal static string AreYouSureYouWantToClearTasks {
             get {
@@ -358,7 +664,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to close errors?.
+        ///   Looks up a localized string similar to Are you sure you want to close the errors?.
         /// </summary>
         internal static string AreYouSureYouWantToCloseErrors {
             get {
@@ -367,7 +673,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to close selected items?.
+        ///   Looks up a localized string similar to Are you sure you want to close the selected items?.
         /// </summary>
         internal static string AreYouSureYouWantToCloseSelectedItems {
             get {
@@ -376,7 +682,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to delete selected items?.
+        ///   Looks up a localized string similar to Are you sure you want to delete the selected items?.
         /// </summary>
         internal static string AreYouSureYouWantToDeleteSelectedItems {
             get {
@@ -385,11 +691,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to install selected items?.
+        ///   Looks up a localized string similar to Are you sure you want to install the selected items?.
         /// </summary>
         internal static string AreYouSureYouWantToInstallSelectedItems {
             get {
                 return ResourceManager.GetString("AreYouSureYouWantToInstallSelectedItems", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to refresh notifications?.
+        /// </summary>
+        internal static string AreYouSureYouWantToRefreshNotifications {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToRefreshNotifications", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to regenerate menus?.
+        /// </summary>
+        internal static string AreYouSureYouWantToRegenerateMenus {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToRegenerateMenus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter an attribute expiration duration shorter than one day..
+        /// </summary>
+        internal static string AttributeExpirationLessThanOneDay {
+            get {
+                return ResourceManager.GetString("AttributeExpirationLessThanOneDay", resourceCulture);
             }
         }
         
@@ -399,6 +732,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string AttributeIndex {
             get {
                 return ResourceManager.GetString("AttributeIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read once (static).
+        /// </summary>
+        internal static string AttributeReadOnce {
+            get {
+                return ResourceManager.GetString("AttributeReadOnce", resourceCulture);
             }
         }
         
@@ -421,11 +763,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Authentication in progress.
+        /// </summary>
+        internal static string AuthenticationInProgress {
+            get {
+                return ResourceManager.GetString("AuthenticationInProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Authentication key.
         /// </summary>
         internal static string AuthenticationKey {
             get {
                 return ResourceManager.GetString("AuthenticationKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Authentication service.
+        /// </summary>
+        internal static string AuthenticationService {
+            get {
+                return ResourceManager.GetString("AuthenticationService", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Author.
+        /// </summary>
+        internal static string Author {
+            get {
+                return ResourceManager.GetString("Author", resourceCulture);
             }
         }
         
@@ -448,11 +817,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Identification script for the auto connect..
+        ///   Looks up a localized string similar to Auto connect.
+        /// </summary>
+        internal static string AutoConnect {
+            get {
+                return ResourceManager.GetString("AutoConnect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Identification script for automatic connections.
         /// </summary>
         internal static string AutoConnectIdentificationScript {
             get {
                 return ResourceManager.GetString("AutoConnectIdentificationScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Automatic checks run with the scheduled cron tasks. Manual checks are always available..
+        /// </summary>
+        internal static string AutomaticChecksRunWithTheScheduledCronTasksManualChecksAreAlwaysAvailable {
+            get {
+                return ResourceManager.GetString("AutomaticChecksRunWithTheScheduledCronTasksManualChecksAreAlwaysAvailable", resourceCulture);
             }
         }
         
@@ -466,11 +853,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Available updates.
+        /// </summary>
+        internal static string AvailableUpdates {
+            get {
+                return ResourceManager.GetString("AvailableUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Available version.
         /// </summary>
         internal static string AvailableVersion {
             get {
                 return ResourceManager.GetString("AvailableVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Back.
+        /// </summary>
+        internal static string Back {
+            get {
+                return ResourceManager.GetString("Back", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Basic settings.
+        /// </summary>
+        internal static string BasicSettings {
+            get {
+                return ResourceManager.GetString("BasicSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Choose your language and time zone in your user settings. Save your changes to apply them to your account..
+        /// </summary>
+        internal static string BasicSettingsDescription {
+            get {
+                return ResourceManager.GetString("BasicSettingsDescription", resourceCulture);
             }
         }
         
@@ -511,7 +934,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Block groups.
+        ///   Looks up a localized string similar to Block group.
         /// </summary>
         internal static string BlockGroup {
             get {
@@ -534,6 +957,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Blocks {
             get {
                 return ResourceManager.GetString("Blocks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Block type.
+        /// </summary>
+        internal static string BlockType {
+            get {
+                return ResourceManager.GetString("BlockType", resourceCulture);
             }
         }
         
@@ -597,6 +1029,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Broadcast key.
+        /// </summary>
+        internal static string BroadcastKey {
+            get {
+                return ResourceManager.GetString("BroadcastKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Built in.
+        /// </summary>
+        internal static string BuiltInLanguage {
+            get {
+                return ResourceManager.GetString("BuiltInLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Calculate.
         /// </summary>
         internal static string Calculate {
@@ -624,11 +1074,119 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The default role cannot be removed. Save another role as the default before removing it..
+        /// </summary>
+        internal static string CannotRemoveDefaultRole {
+            get {
+                return ResourceManager.GetString("CannotRemoveDefaultRole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Capture.
         /// </summary>
         internal static string Capture {
             get {
                 return ResourceManager.GetString("Capture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Release.
+        /// </summary>
+        internal static string CatalogUpdateRelease {
+            get {
+                return ResourceManager.GetString("CatalogUpdateRelease", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Summary.
+        /// </summary>
+        internal static string CatalogUpdateSummary {
+            get {
+                return ResourceManager.GetString("CatalogUpdateSummary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Catalog updates are currently unavailable..
+        /// </summary>
+        internal static string CatalogUpdatesUnavailable {
+            get {
+                return ResourceManager.GetString("CatalogUpdatesUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Catalog version.
+        /// </summary>
+        internal static string CatalogVersion {
+            get {
+                return ResourceManager.GetString("CatalogVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Catalog version for {0}.
+        /// </summary>
+        internal static string CatalogVersionFor0 {
+            get {
+                return ResourceManager.GetString("CatalogVersionFor0", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Changes.
+        /// </summary>
+        internal static string Changes {
+            get {
+                return ResourceManager.GetString("Changes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Charge per unit.
+        /// </summary>
+        internal static string ChargePerUnit {
+            get {
+                return ResourceManager.GetString("ChargePerUnit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Charge per unit scaling type.
+        /// </summary>
+        internal static string ChargePerUnitScalingType {
+            get {
+                return ResourceManager.GetString("ChargePerUnitScalingType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Charge tables.
+        /// </summary>
+        internal static string ChargeTables {
+            get {
+                return ResourceManager.GetString("ChargeTables", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Check for updates.
+        /// </summary>
+        internal static string CheckForUpdates {
+            get {
+                return ResourceManager.GetString("CheckForUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checking updates.
+        /// </summary>
+        internal static string CheckingUpdates {
+            get {
+                return ResourceManager.GetString("CheckingUpdates", resourceCulture);
             }
         }
         
@@ -642,6 +1200,42 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Choose a theme for your workspace. Open Themes, edit a theme, enable it and save. When several themes are enabled, the theme with the highest priority is used..
+        /// </summary>
+        internal static string ChooseThemeDescription {
+            get {
+                return ResourceManager.GetString("ChooseThemeDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Choose the order and visibility of configuration entries..
+        /// </summary>
+        internal static string ChooseTheOrderAndVisibilityOfConfigurationEntries {
+            get {
+                return ResourceManager.GetString("ChooseTheOrderAndVisibilityOfConfigurationEntries", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Choose your theme.
+        /// </summary>
+        internal static string ChooseYourTheme {
+            get {
+                return ResourceManager.GetString("ChooseYourTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ciphering.
+        /// </summary>
+        internal static string Ciphering {
+            get {
+                return ResourceManager.GetString("Ciphering", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Clear.
         /// </summary>
         internal static string Clear {
@@ -651,11 +1245,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear visible.
+        /// </summary>
+        internal static string ClearVisible {
+            get {
+                return ResourceManager.GetString("ClearVisible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Client address.
         /// </summary>
         internal static string ClientAddress {
             get {
                 return ResourceManager.GetString("ClientAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Client ID.
+        /// </summary>
+        internal static string ClientID {
+            get {
+                return ResourceManager.GetString("ClientID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Client secret.
+        /// </summary>
+        internal static string ClientSecret {
+            get {
+                return ResourceManager.GetString("ClientSecret", resourceCulture);
             }
         }
         
@@ -696,6 +1317,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Close comparison.
+        /// </summary>
+        internal static string CloseComparison {
+            get {
+                return ResourceManager.GetString("CloseComparison", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Closed.
         /// </summary>
         internal static string Closed {
@@ -723,6 +1353,69 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Column.
+        /// </summary>
+        internal static string Column {
+            get {
+                return ResourceManager.GetString("Column", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Columns.
+        /// </summary>
+        internal static string Columns {
+            get {
+                return ResourceManager.GetString("Columns", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Commodity reference type.
+        /// </summary>
+        internal static string CommodityReferenceType {
+            get {
+                return ResourceManager.GetString("CommodityReferenceType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Commodity scaler.
+        /// </summary>
+        internal static string CommodityScaler {
+            get {
+                return ResourceManager.GetString("CommodityScaler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Communication window.
+        /// </summary>
+        internal static string CommunicationWindow {
+            get {
+                return ResourceManager.GetString("CommunicationWindow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Compare source.
+        /// </summary>
+        internal static string CompareSource {
+            get {
+                return ResourceManager.GetString("CompareSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Compare the source again if the script or catalog has changed..
+        /// </summary>
+        internal static string CompareTheSourceAgainIfTheScriptOrCatalogHasChanged {
+            get {
+                return ResourceManager.GetString("CompareTheSourceAgainIfTheScriptOrCatalogHasChanged", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Completed.
         /// </summary>
         internal static string CompletedTime {
@@ -737,6 +1430,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Component {
             get {
                 return ResourceManager.GetString("Component", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Component type.
+        /// </summary>
+        internal static string ComponentType {
+            get {
+                return ResourceManager.GetString("ComponentType", resourceCulture);
             }
         }
         
@@ -786,6 +1488,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Condition.
+        /// </summary>
+        internal static string Condition {
+            get {
+                return ResourceManager.GetString("Condition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Configuration.
         /// </summary>
         internal static string Configuration {
@@ -795,11 +1506,101 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Confirm Data Clear.
+        ///   Looks up a localized string similar to Configuration is unavailable..
+        /// </summary>
+        internal static string ConfigurationIsUnavailable {
+            get {
+                return ResourceManager.GetString("ConfigurationIsUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configuration layout.
+        /// </summary>
+        internal static string ConfigurationLayout {
+            get {
+                return ResourceManager.GetString("ConfigurationLayout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The configuration menu is unavailable..
+        /// </summary>
+        internal static string ConfigurationMenuIsUnavailable {
+            get {
+                return ResourceManager.GetString("ConfigurationMenuIsUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configuration tables updated successfully..
+        /// </summary>
+        internal static string ConfigurationTablesUpdatedSuccessfully {
+            get {
+                return ResourceManager.GetString("ConfigurationTablesUpdatedSuccessfully", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configure your account.
+        /// </summary>
+        internal static string ConfigureYourAccount {
+            get {
+                return ResourceManager.GetString("ConfigureYourAccount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configure your account by following the steps outlined.
+        /// </summary>
+        internal static string ConfigureYourAccountByFollowingTheStepsOutlined {
+            get {
+                return ResourceManager.GetString("ConfigureYourAccountByFollowingTheStepsOutlined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm close.
+        /// </summary>
+        internal static string ConfirmClose {
+            get {
+                return ResourceManager.GetString("ConfirmClose", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm data clearing.
         /// </summary>
         internal static string ConfirmDataClear {
             get {
                 return ResourceManager.GetString("ConfirmDataClear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm deletion.
+        /// </summary>
+        internal static string ConfirmDelete {
+            get {
+                return ResourceManager.GetString("ConfirmDelete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm installed on meter.
+        /// </summary>
+        internal static string ConfirmInstalledOnMeter {
+            get {
+                return ResourceManager.GetString("ConfirmInstalledOnMeter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Restore automatic notification defaults? Other notification subscriptions will be preserved..
+        /// </summary>
+        internal static string ConfirmResetNotificationDefaults {
+            get {
+                return ResourceManager.GetString("ConfirmResetNotificationDefaults", resourceCulture);
             }
         }
         
@@ -813,11 +1614,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Revoke the selected personal access tokens? They will no longer authenticate new requests..
+        /// </summary>
+        internal static string ConfirmRevokePersonalAccessTokens {
+            get {
+                return ResourceManager.GetString("ConfirmRevokePersonalAccessTokens", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirm update.
         /// </summary>
         internal static string ConfirmUpdate {
             get {
                 return ResourceManager.GetString("ConfirmUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connecting....
+        /// </summary>
+        internal static string Connecting {
+            get {
+                return ResourceManager.GetString("Connecting", resourceCulture);
             }
         }
         
@@ -831,7 +1650,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Connection up time.
+        ///   Looks up a localized string similar to Connection uptime.
         /// </summary>
         internal static string ConnectionUpTime {
             get {
@@ -885,7 +1704,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Content type groups.
+        ///   Looks up a localized string similar to Content type group.
         /// </summary>
         internal static string ContentTypeGroup {
             get {
@@ -939,11 +1758,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Creation Time.
+        ///   Looks up a localized string similar to Count.
+        /// </summary>
+        internal static string Count {
+            get {
+                return ResourceManager.GetString("Count", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Create device from template.
+        /// </summary>
+        internal static string CreateDeviceFromTemplate {
+            get {
+                return ResourceManager.GetString("CreateDeviceFromTemplate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Create the device immediately..
+        /// </summary>
+        internal static string CreateTheDeviceImmediately {
+            get {
+                return ResourceManager.GetString("CreateTheDeviceImmediately", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creation time.
         /// </summary>
         internal static string CreationTime {
             get {
                 return ResourceManager.GetString("CreationTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Creation time.
+        /// </summary>
+        internal static string CreationTime2 {
+            get {
+                return ResourceManager.GetString("CreationTime2", resourceCulture);
             }
         }
         
@@ -953,6 +1808,69 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Creator {
             get {
                 return ResourceManager.GetString("Creator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cron started..
+        /// </summary>
+        internal static string CronStarted {
+            get {
+                return ResourceManager.GetString("CronStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to CSS class.
+        /// </summary>
+        internal static string CSSClass {
+            get {
+                return ResourceManager.GetString("CSSClass", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to CSS role.
+        /// </summary>
+        internal static string CSSRole {
+            get {
+                return ResourceManager.GetString("CSSRole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to CSS URL.
+        /// </summary>
+        internal static string CSSURL {
+            get {
+                return ResourceManager.GetString("CSSURL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Current expiration.
+        /// </summary>
+        internal static string CurrentExpiration {
+            get {
+                return ResourceManager.GetString("CurrentExpiration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Current saved source.
+        /// </summary>
+        internal static string CurrentSavedSource {
+            get {
+                return ResourceManager.GetString("CurrentSavedSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Current time.
+        /// </summary>
+        internal static string CurrentTime {
+            get {
+                return ResourceManager.GetString("CurrentTime", resourceCulture);
             }
         }
         
@@ -975,6 +1893,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Daily.
+        /// </summary>
+        internal static string Daily {
+            get {
+                return ResourceManager.GetString("Daily", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Data.
         /// </summary>
         internal static string Data {
@@ -984,7 +1911,25 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Data Bits.
+        ///   Looks up a localized string similar to Database schema updates required.
+        /// </summary>
+        internal static string DatabaseSchemaUpdatesRequired {
+            get {
+                return ResourceManager.GetString("DatabaseSchemaUpdatesRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Database updates.
+        /// </summary>
+        internal static string DatabaseUpdates {
+            get {
+                return ResourceManager.GetString("DatabaseUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Data bits.
         /// </summary>
         internal static string DataBits {
             get {
@@ -1020,6 +1965,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deactivate.
+        /// </summary>
+        internal static string Deactivate {
+            get {
+                return ResourceManager.GetString("Deactivate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deactivation.
+        /// </summary>
+        internal static string Deactivation {
+            get {
+                return ResourceManager.GetString("Deactivation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
         internal static string Default {
@@ -1047,6 +2010,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default lockout duration (minutes).
+        /// </summary>
+        internal static string DefaultLockoutTimespanInMinutes {
+            get {
+                return ResourceManager.GetString("DefaultLockoutTimespanInMinutes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default placement.
+        /// </summary>
+        internal static string DefaultPlacement {
+            get {
+                return ResourceManager.GetString("DefaultPlacement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default role.
         /// </summary>
         internal static string DefaultRole {
@@ -1056,11 +2037,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default values.
+        /// </summary>
+        internal static string DefaultValues {
+            get {
+                return ResourceManager.GetString("DefaultValues", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Delete.
         /// </summary>
         internal static string Delete {
             get {
                 return ResourceManager.GetString("Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete module data and tables.
+        /// </summary>
+        internal static string DeleteModuleDataAndTables {
+            get {
+                return ResourceManager.GetString("DeleteModuleDataAndTables", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete module data, keep tables.
+        /// </summary>
+        internal static string DeleteModuleDataKeepTables {
+            get {
+                return ResourceManager.GetString("DeleteModuleDataKeepTables", resourceCulture);
             }
         }
         
@@ -1101,11 +2109,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Destroy material.
+        /// </summary>
+        internal static string DestroyMaterial {
+            get {
+                return ResourceManager.GetString("DestroyMaterial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Detected.
         /// </summary>
         internal static string Detected {
             get {
                 return ResourceManager.GetString("Detected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detection information.
+        /// </summary>
+        internal static string DetectionInformation {
+            get {
+                return ResourceManager.GetString("DetectionInformation", resourceCulture);
             }
         }
         
@@ -1155,6 +2181,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Device model profile picture.
+        /// </summary>
+        internal static string DeviceModelProfilePicture {
+            get {
+                return ResourceManager.GetString("DeviceModelProfilePicture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device profiles.
+        /// </summary>
+        internal static string DeviceProfiles {
+            get {
+                return ResourceManager.GetString("DeviceProfiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Devices.
         /// </summary>
         internal static string Devices {
@@ -1182,11 +2226,20 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Device Template.
+        ///   Looks up a localized string similar to Device template.
         /// </summary>
         internal static string DeviceTemplate {
             get {
                 return ResourceManager.GetString("DeviceTemplate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No device template file is selected..
+        /// </summary>
+        internal static string DeviceTemplateFileIsNotSelected {
+            get {
+                return ResourceManager.GetString("DeviceTemplateFileIsNotSelected", resourceCulture);
             }
         }
         
@@ -1209,7 +2262,16 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Device Templates.
+        ///   Looks up a localized string similar to Device template name.
+        /// </summary>
+        internal static string DeviceTemplateName {
+            get {
+                return ResourceManager.GetString("DeviceTemplateName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device templates.
         /// </summary>
         internal static string DeviceTemplates {
             get {
@@ -1218,11 +2280,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0}Manufacturers {1} or {2}device templates{3} must be added before devices can be added..
+        ///   Looks up a localized string similar to Device template settings are missing..
+        /// </summary>
+        internal static string DeviceTemplateSettingsAreMissing {
+            get {
+                return ResourceManager.GetString("DeviceTemplateSettingsAreMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [url:config/Manufacturer]Manufacturers[/url] or [url:DeviceTemplate]device templates[/url] must be added before devices can be added..
         /// </summary>
         internal static string DeviceTemplatesNotInstalled {
             get {
                 return ResourceManager.GetString("DeviceTemplatesNotInstalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device template type.
+        /// </summary>
+        internal static string DeviceTemplateType {
+            get {
+                return ResourceManager.GetString("DeviceTemplateType", resourceCulture);
             }
         }
         
@@ -1236,6 +2316,51 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Direction.
+        /// </summary>
+        internal static string Direction {
+            get {
+                return ResourceManager.GetString("Direction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Direct permissions.
+        /// </summary>
+        internal static string DirectPermissions {
+            get {
+                return ResourceManager.GetString("DirectPermissions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disabled.
+        /// </summary>
+        internal static string Disabled {
+            get {
+                return ResourceManager.GetString("Disabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Discard changes.
+        /// </summary>
+        internal static string DiscardChanges {
+            get {
+                return ResourceManager.GetString("DiscardChanges", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You have unsaved changes. Do you want to leave this page and discard your changes?.
+        /// </summary>
+        internal static string DiscardChangesQuestion {
+            get {
+                return ResourceManager.GetString("DiscardChangesQuestion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Disconnect.
         /// </summary>
         internal static string Disconnect {
@@ -1245,11 +2370,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to DLMS settings.
+        /// </summary>
+        internal static string DLMSSettings {
+            get {
+                return ResourceManager.GetString("DLMSSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Download the agent.
         /// </summary>
         internal static string DownloadAgent {
             get {
                 return ResourceManager.GetString("DownloadAgent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duration.
+        /// </summary>
+        internal static string Duration {
+            get {
+                return ResourceManager.GetString("Duration", resourceCulture);
             }
         }
         
@@ -1281,11 +2424,66 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Email addresses.
+        /// </summary>
+        internal static string EmailAddresses {
+            get {
+                return ResourceManager.GetString("EmailAddresses", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Email confirmed.
         /// </summary>
         internal static string EmailConfirmed {
             get {
                 return ResourceManager.GetString("EmailConfirmed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Email header.
+        /// </summary>
+        internal static string EmailHeader {
+            get {
+                return ResourceManager.GetString("EmailHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Email notifications will be sent when an email provider is available. You can save the settings now..
+        /// </summary>
+        internal static string EmailNotificationsWillBeSentWhenAnEmailProviderIsAvailableYouCanSaveTheSettingsNow {
+            get {
+                return ResourceManager.GetString("EmailNotificationsWillBeSentWhenAnEmailProviderIsAvailableYouCanSaveTheSettingsNo" +
+                        "w", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Email notification threshold.
+        /// </summary>
+        internal static string EmailNotificationThreshold {
+            get {
+                return ResourceManager.GetString("EmailNotificationThreshold", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Email text.
+        /// </summary>
+        internal static string EmailText {
+            get {
+                return ResourceManager.GetString("EmailText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enabled.
+        /// </summary>
+        internal static string Enabled {
+            get {
+                return ResourceManager.GetString("Enabled", resourceCulture);
             }
         }
         
@@ -1308,11 +2506,30 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to End time (optional).
+        /// </summary>
+        internal static string EndTimeOptional {
+            get {
+                return ResourceManager.GetString("EndTimeOptional", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to English name.
         /// </summary>
         internal static string EnglishName {
             get {
                 return ResourceManager.GetString("EnglishName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter one address per line, or separate addresses with commas or semicolons. Leave empty to disable email notifications..
+        /// </summary>
+        internal static string EnterOneAddressPerLineOrSeparateAddressesWithCommasOrSemicolonsLeaveEmptyToDisableEma {
+            get {
+                return ResourceManager.GetString("EnterOneAddressPerLineOrSeparateAddressesWithCommasOrSemicolonsLeaveEmptyToDisabl" +
+                        "eEma", resourceCulture);
             }
         }
         
@@ -1380,6 +2597,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select a valid date and time later than the current expiration..
+        /// </summary>
+        internal static string ExpirationMustBeLater {
+            get {
+                return ResourceManager.GetString("ExpirationMustBeLater", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Expiration time.
         /// </summary>
         internal static string ExpirationTime {
@@ -1389,11 +2615,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Expiration times.
+        /// </summary>
+        internal static string ExpirationTimes {
+            get {
+                return ResourceManager.GetString("ExpirationTimes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Export.
         /// </summary>
         internal static string Export {
             get {
                 return ResourceManager.GetString("Export", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Extend expiration.
+        /// </summary>
+        internal static string ExtendExpiration {
+            get {
+                return ResourceManager.GetString("ExtendExpiration", resourceCulture);
             }
         }
         
@@ -1412,6 +2656,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Extensions {
             get {
                 return ResourceManager.GetString("Extensions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to External identifier.
+        /// </summary>
+        internal static string ExternalIdentifier {
+            get {
+                return ResourceManager.GetString("ExternalIdentifier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fallback cache timeout (seconds, 0 disables caching).
+        /// </summary>
+        internal static string FallbackCacheTimeoutSeconds0DisablesCaching {
+            get {
+                return ResourceManager.GetString("FallbackCacheTimeoutSeconds0DisablesCaching", resourceCulture);
             }
         }
         
@@ -1443,7 +2705,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fill empty value with zero value.
+        ///   Looks up a localized string similar to Replace empty values with zero.
         /// </summary>
         internal static string Fill {
             get {
@@ -1461,11 +2723,56 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by available version....
+        /// </summary>
+        internal static string FilterByAvailableVersion {
+            get {
+                return ResourceManager.GetString("FilterByAvailableVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by close time....
+        /// </summary>
+        internal static string FilterByCloseTime {
+            get {
+                return ResourceManager.GetString("FilterByCloseTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter by creation time....
         /// </summary>
         internal static string FilterByCreationTime {
             get {
                 return ResourceManager.GetString("FilterByCreationTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by description....
+        /// </summary>
+        internal static string FilterByDescription {
+            get {
+                return ResourceManager.GetString("FilterByDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by detected....
+        /// </summary>
+        internal static string FilterByDetected {
+            get {
+                return ResourceManager.GetString("FilterByDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by detection time....
+        /// </summary>
+        internal static string FilterByDetectionTime {
+            get {
+                return ResourceManager.GetString("FilterByDetectionTime", resourceCulture);
             }
         }
         
@@ -1488,6 +2795,60 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by email....
+        /// </summary>
+        internal static string FilterByEmail {
+            get {
+                return ResourceManager.GetString("FilterByEmail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by enabled.
+        /// </summary>
+        internal static string FilterByEnabled {
+            get {
+                return ResourceManager.GetString("FilterByEnabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by end time....
+        /// </summary>
+        internal static string FilterByEndTime {
+            get {
+                return ResourceManager.GetString("FilterByEndTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by error....
+        /// </summary>
+        internal static string FilterByError {
+            get {
+                return ResourceManager.GetString("FilterByError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by execution time....
+        /// </summary>
+        internal static string FilterByExecutionTime {
+            get {
+                return ResourceManager.GetString("FilterByExecutionTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by given name....
+        /// </summary>
+        internal static string FilterByGivenName {
+            get {
+                return ResourceManager.GetString("FilterByGivenName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter by IP address....
         /// </summary>
         internal static string FilterByIpAddress {
@@ -1497,11 +2858,56 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by last login....
+        /// </summary>
+        internal static string FilterByLastLogin {
+            get {
+                return ResourceManager.GetString("FilterByLastLogin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by latest version....
+        /// </summary>
+        internal static string FilterByLatestVersion {
+            get {
+                return ResourceManager.GetString("FilterByLatestVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by location....
+        /// </summary>
+        internal static string FilterByLocation {
+            get {
+                return ResourceManager.GetString("FilterByLocation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by log....
+        /// </summary>
+        internal static string FilterByLog {
+            get {
+                return ResourceManager.GetString("FilterByLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter by logical name....
         /// </summary>
         internal static string FilterByLogicalName {
             get {
                 return ResourceManager.GetString("FilterByLogicalName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by message....
+        /// </summary>
+        internal static string FilterByMessage {
+            get {
+                return ResourceManager.GetString("FilterByMessage", resourceCulture);
             }
         }
         
@@ -1533,11 +2939,137 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by path....
+        /// </summary>
+        internal static string FilterByPath {
+            get {
+                return ResourceManager.GetString("FilterByPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by read time....
+        /// </summary>
+        internal static string FilterByReadTime {
+            get {
+                return ResourceManager.GetString("FilterByReadTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by start time....
+        /// </summary>
+        internal static string FilterByStartTime {
+            get {
+                return ResourceManager.GetString("FilterByStartTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by surname....
+        /// </summary>
+        internal static string FilterBySurname {
+            get {
+                return ResourceManager.GetString("FilterBySurname", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by system title....
+        /// </summary>
+        internal static string FilterBySystemTitle {
+            get {
+                return ResourceManager.GetString("FilterBySystemTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by type....
+        /// </summary>
+        internal static string FilterByType {
+            get {
+                return ResourceManager.GetString("FilterByType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by updated....
+        /// </summary>
+        internal static string FilterByUpdated {
+            get {
+                return ResourceManager.GetString("FilterByUpdated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by updated time....
+        /// </summary>
+        internal static string FilterByUpdatedTime {
+            get {
+                return ResourceManager.GetString("FilterByUpdatedTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by update time....
+        /// </summary>
+        internal static string FilterByUpdateTime {
+            get {
+                return ResourceManager.GetString("FilterByUpdateTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter by user....
         /// </summary>
         internal static string FilterByUser {
             get {
                 return ResourceManager.GetString("FilterByUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by user name....
+        /// </summary>
+        internal static string FilterByUserName {
+            get {
+                return ResourceManager.GetString("FilterByUserName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by value....
+        /// </summary>
+        internal static string FilterByValue {
+            get {
+                return ResourceManager.GetString("FilterByValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by version....
+        /// </summary>
+        internal static string FilterByVersion {
+            get {
+                return ResourceManager.GetString("FilterByVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by version number....
+        /// </summary>
+        internal static string FilterByVersionNumber {
+            get {
+                return ResourceManager.GetString("FilterByVersionNumber", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter permissions by name.
+        /// </summary>
+        internal static string FilterPermissionsByName {
+            get {
+                return ResourceManager.GetString("FilterPermissionsByName", resourceCulture);
             }
         }
         
@@ -1607,6 +3139,231 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Configure the agent with your AMI server address and the token, then start it. Open Agents to check that it has connected. You can review or revoke tokens in your user settings..
+        /// </summary>
+        internal static string FundamentalsAgentConfigure {
+            get {
+                return ResourceManager.GetString("FundamentalsAgentConfigure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The agent connects Gurux.DLMS.AMI to your devices. It authenticates to the server with a personal access token (PAT)..
+        /// </summary>
+        internal static string FundamentalsAgentDescription {
+            get {
+                return ResourceManager.GetString("FundamentalsAgentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Configure your account and select Download the agent. Install it on a computer that can reach your devices..
+        /// </summary>
+        internal static string FundamentalsAgentDownload {
+            get {
+                return ResourceManager.GetString("FundamentalsAgentDownload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 1. Download an agent and create a PAT.
+        /// </summary>
+        internal static string FundamentalsAgentTitle {
+            get {
+                return ResourceManager.GetString("FundamentalsAgentTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to On the same page, enter a token name and expiration time, then generate an access token. Copy the token when it is displayed..
+        /// </summary>
+        internal static string FundamentalsAgentToken {
+            get {
+                return ResourceManager.GetString("FundamentalsAgentToken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Follow these steps to connect an agent, prepare device templates, add devices, and schedule their operations..
+        /// </summary>
+        internal static string FundamentalsDescription {
+            get {
+                return ResourceManager.GetString("FundamentalsDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configure each device with its own connection details and credentials, even when several devices share a template..
+        /// </summary>
+        internal static string FundamentalsDeviceDescription {
+            get {
+                return ResourceManager.GetString("FundamentalsDeviceDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save the device, open it from Devices, and read an object to check the connection. Review the device logs if the read fails..
+        /// </summary>
+        internal static string FundamentalsDeviceSave {
+            get {
+                return ResourceManager.GetString("FundamentalsDeviceSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Review the client and server addresses, authentication and security settings. Enter the credentials and keys required by the device..
+        /// </summary>
+        internal static string FundamentalsDeviceSecurity {
+            get {
+                return ResourceManager.GetString("FundamentalsDeviceSecurity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Add device, choose the appropriate device template, and enter the device name, agent, media and address information..
+        /// </summary>
+        internal static string FundamentalsDeviceSettings {
+            get {
+                return ResourceManager.GetString("FundamentalsDeviceSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 4. Add and configure a device.
+        /// </summary>
+        internal static string FundamentalsDeviceTitle {
+            get {
+                return ResourceManager.GetString("FundamentalsDeviceTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Prepare the device settings before adding a device. Use manufacturer settings or import your own Gurux device template..
+        /// </summary>
+        internal static string FundamentalsImportDescription {
+            get {
+                return ResourceManager.GetString("FundamentalsImportDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 2. Import manufacturer settings or a custom device template.
+        /// </summary>
+        internal static string FundamentalsImportTitle {
+            get {
+                return ResourceManager.GetString("FundamentalsImportTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Manufacturers, check for available settings, select the manufacturer settings you need, and choose Install..
+        /// </summary>
+        internal static string FundamentalsManufacturerImport {
+            get {
+                return ResourceManager.GetString("FundamentalsManufacturerImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Add schedule, give it a name, and set its execution time or recurrence..
+        /// </summary>
+        internal static string FundamentalsScheduleCreate {
+            get {
+                return ResourceManager.GetString("FundamentalsScheduleCreate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use a schedule to run device operations automatically..
+        /// </summary>
+        internal static string FundamentalsScheduleDescription {
+            get {
+                return ResourceManager.GetString("FundamentalsScheduleDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable and save the schedule. Review the schedule logs after it runs to check the result..
+        /// </summary>
+        internal static string FundamentalsScheduleSave {
+            get {
+                return ResourceManager.GetString("FundamentalsScheduleSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Choose the devices and the operations or scripts that the schedule should run..
+        /// </summary>
+        internal static string FundamentalsScheduleTargets {
+            get {
+                return ResourceManager.GetString("FundamentalsScheduleTargets", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 5. Schedule device operations.
+        /// </summary>
+        internal static string FundamentalsScheduleTitle {
+            get {
+                return ResourceManager.GetString("FundamentalsScheduleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Give the device a name and choose the agent and connection settings needed to reach it..
+        /// </summary>
+        internal static string FundamentalsTemplateConnection {
+            get {
+                return ResourceManager.GetString("FundamentalsTemplateConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A device template supplies the protocol settings and objects for a device..
+        /// </summary>
+        internal static string FundamentalsTemplateDescription {
+            get {
+                return ResourceManager.GetString("FundamentalsTemplateDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to To use a custom template, open Add device template, select a .gxc file exported from Gurux.DLMS.Director, review the settings, give the template a name, and save it..
+        /// </summary>
+        internal static string FundamentalsTemplateImport {
+            get {
+                return ResourceManager.GetString("FundamentalsTemplateImport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Review the settings inherited from the template and save the device..
+        /// </summary>
+        internal static string FundamentalsTemplateSave {
+            get {
+                return ResourceManager.GetString("FundamentalsTemplateSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Add device and select the manufacturer, model, version and device settings, or choose a custom device template..
+        /// </summary>
+        internal static string FundamentalsTemplateSelect {
+            get {
+                return ResourceManager.GetString("FundamentalsTemplateSelect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 3. Create a device from a device template.
+        /// </summary>
+        internal static string FundamentalsTemplateTitle {
+            get {
+                return ResourceManager.GetString("FundamentalsTemplateTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Gateway.
         /// </summary>
         internal static string Gateway {
@@ -1634,11 +3391,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Gateway ID.
+        /// </summary>
+        internal static string GatewayID {
+            get {
+                return ResourceManager.GetString("GatewayID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Gateway identification script.
         /// </summary>
         internal static string GatewayIdentificationScript {
             get {
                 return ResourceManager.GetString("GatewayIdentificationScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway identifier.
+        /// </summary>
+        internal static string GatewayIdentifier {
+            get {
+                return ResourceManager.GetString("GatewayIdentifier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway log.
+        /// </summary>
+        internal static string GatewayLog {
+            get {
+                return ResourceManager.GetString("GatewayLog", resourceCulture);
             }
         }
         
@@ -1652,11 +3436,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select a gateway..
+        /// </summary>
+        internal static string GatewayMustBeSelected {
+            get {
+                return ResourceManager.GetString("GatewayMustBeSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Gateways.
         /// </summary>
         internal static string Gateways {
             get {
                 return ResourceManager.GetString("Gateways", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to General.
+        /// </summary>
+        internal static string General {
+            get {
+                return ResourceManager.GetString("General", resourceCulture);
             }
         }
         
@@ -1697,11 +3499,56 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Customize your workspace, learn the basics, and connect your first device..
+        /// </summary>
+        internal static string GetStartedDescription {
+            get {
+                return ResourceManager.GetString("GetStartedDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Get Started with Gurux.DLMS.AMI.
+        /// </summary>
+        internal static string GetStartedWithGuruxDlmsAmi {
+            get {
+                return ResourceManager.GetString("GetStartedWithGuruxDlmsAmi", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Given name.
         /// </summary>
         internal static string GivenName {
             get {
                 return ResourceManager.GetString("GivenName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bring site online.
+        /// </summary>
+        internal static string GoOnLine {
+            get {
+                return ResourceManager.GetString("GoOnLine", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Group.
+        /// </summary>
+        internal static string Group {
+            get {
+                return ResourceManager.GetString("Group", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gurux DLMS AMI.
+        /// </summary>
+        internal static string GuruxDLMSAMI {
+            get {
+                return ResourceManager.GetString("GuruxDLMSAMI", resourceCulture);
             }
         }
         
@@ -1715,11 +3562,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to here.
+        /// </summary>
+        internal static string Here {
+            get {
+                return ResourceManager.GetString("Here", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Hex.
         /// </summary>
         internal static string Hex {
             get {
                 return ResourceManager.GetString("Hex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hide on listed pages.
+        /// </summary>
+        internal static string HideOnListedPages {
+            get {
+                return ResourceManager.GetString("HideOnListedPages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hide {0}.
+        /// </summary>
+        internal static string HideWalkthroughCard {
+            get {
+                return ResourceManager.GetString("HideWalkthroughCard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Themes with higher priority are preferred when several are available..
+        /// </summary>
+        internal static string HigherPriorityThemesArePreferredWhenSeveralAreAvailable {
+            get {
+                return ResourceManager.GetString("HigherPriorityThemesArePreferredWhenSeveralAreAvailable", resourceCulture);
             }
         }
         
@@ -1751,6 +3634,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to HTML style:.
+        /// </summary>
+        internal static string HTMLStyle {
+            get {
+                return ResourceManager.GetString("HTMLStyle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to HTTP proxy.
+        /// </summary>
+        internal static string HTTPProxy {
+            get {
+                return ResourceManager.GetString("HTTPProxy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to https://example.com/feed.xml.
+        /// </summary>
+        internal static string HttpsExampleComFeedXml {
+            get {
+                return ResourceManager.GetString("HttpsExampleComFeedXml", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Icon.
         /// </summary>
         internal static string Icon {
@@ -1760,7 +3670,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Icon packs.
+        ///   Looks up a localized string similar to Icon pack.
         /// </summary>
         internal static string IconPack {
             get {
@@ -1774,6 +3684,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Icons {
             get {
                 return ResourceManager.GetString("Icons", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ID.
+        /// </summary>
+        internal static string Id {
+            get {
+                return ResourceManager.GetString("Id", resourceCulture);
             }
         }
         
@@ -1805,7 +3724,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Immediately public.
+        ///   Looks up a localized string similar to Publish immediately.
         /// </summary>
         internal static string Immediately {
             get {
@@ -1823,11 +3742,57 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Import custom device template.
+        /// </summary>
+        internal static string ImportCustomDeviceTemplate {
+            get {
+                return ResourceManager.GetString("ImportCustomDeviceTemplate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Importing script.
+        /// </summary>
+        internal static string ImportingScript {
+            get {
+                return ResourceManager.GetString("ImportingScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import script.
+        /// </summary>
+        internal static string ImportScript {
+            get {
+                return ResourceManager.GetString("ImportScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Include the scheme and optional port, for example https://gurux.fi and https://tile.openstreetmap.org. Wildcards and private networks are not allowed..
+        /// </summary>
+        internal static string IncludeTheSchemeAndOptionalPortForExampleHttpsGuruxFiAndHttpsTileOpenstreetmapOrgWild {
+            get {
+                return ResourceManager.GetString("IncludeTheSchemeAndOptionalPortForExampleHttpsGuruxFiAndHttpsTileOpenstreetmapOrg" +
+                        "Wild", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Index.
         /// </summary>
         internal static string Index {
             get {
                 return ResourceManager.GetString("Index", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Inherit.
+        /// </summary>
+        internal static string Inherit {
+            get {
+                return ResourceManager.GetString("Inherit", resourceCulture);
             }
         }
         
@@ -1846,6 +3811,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string InstallAllSettings {
             get {
                 return ResourceManager.GetString("InstallAllSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Installation.
+        /// </summary>
+        internal static string Installation {
+            get {
+                return ResourceManager.GetString("Installation", resourceCulture);
             }
         }
         
@@ -1877,6 +3851,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Interface.
+        /// </summary>
+        internal static string Interface {
+            get {
+                return ResourceManager.GetString("Interface", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Interface type.
         /// </summary>
         internal static string InterfaceType {
@@ -1886,11 +3869,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Authenticated users.
+        /// </summary>
+        internal static string Internal {
+            get {
+                return ResourceManager.GetString("Internal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Interval.
         /// </summary>
         internal static string Interval {
             get {
                 return ResourceManager.GetString("Interval", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid action..
+        /// </summary>
+        internal static string InvalidAction {
+            get {
+                return ResourceManager.GetString("InvalidAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid alive time..
+        /// </summary>
+        internal static string InvalidAliveTime {
+            get {
+                return ResourceManager.GetString("InvalidAliveTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid attribute index..
+        /// </summary>
+        internal static string InvalidAttributeIndex {
+            get {
+                return ResourceManager.GetString("InvalidAttributeIndex", resourceCulture);
             }
         }
         
@@ -1913,11 +3932,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid broadcast key.
+        /// </summary>
+        internal static string InvalidBroadcastKey {
+            get {
+                return ResourceManager.GetString("InvalidBroadcastKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid destination..
+        /// </summary>
+        internal static string InvalidDestination {
+            get {
+                return ResourceManager.GetString("InvalidDestination", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid expiration time..
+        /// </summary>
+        internal static string InvalidExpirationTime {
+            get {
+                return ResourceManager.GetString("InvalidExpirationTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid firmware..
         /// </summary>
         internal static string InvalidFirmware {
             get {
                 return ResourceManager.GetString("InvalidFirmware", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid host name..
+        /// </summary>
+        internal static string InvalidHostName {
+            get {
+                return ResourceManager.GetString("InvalidHostName", resourceCulture);
             }
         }
         
@@ -1931,7 +3986,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid Id..
+        ///   Looks up a localized string similar to Invalid ID..
         /// </summary>
         internal static string InvalidId {
             get {
@@ -1949,6 +4004,42 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid identifier..
+        /// </summary>
+        internal static string InvalidIdentifier {
+            get {
+                return ResourceManager.GetString("InvalidIdentifier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid index..
+        /// </summary>
+        internal static string InvalidIndex {
+            get {
+                return ResourceManager.GetString("InvalidIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid index.
+        /// </summary>
+        internal static string InvalidIndex2 {
+            get {
+                return ResourceManager.GetString("InvalidIndex2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid interval..
+        /// </summary>
+        internal static string InvalidInterval {
+            get {
+                return ResourceManager.GetString("InvalidInterval", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invalid password or key..
         /// </summary>
         internal static string InvalidKey {
@@ -1958,11 +4049,83 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The notifier is Invalid..
+        ///   Looks up a localized string similar to Invalid key type..
+        /// </summary>
+        internal static string InvalidKeyType {
+            get {
+                return ResourceManager.GetString("InvalidKeyType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid link..
+        /// </summary>
+        internal static string InvalidLink {
+            get {
+                return ResourceManager.GetString("InvalidLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid name..
+        /// </summary>
+        internal static string InvalidName {
+            get {
+                return ResourceManager.GetString("InvalidName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid notification action..
+        /// </summary>
+        internal static string InvalidNotificationAction {
+            get {
+                return ResourceManager.GetString("InvalidNotificationAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The notifier is invalid..
         /// </summary>
         internal static string InvalidNotifier {
             get {
                 return ResourceManager.GetString("InvalidNotifier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid object..
+        /// </summary>
+        internal static string InvalidObject {
+            get {
+                return ResourceManager.GetString("InvalidObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid password..
+        /// </summary>
+        internal static string InvalidPassword {
+            get {
+                return ResourceManager.GetString("InvalidPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid port..
+        /// </summary>
+        internal static string InvalidPort {
+            get {
+                return ResourceManager.GetString("InvalidPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid start time..
+        /// </summary>
+        internal static string InvalidStartTime {
+            get {
+                return ResourceManager.GetString("InvalidStartTime", resourceCulture);
             }
         }
         
@@ -1985,6 +4148,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid text..
+        /// </summary>
+        internal static string InvalidText {
+            get {
+                return ResourceManager.GetString("InvalidText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid thread count..
+        /// </summary>
+        internal static string InvalidThreadsAmount {
+            get {
+                return ResourceManager.GetString("InvalidThreadsAmount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Invite.
         /// </summary>
         internal static string Invite {
@@ -2003,11 +4184,20 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to IP Address.
+        ///   Looks up a localized string similar to IP address.
         /// </summary>
         internal static string IpAddress {
             get {
                 return ResourceManager.GetString("IpAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Keep data and tables.
+        /// </summary>
+        internal static string KeepDataAndTables {
+            get {
+                return ResourceManager.GetString("KeepDataAndTables", resourceCulture);
             }
         }
         
@@ -2057,11 +4247,20 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to High level security password.
+        ///   Looks up a localized string similar to High-level security password.
         /// </summary>
         internal static string KeyManagementHLSPassword {
             get {
                 return ResourceManager.GetString("KeyManagementHLSPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key management ID.
+        /// </summary>
+        internal static string KeyManagementID {
+            get {
+                return ResourceManager.GetString("KeyManagementID", resourceCulture);
             }
         }
         
@@ -2093,7 +4292,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Low level security password.
+        ///   Looks up a localized string similar to Low-level security password.
         /// </summary>
         internal static string KeyManagementLLSPassword {
             get {
@@ -2138,7 +4337,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Key managements.
+        ///   Looks up a localized string similar to Key management.
         /// </summary>
         internal static string KeyManagements {
             get {
@@ -2156,11 +4355,56 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Key material is hidden. Import a new key to rotate it; use lifecycle actions to change its state..
+        /// </summary>
+        internal static string KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState {
+            get {
+                return ResourceManager.GetString("KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key storage.
+        /// </summary>
+        internal static string KeyStorage {
+            get {
+                return ResourceManager.GetString("KeyStorage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to KMIP connection name.
+        /// </summary>
+        internal static string KMIPConnectionName {
+            get {
+                return ResourceManager.GetString("KMIPConnectionName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to KMIP server.
+        /// </summary>
+        internal static string KMIPServer {
+            get {
+                return ResourceManager.GetString("KMIPServer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Language.
         /// </summary>
         internal static string Language {
             get {
                 return ResourceManager.GetString("Language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Languages.
+        /// </summary>
+        internal static string Languages {
+            get {
+                return ResourceManager.GetString("Languages", resourceCulture);
             }
         }
         
@@ -2183,7 +4427,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Last develivery.
+        ///   Looks up a localized string similar to Last delivery.
         /// </summary>
         internal static string LastDevelivery {
             get {
@@ -2237,11 +4481,65 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Latest (including prereleases).
+        /// </summary>
+        internal static string LatestIncludingPrereleases {
+            get {
+                return ResourceManager.GetString("LatestIncludingPrereleases", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Latest stable.
+        /// </summary>
+        internal static string LatestStable {
+            get {
+                return ResourceManager.GetString("LatestStable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Learn the fundamentals.
+        /// </summary>
+        internal static string LearnTheFundamentals {
+            get {
+                return ResourceManager.GetString("LearnTheFundamentals", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Level.
         /// </summary>
         internal static string Level {
             get {
                 return ResourceManager.GetString("Level", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to /lib/bootstrap-icons/bootstrap-icons.min.css.
+        /// </summary>
+        internal static string LibBootstrapIconsBootstrapIconsMinCss {
+            get {
+                return ResourceManager.GetString("LibBootstrapIconsBootstrapIconsMinCss", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to License.
+        /// </summary>
+        internal static string License {
+            get {
+                return ResourceManager.GetString("License", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lifecycle.
+        /// </summary>
+        internal static string Lifecycle {
+            get {
+                return ResourceManager.GetString("Lifecycle", resourceCulture);
             }
         }
         
@@ -2264,6 +4562,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to List.
+        /// </summary>
+        internal static string List {
+            get {
+                return ResourceManager.GetString("List", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Listener port.
         /// </summary>
         internal static string ListenerPort {
@@ -2278,6 +4585,78 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Loading {
             get {
                 return ResourceManager.GetString("Loading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading….
+        /// </summary>
+        internal static string Loading2 {
+            get {
+                return ResourceManager.GetString("Loading2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading....
+        /// </summary>
+        internal static string Loading3 {
+            get {
+                return ResourceManager.GetString("Loading3", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading update settings….
+        /// </summary>
+        internal static string LoadingUpdateSettings {
+            get {
+                return ResourceManager.GetString("LoadingUpdateSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local changes.
+        /// </summary>
+        internal static string LocalChanges {
+            get {
+                return ResourceManager.GetString("LocalChanges", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local encrypted storage.
+        /// </summary>
+        internal static string LocalEncryptedStorage {
+            get {
+                return ResourceManager.GetString("LocalEncryptedStorage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Localization.
+        /// </summary>
+        internal static string Localization {
+            get {
+                return ResourceManager.GetString("Localization", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The localization catalog is not configured..
+        /// </summary>
+        internal static string LocalizationCatalogIsNotConfigured {
+            get {
+                return ResourceManager.GetString("LocalizationCatalogIsNotConfigured", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Localization version for {0}.
+        /// </summary>
+        internal static string LocalizationVersionFor0 {
+            get {
+                return ResourceManager.GetString("LocalizationVersionFor0", resourceCulture);
             }
         }
         
@@ -2305,6 +4684,42 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string LocationOrder {
             get {
                 return ResourceManager.GetString("LocationOrder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lockout.
+        /// </summary>
+        internal static string Lockout {
+            get {
+                return ResourceManager.GetString("Lockout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log agent actions.
+        /// </summary>
+        internal static string LogAgentActions {
+            get {
+                return ResourceManager.GetString("LogAgentActions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log device actions.
+        /// </summary>
+        internal static string LogDeviceActions {
+            get {
+                return ResourceManager.GetString("LogDeviceActions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to /Log/Edit/.
+        /// </summary>
+        internal static string LogEdit {
+            get {
+                return ResourceManager.GetString("LogEdit", resourceCulture);
             }
         }
         
@@ -2372,7 +4787,61 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to When enabled, only admin users are able to access site to perform maintenance;;\rall other visitors see the maintenance mode message configured below.\rAuthorized users can log in directly via the user login page..
+        ///   Looks up a localized string similar to Log schedule actions.
+        /// </summary>
+        internal static string LogScheduleActions {
+            get {
+                return ResourceManager.GetString("LogScheduleActions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log slow REST requests to the system log when their duration reaches this many milliseconds..
+        /// </summary>
+        internal static string LogSlowRESTRequestsToTheSystemLogWhenTheirDurationReachesThisManyMilliseconds {
+            get {
+                return ResourceManager.GetString("LogSlowRESTRequestsToTheSystemLogWhenTheirDurationReachesThisManyMilliseconds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log source is required..
+        /// </summary>
+        internal static string LogSourceIsRequired {
+            get {
+                return ResourceManager.GetString("LogSourceIsRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log type.
+        /// </summary>
+        internal static string LogType {
+            get {
+                return ResourceManager.GetString("LogType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log types.
+        /// </summary>
+        internal static string LogTypes {
+            get {
+                return ResourceManager.GetString("LogTypes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log user actions.
+        /// </summary>
+        internal static string LogUserActions {
+            get {
+                return ResourceManager.GetString("LogUserActions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When maintenance mode is enabled, only administrators can access the site. Other visitors see the message configured below. Administrators can sign in directly on the login page..
         /// </summary>
         internal static string MaintenanceModeDescription {
             get {
@@ -2395,6 +4864,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Manage {
             get {
                 return ResourceManager.GetString("Manage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage script catalog updates.
+        /// </summary>
+        internal static string ManageScriptCatalogUpdates {
+            get {
+                return ResourceManager.GetString("ManageScriptCatalogUpdates", resourceCulture);
             }
         }
         
@@ -2431,6 +4909,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Manufacturers {
             get {
                 return ResourceManager.GetString("Manufacturers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Mark compromised.
+        /// </summary>
+        internal static string MarkCompromised {
+            get {
+                return ResourceManager.GetString("MarkCompromised", resourceCulture);
             }
         }
         
@@ -2517,6 +5004,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Maximum failed access attempts.
+        /// </summary>
+        internal static string MaximumFailedAccessAttempts {
+            get {
+                return ResourceManager.GetString("MaximumFailedAccessAttempts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maximum notifications.
+        /// </summary>
+        internal static string MaximumNotifications {
+            get {
+                return ResourceManager.GetString("MaximumNotifications", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maximum response size (bytes).
+        /// </summary>
+        internal static string MaximumResponseSizeBytes {
+            get {
+                return ResourceManager.GetString("MaximumResponseSizeBytes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Media.
         /// </summary>
         internal static string Media {
@@ -2531,6 +5045,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Menu {
             get {
                 return ResourceManager.GetString("Menu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Menu defaults have been applied..
+        /// </summary>
+        internal static string MenuDefaultsHaveBeenApplied {
+            get {
+                return ResourceManager.GetString("MenuDefaultsHaveBeenApplied", resourceCulture);
             }
         }
         
@@ -2562,6 +5085,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Menu kind.
+        /// </summary>
+        internal static string MenuKind {
+            get {
+                return ResourceManager.GetString("MenuKind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Menu location.
+        /// </summary>
+        internal static string MenuLocation {
+            get {
+                return ResourceManager.GetString("MenuLocation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Menus.
         /// </summary>
         internal static string Menus {
@@ -2576,6 +5117,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Message {
             get {
                 return ResourceManager.GetString("Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Meter ID for deployment confirmation.
+        /// </summary>
+        internal static string MeterIDForDeploymentConfirmation {
+            get {
+                return ResourceManager.GetString("MeterIDForDeploymentConfirmation", resourceCulture);
             }
         }
         
@@ -2634,6 +5184,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Module data.
+        /// </summary>
+        internal static string ModuleData {
+            get {
+                return ResourceManager.GetString("ModuleData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No module file is selected..
+        /// </summary>
+        internal static string ModuleFileIsNotSelected {
+            get {
+                return ResourceManager.GetString("ModuleFileIsNotSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Module group.
         /// </summary>
         internal static string ModuleGroup {
@@ -2661,11 +5229,20 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Server needs restart to apply the module changes. Do you want to restart the server now?.
+        ///   Looks up a localized string similar to The server must restart to apply the module changes. Restart now?.
         /// </summary>
         internal static string ModuleNeedsRestart {
             get {
                 return ResourceManager.GetString("ModuleNeedsRestart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Module removal is already pending..
+        /// </summary>
+        internal static string ModuleRemovalIsAlreadyPending {
+            get {
+                return ResourceManager.GetString("ModuleRemovalIsAlreadyPending", resourceCulture);
             }
         }
         
@@ -2679,6 +5256,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Module updated..
+        /// </summary>
+        internal static string ModuleUpdated {
+            get {
+                return ResourceManager.GetString("ModuleUpdated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Module updated. Restart the server to apply the change..
+        /// </summary>
+        internal static string ModuleUpdatedRestartTheServerToApplyTheChange {
+            get {
+                return ResourceManager.GetString("ModuleUpdatedRestartTheServerToApplyTheChange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Name.
         /// </summary>
         internal static string Name {
@@ -2688,11 +5283,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Name:.
+        /// </summary>
+        internal static string Name2 {
+            get {
+                return ResourceManager.GetString("Name2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Native name.
         /// </summary>
         internal static string NativeName {
             get {
                 return ResourceManager.GetString("NativeName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Navigation menu.
+        /// </summary>
+        internal static string NavigationMenu {
+            get {
+                return ResourceManager.GetString("NavigationMenu", resourceCulture);
             }
         }
         
@@ -2715,11 +5328,119 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Next develivery.
+        ///   Looks up a localized string similar to New expiration.
+        /// </summary>
+        internal static string NewExpiration {
+            get {
+                return ResourceManager.GetString("NewExpiration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next delivery.
         /// </summary>
         internal static string NextDevelivery {
             get {
                 return ResourceManager.GetString("NextDevelivery", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next estimated run time.
+        /// </summary>
+        internal static string NextEstimatedRunTime {
+            get {
+                return ResourceManager.GetString("NextEstimatedRunTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No.
+        /// </summary>
+        internal static string No {
+            get {
+                return ResourceManager.GetString("No", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No additional language packages are currently available in the catalog..
+        /// </summary>
+        internal static string NoAdditionalLanguagePackages {
+            get {
+                return ResourceManager.GetString("NoAdditionalLanguagePackages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No appearance is selected..
+        /// </summary>
+        internal static string NoAppearanceIsSelected {
+            get {
+                return ResourceManager.GetString("NoAppearanceIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No authentication configuration is selected..
+        /// </summary>
+        internal static string NoAuthenticationConfigurationIsSelected {
+            get {
+                return ResourceManager.GetString("NoAuthenticationConfigurationIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No recent updates are available..
+        /// </summary>
+        internal static string NoCatalogUpdates {
+            get {
+                return ResourceManager.GetString("NoCatalogUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No compatible script templates are available..
+        /// </summary>
+        internal static string NoCompatibleScriptTemplatesAreAvailable {
+            get {
+                return ResourceManager.GetString("NoCompatibleScriptTemplatesAreAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No compatible versions.
+        /// </summary>
+        internal static string NoCompatibleVersions {
+            get {
+                return ResourceManager.GetString("NoCompatibleVersions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No device profiles are installed or available..
+        /// </summary>
+        internal static string NoDeviceProfileUpdates {
+            get {
+                return ResourceManager.GetString("NoDeviceProfileUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No installable version is available..
+        /// </summary>
+        internal static string NoInstallableVersionAvailable {
+            get {
+                return ResourceManager.GetString("NoInstallableVersionAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No item has been selected..
+        /// </summary>
+        internal static string NoItemHasBeenSelected {
+            get {
+                return ResourceManager.GetString("NoItemHasBeenSelected", resourceCulture);
             }
         }
         
@@ -2733,11 +5454,137 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No language is selected..
+        /// </summary>
+        internal static string NoLanguageIsSelected {
+            get {
+                return ResourceManager.GetString("NoLanguageIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No localization packages are available for the active languages. Select Check manually to refresh the catalog metadata..
+        /// </summary>
+        internal static string NoLocalizationPackagesForActiveLanguagesRunCheckManuallyToRefreshCatalogMetadata {
+            get {
+                return ResourceManager.GetString("NoLocalizationPackagesForActiveLanguagesRunCheckManuallyToRefreshCatalogMetadata", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No log history is available for this module..
+        /// </summary>
+        internal static string NoLogHistoryIsAvailableForThisModule {
+            get {
+                return ResourceManager.GetString("NoLogHistoryIsAvailableForThisModule", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No manufacturer is selected..
+        /// </summary>
+        internal static string NoManufacturerIsSelected {
+            get {
+                return ResourceManager.GetString("NoManufacturerIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No module is selected..
+        /// </summary>
+        internal static string NoModuleIsSelected {
+            get {
+                return ResourceManager.GetString("NoModuleIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No modules are installed or available..
+        /// </summary>
+        internal static string NoModuleUpdates {
+            get {
+                return ResourceManager.GetString("NoModuleUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        internal static string None {
+            get {
+                return ResourceManager.GetString("None", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No object is selected..
+        /// </summary>
+        internal static string NoObjectIsSelected {
+            get {
+                return ResourceManager.GetString("NoObjectIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No script to execute..
+        /// </summary>
+        internal static string NoScriptToExecute {
+            get {
+                return ResourceManager.GetString("NoScriptToExecute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No selected attributes..
+        /// </summary>
+        internal static string NoSelectedAttributes {
+            get {
+                return ResourceManager.GetString("NoSelectedAttributes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No selected device groups..
+        /// </summary>
+        internal static string NoSelectedDeviceGroups {
+            get {
+                return ResourceManager.GetString("NoSelectedDeviceGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No selected devices..
+        /// </summary>
+        internal static string NoSelectedDevices {
+            get {
+                return ResourceManager.GetString("NoSelectedDevices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No selected objects..
+        /// </summary>
+        internal static string NoSelectedObjects {
+            get {
+                return ResourceManager.GetString("NoSelectedObjects", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to You are not authorized to access this resource..
         /// </summary>
         internal static string NotAuthorized {
             get {
                 return ResourceManager.GetString("NotAuthorized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not found.
+        /// </summary>
+        internal static string NotFound {
+            get {
+                return ResourceManager.GetString("NotFound", resourceCulture);
             }
         }
         
@@ -2751,6 +5598,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Nothing to write..
+        /// </summary>
+        internal static string NothingToWrite {
+            get {
+                return ResourceManager.GetString("NothingToWrite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Notification.
         /// </summary>
         internal static string Notification {
@@ -2760,7 +5616,16 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Notification Group.
+        ///   Looks up a localized string similar to Notification delivery.
+        /// </summary>
+        internal static string NotificationDelivery {
+            get {
+                return ResourceManager.GetString("NotificationDelivery", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Notification group.
         /// </summary>
         internal static string NotificationGroup {
             get {
@@ -2769,7 +5634,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Notification Groups.
+        ///   Looks up a localized string similar to Notification groups.
         /// </summary>
         internal static string NotificationGroups {
             get {
@@ -2805,6 +5670,51 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Notify.
+        /// </summary>
+        internal static string Notify {
+            get {
+                return ResourceManager.GetString("Notify", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not imported.
+        /// </summary>
+        internal static string NotImported {
+            get {
+                return ResourceManager.GetString("NotImported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No tutorial videos are available..
+        /// </summary>
+        internal static string NoTutorialVideos {
+            get {
+                return ResourceManager.GetString("NoTutorialVideos", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No updates for installed manufacturers..
+        /// </summary>
+        internal static string NoUpdatesForInstalledManufacturers {
+            get {
+                return ResourceManager.GetString("NoUpdatesForInstalledManufacturers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No user is selected..
+        /// </summary>
+        internal static string NoUserIsSelected {
+            get {
+                return ResourceManager.GetString("NoUserIsSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Objects.
         /// </summary>
         internal static string Objects {
@@ -2823,7 +5733,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Object Type.
+        ///   Looks up a localized string similar to Object type.
         /// </summary>
         internal static string ObjectType {
             get {
@@ -2832,11 +5742,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Ok.
+        ///   Looks up a localized string similar to OK.
         /// </summary>
         internal static string Ok {
             get {
                 return ResourceManager.GetString("Ok", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to One exact page path per line. Use / for the home page. Leave empty to show on all pages..
+        /// </summary>
+        internal static string OneExactPagePathPerLineUseForTheHomePageLeaveEmptyToShowOnAllPages {
+            get {
+                return ResourceManager.GetString("OneExactPagePathPerLineUseForTheHomePageLeaveEmptyToShowOnAllPages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only security updates.
+        /// </summary>
+        internal static string OnlySecurityUpdates {
+            get {
+                return ResourceManager.GetString("OnlySecurityUpdates", resourceCulture);
             }
         }
         
@@ -2859,11 +5787,83 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Order.
+        /// </summary>
+        internal static string Order {
+            get {
+                return ResourceManager.GetString("Order", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Owner.
+        /// </summary>
+        internal static string Owner {
+            get {
+                return ResourceManager.GetString("Owner", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Owner compatibility.
+        /// </summary>
+        internal static string OwnerCompatibility {
+            get {
+                return ResourceManager.GetString("OwnerCompatibility", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The page is unavailable, or you do not have permission to access it..
+        /// </summary>
+        internal static string PageIsUnavailableOrAccessIsNotPermitted {
+            get {
+                return ResourceManager.GetString("PageIsUnavailableOrAccessIsNotPermitted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Page not found.
+        /// </summary>
+        internal static string PageNotFound {
+            get {
+                return ResourceManager.GetString("PageNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pages.
+        /// </summary>
+        internal static string Pages {
+            get {
+                return ResourceManager.GetString("Pages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Page selection path.
         /// </summary>
         internal static string PageSelectionPath {
             get {
                 return ResourceManager.GetString("PageSelectionPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Page size.
+        /// </summary>
+        internal static string PageSize {
+            get {
+                return ResourceManager.GetString("PageSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Page visibility.
+        /// </summary>
+        internal static string PageVisibility {
+            get {
+                return ResourceManager.GetString("PageVisibility", resourceCulture);
             }
         }
         
@@ -2904,6 +5904,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Path relative to the server&apos;s public content directory (wwwroot)..
+        /// </summary>
+        internal static string PathRelativeToTheServerSPublicContentDirectoryWwwroot {
+            get {
+                return ResourceManager.GetString("PathRelativeToTheServerSPublicContentDirectoryWwwroot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Performance.
         /// </summary>
         internal static string Performance {
@@ -2913,7 +5922,52 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Personal Access Tokens.
+        ///   Looks up a localized string similar to Performance snapshot interval (seconds): .
+        /// </summary>
+        internal static string PerformanceSnapshotIntervalSeconds {
+            get {
+                return ResourceManager.GetString("PerformanceSnapshotIntervalSeconds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Performance snapshot interval in seconds defines how often performance values are saved to the database..
+        /// </summary>
+        internal static string PerformanceSnapshotIntervalSecondsDefinesHowOftenPerformanceValuesAreSavedToTheDatabase {
+            get {
+                return ResourceManager.GetString("PerformanceSnapshotIntervalSecondsDefinesHowOftenPerformanceValuesAreSavedToTheDatabase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Performance is disabled..
+        /// </summary>
+        internal static string PerformanceIsDisabled {
+            get {
+                return ResourceManager.GetString("PerformanceIsDisabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Permissions.
+        /// </summary>
+        internal static string Permissions {
+            get {
+                return ResourceManager.GetString("Permissions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Permitted usage.
+        /// </summary>
+        internal static string PermittedUsage {
+            get {
+                return ResourceManager.GetString("PermittedUsage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Personal access tokens.
         /// </summary>
         internal static string PersonalAccessTokens {
             get {
@@ -2931,11 +5985,66 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Plain text. Use {Url} for your site&apos;s address. The same text is used for all updates matching the selected threshold..
+        /// </summary>
+        internal static string PlainTextUseUrlForYourSiteSAddressTheSameTextIsUsedForAllUpdatesMatchingTheSelectedTh {
+            get {
+                return ResourceManager.GetString("PlainTextUseUrlForYourSiteSAddressTheSameTextIsUsedForAllUpdatesMatchingTheSelect" +
+                        "edTh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Access policies.
+        /// </summary>
+        internal static string Policies {
+            get {
+                return ResourceManager.GetString("Policies", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Policies.
+        /// </summary>
+        internal static string Policies2 {
+            get {
+                return ResourceManager.GetString("Policies2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Policy.
+        /// </summary>
+        internal static string Policy {
+            get {
+                return ResourceManager.GetString("Policy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Requirements.
+        /// </summary>
+        internal static string PolicyRequirements {
+            get {
+                return ResourceManager.GetString("PolicyRequirements", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Port.
         /// </summary>
         internal static string Port {
             get {
                 return ResourceManager.GetString("Port", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pre-established.
+        /// </summary>
+        internal static string PreEstablished {
+            get {
+                return ResourceManager.GetString("PreEstablished", resourceCulture);
             }
         }
         
@@ -2949,6 +6058,222 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Preload.
+        /// </summary>
+        internal static string Preload {
+            get {
+                return ResourceManager.GetString("Preload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preloading is enabled by the parent menu..
+        /// </summary>
+        internal static string PreloadingIsEnabledByTheParentMenu {
+            get {
+                return ResourceManager.GetString("PreloadingIsEnabledByTheParentMenu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (prerelease).
+        /// </summary>
+        internal static string Prerelease {
+            get {
+                return ResourceManager.GetString("Prerelease", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Previously installed source.
+        /// </summary>
+        internal static string PreviouslyInstalledSource {
+            get {
+                return ResourceManager.GetString("PreviouslyInstalledSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Price scale.
+        /// </summary>
+        internal static string PriceScale {
+            get {
+                return ResourceManager.GetString("PriceScale", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Priority.
+        /// </summary>
+        internal static string Priority {
+            get {
+                return ResourceManager.GetString("Priority", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Priority controls resource ordering..
+        /// </summary>
+        internal static string PriorityControlsResourceOrdering {
+            get {
+                return ResourceManager.GetString("PriorityControlsResourceOrdering", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Privacy policy.
+        /// </summary>
+        internal static string PrivacyPolicy {
+            get {
+                return ResourceManager.GetString("PrivacyPolicy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Private.
+        /// </summary>
+        internal static string Private {
+            get {
+                return ResourceManager.GetString("Private", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read coverage.
+        /// </summary>
+        internal static string ProfileCoverage {
+            get {
+                return ResourceManager.GetString("ProfileCoverage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Successfully read.
+        /// </summary>
+        internal static string ProfileCovered {
+            get {
+                return ResourceManager.GetString("ProfileCovered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Successfully read with no rows.
+        /// </summary>
+        internal static string ProfileEmpty {
+            get {
+                return ResourceManager.GetString("ProfileEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a valid interval with the end after the start..
+        /// </summary>
+        internal static string ProfileInvalidRange {
+            get {
+                return ResourceManager.GetString("ProfileInvalidRange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the interval in local time. Recent values are checked again for delayed measurements..
+        /// </summary>
+        internal static string ProfileLocalTime {
+            get {
+                return ResourceManager.GetString("ProfileLocalTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not yet read.
+        /// </summary>
+        internal static string ProfileMissing {
+            get {
+                return ResourceManager.GetString("ProfileMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The selected interval is already covered..
+        /// </summary>
+        internal static string ProfileNoReadNeeded {
+            get {
+                return ResourceManager.GetString("ProfileNoReadNeeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Profile picture.
+        /// </summary>
+        internal static string ProfilePicture {
+            get {
+                return ResourceManager.GetString("ProfilePicture", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to End (exclusive).
+        /// </summary>
+        internal static string ProfileRangeEnd {
+            get {
+                return ResourceManager.GetString("ProfileRangeEnd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start (inclusive).
+        /// </summary>
+        internal static string ProfileRangeStart {
+            get {
+                return ResourceManager.GetString("ProfileRangeStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read missing values.
+        /// </summary>
+        internal static string ProfileReadMissing {
+            get {
+                return ResourceManager.GetString("ProfileReadMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The profile read has been queued. Stored values will update when the read completes..
+        /// </summary>
+        internal static string ProfileReadQueued {
+            get {
+                return ResourceManager.GetString("ProfileReadQueued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Recent intervals to check again.
+        /// </summary>
+        internal static string ProfileRefresh {
+            get {
+                return ResourceManager.GetString("ProfileRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Profiles.
+        /// </summary>
+        internal static string Profiles {
+            get {
+                return ResourceManager.GetString("Profiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No longer available from the meter.
+        /// </summary>
+        internal static string ProfileUnavailable {
+            get {
+                return ResourceManager.GetString("ProfileUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Protocol.
         /// </summary>
         internal static string Protocol {
@@ -2958,11 +6283,56 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prune removes unused targets based on criteria such as time..
+        ///   Looks up a localized string similar to Clean up unused items and old data according to retention settings..
         /// </summary>
         internal static string PruneDescription {
             get {
                 return ResourceManager.GetString("PruneDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max. items removed per run (0 = no limit).
+        /// </summary>
+        internal static string PruneMaxItemsPerRun {
+            get {
+                return ResourceManager.GetString("PruneMaxItemsPerRun", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 0 = no limit.
+        /// </summary>
+        internal static string PruneNoRemovalLimit {
+            get {
+                return ResourceManager.GetString("PruneNoRemovalLimit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set how long data is kept before cleanup. A retention period of 0 disables cleanup for that category. The removal limit is the maximum number of items removed from each category in one run. Run uses the saved settings..
+        /// </summary>
+        internal static string PruneRetentionHelp {
+            get {
+                return ResourceManager.GetString("PruneRetentionHelp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retention period.
+        /// </summary>
+        internal static string PruneRetentionPeriod {
+            get {
+                return ResourceManager.GetString("PruneRetentionPeriod", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Everyone.
+        /// </summary>
+        internal static string Public {
+            get {
+                return ResourceManager.GetString("Public", resourceCulture);
             }
         }
         
@@ -2985,11 +6355,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Push events.
+        /// </summary>
+        internal static string PushEvents {
+            get {
+                return ResourceManager.GetString("PushEvents", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Raw notifications.
+        /// </summary>
+        internal static string RawNotifications {
+            get {
+                return ResourceManager.GetString("RawNotifications", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Read.
         /// </summary>
         internal static string Read {
             get {
                 return ResourceManager.GetString("Read", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reader.
+        /// </summary>
+        internal static string Reader {
+            get {
+                return ResourceManager.GetString("Reader", resourceCulture);
             }
         }
         
@@ -3008,6 +6405,87 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string ReadersTitle {
             get {
                 return ResourceManager.GetString("ReadersTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reading....
+        /// </summary>
+        internal static string Reading {
+            get {
+                return ResourceManager.GetString("Reading", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reading blocks....
+        /// </summary>
+        internal static string ReadingBlocks {
+            get {
+                return ResourceManager.GetString("ReadingBlocks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to readme.md.
+        /// </summary>
+        internal static string ReadmeMd {
+            get {
+                return ResourceManager.GetString("ReadmeMd", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read tasks added..
+        /// </summary>
+        internal static string ReadTasksAdded {
+            get {
+                return ResourceManager.GetString("ReadTasksAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reading failed..
+        /// </summary>
+        internal static string ReadTasksFailed {
+            get {
+                return ResourceManager.GetString("ReadTasksFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read tasks in progress..
+        /// </summary>
+        internal static string ReadTasksInProgress {
+            get {
+                return ResourceManager.GetString("ReadTasksInProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} of {1} read tasks completed..
+        /// </summary>
+        internal static string ReadTasksProgress {
+            get {
+                return ResourceManager.GetString("ReadTasksProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read tasks queued..
+        /// </summary>
+        internal static string ReadTasksQueued {
+            get {
+                return ResourceManager.GetString("ReadTasksQueued", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read task status is unavailable..
+        /// </summary>
+        internal static string ReadTasksUnavailable {
+            get {
+                return ResourceManager.GetString("ReadTasksUnavailable", resourceCulture);
             }
         }
         
@@ -3084,11 +6562,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Release notes.
+        /// </summary>
+        internal static string ReleaseNotes {
+            get {
+                return ResourceManager.GetString("ReleaseNotes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reload.
+        /// </summary>
+        internal static string Reload {
+            get {
+                return ResourceManager.GetString("Reload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remote object identifier.
+        /// </summary>
+        internal static string RemoteObjectIdentifier {
+            get {
+                return ResourceManager.GetString("RemoteObjectIdentifier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove.
         /// </summary>
         internal static string Remove {
             get {
                 return ResourceManager.GetString("Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove agent logs.
+        /// </summary>
+        internal static string RemoveAgentLogs {
+            get {
+                return ResourceManager.GetString("RemoveAgentLogs", resourceCulture);
             }
         }
         
@@ -3107,6 +6621,123 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Removed {
             get {
                 return ResourceManager.GetString("Removed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove device logs.
+        /// </summary>
+        internal static string RemoveDeviceLogs {
+            get {
+                return ResourceManager.GetString("RemoveDeviceLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove from favorites.
+        /// </summary>
+        internal static string RemoveFromFavorites {
+            get {
+                return ResourceManager.GetString("RemoveFromFavorites", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove gateway logs.
+        /// </summary>
+        internal static string RemoveGatewayLogs {
+            get {
+                return ResourceManager.GetString("RemoveGatewayLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove modules.
+        /// </summary>
+        internal static string RemoveModules {
+            get {
+                return ResourceManager.GetString("RemoveModules", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove performance logs.
+        /// </summary>
+        internal static string RemovePerformanceLogs {
+            get {
+                return ResourceManager.GetString("RemovePerformanceLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove schedule logs.
+        /// </summary>
+        internal static string RemoveScheduleLogs {
+            get {
+                return ResourceManager.GetString("RemoveScheduleLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove system logs.
+        /// </summary>
+        internal static string RemoveSystemLogs {
+            get {
+                return ResourceManager.GetString("RemoveSystemLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove tasks.
+        /// </summary>
+        internal static string RemoveTasks {
+            get {
+                return ResourceManager.GetString("RemoveTasks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove user logs.
+        /// </summary>
+        internal static string RemoveUserLogs {
+            get {
+                return ResourceManager.GetString("RemoveUserLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove users who have never logged in.
+        /// </summary>
+        internal static string RemoveUsersWhoNewerLoggedIn {
+            get {
+                return ResourceManager.GetString("RemoveUsersWhoNewerLoggedIn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Removing modules….
+        /// </summary>
+        internal static string RemovingModules {
+            get {
+                return ResourceManager.GetString("RemovingModules", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replace script source.
+        /// </summary>
+        internal static string ReplaceScriptSource {
+            get {
+                return ResourceManager.GetString("ReplaceScriptSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replacing script source.
+        /// </summary>
+        internal static string ReplacingScriptSource {
+            get {
+                return ResourceManager.GetString("ReplacingScriptSource", resourceCulture);
             }
         }
         
@@ -3165,11 +6796,146 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Request timeout (seconds).
+        /// </summary>
+        internal static string RequestTimeoutSeconds {
+            get {
+                return ResourceManager.GetString("RequestTimeoutSeconds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Authentication required.
+        /// </summary>
+        internal static string RequireAuthenticatedUser {
+            get {
+                return ResourceManager.GetString("RequireAuthenticatedUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a confirmed account.
+        /// </summary>
+        internal static string RequireConfirmedAccount {
+            get {
+                return ResourceManager.GetString("RequireConfirmedAccount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a confirmed email address.
+        /// </summary>
+        internal static string RequireConfirmedEmail {
+            get {
+                return ResourceManager.GetString("RequireConfirmedEmail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a confirmed phone number.
+        /// </summary>
+        internal static string RequireConfirmedPhoneNumber {
+            get {
+                return ResourceManager.GetString("RequireConfirmedPhoneNumber", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Required.
         /// </summary>
         internal static string Required {
             get {
                 return ResourceManager.GetString("Required", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a digit.
+        /// </summary>
+        internal static string RequireDigit {
+            get {
+                return ResourceManager.GetString("RequireDigit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum password length.
+        /// </summary>
+        internal static string RequiredLength {
+            get {
+                return ResourceManager.GetString("RequiredLength", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum unique characters.
+        /// </summary>
+        internal static string RequiredUniqueChars {
+            get {
+                return ResourceManager.GetString("RequiredUniqueChars", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a lowercase letter.
+        /// </summary>
+        internal static string RequireLowercase {
+            get {
+                return ResourceManager.GetString("RequireLowercase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Combine requirements.
+        /// </summary>
+        internal static string RequirementOperator {
+            get {
+                return ResourceManager.GetString("RequirementOperator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a non-alphanumeric character.
+        /// </summary>
+        internal static string RequireNonAlphanumeric {
+            get {
+                return ResourceManager.GetString("RequireNonAlphanumeric", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Requires migration.
+        /// </summary>
+        internal static string RequiresMigration {
+            get {
+                return ResourceManager.GetString("RequiresMigration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require a unique email address.
+        /// </summary>
+        internal static string RequireUniqueEmail {
+            get {
+                return ResourceManager.GetString("RequireUniqueEmail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Require an uppercase letter.
+        /// </summary>
+        internal static string RequireUppercase {
+            get {
+                return ResourceManager.GetString("RequireUppercase", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resend count.
+        /// </summary>
+        internal static string ResendCount {
+            get {
+                return ResourceManager.GetString("ResendCount", resourceCulture);
             }
         }
         
@@ -3183,6 +6949,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Reset to defaults.
+        /// </summary>
+        internal static string ResetNotificationDefaults {
+            get {
+                return ResourceManager.GetString("ResetNotificationDefaults", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Restart.
         /// </summary>
         internal static string Restart {
@@ -3192,7 +6967,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to REST statistic.
+        ///   Looks up a localized string similar to REST statistics.
         /// </summary>
         internal static string RESTStatistic {
             get {
@@ -3210,6 +6985,78 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Retrieving block groups....
+        /// </summary>
+        internal static string RetrievingBlockGroups {
+            get {
+                return ResourceManager.GetString("RetrievingBlockGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retrieving script source.
+        /// </summary>
+        internal static string RetrievingScriptSource {
+            get {
+                return ResourceManager.GetString("RetrievingScriptSource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retrieving updates.
+        /// </summary>
+        internal static string RetrievingUpdates {
+            get {
+                return ResourceManager.GetString("RetrievingUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retrieving view....
+        /// </summary>
+        internal static string RetrievingView {
+            get {
+                return ResourceManager.GetString("RetrievingView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retrieving view group....
+        /// </summary>
+        internal static string RetrievingViewGroup {
+            get {
+                return ResourceManager.GetString("RetrievingViewGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Retrieving view groups....
+        /// </summary>
+        internal static string RetrievingViewGroups {
+            get {
+                return ResourceManager.GetString("RetrievingViewGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Try again.
+        /// </summary>
+        internal static string RetryTutorialVideos {
+            get {
+                return ResourceManager.GetString("RetryTutorialVideos", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Revoke.
+        /// </summary>
+        internal static string Revoke {
+            get {
+                return ResourceManager.GetString("Revoke", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Roles.
         /// </summary>
         internal static string Roles {
@@ -3219,11 +7066,11 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Rows per page.
+        ///   Looks up a localized string similar to RSS feed URL.
         /// </summary>
-        internal static string RowsPerPage {
+        internal static string RSSFeedURL {
             get {
-                return ResourceManager.GetString("RowsPerPage", resourceCulture);
+                return ResourceManager.GetString("RSSFeedURL", resourceCulture);
             }
         }
         
@@ -3233,6 +7080,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Run {
             get {
                 return ResourceManager.GetString("Run", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run cron.
+        /// </summary>
+        internal static string RunCron {
+            get {
+                return ResourceManager.GetString("RunCron", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run cron every.
+        /// </summary>
+        internal static string RunCronEvery {
+            get {
+                return ResourceManager.GetString("RunCronEvery", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Runtime.
+        /// </summary>
+        internal static string Runtime {
+            get {
+                return ResourceManager.GetString("Runtime", resourceCulture);
             }
         }
         
@@ -3255,6 +7129,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Save as default for all users.
+        /// </summary>
+        internal static string SaveAsDefaultForAllUsers {
+            get {
+                return ResourceManager.GetString("SaveAsDefaultForAllUsers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Save configuration.
         /// </summary>
         internal static string SaveConfigurationText {
@@ -3269,6 +7152,42 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Saved {
             get {
                 return ResourceManager.GetString("Saved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save the key management and its KMIP connection before binding a remote object..
+        /// </summary>
+        internal static string SaveTheKeyManagementAndItsKMIPConnectionBeforeBindingARemoteObject {
+            get {
+                return ResourceManager.GetString("SaveTheKeyManagementAndItsKMIPConnectionBeforeBindingARemoteObject", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Saving….
+        /// </summary>
+        internal static string Saving {
+            get {
+                return ResourceManager.GetString("Saving", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Saving view....
+        /// </summary>
+        internal static string SavingView {
+            get {
+                return ResourceManager.GetString("SavingView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Saving view group....
+        /// </summary>
+        internal static string SavingViewGroup {
+            get {
+                return ResourceManager.GetString("SavingViewGroup", resourceCulture);
             }
         }
         
@@ -3354,11 +7273,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Script build {0}. Build time: {1} ms..
+        /// </summary>
+        internal static string ScriptBuild0BuildTime1Ms {
+            get {
+                return ResourceManager.GetString("ScriptBuild0BuildTime1Ms", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Script catalog.
+        /// </summary>
+        internal static string ScriptCatalog {
+            get {
+                return ResourceManager.GetString("ScriptCatalog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Script groups.
         /// </summary>
         internal static string ScriptGroups {
             get {
                 return ResourceManager.GetString("ScriptGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Script imported..
+        /// </summary>
+        internal static string ScriptImported {
+            get {
+                return ResourceManager.GetString("ScriptImported", resourceCulture);
             }
         }
         
@@ -3381,7 +7327,16 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Scripts need rebuild before they can be used. This might take a long time..
+        ///   Looks up a localized string similar to Script name.
+        /// </summary>
+        internal static string ScriptName {
+            get {
+                return ResourceManager.GetString("ScriptName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Scripts must be rebuilt before they can be used. This may take some time..
         /// </summary>
         internal static string ScriptRebuildWarning {
             get {
@@ -3395,6 +7350,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Scripts {
             get {
                 return ResourceManager.GetString("Scripts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Script source replaced..
+        /// </summary>
+        internal static string ScriptSourceReplaced {
+            get {
+                return ResourceManager.GetString("ScriptSourceReplaced", resourceCulture);
             }
         }
         
@@ -3426,11 +7390,157 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Security update.
+        /// </summary>
+        internal static string SecurityUpdate {
+            get {
+                return ResourceManager.GetString("SecurityUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Security update available.
+        /// </summary>
+        internal static string SecurityUpdateAvailable {
+            get {
+                return ResourceManager.GetString("SecurityUpdateAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Security update required.
+        /// </summary>
+        internal static string SecurityUpdateRequired {
+            get {
+                return ResourceManager.GetString("SecurityUpdateRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a DLMS key role..
+        /// </summary>
+        internal static string SelectADLMSKeyRole {
+            get {
+                return ResourceManager.GetString("SelectADLMSKeyRole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select an installable module version..
+        /// </summary>
+        internal static string SelectAnInstallableModuleVersion {
+            get {
+                return ResourceManager.GetString("SelectAnInstallableModuleVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a raw notification parser script..
+        /// </summary>
+        internal static string SelectARawNotificationParserScript {
+            get {
+                return ResourceManager.GetString("SelectARawNotificationParserScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected.
+        /// </summary>
+        internal static string Selected {
+            get {
+                return ResourceManager.GetString("Selected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected attributes.
+        /// </summary>
+        internal static string SelectedAttributes {
+            get {
+                return ResourceManager.GetString("SelectedAttributes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected device groups.
+        /// </summary>
+        internal static string SelectedDeviceGroups {
+            get {
+                return ResourceManager.GetString("SelectedDeviceGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected devices.
+        /// </summary>
+        internal static string SelectedDevices {
+            get {
+                return ResourceManager.GetString("SelectedDevices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected items will be reset to defaults. Without a selection, only missing defaults will be added..
+        /// </summary>
+        internal static string SelectedItemsWillBeResetToDefaultsWithoutASelectionOnlyMissingDefaultsWillBeAdded {
+            get {
+                return ResourceManager.GetString("SelectedItemsWillBeResetToDefaultsWithoutASelectionOnlyMissingDefaultsWillBeAdded" +
+                        "", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected objects.
+        /// </summary>
+        internal static string SelectedObjects {
+            get {
+                return ResourceManager.GetString("SelectedObjects", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selection mode.
+        /// </summary>
+        internal static string SelectionMode {
+            get {
+                return ResourceManager.GetString("SelectionMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select one active personal access token to extend..
+        /// </summary>
+        internal static string SelectOneActiveToken {
+            get {
+                return ResourceManager.GetString("SelectOneActiveToken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select visible.
+        /// </summary>
+        internal static string SelectVisible {
+            get {
+                return ResourceManager.GetString("SelectVisible", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Send.
         /// </summary>
         internal static string Send {
             get {
                 return ResourceManager.GetString("Send", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Separate email addresses with commas or semicolons. Leave empty to use your confirmed account email..
+        /// </summary>
+        internal static string SeparateEmailAddressesWithCommasOrSemicolonsLeaveEmptyToUseYourConfirmedAccountEmail {
+            get {
+                return ResourceManager.GetString("SeparateEmailAddressesWithCommasOrSemicolonsLeaveEmptyToUseYourConfirmedAccountEm" +
+                        "ail", resourceCulture);
             }
         }
         
@@ -3462,6 +7572,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Server content file.
+        /// </summary>
+        internal static string ServerContentFile {
+            get {
+                return ResourceManager.GetString("ServerContentFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server notifications.
+        /// </summary>
+        internal static string ServerNotifications {
+            get {
+                return ResourceManager.GetString("ServerNotifications", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Run on the server.
         /// </summary>
         internal static string ServerSide {
@@ -3476,6 +7604,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Settings {
             get {
                 return ResourceManager.GetString("Settings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Settings saved..
+        /// </summary>
+        internal static string SettingsSaved {
+            get {
+                return ResourceManager.GetString("SettingsSaved", resourceCulture);
             }
         }
         
@@ -3498,6 +7635,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show all data.
+        /// </summary>
+        internal static string ShowAllData {
+            get {
+                return ResourceManager.GetString("ShowAllData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show closed errors.
         /// </summary>
         internal static string ShowClosedErrors {
@@ -3507,7 +7653,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show data for all users..
+        ///   Looks up a localized string similar to Show data for all users.
         /// </summary>
         internal static string ShowDataForAllUsers {
             get {
@@ -3534,6 +7680,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show on listed pages.
+        /// </summary>
+        internal static string ShowOnListedPages {
+            get {
+                return ResourceManager.GetString("ShowOnListedPages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show prereleases.
+        /// </summary>
+        internal static string ShowPrereleases {
+            get {
+                return ResourceManager.GetString("ShowPrereleases", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show removed targets.
         /// </summary>
         internal static string ShowRemoved {
@@ -3548,6 +7712,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string ShowTotal {
             get {
                 return ResourceManager.GetString("ShowTotal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sign in.
+        /// </summary>
+        internal static string SignIn {
+            get {
+                return ResourceManager.GetString("SignIn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sign in.
+        /// </summary>
+        internal static string SignIn2 {
+            get {
+                return ResourceManager.GetString("SignIn2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sign in to access this page..
+        /// </summary>
+        internal static string SignInToAccessThisPage {
+            get {
+                return ResourceManager.GetString("SignInToAccessThisPage", resourceCulture);
             }
         }
         
@@ -3570,11 +7761,74 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Site is in maintenance mode.
+        ///   Looks up a localized string similar to The site is in maintenance mode.
         /// </summary>
         internal static string SiteIsInMaintenanceMode {
             get {
                 return ResourceManager.GetString("SiteIsInMaintenanceMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The site is in maintenance mode..
+        /// </summary>
+        internal static string SiteIsOnMaintenanceMode {
+            get {
+                return ResourceManager.GetString("SiteIsOnMaintenanceMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Site version.
+        /// </summary>
+        internal static string SiteVersion {
+            get {
+                return ResourceManager.GetString("SiteVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Size of the database connection pool.
+        /// </summary>
+        internal static string SizeOfTheDatabaseConnectionPool {
+            get {
+                return ResourceManager.GetString("SizeOfTheDatabaseConnectionPool", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Slow REST Request.
+        /// </summary>
+        internal static string SlowRESTRequest {
+            get {
+                return ResourceManager.GetString("SlowRESTRequest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Some tables still require an update..
+        /// </summary>
+        internal static string SomeTablesStillRequireAnUpdate {
+            get {
+                return ResourceManager.GetString("SomeTablesStillRequireAnUpdate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Source.
+        /// </summary>
+        internal static string Source {
+            get {
+                return ResourceManager.GetString("Source", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ?source=.
+        /// </summary>
+        internal static string Source2 {
+            get {
+                return ResourceManager.GetString("Source2", resourceCulture);
             }
         }
         
@@ -3606,6 +7860,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Start time (optional).
+        /// </summary>
+        internal static string StartTimeOptional {
+            get {
+                return ResourceManager.GetString("StartTimeOptional", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        internal static string State {
+            get {
+                return ResourceManager.GetString("State", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Status.
         /// </summary>
         internal static string Status {
@@ -3615,11 +7887,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to StopBits.
+        ///   Looks up a localized string similar to Stop bits.
         /// </summary>
         internal static string StopBits {
             get {
                 return ResourceManager.GetString("StopBits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stopped waiting for removal. Refresh the module list to check the result..
+        /// </summary>
+        internal static string StoppedWaitingForRemovalRefreshTheModuleListToCheckTheResult {
+            get {
+                return ResourceManager.GetString("StoppedWaitingForRemovalRefreshTheModuleListToCheckTheResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Storage ID.
+        /// </summary>
+        internal static string StorageID {
+            get {
+                return ResourceManager.GetString("StorageID", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stored history.
+        /// </summary>
+        internal static string StoredHistory {
+            get {
+                return ResourceManager.GetString("StoredHistory", resourceCulture);
             }
         }
         
@@ -3669,7 +7968,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Supported Languages.
+        ///   Looks up a localized string similar to Supported languages.
         /// </summary>
         internal static string SupportedLanguages {
             get {
@@ -3687,11 +7986,20 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to System title.
+        ///   Looks up a localized string similar to System.
         /// </summary>
         internal static string System {
             get {
                 return ResourceManager.GetString("System", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Application-defined.
+        /// </summary>
+        internal static string SystemDefined {
+            get {
+                return ResourceManager.GetString("SystemDefined", resourceCulture);
             }
         }
         
@@ -3705,7 +8013,16 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to System Settings.
+        ///   Looks up a localized string similar to System restarted..
+        /// </summary>
+        internal static string SystemRestarted {
+            get {
+                return ResourceManager.GetString("SystemRestarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System settings.
         /// </summary>
         internal static string SystemSettings {
             get {
@@ -3719,6 +8036,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string SystemTitle {
             get {
                 return ResourceManager.GetString("SystemTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System uptime.
+        /// </summary>
+        internal static string SystemUpTime {
+            get {
+                return ResourceManager.GetString("SystemUpTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Table.
+        /// </summary>
+        internal static string Table {
+            get {
+                return ResourceManager.GetString("Table", resourceCulture);
             }
         }
         
@@ -3750,6 +8085,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No target object is selected..
+        /// </summary>
+        internal static string TargetObjectHasNotBeenSelected {
+            get {
+                return ResourceManager.GetString("TargetObjectHasNotBeenSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Target type.
+        /// </summary>
+        internal static string TargetType {
+            get {
+                return ResourceManager.GetString("TargetType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Task.
         /// </summary>
         internal static string Task {
@@ -3759,11 +8112,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Task in progress....
+        /// </summary>
+        internal static string TaskOnProgress {
+            get {
+                return ResourceManager.GetString("TaskOnProgress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Tasks.
         /// </summary>
         internal static string Tasks {
             get {
                 return ResourceManager.GetString("Tasks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Task status.
+        /// </summary>
+        internal static string TaskStatus {
+            get {
+                return ResourceManager.GetString("TaskStatus", resourceCulture);
             }
         }
         
@@ -3786,11 +8157,119 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Template type.
+        /// </summary>
+        internal static string TemplateType {
+            get {
+                return ResourceManager.GetString("TemplateType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Text.
         /// </summary>
         internal static string Text {
             get {
                 return ResourceManager.GetString("Text", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to    .
+        /// </summary>
+        internal static string Text2 {
+            get {
+                return ResourceManager.GetString("Text2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The agent download URL is missing..
+        /// </summary>
+        internal static string TheAgentDownloadURLIsMissing {
+            get {
+                return ResourceManager.GetString("TheAgentDownloadURLIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The attribute template is missing..
+        /// </summary>
+        internal static string TheAttributeTemplateIsMissing {
+            get {
+                return ResourceManager.GetString("TheAttributeTemplateIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The blocks have been regenerated..
+        /// </summary>
+        internal static string TheBlocksHaveBeenRegenerated {
+            get {
+                return ResourceManager.GetString("TheBlocksHaveBeenRegenerated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The communication window end is missing..
+        /// </summary>
+        internal static string TheCommunicationWindowEndIsMissing {
+            get {
+                return ResourceManager.GetString("TheCommunicationWindowEndIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The communication window start is missing..
+        /// </summary>
+        internal static string TheCommunicationWindowStartIsMissing {
+            get {
+                return ResourceManager.GetString("TheCommunicationWindowStartIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The component for this tab is unavailable. Check the menu link settings..
+        /// </summary>
+        internal static string TheComponentForThisTabIsUnavailableCheckTheMenuLinkSettings {
+            get {
+                return ResourceManager.GetString("TheComponentForThisTabIsUnavailableCheckTheMenuLinkSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The enum value is missing..
+        /// </summary>
+        internal static string TheEnumValueIsMissing {
+            get {
+                return ResourceManager.GetString("TheEnumValueIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key metadata is read from the configured KMIP server. Key material is not copied into AMI storage..
+        /// </summary>
+        internal static string TheKeyMetadataIsReadFromTheConfiguredKMIPServerMaterialIsNotCopiedIntoAMIStorage {
+            get {
+                return ResourceManager.GetString("TheKeyMetadataIsReadFromTheConfiguredKMIPServerMaterialIsNotCopiedIntoAMIStorage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The log was not found or is not available to this user..
+        /// </summary>
+        internal static string TheLogWasNotFoundOrIsNotAvailableToThisUser {
+            get {
+                return ResourceManager.GetString("TheLogWasNotFoundOrIsNotAvailableToThisUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The maximum notification count must be positive..
+        /// </summary>
+        internal static string TheMaximumNotificationCountMustBePositive {
+            get {
+                return ResourceManager.GetString("TheMaximumNotificationCountMustBePositive", resourceCulture);
             }
         }
         
@@ -3804,11 +8283,165 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The modules&apos; database tables will also be removed..
+        /// </summary>
+        internal static string TheModulesDatabaseTablesWillAlsoBeRemoved {
+            get {
+                return ResourceManager.GetString("TheModulesDatabaseTablesWillAlsoBeRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The network media type name is missing..
+        /// </summary>
+        internal static string TheNetworkMediaTypeNameIsMissing {
+            get {
+                return ResourceManager.GetString("TheNetworkMediaTypeNameIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The notifications have been refreshed..
+        /// </summary>
+        internal static string TheNotificationsHaveBeenRefreshed {
+            get {
+                return ResourceManager.GetString("TheNotificationsHaveBeenRefreshed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The number of raw notification workers must be greater than zero..
+        /// </summary>
+        internal static string TheNumberOfRawNotificationWorkersMustBeGreaterThanZero {
+            get {
+                return ResourceManager.GetString("TheNumberOfRawNotificationWorkersMustBeGreaterThanZero", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The page list is empty. This block is shown on all pages..
+        /// </summary>
+        internal static string ThePageListIsEmptyThisBlockIsShownOnAllPages {
+            get {
+                return ResourceManager.GetString("ThePageListIsEmptyThisBlockIsShownOnAllPages", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The previously installed source is unavailable..
+        /// </summary>
+        internal static string ThePreviouslyInstalledSourceIsUnavailable {
+            get {
+                return ResourceManager.GetString("ThePreviouslyInstalledSourceIsUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A security update is available for your version of Gurux.DLMS.AMI. Update immediately to protect your server..
+        /// </summary>
+        internal static string ThereIsASecurityUpdateAvailableForYourVersionOfGuruxDLMSAMIToEnsureTheSecurityOfYourS {
+            get {
+                return ResourceManager.GetString("ThereIsASecurityUpdateAvailableForYourVersionOfGuruxDLMSAMIToEnsureTheSecurityOfY" +
+                        "ourS", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The returned comparison does not match the selected script version. Compare the source again..
+        /// </summary>
+        internal static string TheReturnedComparisonDoesNotMatchTheSelectedScriptVersionCompareTheSourceAgain {
+            get {
+                return ResourceManager.GetString("TheReturnedComparisonDoesNotMatchTheSelectedScriptVersionCompareTheSourceAgain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The schedule editor is not ready to save..
+        /// </summary>
+        internal static string TheScheduleEditorIsNotReadyToSave {
+            get {
+                return ResourceManager.GetString("TheScheduleEditorIsNotReadyToSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The selected modules&apos; data will be permanently deleted..
+        /// </summary>
+        internal static string TheSelectedModulesDataWillBePermanentlyDeleted {
+            get {
+                return ResourceManager.GetString("TheSelectedModulesDataWillBePermanentlyDeleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The selected version is not available in the current release channel..
+        /// </summary>
+        internal static string TheSelectedVersionIsNotAvailableInTheCurrentReleaseChannel {
+            get {
+                return ResourceManager.GetString("TheSelectedVersionIsNotAvailableInTheCurrentReleaseChannel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The serial media type name is missing..
+        /// </summary>
+        internal static string TheSerialMediaTypeNameIsMissing {
+            get {
+                return ResourceManager.GetString("TheSerialMediaTypeNameIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The server did not return module removal results..
+        /// </summary>
+        internal static string TheServerDidNotReturnModuleRemovalResults {
+            get {
+                return ResourceManager.GetString("TheServerDidNotReturnModuleRemovalResults", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The user ID is missing..
+        /// </summary>
+        internal static string TheUserIDIsMissing {
+            get {
+                return ResourceManager.GetString("TheUserIDIsMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This action cannot be undone..
         /// </summary>
         internal static string ThisActionCannotBeUndone {
             get {
                 return ResourceManager.GetString("ThisActionCannotBeUndone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This is the privacy policy page of our application. Your data is important to us..
+        /// </summary>
+        internal static string ThisIsThePrivacyPolicyPageOfOurApplicationYourDataIsImportantToUs {
+            get {
+                return ResourceManager.GetString("ThisIsThePrivacyPolicyPageOfOurApplicationYourDataIsImportantToUs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This module has no schedule editor..
+        /// </summary>
+        internal static string ThisModuleHasNoScheduleEditor {
+            get {
+                return ResourceManager.GetString("ThisModuleHasNoScheduleEditor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This script has local changes. Replacing its source will overwrite those changes..
+        /// </summary>
+        internal static string ThisScriptHasLocalChangesReplacingItsSourceWillOverwriteThoseChanges {
+            get {
+                return ResourceManager.GetString("ThisScriptHasLocalChangesReplacingItsSourceWillOverwriteThoseChanges", resourceCulture);
             }
         }
         
@@ -3822,6 +8455,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Time.
+        /// </summary>
+        internal static string Time {
+            get {
+                return ResourceManager.GetString("Time", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time zone.
+        /// </summary>
+        internal static string TimeZone {
+            get {
+                return ResourceManager.GetString("TimeZone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Title.
         /// </summary>
         internal static string Title {
@@ -3831,7 +8482,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Warning - Make sure you copy the above token now. It&apos;s not stored it and you will not be able to see it again..
+        ///   Looks up a localized string similar to Copy this token now. It is not stored, and you will not be able to view it again..
         /// </summary>
         internal static string TokenCreateInfo {
             get {
@@ -3840,7 +8491,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You have successfully added a new personal access token. Copy the token now!.
+        ///   Looks up a localized string similar to Personal access token created. Copy the token now; you will not be able to view it again..
         /// </summary>
         internal static string TokenCreateSucceeded {
             get {
@@ -3854,6 +8505,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string TokensTitle {
             get {
                 return ResourceManager.GetString("TokensTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The token stays the same. Agent settings do not need to be changed..
+        /// </summary>
+        internal static string TokenValueUnchanged {
+            get {
+                return ResourceManager.GetString("TokenValueUnchanged", resourceCulture);
             }
         }
         
@@ -3881,6 +8541,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Total {
             get {
                 return ResourceManager.GetString("Total", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Total count.
+        /// </summary>
+        internal static string TotalCount {
+            get {
+                return ResourceManager.GetString("TotalCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Total time (ms).
+        /// </summary>
+        internal static string TotalTimeMs {
+            get {
+                return ResourceManager.GetString("TotalTimeMs", resourceCulture);
             }
         }
         
@@ -3957,6 +8635,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Videos.
+        /// </summary>
+        internal static string TutorialVideos {
+            get {
+                return ResourceManager.GetString("TutorialVideos", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Watch Gurux.DLMS.AMI tutorials..
+        /// </summary>
+        internal static string TutorialVideosDescription {
+            get {
+                return ResourceManager.GetString("TutorialVideosDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Videos could not be loaded. Please try again..
+        /// </summary>
+        internal static string TutorialVideosUnavailable {
+            get {
+                return ResourceManager.GetString("TutorialVideosUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Type.
         /// </summary>
         internal static string Type {
@@ -3966,11 +8671,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Type:.
+        /// </summary>
+        internal static string Type2 {
+            get {
+                return ResourceManager.GetString("Type2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to UI data type.
         /// </summary>
         internal static string UIDataType {
             get {
                 return ResourceManager.GetString("UIDataType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to load the block content file..
+        /// </summary>
+        internal static string UnableToLoadTheBlockContentFile {
+            get {
+                return ResourceManager.GetString("UnableToLoadTheBlockContentFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to load the RSS feed..
+        /// </summary>
+        internal static string UnableToLoadTheRSSFeed {
+            get {
+                return ResourceManager.GetString("UnableToLoadTheRSSFeed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unable to save update settings..
+        /// </summary>
+        internal static string UnableToSaveUpdateSettings {
+            get {
+                return ResourceManager.GetString("UnableToSaveUpdateSettings", resourceCulture);
             }
         }
         
@@ -3993,11 +8734,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unit charge active.
+        /// </summary>
+        internal static string UnitChargeActive {
+            get {
+                return ResourceManager.GetString("UnitChargeActive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unit charge passive.
+        /// </summary>
+        internal static string UnitChargePassive {
+            get {
+                return ResourceManager.GetString("UnitChargePassive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown.
         /// </summary>
         internal static string Unknown {
             get {
                 return ResourceManager.GetString("Unknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsaved changes.
+        /// </summary>
+        internal static string UnsavedChanges {
+            get {
+                return ResourceManager.GetString("UnsavedChanges", resourceCulture);
             }
         }
         
@@ -4020,11 +8788,209 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updatating.
+        ///   Looks up a localized string similar to Update information is unavailable. Check manually to try again..
+        /// </summary>
+        internal static string UpdateInformationUnavailable {
+            get {
+                return ResourceManager.GetString("UpdateInformationUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Available.
+        /// </summary>
+        internal static string UpdatesAvailable {
+            get {
+                return ResourceManager.GetString("UpdatesAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update settings.
+        /// </summary>
+        internal static string UpdateSettings {
+            get {
+                return ResourceManager.GetString("UpdateSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update settings are unavailable..
+        /// </summary>
+        internal static string UpdateSettingsAreUnavailable {
+            get {
+                return ResourceManager.GetString("UpdateSettingsAreUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update settings saved..
+        /// </summary>
+        internal static string UpdateSettingsSaved {
+            get {
+                return ResourceManager.GetString("UpdateSettingsSaved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} hours.
+        /// </summary>
+        internal static string UpdatesHours {
+            get {
+                return ResourceManager.GetString("UpdatesHours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Installed version.
+        /// </summary>
+        internal static string UpdatesInstalledVersion {
+            get {
+                return ResourceManager.GetString("UpdatesInstalledVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last checked: {0}.
+        /// </summary>
+        internal static string UpdatesLastChecked {
+            get {
+                return ResourceManager.GetString("UpdatesLastChecked", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Latest version.
+        /// </summary>
+        internal static string UpdatesLatestVersion {
+            get {
+                return ResourceManager.GetString("UpdatesLatestVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Less than a minute ago.
+        /// </summary>
+        internal static string UpdatesLessThanAMinuteAgo {
+            get {
+                return ResourceManager.GetString("UpdatesLessThanAMinuteAgo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} minutes.
+        /// </summary>
+        internal static string UpdatesMinutes {
+            get {
+                return ResourceManager.GetString("UpdatesMinutes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not installed.
+        /// </summary>
+        internal static string UpdatesNotInstalled {
+            get {
+                return ResourceManager.GetString("UpdatesNotInstalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} hour.
+        /// </summary>
+        internal static string UpdatesOneHour {
+            get {
+                return ResourceManager.GetString("UpdatesOneHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} minute.
+        /// </summary>
+        internal static string UpdatesOneMinute {
+            get {
+                return ResourceManager.GetString("UpdatesOneMinute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} ago.
+        /// </summary>
+        internal static string UpdatesTimeAgo {
+            get {
+                return ResourceManager.GetString("UpdatesTimeAgo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update available.
+        /// </summary>
+        internal static string UpdatesUpdateAvailable {
+            get {
+                return ResourceManager.GetString("UpdatesUpdateAvailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Up to date.
+        /// </summary>
+        internal static string UpdatesUpToDate {
+            get {
+                return ResourceManager.GetString("UpdatesUpToDate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update tables.
+        /// </summary>
+        internal static string UpdateTables {
+            get {
+                return ResourceManager.GetString("UpdateTables", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update the following configuration tables to the current schema..
+        /// </summary>
+        internal static string UpdateTheFollowingConfigurationTablesToTheCurrentSchema {
+            get {
+                return ResourceManager.GetString("UpdateTheFollowingConfigurationTablesToTheCurrentSchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating.
         /// </summary>
         internal static string UpdateVersion {
             get {
                 return ResourceManager.GetString("UpdateVersion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating….
+        /// </summary>
+        internal static string Updating {
+            get {
+                return ResourceManager.GetString("Updating", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating database schema.
+        /// </summary>
+        internal static string UpdatingDatabaseSchema {
+            get {
+                return ResourceManager.GetString("UpdatingDatabaseSchema", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Updating module.
+        /// </summary>
+        internal static string UpdatingModule {
+            get {
+                return ResourceManager.GetString("UpdatingModule", resourceCulture);
             }
         }
         
@@ -4038,7 +9004,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Upload File.
+        ///   Looks up a localized string similar to Upload file.
         /// </summary>
         internal static string UploadFile {
             get {
@@ -4052,6 +9018,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string UploadModule {
             get {
                 return ResourceManager.GetString("UploadModule", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URL.
+        /// </summary>
+        internal static string Url {
+            get {
+                return ResourceManager.GetString("Url", resourceCulture);
             }
         }
         
@@ -4092,6 +9067,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to usererror-id.
+        /// </summary>
+        internal static string UsererrorId {
+            get {
+                return ResourceManager.GetString("UsererrorId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to User errors.
         /// </summary>
         internal static string UserErrors {
@@ -4119,11 +9103,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to User Management.
+        ///   Looks up a localized string similar to User management.
         /// </summary>
         internal static string UserManagement {
             get {
                 return ResourceManager.GetString("UserManagement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User settings.
+        /// </summary>
+        internal static string UserSettings {
+            get {
+                return ResourceManager.GetString("UserSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Users removed..
+        /// </summary>
+        internal static string UsersRemoved {
+            get {
+                return ResourceManager.GetString("UsersRemoved", resourceCulture);
             }
         }
         
@@ -4191,11 +9193,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Version to install.
+        /// </summary>
+        internal static string VersionToInstall {
+            get {
+                return ResourceManager.GetString("VersionToInstall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View defaults have been applied..
+        /// </summary>
+        internal static string ViewDefaultsHaveBeenApplied {
+            get {
+                return ResourceManager.GetString("ViewDefaultsHaveBeenApplied", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View group.
+        /// </summary>
+        internal static string ViewGroup {
+            get {
+                return ResourceManager.GetString("ViewGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Visibility.
         /// </summary>
         internal static string Visibility {
             get {
                 return ResourceManager.GetString("Visibility", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Visible.
+        /// </summary>
+        internal static string Visible {
+            get {
+                return ResourceManager.GetString("Visible", resourceCulture);
             }
         }
         
@@ -4209,11 +9247,65 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Welcome to use Gurux.DLMS.AMI..
+        ///   Looks up a localized string similar to The card could not be hidden. Please try again..
+        /// </summary>
+        internal static string WalkthroughHideFailed {
+            get {
+                return ResourceManager.GetString("WalkthroughHideFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Your hidden card preferences could not be loaded..
+        /// </summary>
+        internal static string WalkthroughPreferencesUnavailable {
+            get {
+                return ResourceManager.GetString("WalkthroughPreferencesUnavailable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Walkthroughs.
+        /// </summary>
+        internal static string Walkthroughs {
+            get {
+                return ResourceManager.GetString("Walkthroughs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to We do not collect or share any personal information without your consent..
+        /// </summary>
+        internal static string WeDoNotCollectOrShareAnyPersonalInformationWithoutYourConsent {
+            get {
+                return ResourceManager.GetString("WeDoNotCollectOrShareAnyPersonalInformationWithoutYourConsent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Weekly.
+        /// </summary>
+        internal static string Weekly {
+            get {
+                return ResourceManager.GetString("Weekly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Welcome to Gurux.DLMS.AMI..
         /// </summary>
         internal static string WelcomeText {
             get {
                 return ResourceManager.GetString("WelcomeText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Who can register accounts.
+        /// </summary>
+        internal static string WhoCanRegisterAccounts {
+            get {
+                return ResourceManager.GetString("WhoCanRegisterAccounts", resourceCulture);
             }
         }
         
@@ -4223,6 +9315,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Workflow {
             get {
                 return ResourceManager.GetString("Workflow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Workflow {0} started at {1}..
+        /// </summary>
+        internal static string Workflow0StartedAt1 {
+            get {
+                return ResourceManager.GetString("Workflow0StartedAt1", resourceCulture);
             }
         }
         
@@ -4268,6 +9369,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Write {
             get {
                 return ResourceManager.GetString("Write", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Write tasks added..
+        /// </summary>
+        internal static string WriteTasksAdded {
+            get {
+                return ResourceManager.GetString("WriteTasksAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Yes.
+        /// </summary>
+        internal static string Yes {
+            get {
+                return ResourceManager.GetString("Yes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Your site is in maintenance mode..
+        /// </summary>
+        internal static string YourSiteIsOnMaintenanceMode {
+            get {
+                return ResourceManager.GetString("YourSiteIsOnMaintenanceMode", resourceCulture);
             }
         }
     }

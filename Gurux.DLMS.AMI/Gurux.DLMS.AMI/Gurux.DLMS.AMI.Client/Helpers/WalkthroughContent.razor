@@ -1,0 +1,134 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject GXWalkthroughPreferences Preferences
+@inject IGXProgress Progress
+@inject IGXNotificationService NotificationService
+@implements IDisposable
+
+<nav class="walkthroughs" aria-label="@Properties.Resources.Walkthroughs">
+    @if (!Preferences.IsHidden(GXWalkthroughPreferences.GetStarted))
+    {
+        <div class="walkthrough-item">
+            <a class="walkthrough-card" href="get-started">
+                <svg class="walkthrough-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                    <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2 2 9.3l6.9-1L12 2Z" />
+                </svg>
+                <span>
+                    <span class="walkthrough-title">@Properties.Resources.GetStartedWithGuruxDlmsAmi</span>
+                    <span class="walkthrough-description">@Properties.Resources.GetStartedDescription</span>
+                </span>
+            </a>
+            <WalkthroughHideButton Title="@Properties.Resources.GetStartedWithGuruxDlmsAmi" Disabled="@_saving"
+                                   OnHide="() => HideAsync(GXWalkthroughPreferences.GetStarted)" />
+        </div>
+    }
+    @if (!Preferences.IsHidden(GXWalkthroughPreferences.Fundamentals))
+    {
+        <div class="walkthrough-item">
+            <a class="walkthrough-card" href="learn-the-fundamentals">
+                <svg class="walkthrough-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false">
+                    <path d="M9 18h6m-5 3h4M8 14a7 7 0 1 1 8 0c-1 .7-1 1.5-1 2H9c0-.5 0-1.3-1-2Z" />
+                </svg>
+                <span class="walkthrough-title">@Properties.Resources.LearnTheFundamentals</span>
+            </a>
+            <WalkthroughHideButton Title="@Properties.Resources.LearnTheFundamentals" Disabled="@_saving"
+                                   OnHide="() => HideAsync(GXWalkthroughPreferences.Fundamentals)" />
+        </div>
+    }
+    @if (!Preferences.IsHidden(GXWalkthroughPreferences.Videos))
+    {
+        <div class="walkthrough-item">
+            <a class="walkthrough-card" href="videos">
+                <svg class="walkthrough-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <rect x="2" y="4" width="20" height="16" rx="3" />
+                    <path d="m10 8 6 4-6 4V8Z" />
+                </svg>
+                <span>
+                    <span class="walkthrough-title">@Properties.Resources.TutorialVideos</span>
+                    <span class="walkthrough-description">@Properties.Resources.TutorialVideosDescription</span>
+                </span>
+            </a>
+            <WalkthroughHideButton Title="@Properties.Resources.TutorialVideos" Disabled="@_saving"
+                                   OnHide="() => HideAsync(GXWalkthroughPreferences.Videos)" />
+        </div>
+    }
+    <CatalogUpdateList Limit="3" ShowAsCards="true" />
+    @if (_saveError) { <p role="alert">@Properties.Resources.WalkthroughHideFailed</p> }
+</nav>
+
+@code {
+    private bool _saveError, _saving, _disposed;
+    protected override async Task OnInitializedAsync()
+    {
+        Preferences.Changed += PreferencesChanged;
+        await LoadAsync();
+    }
+    private async Task LoadAsync()
+    {
+        using var progress = Progress.ProgressStart(Properties.Resources.Loading);
+        try
+        {
+            await Preferences.LoadAsync();
+        }
+        catch (AccessTokenNotAvailableException error)
+        {
+            error.Redirect();
+        }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            if (!_disposed)
+            {
+                NotificationService.ReportError(error);
+            }
+        }
+    }
+    private void PreferencesChanged()
+    {
+        if (!_disposed) {
+            _ = InvokeAsync(async () => { await LoadAsync(); if (!_disposed) {
+            StateHasChanged();
+        } });
+        }
+    }
+    private async Task HideAsync(string key)
+    {
+        if (_saving) {
+            return;
+        }
+        _saving = true;
+        _saveError = false;
+        try { await Preferences.HideAsync(key); }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException) { _saveError = true; }
+        finally { _saving = false; }
+    }
+    public void Dispose() { _disposed = true; Preferences.Changed -= PreferencesChanged; }
+}

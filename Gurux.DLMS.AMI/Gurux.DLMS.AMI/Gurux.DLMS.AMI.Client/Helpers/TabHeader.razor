@@ -1,0 +1,278 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Internal
+@using Microsoft.Extensions.Logging
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Client.Pages.Module
+
+@inject IServiceProvider Services
+@using Gurux.DLMS.AMI.Shared.DIs
+@implements IDisposable
+@inject ILogger<TabHeader> Logger
+@inject ModuleLoader Loader
+
+@if (_menu?.Links != null)
+{
+    @foreach (GXMenuLink link in _menu.Links.Where(link => LinkFilter?.Invoke(link) != false))
+    {
+        var moduleView = GetModuleView(link);
+        var componentType = moduleView == null ? ResolveComponentType(link) : null;
+        <GXTabPage Path="@(string.IsNullOrWhiteSpace(link.Url) ? link.Id.ToString() : link.Url)"
+                 Text=@link.Name
+                 Padge="@link.PadgeTitle"
+                 PadgeCount="@ClientHelpers.GetBadgeCount(_updateStamps[link.Id], link.Padges)"
+                 PadgeType="@ClientHelpers.GetBadgeTraceLevel(_updateStamps[link.Id], link.Padges)"
+                 Icon="@link.Icon"
+                 IconColor="@GetModuleIconColor(moduleView)">
+            <GXHelpScope Topic="@GetHelpTopic(link)">
+                @if (moduleView is { } view)
+                {
+                    <ModuleViews ModuleId="@view.ModuleId" Area="@view.Area" ViewKey="@view.Key"
+                                 WrapInTab="false" Parameters="@Parameters">
+                        <ChildContent>
+                            @if (view.Area == AmiViewArea.Logs)
+                            {
+                                <Gurux.DLMS.AMI.Client.Pages.Log.Logs @key="(view.ModuleId, view.Key)" LogTypeName="@view.Key" />
+                            }
+                        </ChildContent>
+                    </ModuleViews>
+                }
+                else if (!string.IsNullOrWhiteSpace(link.TargetType) && componentType == null)
+                {
+                    <div class="alert alert-warning" role="alert">@Properties.Resources.TheComponentForThisTabIsUnavailableCheckTheMenuLinkSettings</div>
+                }
+                else if (ContentForLink != null)
+                {
+                    @ContentForLink(link)
+                }
+                else if (componentType != null)
+                {
+                    <DynamicComponent Type="@componentType" Parameters="@GetParameters(componentType, link)"></DynamicComponent>
+                }
+            </GXHelpScope>
+        </GXTabPage>
+    }
+}
+
+@code {
+    [CascadingParameter(Name = GXHelpTopics.ScopeName)]
+    private string? ContainingHelpTopic { get; set; }
+    private string? _pageHelpTopic;
+    private string? GetHelpTopic(GXMenuLink link) => GetModuleView(link) != null ? null
+        : GXHelpTopics.ForTab(Name, link, ContainingHelpTopic, _pageHelpTopic);
+
+    private static (string ModuleId, AmiViewArea Area, string Key)? GetModuleView(GXMenuLink link)
+    {
+        var parts = link.Url?.Split('/', 4);
+        if (parts is { Length: 4 } && parts[0].Equals("module", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(parts[1]) && !string.IsNullOrWhiteSpace(parts[3]) && Enum.TryParse<AmiViewArea>(parts[2], true, out var area) && Enum.IsDefined(area))
+        {
+            return (parts[1], area, parts[3]);
+        }
+        return null;
+    }
+
+    private string? GetModuleIconColor((string ModuleId, AmiViewArea Area, string Key)? view)
+    {
+        if (view == null)
+        {
+            return null;
+        }
+        var module = Loader.AddIns.FirstOrDefault(item => item.Id.Equals(view.Value.ModuleId, StringComparison.OrdinalIgnoreCase));
+        return module == null ? GXModulePresentation.IconColor(null, false)
+            : GXModulePresentation.IconColor(module.State, module.Enabled);
+    }
+
+    private Type? ResolveComponentType(GXMenuLink link)
+    {
+        if (string.IsNullOrWhiteSpace(link.TargetType))
+        {
+            return null;
+        }
+        try
+        {
+            var type = Type.GetType(link.TargetType, throwOnError: false);
+            if (type != null && typeof(IComponent).IsAssignableFrom(type) && !type.IsAbstract && !type.ContainsGenericParameters)
+            {
+                return type;
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or TypeLoadException or System.IO.FileNotFoundException or System.IO.FileLoadException or BadImageFormatException)
+        {
+            Logger.LogWarning(exception, "Unable to load tab component {Type} for {Menu}/{Link}.", link.TargetType, Name, link.Name);
+            return null;
+        }
+        Logger.LogWarning("Tab component {Type} for {Menu}/{Link} is missing or is not a concrete component.", link.TargetType, Name, link.Name);
+        return null;
+    }
+
+    /// <summary>Optional host filter for the visible tabs.</summary>
+    [Parameter]
+    public Func<GXMenuLink, bool>? LinkFilter { get; set; }
+
+    private IGXNotifier2? Notifier;
+
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// Menu name.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = default!;
+
+    /// <summary>Shared values; only the target component's ordinary parameters are forwarded.</summary>
+    [Parameter]
+    public IDictionary<string, object>? Parameters { get; set; }
+
+    /// <summary>Optional per-link parameters that override shared values.</summary>
+    [Parameter]
+    public Func<GXMenuLink, IDictionary<string, object>?>? ParametersForLink { get; set; }
+
+    /// <summary>Optional tab content template for hosts that need a typed component reference.</summary>
+    [Parameter]
+    public RenderFragment<GXMenuLink>? ContentForLink { get; set; }
+
+
+    private IDictionary<string, object>? GetParameters(Type? componentType, GXMenuLink link)
+        => componentType == null ? ParametersForLink?.Invoke(link)
+            : GXTabParameters.Filter(componentType, Parameters, ParametersForLink?.Invoke(link));
+    private GXMenu? _menu;
+
+    /// <summary>
+    /// User stamps.
+    /// </summary>
+    private Dictionary<Guid, IEnumerable<GXUserStamp>> _updateStamps = new();
+
+    private IAmiMenuStorage? _menuStorage;
+    private string? _loadedName;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        _pageHelpTopic = Services.GetService<Gurux.UI.Components.Help.GXHelpService>()?.Topic;
+        Loader.Changed += OnModulesChanged;
+        Notifier = Services.GetService<IGXNotifier2>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        _menuStorage = Services.GetService<IAmiMenuStorage>();
+        if (_menuStorage != null)
+        {
+            _menuStorage.MenuChanged += OnMenuChanged;
+        }
+        Notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), stamps =>
+        {
+            bool updated = false;
+            foreach (var list in _updateStamps.Values)
+            {
+                updated |= ClientHelpers.UpdateUserStamps(stamps, list);
+            }
+            if (updated)
+            {
+                _ = InvokeAsync(StateHasChanged);
+            }
+        });
+    }
+
+    private void OnModulesChanged()
+    {
+        if (!_disposed)
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedName == Name)
+        {
+            return;
+        }
+        _loadedName = Name;
+        _menu = null;
+        try
+        {
+            var name = Name;
+            var menu = _menuStorage == null ? null : await _menuStorage.GetMenuAsync(name);
+            if (!_disposed && name == Name)
+            {
+                SetMenu(menu);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load menu {Name}.", Name);
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    private void SetMenu(GXMenu? menu)
+    {
+        _menu = menu;
+        _updateStamps.Clear();
+        foreach (var link in menu?.Links ?? [])
+        {
+            _updateStamps[link.Id] = string.IsNullOrEmpty(link.Padges) ? []
+                : Notifier?.GetUserStamps(link.Padges.Split(',', StringSplitOptions.RemoveEmptyEntries)) ?? [];
+        }
+    }
+
+    private void OnMenuChanged(object? sender, GXMenuChangedEventArgs args)
+    {
+        if (_disposed || args.Name != Name)
+        {
+            return;
+        }
+        _ = InvokeAsync(() =>
+        {
+            if (_disposed || args.Name != Name)
+            {
+                return;
+            }
+            SetMenu(args.Menu);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_menuStorage != null)
+        {
+            _menuStorage.MenuChanged -= OnMenuChanged;
+        }
+        Loader.Changed -= OnModulesChanged;
+        Notifier?.RemoveListener(this);
+    }
+}
+

@@ -1,4 +1,33 @@
-﻿@page "/Account/ConfirmEmail"
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/ConfirmEmail"
 
 @using System.Text
 @using Microsoft.AspNetCore.Identity
@@ -7,10 +36,11 @@
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
+@inject ILogger<ConfirmEmail> Logger
 
-<PageTitle>Confirm email</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmail</PageTitle>
 
-<h1>Confirm email</h1>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmail</h1>
 <StatusMessage Message="@statusMessage" />
 
 @code {
@@ -25,6 +55,9 @@
     [SupplyParameterFromQuery]
     private string? Code { get; set; }
 
+    [SupplyParameterFromQuery]
+    private string? ChangedEmail { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         if (UserId is null || Code is null)
@@ -36,13 +69,34 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = $"Error loading user with ID {UserId}";
+            statusMessage = string.Format(Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingUserWithID0, UserId);
         }
         else
         {
             var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+            if (ChangedEmail is not null)
+            {
+                // Identity API manage/info links use this route with changedEmail.
+                // Validate the email-bound token before changing either stored identifier.
+                var changeResult = await UserManager.ChangeEmailAsync(user, ChangedEmail, code);
+                if (!changeResult.Succeeded)
+                {
+                    statusMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingEmail;
+                    return;
+                }
+                var nameResult = await UserManager.SetUserNameAsync(user, ChangedEmail);
+                statusMessage = nameResult.Succeeded
+                    ? Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmailChange
+                    : Gurux.DLMS.AMI.Properties.Resources.ErrorChangingUserName;
+                return;
+            }
             var result = await UserManager.ConfirmEmailAsync(user, code);
-            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+            if (!result.Succeeded)
+            {
+                Logger.LogWarning("Email confirmation failed with Identity error codes: {ErrorCodes}",
+                    string.Join(", ", result.Errors.Select(error => error.Code)));
+            }
+            statusMessage = result.Succeeded ? Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmail : Gurux.DLMS.AMI.Properties.Resources.ErrorConfirmingYourEmail;
         }
     }
 }

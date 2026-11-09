@@ -1,37 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Components;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
@@ -45,17 +38,20 @@ using Gurux.DLMS.Objects;
 using Microsoft.AspNetCore.Components;
 using System.Diagnostics;
 using System.Drawing;
-using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Web;
 using System.Xml.Serialization;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
     public static class ClientHelpers
     {
+        /// <summary>Adapts a 64-bit API total to Blazor's 32-bit virtualization limit, preserving the unknown-count sentinel.</summary>
+        public static int ToVirtualizedCount(long count) => (int)Math.Clamp(count, -1L, int.MaxValue);
+
         /// <summary>
         /// Add distinct items to the list.
         /// </summary>
@@ -77,13 +73,9 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         /// </summary>
         /// <param name="user"></param>
         /// <returns>User ID.</returns>
-        public static string GetUserId(ClaimsPrincipal user)
+        public static string GetUserId(ClaimsPrincipal? user)
         {
-            string? id = GetUserId(user, true);
-            if (id == null)
-            {
-                throw new UnauthorizedAccessException();
-            }
+            string? id = GetUserId(user, true) ?? throw new UnauthorizedAccessException();
             return id;
         }
 
@@ -93,7 +85,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         /// <param name="user"></param>
         /// <param name="throwException">Exception is thrown if user is unknown.</param>
         /// <returns>User ID.</returns>
-        public static string? GetUserId(ClaimsPrincipal user, bool throwException)
+        public static string? GetUserId(ClaimsPrincipal? user, bool throwException)
         {
             if (user == null)
             {
@@ -117,23 +109,20 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         public static string GetHashCode(this string str)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(str);
-            using (SHA256 sha256 = SHA256.Create())
+            byte[] hashBytes = SHA256.HashData(bytes);
+            //Convert to hex.
+            StringBuilder sb = new(64);
+            foreach (byte it in hashBytes)
             {
-                byte[] hashBytes = sha256.ComputeHash(bytes);
-                //Convert to hex.
-                StringBuilder sb = new StringBuilder(64);
-                foreach (byte it in hashBytes)
-                {
-                    sb.Append(it.ToString("x2"));
-                }
-                return sb.ToString();
+                sb.Append(it.ToString("x2"));
             }
+            return sb.ToString();
         }
-       
+
         //Green dot is shown if item is active.
         public static string GetActiveDot(bool? active)
         {
-            if (active.HasValue && active.Value)
+            if (active == true)
             {
                 return "<div class=\"rounded-circle bg-success\" style=\"width: 16px; height: 16px;\"></div>";
             }
@@ -151,40 +140,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             return Convert.ToString(value);
         }
 
-        static IEnumerable<T> SortEnumByName<T>()
-        {
-            return from e in Enum.GetValues(typeof(T)).Cast<T>()
-                   let nm = e.ToString()
-                   orderby nm
-                   select e;
-        }
-
-        /// <summary>
-        /// Returns collection of notifications that can be ignored.
-        /// </summary>
-        /// <param name="lowercase">Are named returned as lowercase.</param>
-        /// <returns></returns>
-        public static IEnumerable<string> GetNotifications(bool lowercase)
-        {
-            List<string> items = new List<string>();
-            foreach (var it in typeof(TargetType).GetFields())
-            {
-                if (it.Name != TargetType.Cron &&
-                    it.Name != TargetType.Role)
-                {
-                    if (lowercase)
-                    {
-                        items.Add(it.Name.ToLower());
-                    }
-                    else
-                    {
-                        items.Add(it.Name);
-                    }
-                }
-            }
-            return items;
-        }
-
         /// <summary>
         /// Clone the object.
         /// </summary>
@@ -194,11 +149,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         public static T Clone<T>(T value)
         {
             var serialized = JsonSerializer.Serialize(value);
-            var ret = JsonSerializer.Deserialize<T>(serialized);
-            if (ret == null)
-            {
-                throw new Exception("Clone failed.");
-            }
+            var ret = JsonSerializer.Deserialize<T>(serialized) ?? throw new Exception("Clone failed.");
             return ret;
         }
 
@@ -211,11 +162,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         public static T Clone<T>(object value)
         {
             var serialized = JsonSerializer.Serialize(value);
-            var ret = JsonSerializer.Deserialize<T>(serialized);
-            if (ret == null)
-            {
-                throw new Exception("Clone failed.");
-            }
+            var ret = JsonSerializer.Deserialize<T>(serialized) ?? throw new Exception("Clone failed.");
             return ret;
         }
 
@@ -232,51 +179,93 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             }
         }
 
-        public static string GetParentUrl(string url)
+        /// <summary>
+        /// Current route path, without query parameters or fragment, for selecting a menu tab.
+        /// </summary>
+        public static string GetCurrentPagePath(this NavigationManager navigationManager, string? url = null)
         {
-            int index = url.ToLower().IndexOf("/config/");
-            if (index != -1)
+            if (string.IsNullOrEmpty(url))
             {
-                return url.Substring(0, index + 7);
+                return navigationManager.ToBaseRelativePath(new Uri(navigationManager.Uri).GetLeftPart(UriPartial.Path));
             }
-            return url.Replace("/Edit/", "/").Replace("/Add/", "/").Replace("/Add", "");
+            if (TryGetLocalUrl(navigationManager, url, out var target) &&
+               target != navigationManager.Uri &&
+               HttpUtility.ParseQueryString(new Uri(target).Query).GetValues("returnUrl") == null)
+            {
+                url = navigationManager.GetUriWithQueryParameters(target,
+                    new Dictionary<string, object?> { ["returnUrl"] = new Uri(navigationManager.Uri).PathAndQuery + new Uri(navigationManager.Uri).Fragment });
+            }
+            return url;
         }
 
         /// <summary>
-        /// Navigate to the given url and save the current url.
+        /// Navigate to the given URL, carrying the current URL as returnUrl.
         /// </summary>
         /// <param name="navigationManager">Navigation manager.</param>
-        /// <param name="notifier">Notifier.</param>
-        /// <param name="url">Url.</param>
-        public static void NavigateTo(this NavigationManager navigationManager, IGXNotifier notifier, string url)
+        /// <param name="url">Destination URL. An existing returnUrl is preserved.</param>
+        public static void NavigateTo(this NavigationManager navigationManager, string url)
         {
-            notifier.ChangePage(navigationManager.Uri);
+            url = GetCurrentPagePath(navigationManager, url);
             navigationManager.NavigateTo(url);
         }
 
         /// <summary>
-        /// Navigate to the previous url.
+        /// Navigate to returnUrl in the current URL, or to the application base when it is absent or invalid.
         /// </summary>
         /// <param name="navigationManager">Navigation manager.</param>
-        /// <param name="notifier">Notifier.</param>
-        public static void NavigateToLastPage(this NavigationManager navigationManager, IGXNotifier notifier)
+        public static void NavigateToLastPage(this NavigationManager navigationManager)
         {
-            if (notifier.LastUrl != null)
+            var query = HttpUtility.ParseQueryString(new Uri(navigationManager.Uri).Query);
+            var target = navigationManager.BaseUri;
+            var values = query.GetValues("returnUrl");
+            if (values is { Length: 1 } &&
+                TryGetLocalUrl(navigationManager, values[0], out var returnUrl) &&
+                returnUrl != navigationManager.Uri)
             {
-                navigationManager.NavigateTo(notifier.LastUrl);
+                target = returnUrl;
             }
-            else
+            GXEditorMenu.AcceptSavedNavigation();
+            navigationManager.NavigateTo(target);
+        }
+
+        private static bool TryGetLocalUrl(NavigationManager navigationManager, string? url, out string target)
+        {
+            target = "";
+            if (string.IsNullOrWhiteSpace(url))
             {
-                navigationManager.NavigateTo(GetParentUrl(navigationManager.Uri));
+                return false;
+            }
+
+            try
+            {
+                var uri = navigationManager.ToAbsoluteUri(url);
+                if (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)
+                {
+                    return false;
+                }
+                // This also validates the application base path when AMI is hosted in a subdirectory.
+                navigationManager.ToBaseRelativePath(uri.AbsoluteUri);
+                target = uri.AbsoluteUri;
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            catch (UriFormatException)
+            {
+                return false;
             }
         }
 
         /// <summary>
         /// Convert string to CRUD action.
         /// </summary>
+        /// <param name="navigationManager">Navigation used to redirect invalid actions to the 404 page.</param>
         /// <param name="value">String.</param>
-        /// <returns>CRUD action.</returns>
-        public static CrudAction GetAction(string? value)
+        /// <param name="def">Optional default action for an unrecognized value.</param>
+        /// <returns>CRUD action, or None after redirecting to 404.</returns>
+        public static CrudAction GetAction(NavigationManager navigationManager, string? value, CrudAction? def = null)
         {
             CrudAction ret;
             if (string.Compare(value, "Add", true) == 0)
@@ -297,7 +286,12 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             }
             else
             {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
+                if (def == null)
+                {
+                    navigationManager.NavigateTo("404");
+                    return CrudAction.None;
+                }
+                ret = def.Value;
             }
             return ret;
         }
@@ -308,23 +302,24 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         /// <param name="xml">XML string.</param>
         public static List<GXDeviceTemplate> ConvertToTemplates(ILogger? logger, string xml)
         {
-            List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
+            List<GXDeviceTemplate> templates = [];
             GXDLMSDevice[] devices;
             using (var tr = new StringReader(xml))
             {
-                List<Type> types = new List<Type>(Gurux.DLMS.GXDLMSClient.GetObjectTypes());
+                List<Type> types = [.. Gurux.DLMS.GXDLMSClient.GetObjectTypes()];
                 types.Add(typeof(GXDLMSAttributeSettings));
                 types.Add(typeof(GXDLMSAttribute));
-                XmlSerializer serializer = new XmlSerializer(typeof(GXDLMSDevice[]), null, types.ToArray(), null, "Gurux1");
-                devices = (GXDLMSDevice[])serializer.Deserialize(tr);
+                XmlSerializer serializer = new(typeof(GXDLMSDevice[]), null, [.. types], null, "Gurux1");
+                devices = serializer.Deserialize(tr) as GXDLMSDevice[] ?? throw new InvalidOperationException("The device file contains no devices.");
             }
-            GXDeviceTemplate m = new GXDeviceTemplate();
-            foreach (GXDLMSDevice it in devices)
+
+            _ = new GXDeviceTemplate();
+            foreach (GXDLMSDevice it in (devices ?? []))
             {
                 int AssociationViewVersion = 1;
-                GXDeviceTemplate t = new GXDeviceTemplate();
+                GXDeviceTemplate t = new();
                 Copy(t, it);
-                List<GXObjectTemplate> list = new List<GXObjectTemplate>();
+                List<GXObjectTemplate> list = [];
                 if (it.Objects.Count == 0)
                 {
                     throw new Exception("There are no objects. Read the association view first.");
@@ -333,10 +328,9 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 if (it.UseLogicalNameReferencing)
                 {
                     GXDLMSObjectCollection objs = it.Objects.GetObjects(Enums.ObjectType.AssociationLogicalName);
-                    if (objs.Any())
+                    if (objs.Count != 0)
                     {
-                        GXDLMSAssociationLogicalName? ln = objs[0] as GXDLMSAssociationLogicalName;
-                        if (ln != null)
+                        if (objs[0] is GXDLMSAssociationLogicalName ln)
                         {
                             AssociationViewVersion = ln.Version;
                         }
@@ -346,27 +340,29 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 foreach (GXDLMSObject value in it.Objects)
                 {
                     string[] names = ((IGXDLMSBase)value).GetNames();
-                    GXObjectTemplate obj = new GXObjectTemplate(null)
+                    GXObjectTemplate obj = new(null)
                     {
                         LogicalName = value.LogicalName,
                         ObjectType = (int)value.ObjectType,
                         Name = value.Description,
                         Version = value.Version,
                         ShortName = value.ShortName,
-                        Attributes = new List<GXAttributeTemplate>()
+                        Attributes = []
                     };
                     if (obj.Name.Length > 256)
                     {
-                        logger?.LogError(string.Format("Name '{0}' is too long,", obj.Name));
-                        obj.Name = obj.Name.Substring(0, 256);
+                        logger?.LogError("Name '{Name}' is too long,", obj.Name);
+                        obj.Name = obj.Name[..256];
                     }
                     list.Add(obj);
                     for (int pos = 2; pos <= ((IGXDLMSBase)value).GetAttributeCount(); ++pos)
                     {
-                        GXAttributeTemplate a = new GXAttributeTemplate(null);
-                        a.Name = names[pos - 1];
-                        a.Index = pos;
-                        a.Weight = pos - 1;
+                        GXAttributeTemplate a = new(null)
+                        {
+                            Name = names[pos - 1],
+                            Index = pos,
+                            Weight = pos - 1
+                        };
                         if (AssociationViewVersion < 3)
                         {
                             a.AccessLevel = (int)value.GetAccess(pos);
@@ -395,12 +391,15 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                                 pos == 8)
                             {
                                 a.ExpirationTime = DateTime.MaxValue;
-                                ValueEventArgs e = new ValueEventArgs(value, pos, 0, null);
+                                ValueEventArgs e = new(value, pos, 0, null);
                                 object val = ((IGXDLMSBase)value).GetValue(null, e);
                                 string? str;
                                 if (val is byte[] barray)
                                 {
-                                    GXDLMSTranslator t2 = new() { Hex = false };
+                                    GXDLMSTranslator t2 = new()
+                                    {
+                                        Hex = false
+                                    };
                                     t2.DataToXml(barray, out str);
                                 }
                                 else
@@ -443,7 +442,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                                             UIValue = v.ToString(),
                                             Value = Convert.ToInt32(v)
                                         };
-                                        a.ListItems.Add(li);
+                                        (a.ListItems ??= []).Add(li);
                                     }
                                 }
                             }
@@ -545,25 +544,27 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             target.Type = source.Name;
             target.MediaType = source.MediaType;
             target.MediaSettings = source.MediaSettings;
-            var settings = new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings();
-            settings.MaximumBaudRate = source.MaximumBaudRate;
-            settings.Authentication = (byte)source.Authentication;
-            settings.AuthenticationName = source.AuthenticationName;
-            settings.Standard = (byte)source.Standard;
-            // Password is not saved as a default.
-            // User can change it if needed.
-            // settings.Password = source.Password;
-            // settings.HexPassword = source.HexPassword;
-            settings.Security = (byte)source.Security;
-            settings.ClientSystemTitle = source.SystemTitle;
+            var settings = new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings
+            {
+                MaximumBaudRate = source.MaximumBaudRate,
+                Authentication = (byte)source.Authentication,
+                AuthenticationName = source.AuthenticationName,
+                Standard = (byte)source.Standard,
+                // Password is not saved as a default.
+                // User can change it if needed.
+                // settings.Password = source.Password;
+                // settings.HexPassword = source.HexPassword;
+                Security = (byte)source.Security,
+                ClientSystemTitle = GXDLMSTranslator.HexToBytes(source.SystemTitle)
+            };
             if (source.PreEstablished)
             {
-                settings.DeviceSystemTitle = source.ServerSystemTitle;
+                settings.DeviceSystemTitle = GXDLMSTranslator.HexToBytes(source.ServerSystemTitle);
             }
-            settings.DedicatedKey = source.DedicatedKey;
+            settings.DedicatedKey = GXDLMSTranslator.HexToBytes(source.DedicatedKey);
             settings.PreEstablished = source.PreEstablished;
-            settings.BlockCipherKey = source.BlockCipherKey;
-            settings.AuthenticationKey = source.AuthenticationKey;
+            settings.BlockCipherKey = GXDLMSTranslator.HexToBytes(source.BlockCipherKey);
+            settings.AuthenticationKey = GXDLMSTranslator.HexToBytes(source.AuthenticationKey);
             settings.InvocationCounter = source.InvocationCounter;
             settings.FrameCounter = source.FrameCounter;
             settings.Challenge = source.Challenge;
@@ -575,6 +576,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 LogicalAddress = source.LogicalAddress,
             });
             settings.UtcTimeZone = source.UtcTimeZone;
+            settings.DateTimeSkips = (int)source.DateTimeSkips;
             settings.UseRemoteSerial = source.UseRemoteSerial;
             settings.MaxInfoTX = source.MaxInfoTX;
             settings.MaxInfoRX = source.MaxInfoRX;
@@ -597,36 +599,18 @@ namespace Gurux.DLMS.AMI.Client.Helpers
 
         public static string GetKeyTypeDescription(KeyManagementType? value)
         {
-            string str;
-            switch (value.GetValueOrDefault(KeyManagementType.LLSPassword))
+            string str = value.GetValueOrDefault(KeyManagementType.LLSPassword) switch
             {
-                case KeyManagementType.LLSPassword:
-                    str = Properties.Resources.KeyManagementLLSPassword;
-                    break;
-                case KeyManagementType.HLSPassword:
-                    str = Properties.Resources.KeyManagementHLSPassword;
-                    break;
-                case KeyManagementType.BlockCipher:
-                    str = Properties.Resources.KeyManagementUnicastKey;
-                    break;
-                case KeyManagementType.Authentication:
-                    str = Properties.Resources.KeyManagementAuthenticationKey;
-                    break;
-                case KeyManagementType.Broadcast:
-                    str = Properties.Resources.KeyManagementBroadcast;
-                    break;
-                case KeyManagementType.MasterKey:
-                    str = Properties.Resources.KeyManagementMasterKey;
-                    break;
-                case KeyManagementType.PrivateKey:
-                    str = Properties.Resources.KeyManagementPrivateKey;
-                    break;
-                case KeyManagementType.PublicKey:
-                    str = Properties.Resources.KeyManagementPublicKey;
-                    break;
-                default:
-                    throw new Exception(Properties.Resources.InvalidTarget);
-            }
+                KeyManagementType.LLSPassword => Properties.Resources.KeyManagementLLSPassword,
+                KeyManagementType.HLSPassword => Properties.Resources.KeyManagementHLSPassword,
+                KeyManagementType.BlockCipher => Properties.Resources.KeyManagementUnicastKey,
+                KeyManagementType.Authentication => Properties.Resources.KeyManagementAuthenticationKey,
+                KeyManagementType.Broadcast => Properties.Resources.KeyManagementBroadcast,
+                KeyManagementType.MasterKey => Properties.Resources.KeyManagementMasterKey,
+                KeyManagementType.PrivateKey => Properties.Resources.KeyManagementPrivateKey,
+                KeyManagementType.PublicKey => Properties.Resources.KeyManagementPublicKey,
+                _ => throw new Exception(Properties.Resources.InvalidTarget),
+            };
             return str;
         }
 
@@ -641,13 +625,13 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             {
                 return "0, 0, 0";
             }
-            if (!value.StartsWith("#"))
+            if (!value.StartsWith('#'))
             {
                 var c = Color.FromName(value);
                 return string.Format("{0}, {1}, {2}", c.R, c.G, c.B);
             }
             value = value.Replace("#", "");
-            return Convert.ToInt32(value.Substring(0, 2), 16) + "," +
+            return Convert.ToInt32(value[..2], 16) + "," +
                 Convert.ToInt32(value.Substring(2, 2), 16) + "," +
                 Convert.ToInt32(value.Substring(4, 2), 16);
         }
@@ -690,18 +674,18 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             if (iconPack == "Bootstrap")
             {
                 list = Properties.Resources.BootstrapIcons.Split(Environment.NewLine);
-                return list.Select(n => (Name: "bi-" + n, Value: n)).ToList();
+                return [.. list.Select(n => (Name: "bi-" + n, Value: n))];
             }
             else if (iconPack == "FontAwesome")
             {
                 list = Properties.Resources.FontawesomeIcons.Split(Environment.NewLine);
-                return list.Select(n => (Name: "fa-solid fa-" + n, Value: n)).ToList();
+                return [.. list.Select(n => (Name: "fa-solid fa-" + n, Value: n))];
             }
             else
             {
                 //Material icons
                 list = Properties.Resources.MaterialIcons.Split(Environment.NewLine);
-                return list.Select(n => (Name: n, Value: n)).ToList();
+                return [.. list.Select(n => (Name: n, Value: n))];
             }
         }
 
@@ -715,13 +699,13 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                     {
                         return l.Padges.Split(',');
                     }
-                    return Array.Empty<string>();
+                    return [];
                 });
             }
-            return Array.Empty<string>();
+            return [];
         }
 
-        public static int GetBadgeCount(List<GXUserStamp> updateStamps, string? padges)
+        public static int GetBadgeCount(IEnumerable<GXUserStamp> updateStamps, string? padges)
         {
             int count = 0;
             if (!string.IsNullOrEmpty(padges))
@@ -737,7 +721,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             return count;
         }
 
-        public static TraceLevel GetBadgeTraceLevel(List<GXUserStamp> updateStamps,
+        public static TraceLevel GetBadgeTraceLevel(IEnumerable<GXUserStamp> updateStamps,
             string? padges)
         {
             TraceLevel level = TraceLevel.Off;
@@ -779,7 +763,8 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             }
             return updateStamps;
         }
-        public static bool UpdateUserStamps(IEnumerable<GXUserStamp> updatedStamps, List<GXUserStamp> stamps)
+        public static bool UpdateUserStamps(IEnumerable<GXUserStamp> updatedStamps,
+            IEnumerable<GXUserStamp> stamps)
         {
             bool updated = false;
             foreach (var it in updatedStamps)
@@ -800,6 +785,176 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 }
             }
             return updated;
+        }
+
+        /// <summary>
+        /// Convert the text to kebab case.
+        /// </summary>
+        /// <remarks>
+        /// For example, "HelloWorld" will be converted to "hello-world".
+        /// This is used to convert role name and scope name to kebab case for better readability.
+        /// </remarks>
+        public static string GetKebabCase(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+            var result = new StringBuilder();
+            if (char.IsUpper(text[0]))
+            {
+                result.Append(text[0].ToString().ToLower());
+            }
+            else
+            {
+                result.Append(text[0]);
+            }
+
+            for (int i = 1; i < text.Length; i++)
+            {
+                char current = text[i];
+
+                if (char.IsUpper(current))
+                {
+                    result.Append('-');
+                    result.Append(current.ToString().ToLower());
+                }
+                else
+                {
+                    result.Append(current);
+                }
+            }
+            return result.ToString();
+        }
+
+        public static string? KebabToTitle(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return input;
+            }
+            var parts = input.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var word = parts[i].ToLower();
+                parts[i] = char.ToUpper(word[0]) + word[1..];
+            }
+            return string.Join(" ", parts);
+        }
+    }
+
+
+    public class CachedHttpClient(
+        HttpClient http,
+        ClientCacheService cache,
+        ILogger<CachedHttpClient> logger)
+    {
+        private readonly HttpClient _http = http;
+        private readonly ClientCacheService _cache = cache;
+        private readonly ILogger<CachedHttpClient> _logger = logger;
+
+        public async Task<T?> GetAsync<T>(
+            string url,
+            TimeSpan cacheTime = default)
+        {
+            if (cacheTime == default)
+            {
+                cacheTime = TimeSpan.FromMinutes(60);
+            }
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Getting data from {Url} with cache time {CacheTime}", url, cacheTime);
+            }
+
+            var cached = await _cache.GetAsync<T>(url);
+            if (cached != null)
+            {
+                return cached;
+            }
+            var result = await _http.GetAsJsonAsync<T>(url);
+
+            if (result != null)
+            {
+                await _cache.SetAsync(
+                    url,
+                    result,
+                    cacheTime);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Remove cache for the given url.
+        /// </summary>
+        /// <param name="url">Removed url.</param>
+        public Task RemoveAsync(string url)
+        {
+            if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                _logger.LogInformation("Removing cache for {Url}", url);
+            }
+            _cache.RemoveAsync(url);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Clear cache.
+        /// </summary>
+        public Task ClearAsync()
+        {
+            _logger.LogInformation("Clearing all cache");
+            _cache.ClearAsync();
+            return Task.CompletedTask;
+        }
+    }
+
+    public sealed class CacheItem<T>
+    {
+        public T? Value { get; set; }
+        public DateTimeOffset ExpiresAt { get; set; }
+    }
+
+    public sealed class ClientCacheService
+    {
+        private readonly Dictionary<string, CacheItem<object>> _storage = [];
+
+        public Task SetAsync<T>(
+            string key,
+            T value,
+            TimeSpan lifetime)
+        {
+            _storage.Add(key, new CacheItem<object>
+            {
+                Value = value,
+                ExpiresAt = DateTimeOffset.UtcNow.Add(lifetime)
+            });
+            return Task.CompletedTask;
+        }
+
+        public async Task<T?> GetAsync<T>(string key)
+        {
+            if (_storage.TryGetValue(key, out CacheItem<object>? cacheItem))
+            {
+                if (cacheItem.ExpiresAt <= DateTimeOffset.UtcNow)
+                {
+                    await RemoveAsync(key);
+                    return default;
+                }
+                return (T?)cacheItem.Value;
+            }
+            return default;
+        }
+
+        public Task RemoveAsync(string key)
+        {
+            _storage.Remove(key);
+            return Task.CompletedTask;
+        }
+
+        public Task ClearAsync()
+        {
+            _storage.Clear();
+            return Task.CompletedTask;
         }
     }
 }

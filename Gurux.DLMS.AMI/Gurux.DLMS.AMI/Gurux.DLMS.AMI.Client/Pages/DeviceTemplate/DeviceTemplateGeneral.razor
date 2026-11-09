@@ -1,0 +1,423 @@
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Web;
+@using System.Text.Json.Serialization;
+@using System.Text.Encodings.Web;
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ILogger<DeviceTemplateGeneral> Logger
+
+<GXHelpContext Topic="DeviceTemplateGeneral" />
+
+@if (Active != null && Settings != null)
+{
+    @if (isLoading)
+    {
+        <p>Loading @fileName...</p>
+    }
+    else if (IsAdding)
+    {
+        @*FileSelector is disabled until user has selected device template.*@
+        <GXFileSelector TType="string" Value="@_value"
+                      Style="width:100%"
+                      MaxFileSize="10000000"
+                      OnLoaded="@UpdateDeviceTemplates"
+                      Filter=".gxc" />
+    }
+
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <DataAnnotationsValidator />
+
+        <ValidationSummary />
+        <table>
+            @if (IsAdding && templates != null && templates.Any())
+            {
+                <tr>
+                    <th>@Properties.Resources.Type2</th>
+                    <th>
+                        <GXInputDropdown RememberValue="false" id="type" @bind-Value="TemplateType" @bind-Value:after="TemplateTypeChangedAsync" placeholder="@Properties.Resources.DeviceTemplateType"
+                                         Items="@(templates.Select(it => it.Type))" />
+                    </th>
+                </tr>
+            }
+            <tr>
+                <th>
+                    @Gurux.DLMS.AMI.Client.Properties.Resources.Name2
+                </th>
+                <th>
+                    <InputText id="name" disabled="@IsDeleting"
+                               @bind-Value="TemplateName"
+                               placeholder="@Properties.Resources.DeviceTemplateName" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    @Gurux.DLMS.AMI.Client.Properties.Resources.WaitTime
+                </th>
+                <th>
+                    <GXInputNumber RememberValue="false" id="waitTime" disabled="@IsDeleting"
+                                 @bind-Value="Active.WaitTime" Min="@GXNumberBounds.Minimum(Active.WaitTime)" Max="@GXNumberBounds.Maximum(Active.WaitTime)" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    @Gurux.DLMS.AMI.Client.Properties.Resources.ResendCount
+                </th>
+                <th>
+                    <GXInputNumber RememberValue="false" id="resendCount" disabled="@IsDeleting"
+                                 @bind-Value="Active.ResendCount" Min="@GXNumberBounds.Minimum(Active.ResendCount)" Max="@GXNumberBounds.Maximum(Active.ResendCount)" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    @Properties.Resources.Authentication
+                </th>
+                <th>
+                    <GXInputDropdown RememberValue="false" id="type" class="form-select"
+                                 @bind-Value="Authentication" readonly="true"
+                                     Items="@(GetAuthentications().Select(it => (byte)it))" Formatter="@((byte value) => ((Gurux.DLMS.Enums.Authentication)value).ToString())" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <GXInputHexAscii Disabled="@(IsDeleting || IsPasswordTileDisabled())"
+                                   @bind-Value="Settings.Password"
+                                   Title="@Properties.Resources.Password">
+                    </GXInputHexAscii>
+                    <ValidationMessage For="@(() => Settings.Password)" />
+                </th>
+            </tr>
+        </table>
+        <GXTabControl PersistSelectionInUrl="true">
+            <ChildContent>
+                <TabHeader Name="@GXMenus.DeviceTemplateSettingsTab">
+                    <ContentForLink Context="link">
+                        @if (link.Url == "Profiles")
+                        {
+                            <Profiles Parent="this" @ref="_profiles"></Profiles>
+                        }
+                        else if (link.Url == "Ciphering")
+                        {
+                            <Ciphering Parent="this" @ref="_ciphering"></Ciphering>
+                        }
+                        else if (link.Url == "Advanced")
+                        {
+                            <Advanced Parent="this" @ref="_advanced"></Advanced>
+                        }
+                    </ContentForLink>
+                </TabHeader>
+            </ChildContent>
+        </GXTabControl>
+        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                            Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+    </EditForm>
+}
+@code {
+    internal void SettingsChanged()
+    {
+        if (Active != null)
+            {
+            GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXDeviceTemplate.Settings)));
+        }
+    }
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+
+    private Ciphering? _ciphering;
+    private Advanced? _advanced;
+    private Profiles? _profiles;
+
+    private string? _value { get; set; }
+
+    [Parameter, EditorRequired]
+    public GXDeviceTemplate? Active { get; set; }
+
+    [Parameter]
+    public EventCallback<GXDeviceTemplate> ActiveChanged { get; set; }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter] public DeviceTemplate Owner { get; set; } = default!;
+    private bool DeleteTarget { get => Owner.DeleteTarget; set => Owner.DeleteTarget = value; }
+    private bool isLoading;
+    private List<GXDeviceTemplate> templates { get => Owner.ImportedTemplates; set => Owner.ImportedTemplates = value; }
+    private string? fileName { get => Owner.ImportedFileName; set => Owner.ImportedFileName = value; }
+
+    public bool IsDeleting
+    {
+        get
+        {
+            return Action == CrudAction.Delete;
+        }
+    }
+
+    //User changes name of the Active.
+    string? TemplateName
+    {
+        get
+        {
+            if (Active == null)
+            {
+                return null;
+            }
+            return Active.Name;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Name = value;
+            }
+        }
+    }
+
+    public bool IsAdding
+    {
+        get
+        {
+            return Action == CrudAction.Create;
+        }
+    }
+
+    private string? TemplateType
+    {
+        get
+        {
+            return Active?.Type;
+        }
+        set
+        {
+            foreach (GXDeviceTemplate it in templates)
+            {
+                if (Active != null && it.Type == value)
+                {
+                    Active = it;
+                    LoadSettings();
+                    break;
+                }
+            }
+        }
+    }
+
+    private async Task TemplateTypeChangedAsync()
+    {
+        if (Active != null)
+        {
+            await ActiveChanged.InvokeAsync(Active);
+        }
+    }
+
+    private Guid SelectedSettings { get; set; }
+
+    private List<Gurux.DLMS.Enums.Authentication> GetAuthentications()
+    {
+        List<Gurux.DLMS.Enums.Authentication> list = new List<Gurux.DLMS.Enums.Authentication>();
+        list.Add(Gurux.DLMS.Enums.Authentication.None);
+        list.Add(Gurux.DLMS.Enums.Authentication.Low);
+        list.Add(Gurux.DLMS.Enums.Authentication.High);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighMD5);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighSHA1);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighGMAC);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighSHA256);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighECDSA);
+        return list;
+    }
+
+    internal Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings Settings => Owner.Settings ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+    private byte Authentication
+    {
+        get
+        {
+            if (Settings == null)
+            {
+                return 0;
+            }
+            return Settings.Authentication;
+        }
+        set
+        {
+            if (Settings != null)
+            {
+                if (Settings.Authentication != value)
+                {
+                    Settings.Authentication = value;
+                }
+            }
+        }
+    }
+
+    private bool IsPasswordTileDisabled()
+    {
+        if (Settings != null)
+        {
+            return (Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighGMAC ||
+                Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.None);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Get device templates from the XML.
+    /// </summary>
+    /// <param name="xml"></param>
+    private async Task UpdateDeviceTemplates((string? Value, string FileName) loaded)
+    {
+        var (xml, loadedFileName) = loaded;
+        fileName = loadedFileName;
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.UpdateDeviceTemplates");
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingDeviceTemplate);
+            isLoading = true;
+            await InvokeAsync(StateHasChanged);
+            templates = ClientHelpers.ConvertToTemplates(Logger, xml ?? throw new ArgumentNullException(nameof(xml)));
+            if (Active != null && templates.Any())
+            {
+                Active = templates[0];
+                LoadSettings();
+                await ActiveChanged.InvokeAsync(Active);
+            }
+        }
+        catch (Exception ex)
+        {
+            fileName = null;
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.UpdateDeviceTemplates");
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Device template tab asks to update the UI.
+    /// </summary>
+    public void Update()
+    {
+        LoadSettings();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void LoadSettings()
+    {
+        if (Active != null)
+        {
+            Owner.LoadSettings(Active);
+            _profiles?.Update(Settings);
+            _ciphering?.Update();
+            _advanced?.Update(Settings);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.OnInitializedAsync");
+            if (Active == null && Id != null)
+            {
+                using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingDeviceTemplate);
+                try
+                {
+                    //Get device template data.
+                    var tmp = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(string.Format("api/DeviceTemplate?id={0}", Id)));
+                    if (tmp?.Item != null)
+                    {
+                        Active = tmp.Item;
+                    }
+                    else
+                    {
+                        NavigationManager.NavigateTo("404");
+                    }
+                }
+                finally
+                {
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (Action != CrudAction.Create && !templates.Contains(Active))
+            {
+                templates.Add(Active);
+            }
+
+            LoadSettings();
+
+
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.OnInitializedAsync");
+        }
+    }
+
+
+
+}

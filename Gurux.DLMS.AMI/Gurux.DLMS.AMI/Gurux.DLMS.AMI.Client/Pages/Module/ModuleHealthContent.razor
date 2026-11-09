@@ -1,0 +1,63 @@
+@using Gurux.DLMS.AMI.Module.Health
+@using System.Net.Http.Json
+@implements IAsyncDisposable
+@inject HttpClient Http
+<section aria-label="Runtime health">
+    @if (_health != null)
+    {
+        <dl aria-live="polite">
+            <dt>State</dt><dd>@_health.State</dd>
+            <dt>Active calls</dt><dd>@_health.ActiveCalls</dd>
+            <dt>Started (UTC)</dt><dd>@_health.StartedAt?.ToString("u")</dd>
+            <dt>Stop requested (UTC)</dt><dd>@_health.StopRequestedAt?.ToString("u")</dd>
+            <dt>Stopped (UTC)</dt><dd>@_health.StoppedAt?.ToString("u")</dd>
+            <dt>Shutdown pending</dt><dd>@_health.PendingShutdown</dd>
+            <dt>Forced cancellation</dt><dd>@_health.ForcedCancellation</dd>
+            @if (_health.LastError != null)
+            {
+                <dt>Last error</dt><dd>@_health.LastError</dd>
+            }
+            @foreach (var service in _health.BackgroundServices)
+            {
+                <dt>@service.Name</dt><dd>@service.State</dd>
+            }
+        </dl>
+    }
+    @if (_unavailable)
+    {
+        <p role="status">Runtime health is unavailable.</p>
+    }
+</section>
+@code {
+    [Parameter] public string ModuleId { get; set; } = "";
+    private AmiModuleHealth? _health;
+    private bool _unavailable;
+    private string? _moduleId;
+    private ModuleHealthPolling? _polling;
+    protected override void OnParametersSet()
+    {
+        _polling ??= new ModuleHealthPolling();
+        if (_moduleId != ModuleId)
+        {
+            _moduleId = ModuleId;
+            _polling.Stop();
+            _health = null;
+            _unavailable = false;
+            _polling!.Start(async token =>
+            {
+                try
+                {
+                    var health = await Http.GetFromJsonAsync<AmiModuleHealth>("api/Module/Health/" + Uri.EscapeDataString(ModuleId), token);
+                    token.ThrowIfCancellationRequested();
+                    await InvokeAsync(() => { token.ThrowIfCancellationRequested(); _health = health; _unavailable = false; StateHasChanged(); });
+                }
+                catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
+                {
+                    token.ThrowIfCancellationRequested();
+                    await InvokeAsync(() => { token.ThrowIfCancellationRequested(); _unavailable = true; StateHasChanged(); });
+                }
+            });
+        }
+    }
+    public ValueTask DisposeAsync() => _polling?.DisposeAsync() ?? ValueTask.CompletedTask;
+}

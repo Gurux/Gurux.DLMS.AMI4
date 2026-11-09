@@ -1,12 +1,41 @@
-﻿@inherits LayoutComponentBase
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@inherits LayoutComponentBase
 @layout Gurux.DLMS.AMI.Client.Layout.MainLayout
 
-<h1>Manage your account</h1>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.ManageYourAccount</h1>
 
 <div>
-    <h2>Change your account settings</h2>
+    <h2>@Gurux.DLMS.AMI.Properties.Resources.ChangeYourAccountSettings</h2>
     <hr />
-    <div class="row">
+    <div class="row mx-0">
         <div class="col-lg-3">
             <ManageNavMenu />
         </div>

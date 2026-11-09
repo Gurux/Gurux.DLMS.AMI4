@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -40,32 +36,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the schedule.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class ScheduleController : ControllerBase
+    public class ScheduleController(IScheduleRepository schedulerRepository) : ControllerBase
     {
-        private readonly IScheduleRepository _schedulerRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public ScheduleController(IScheduleRepository schedulerRepository)
-        {
-            _schedulerRepository = schedulerRepository;
-        }
+        private readonly IScheduleRepository _schedulerRepository = schedulerRepository;
 
         /// <summary>
         /// Get schedule information.
         /// </summary>
         /// <param name="id">Schedule id.</param>
         /// <returns>Schedule information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXSchedulePolicies.View)]
-        public async Task<ActionResult<GetScheduleResponse>> Get(Guid id)
+        public async Task<ActionResult<GetScheduleResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
             return new GetScheduleResponse()
             {
-                Item = await _schedulerRepository.ReadAsync(id)
+                Item = await _schedulerRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -78,7 +70,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListSchedules request,
             CancellationToken cancellationToken)
         {
-            ListSchedulesResponse ret = new ListSchedulesResponse();
+            ListSchedulesResponse ret = new();
             await _schedulerRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -88,29 +80,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXSchedulePolicies.Add)]
-        public async Task<ActionResult<UpdateScheduleResponse>> Post(UpdateSchedule request)
+        public async Task<ActionResult<UpdateScheduleResponse>> Post(UpdateSchedule request, CancellationToken cancellationToken = default)
         {
-            if (request.Schedules == null || request.Schedules.Count == 0)
+            UpdateScheduleResponse ret = new()
             {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            UpdateScheduleResponse ret = new UpdateScheduleResponse();
-            ret.ScheduleIds = await _schedulerRepository.UpdateAsync(request.Schedules);
+                Ids = await _schedulerRepository.UpsertAsync(request.Schedules, null, cancellationToken)
+            };
             return ret;
         }
 
+        /// <summary>
+        /// Deletes schedules based on the provided IDs and delete option.
+        /// </summary>
+        /// <param name="request">The request containing schedule IDs and a flag indicating whether to perform a soft delete.</param>
+        /// <returns>An action result containing the outcome of the delete operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXSchedulePolicies.Delete)]
-        public async Task<ActionResult<RemoveScheduleResponse>> Post(RemoveSchedule request)
+        public async Task<ActionResult<RemoveScheduleResponse>> Post(RemoveSchedule request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _schedulerRepository.DeleteAsync(request.Ids, request.Delete);
+            await _schedulerRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveScheduleResponse();
         }
 
@@ -121,11 +114,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <remarks>
         /// This can be used for testing the schedule.
         /// </remarks>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet("Run")]
         [Authorize(Policy = GXWorkflowPolicies.Edit)]
-        public async Task<ActionResult> Run(Guid id)
+        public async Task<ActionResult> Run(Guid id, CancellationToken cancellationToken = default)
         {
-            await _schedulerRepository.RunAsync(id);
+            await _schedulerRepository.RunAsync(id, cancellationToken);
             return Ok();
         }
 
@@ -135,10 +129,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("GetModuleSettings")]
         [Authorize(Policy = GXSchedulePolicies.View)]
         public async Task<ActionResult<GetModuleSettingsResponse>> Post(
-            GetModuleSettings request)
+            GetModuleSettings request, CancellationToken cancellationToken = default)
         {
-            GetModuleSettingsResponse ret = new GetModuleSettingsResponse();
-            ret.Item = await _schedulerRepository.GetModuleSettingsAsync(request.Item);
+            GetModuleSettingsResponse ret = new()
+            {
+                Item = await _schedulerRepository.GetModuleSettingsAsync(request.Item, cancellationToken)
+            };
             return ret;
         }
 
@@ -148,10 +144,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("UpdateModuleSettings")]
         [Authorize(Policy = GXSchedulePolicies.View)]
         public async Task<ActionResult<UpdateModuleSettingsResponse>> Post(
-            UpdateModuleSettings request)
+            UpdateModuleSettings request, CancellationToken cancellationToken = default)
         {
-            UpdateModuleSettingsResponse ret = new UpdateModuleSettingsResponse();
-            await _schedulerRepository.UpdateModuleSettingsAsync(request.Item);
+            UpdateModuleSettingsResponse ret = new();
+            await _schedulerRepository.UpdateModuleSettingsAsync(request.Item, cancellationToken);
             return ret;
         }
     }

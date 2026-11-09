@@ -1,0 +1,98 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/config/changehistory"
+@page "/config/history"
+@namespace Gurux.DLMS.AMI.Client.Pages
+@using Gurux.DLMS.AMI.Shared.DTOs.History
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = GXChangeHistoryPolicies.View)]
+
+<PageTitle>Change history</PageTitle>
+<h1>Change history</h1>
+
+@if (!_identityLoaded)
+{
+    <p role="status">@Properties.Resources.Loading</p>
+}
+else
+{
+    @if (_isAdmin)
+    {
+        <GXMenuControl RightCorner="true">
+            <GXMenuEntry Text="@Properties.Resources.ApplyDefaults" Id="Regenerate" OnClick="ApplyDefaultsAsync"
+                         ReadOnly="@(_loadingTypes || _applyingDefaults || _saving.Count != 0)" />
+        </GXMenuControl>
+    }
+    <div class="history-content">
+        <p>Select the entity types whose changes are recorded.</p>
+        @if (_loadingTypes)
+        {
+            <p role="status">@Properties.Resources.Loading</p>
+        }
+        else if (_types.Length != 0)
+        {
+            <div class="table-responsive">
+                <table class="table history-configuration">
+                    <thead>
+                        <tr><th scope="col">@Properties.Resources.Name</th><th scope="col">Record history</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var type in _types)
+                        {
+                            <tr @key="type.Id">
+                                <td>@type.Name</td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                               data-history-type="@type.Id" aria-label="@($"Record history for {type.Name}")"
+                                               disabled="@(!_isAdmin || _applyingDefaults || _saving.Contains(type.Id))"
+                                               @bind:get="type.RecordHistory" @bind:set="(bool value) => SaveRecordingAsync(type, value)" />
+                                    </div>
+                                    @if (_saving.Contains(type.Id))
+                                    {
+                                        <span class="text-muted" role="status">Saving…</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (!_isAdmin)
+            {
+                <p class="text-muted">Only administrators can change history recording settings.</p>
+            }
+        }
+        else if (_typesLoaded)
+        {
+            <p role="status">No history types are available.</p>
+        }
+    </div>
+}

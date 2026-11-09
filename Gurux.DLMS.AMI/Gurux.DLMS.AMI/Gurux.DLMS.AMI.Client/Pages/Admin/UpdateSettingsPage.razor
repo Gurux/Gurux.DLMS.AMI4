@@ -1,0 +1,165 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = GXUpdatePolicies.Admin)]
+@inject HttpClient Http
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.UpdateSettings</PageTitle>
+<h1>@Properties.Resources.UpdateSettings</h1>
+
+@if (_error != null)
+{
+    <p role="alert" class="text-danger">@_error</p>
+}
+@if (_settings == null)
+{
+    @if (_error == null)
+    {
+        <p role="status">@Properties.Resources.LoadingUpdateSettings</p>
+    }
+}
+else
+{
+    <EditForm EditContext="@GXEditContexts.For(_settings)" OnSubmit="SaveAsync" FormName="update-settings">
+        <fieldset disabled="@_saving">
+            <div class="mb-3">
+                <label for="update-frequency" class="form-label">@Properties.Resources.CheckForUpdates</label>
+                <GXInputDropdown TValue="UpdateCheckInterval" id="update-frequency" class="form-select" @bind-Value="_settings.CheckForUpdates" Items="@(new[] { UpdateCheckInterval.Daily, UpdateCheckInterval.Weekly })" Formatter="@(value => value == UpdateCheckInterval.Daily ? Properties.Resources.Daily : Properties.Resources.Weekly)" RememberValue="false" />
+                <div class="form-text">@Properties.Resources.AutomaticChecksRunWithTheScheduledCronTasksManualChecksAreAlwaysAvailable</div>
+            </div>
+            @if (!_emailSenderAvailable)
+            {
+                <p role="status">@Properties.Resources.EmailNotificationsWillBeSentWhenAnEmailProviderIsAvailableYouCanSaveTheSettingsNow</p>
+            }
+            <div class="mb-3">
+                <label for="update-recipients" class="form-label">@Properties.Resources.EmailAddresses</label>
+                <textarea id="update-recipients" class="form-control" rows="4" @bind="_recipients" aria-describedby="update-recipients-help"></textarea>
+                <div id="update-recipients-help" class="form-text">@Properties.Resources.EnterOneAddressPerLineOrSeparateAddressesWithCommasOrSemicolonsLeaveEmptyToDisableEma</div>
+            </div>
+            <div class="mb-3">
+                <label for="update-threshold" class="form-label">@Properties.Resources.EmailNotificationThreshold</label>
+                <GXInputDropdown TValue="UpdateEmailThreshold" id="update-threshold" class="form-select" @bind-Value="_settings.EmailNotificationThreshold" Items="@(new[] { UpdateEmailThreshold.AllNewerVersions, UpdateEmailThreshold.OnlySecurityUpdates })" Formatter="@(value => value == UpdateEmailThreshold.AllNewerVersions ? Properties.Resources.AllNewerVersions : Properties.Resources.OnlySecurityUpdates)" RememberValue="false" />
+            </div>
+            <div class="mb-3">
+                <label for="update-email-header" class="form-label">@Properties.Resources.EmailHeader</label>
+                <InputText id="update-email-header" class="form-control" maxlength="200" @bind-Value="_settings.EmailHeader" />
+            </div>
+            <div class="mb-3">
+                <label for="update-email-text" class="form-label">@Properties.Resources.EmailText</label>
+                <InputTextArea id="update-email-text" class="form-control" rows="12" maxlength="20000" @bind-Value="_settings.EmailText" aria-describedby="update-email-text-help" />
+                <div id="update-email-text-help" class="form-text">@Properties.Resources.PlainTextUseUrlForYourSiteSAddressTheSameTextIsUsedForAllUpdatesMatchingTheSelectedTh</div>
+            </div>
+            <button type="submit" class="btn btn-primary">@(_saving ? Gurux.DLMS.AMI.Client.Properties.Resources.Saving : "Save")</button>
+        </fieldset>
+    </EditForm>
+    @if (_saved)
+    {
+        <p role="status">@Properties.Resources.UpdateSettingsSaved</p>
+    }
+}
+
+@code {
+    private UpdateSettings? _settings;
+    private string _recipients = "";
+    private bool _emailSenderAvailable, _saving, _saved;
+    private string? _error;
+    private readonly CancellationTokenSource _lifetime = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        await LoadAsync();
+        if (!_lifetime.IsCancellationRequested)
+        {
+            StateHasChanged();
+        }
+    }
+
+    protected async Task LoadAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<GXUpdateSettingsResponse>("api/Update/Settings", _lifetime.Token) ?? throw new InvalidOperationException(Properties.Resources.UpdateSettingsAreUnavailable);
+            _settings = response.Settings;
+            _recipients = string.Join(Environment.NewLine, _settings.EmailAddresses);
+            _emailSenderAvailable = response.EmailSenderAvailable;
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _settings == null)
+        {
+            return;
+        }
+        _saving = true;
+        _saved = false;
+        _error = null;
+        try
+        {
+            _settings.EmailAddresses = _recipients.Split(['\r', '\n', ',', ';'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            using var response = await Http.PostAsJsonAsync("api/Update/Settings", _settings, _lifetime.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<SaveError>(cancellationToken: _lifetime.Token);
+                throw new InvalidOperationException(error?.Message ?? Properties.Resources.UnableToSaveUpdateSettings);
+            }
+        
+            _saved = true;
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private sealed class SaveError { public string? Message { get; set; } }
+
+    public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
+}

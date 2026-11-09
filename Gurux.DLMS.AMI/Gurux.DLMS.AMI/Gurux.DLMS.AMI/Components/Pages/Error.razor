@@ -1,27 +1,55 @@
-﻿@page "/Error"
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Error"
 @using System.Diagnostics
 
-<PageTitle>Error</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.Error</PageTitle>
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<h1 class="text-danger">@Gurux.DLMS.AMI.Properties.Resources.Error2</h1>
+<h2 class="text-danger">@Gurux.DLMS.AMI.Properties.Resources.AnErrorOccurredWhileProcessingYourRequest</h2>
 
 @if (ShowRequestId)
 {
     <p>
-        <strong>Request ID:</strong> <code>@RequestId</code>
+        <strong>@Gurux.DLMS.AMI.Properties.Resources.RequestID</strong> <code>@RequestId</code>
     </p>
 }
 
-<h3>Development Mode</h3>
+<h3>@Gurux.DLMS.AMI.Properties.Resources.DevelopmentMode</h3>
 <p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+    @Gurux.DLMS.AMI.Properties.Resources.SwappingTo <strong>@Gurux.DLMS.AMI.Properties.Resources.Development</strong> @Gurux.DLMS.AMI.Properties.Resources.EnvironmentWillDisplayMoreDetailedInformationAboutTheErrorThatOccurred
 </p>
 <p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
+    <strong>@Gurux.DLMS.AMI.Properties.Resources.TheDevelopmentEnvironmentShouldnTBeEnabledForDeployedApplications</strong>
+    @Gurux.DLMS.AMI.Properties.Resources.ItCanResultInDisplayingSensitiveInformationFromExceptionsToEndUsersForLocalDebuggingE <strong>@Gurux.DLMS.AMI.Properties.Resources.Development</strong> @Gurux.DLMS.AMI.Properties.Resources.EnvironmentBySettingThe <strong>ASPNETCORE_ENVIRONMENT</strong> @Gurux.DLMS.AMI.Properties.Resources.EnvironmentVariableTo <strong>@Gurux.DLMS.AMI.Properties.Resources.Development</strong>
+    @Gurux.DLMS.AMI.Properties.Resources.AndRestartingTheApp
 </p>
 
 @code{

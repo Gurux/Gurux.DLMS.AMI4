@@ -1,37 +1,37 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/config/Script/Logs"
+@page "/config/Script/Groups"
 @page "/config/scriptmanage"
 @page "/config/Script"
+@page "/config/scripts"
 @page "/script"
 @page "/config/ScriptGroup"
 @page "/config/ScriptLog/{Id:guid?}"
@@ -46,23 +46,23 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScriptManager + "," + GXRoles.ScriptGroupManager)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="ScriptManage" />
 
-<ScriptRebuild></ScriptRebuild>
+<ScriptRebuild HasScripts="@_hasScripts"></ScriptRebuild>
 @*If user adds a new item or modifies the existing one.*@
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
     @if (string.Compare(Path, "config/Script", true) == 0 ||
            string.Compare(Path, "Script", true) == 0)
     {
-        <ScriptTab Action="@Action" Id="@Id"></ScriptTab>
+        <Script Action="@Action" Id="@Id"></Script>
     }
     else if (string.Compare(Path, "config/ScriptGroup", true) == 0)
     {
-        <ScriptGroupTab Action="@Action" Id="@Id"></ScriptGroupTab>
+        <ScriptGroup Action="@Action" Id="@Id"></ScriptGroup>
     }
     else if (string.Compare(Path, "config/ScriptLog", true) == 0)
     {
@@ -71,32 +71,36 @@
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="config/Script" Active="@Path" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
+            <GXImage Id="@context.Icon" />
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptManager)>
-                <TabPage Path="config/Script" Text=@Properties.Resources.Scripts Icon="Scripts">
-                    <Scripts Id="@Id"></Scripts>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
-                <TabPage Path="config/ScriptGroup" Text=@Properties.Resources.ScriptGroups Icon="ScriptGroups">
-                    <ScriptGroups Id="@Id"></ScriptGroups>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptLogManager)>
-                <TabPage Path="config/ScriptLog" Text=@Properties.Resources.ScriptLogs Icon="ScriptLogs">
-                    <ScriptLogs Id="@Id"></ScriptLogs>
-                </TabPage>
-            </AuthorizeView>
+            <TabHeader Name="@GXMenus.ScriptTab" Parameters="@TabParameters" />
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 <br />
 @code {
+    private bool _hasScripts;
+
+    private void ScriptListChanged(bool hasScripts)
+    {
+        _hasScripts = hasScripts;
+    }
+
+    protected override void OnParametersSet()
+    {
+        Path = GXTabRoutes.Active(NavigationManager, "config/Script", 0, Path);
+    }
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["HasScriptsChanged"] = EventCallback.Factory.Create<bool>(this, ScriptListChanged),
+        ["Id"] = Id!
+    };
+
     /// <summary>
     /// User action.
     /// </summary>
@@ -114,15 +118,15 @@ else
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
+
         //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        Path = GXTabRoutes.Active(NavigationManager, "config/Script", 0, Path);
     }
 }
-

@@ -1,0 +1,61 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+
+<article class="catalog-update-details">
+    <div class="details-heading">
+        <span aria-hidden="true"><CatalogUpdateIcon Entry="Entry" /></span>
+        <h2>@Entry.Name <small>@Entry.Version</small></h2>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Entry.Description) && Entry.Description != Entry.ReleaseNotes)
+    {
+        <section aria-label="@Properties.Resources.Description">
+            <h3>@Properties.Resources.Description</h3>
+            <p class="catalog-details-text">@Entry.Description</p>
+        </section>
+    }
+    @if (!string.IsNullOrWhiteSpace(Entry.ReleaseNotes))
+    {
+        <section aria-label="@Properties.Resources.CatalogUpdateSummary">
+            <h3>@Properties.Resources.CatalogUpdateSummary</h3>
+            <p class="catalog-details-text">@Entry.ReleaseNotes</p>
+        </section>
+    }
+    @if (ReleaseUrl is { } url)
+    {
+        <a href="@url" target="_blank" rel="noopener noreferrer">@Properties.Resources.CatalogUpdateRelease</a>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public GXCatalogUpdateEntry Entry { get; set; } = default!;
+    private string? ReleaseUrl => Uri.TryCreate(Entry.ReleaseUrl, UriKind.Absolute, out var uri) &&
+        uri.Scheme is "http" or "https" && string.IsNullOrEmpty(uri.UserInfo) ? uri.AbsoluteUri : null;
+}

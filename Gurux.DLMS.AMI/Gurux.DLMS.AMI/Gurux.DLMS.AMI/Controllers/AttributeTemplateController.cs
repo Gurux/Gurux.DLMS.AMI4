@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -40,36 +36,34 @@ namespace Gurux.DLMS.AMI.Server
     /// <summary>
     /// This controller is used to handle the attribute settings.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class AttributeTemplateController : ControllerBase
+    public class AttributeTemplateController(IAttributeTemplateRepository attributeRepository) : ControllerBase
     {
-        private readonly IAttributeTemplateRepository _attributeRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public AttributeTemplateController(IAttributeTemplateRepository attributeRepository)
-        {
-            _attributeRepository = attributeRepository;
-        }
+        private readonly IAttributeTemplateRepository _attributeRepository = attributeRepository;
 
         /// <summary>
         /// Add COSEM attributes
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXAttributeTemplatePolicies.Add)]
-        public async Task<ActionResult<UpdateAttributeTemplateResponse>> Post(UpdateAttributeTemplate request)
+        public async Task<ActionResult<UpdateAttributeTemplateResponse>> Post(UpdateAttributeTemplate request, CancellationToken cancellationToken = default)
         {
             if (request.AttributeTemplates == null || !request.AttributeTemplates.Any())
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            UpdateAttributeTemplateResponse ret = new UpdateAttributeTemplateResponse();
-            ret.Ids = (await _attributeRepository.UpdateAsync(request.AttributeTemplates, null));
+            UpdateAttributeTemplateResponse ret = new()
+            {
+                Ids = (await _attributeRepository.UpsertAsync(request.AttributeTemplates, null, cancellationToken))
+            };
             return ret;
         }
 
@@ -78,13 +72,14 @@ namespace Gurux.DLMS.AMI.Server
         /// </summary>
         /// <param name="id">AttributeTemplate id.</param>
         /// <returns>AttributeTemplate information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXAttributeTemplatePolicies.View)]
-        public async Task<ActionResult<GetAttributeTemplateResponse>> Get(Guid id)
+        public async Task<ActionResult<GetAttributeTemplateResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
             return new GetAttributeTemplateResponse()
             {
-                Item = await _attributeRepository.ReadAsync(id)
+                Item = await _attributeRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -97,7 +92,7 @@ namespace Gurux.DLMS.AMI.Server
             ListAttributeTemplates request,
             CancellationToken cancellationToken)
         {
-            ListAttributeTemplatesResponse ret = new ListAttributeTemplatesResponse();
+            ListAttributeTemplatesResponse ret = new();
             await _attributeRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -107,13 +102,9 @@ namespace Gurux.DLMS.AMI.Server
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXAttributeTemplatePolicies.Delete)]
-        public async Task<ActionResult<RemoveAttributeTemplateResponse>> Post(RemoveAttributeTemplate request)
+        public async Task<ActionResult<RemoveAttributeTemplateResponse>> Post(RemoveAttributeTemplate request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _attributeRepository.DeleteAsync(request.Ids, request.Delete);
+            await _attributeRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveAttributeTemplateResponse();
         }
 
@@ -122,13 +113,13 @@ namespace Gurux.DLMS.AMI.Server
         /// </summary>
         [HttpPost("UpdateDataType")]
         [Authorize(Policy = GXAttributeTemplatePolicies.Edit)]
-        public async Task<ActionResult<UpdateAttributeTemplateDataTypeResponse>> Post(UpdateAttributeTemplateDataType request)
+        public async Task<ActionResult<UpdateAttributeTemplateDataTypeResponse>> Post(UpdateAttributeTemplateDataType request, CancellationToken cancellationToken = default)
         {
             if (request.Items == null || !request.Items.Any())
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _attributeRepository.UpdateAsync(request.Items, w => new { w.DataType, w.UIDataType });
+            await _attributeRepository.UpsertAsync(request.Items, w => new { w.DataType, w.UIDataType }, cancellationToken);
             return new UpdateAttributeTemplateDataTypeResponse();
         }
     }

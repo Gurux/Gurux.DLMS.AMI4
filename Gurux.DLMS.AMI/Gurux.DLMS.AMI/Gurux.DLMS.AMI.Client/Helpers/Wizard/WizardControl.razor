@@ -1,41 +1,37 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@inject IServiceProvider Services
 
 @namespace Gurux.DLMS.AMI.Components.Wizard
 
 @inject NavigationManager NavigationManager
-@inject IGXNotifier Notifier
-
 <div class="d-inline-flex container-fluid h-100">
     <div>
         <div class="container-fluid h-100">
@@ -77,9 +73,9 @@
             </CascadingValue>
         </div>
         <div class="card-footer container-fluid">
-            <ProgressBar Minimum="0"
+            <GXProgressBar Minimum="0"
                          Current="@_index"
-                         Maximum="@(_pages.Count - 1)"></ProgressBar>
+                         Maximum="@(_pages.Count - 1)"></GXProgressBar>
             <ul class="nav justify-content-center">
                 <li class="nav-item">
                     <NavLink class="nav-link btn btn-link" @onclick="@OnCancel">
@@ -110,6 +106,12 @@
 </div>
 
 @code {
+    protected override void OnInitialized()
+    {
+        NotificationService = Services.GetService<IGXNotificationService>();
+    }
+
+    private IGXNotificationService? NotificationService;
 
     private string PrevClass
     {
@@ -162,65 +164,65 @@
     /// User has changing the active page.
     /// </summary>
     /// <param name="index">Zero based page index.</param>
-    public delegate bool PageChangingEventHandler(int index);
-
-    /// <summary>
-    /// User has complete the changes.
-    /// </summary>
-    /// <param name="accept">True, if user has accept the changes.</param>
-    public delegate void CompleteEventHandler(bool accept);
+    public sealed class PageChangingArgs(int index)
+    {
+        public int Index { get; } = index;
+        public bool Cancel { get; set; }
+    }
 
     /// <summary>
     /// User has changing the active page.
     /// </summary>
     [Parameter]
-    public PageChangingEventHandler? OnPageChanging { get; set; }
+    public EventCallback<PageChangingArgs> OnPageChanging { get; set; }
 
     /// <summary>
     /// User has complete the changes.
     /// </summary>
     [Parameter]
-    public CompleteEventHandler? OnComplete { get; set; }
+    public EventCallback<bool> OnComplete { get; set; }
 
     private int _index = 0;
 
-    private void NextPage()
+    private async Task NextPage()
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Helpers/Wizard/WizardControl.NextPage");
             if (1 + _index == _pages.Count)
             {
                 //Accept changes.
-                OnComplete?.Invoke(true);
+                await OnComplete.InvokeAsync(true);
             }
             else
             {
                 //Select next page.
-                if (!(OnPageChanging != null && !OnPageChanging.Invoke(_index)))
+                var changing = new PageChangingArgs(_index);
+                await OnPageChanging.InvokeAsync(changing);
+                if (!changing.Cancel)
                 {
                     ++_index;
-                    InvokeAsync(StateHasChanged);
+                    await InvokeAsync(StateHasChanged);
                 }
             }
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Helpers/Wizard/WizardControl.NextPage");
         }
     }
 
-    private void Complete()
+    private async Task Complete()
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Helpers/Wizard/WizardControl.Complete");
             //Accept changes.
-            OnComplete?.Invoke(true);
+            await OnComplete.InvokeAsync(true);
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Helpers/Wizard/WizardControl.Complete");
         }
     }
 
@@ -230,9 +232,9 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void OnCancel()
+    private async Task OnCancel()
     {
-        OnComplete?.Invoke(false);
+        await OnComplete.InvokeAsync(false);
     }
 
     /// <summary>

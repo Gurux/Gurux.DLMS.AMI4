@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Microsoft.AspNetCore.Authorization
@@ -50,132 +47,107 @@
 @using System.Web;
 @using System.Text.Json.Serialization;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@inject ILogger<DeviceTemplate> Logger
-@if (Active != null)
+@inject ILogger<DeviceTemplateGeneral> Logger
+<GXHelpContext Topic="Ciphering" />
+
+@if (Parent?.Settings != null)
 {
     <div class="row">
         <div style="width:100%">
             <div class="form-group">
                 <label>@Properties.Resources.Security</label>
-                <InputSelect id="type" class="form-select"
-                             @bind-Value="SelectedSettings" readonly="true">
-                    @foreach (var it in GetSecurityLevels())
-                    {
-                        <option value="@it.Id">@GetSecurity(it)</option>
-                    }
-                </InputSelect>
+                <GXInputDropdown RememberValue="false" id="type" class="form-select"
+                             @bind-Value="SelectedSettings" readonly="true"
+                                 Items="@(GetSecurityLevels().Select(it => it.Id))" Formatter="@((Guid value) => GetSecurity(GetSecurityLevels().First(it => it.Id == value)).ToString())" />
                 <ValidationMessage For="@(() => SelectedSettings)" />
             </div>
         </div>
 
         <div class="form-group">
-            <InputHexAscii @ref="@_clientSystemTitle"
-                           Disabled="@IsDeleting"
-                           @bind-Value="ClientSystemTitle"
+            <GXInputHexAscii Disabled="@IsDeleting"
+                           @bind-Value="Parent.Settings.ClientSystemTitle"
                            Title="@Properties.Resources.ClientSystemTitle">
-            </InputHexAscii>
-            <ValidationMessage For="@(() => _clientSystemTitle)" />
+            </GXInputHexAscii>
+            <ValidationMessage For="@(() => Parent.Settings.ClientSystemTitle)" />
         </div>
 
         <div class="form-group">
-            <InputHexAscii @ref="@_deviceSystemTitle"
-                           Disabled="@IsDeleting"
-                           @bind-Value="DeviceSystemTitle"
+            <GXInputHexAscii Disabled="@IsDeleting"
+                           @bind-Value="Parent.Settings.DeviceSystemTitle"
                            Title="@Properties.Resources.DeviceSystemTitle">
-            </InputHexAscii>
-            <ValidationMessage For="@(() => _deviceSystemTitle)" />
+            </GXInputHexAscii>
+            <ValidationMessage For="@(() => Parent.Settings.DeviceSystemTitle)" />
         </div>
         <div class="form-group">
-            <InputHexAscii @ref="@_blockCipherKey"
-                           Disabled="@IsDeleting"
-                           @bind-Value="BlockCipherKey"
+            <GXInputHexAscii Disabled="@IsDeleting"
+                           @bind-Value="Parent.Settings.BlockCipherKey"
                            Title="@Properties.Resources.BlockCipherKey">
-            </InputHexAscii>
-            <ValidationMessage For="@(() => _blockCipherKey)" />
+            </GXInputHexAscii>
+            <ValidationMessage For="@(() => Parent.Settings.BlockCipherKey)" />
         </div>
         <div class="form-group">
-            <InputHexAscii @ref="@_authenticationKey"
-                           Disabled="@IsDeleting"
-                           @bind-Value="AuthenticationKey"
+            <GXInputHexAscii Disabled="@IsDeleting"
+                           @bind-Value="Parent.Settings.AuthenticationKey"
                            Title="@Properties.Resources.AuthenticationKey">
-            </InputHexAscii>
-            <ValidationMessage For="@(() => _authenticationKey)" />
+            </GXInputHexAscii>
+            <ValidationMessage For="@(() => Parent.Settings.AuthenticationKey)" />
         </div>
     </div>
 }
 @code {
-
-    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s, bool renderOnSuccess = true)
+    protected override void OnInitialized()
     {
-        ClientSystemTitle = GXDLMSTranslator.HexToBytes(s?.ClientSystemTitle);
-        DeviceSystemTitle = GXDLMSTranslator.HexToBytes(s?.DeviceSystemTitle);
-        BlockCipherKey = GXDLMSTranslator.HexToBytes(s?.BlockCipherKey);
-        AuthenticationKey = GXDLMSTranslator.HexToBytes(s?.AuthenticationKey);
-        if (renderOnSuccess)
-        {
-            InvokeAsync(StateHasChanged);
-        }
+    }
+
+    internal void Update()
+    {
+        InvokeAsync(StateHasChanged);
     }
 
     internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
-        if (s.Security != (byte)Enums.Security.None)
+        if (Parent?.Settings != null && s.Security != (byte)Enums.Security.None)
         {
-            if (HasValue(ClientSystemTitle) && _clientSystemTitle != null)
+            if (Parent.Settings.ClientSystemTitle?.Any() == true)
             {
-                if (_clientSystemTitle.GetByteArray().Length != 8)
+                if (Parent.Settings.ClientSystemTitle.Length != 8)
                 {
-                    sender.AddError(() => _clientSystemTitle, Properties.Resources.InvalidSystemTitle);
+                    sender.AddError(() => Parent.Settings.ClientSystemTitle, Properties.Resources.InvalidSystemTitle);
                 }
             }
-            if (HasValue(DeviceSystemTitle) && _deviceSystemTitle != null)
+            if (Parent.Settings.DeviceSystemTitle?.Any() == true)
             {
-                if (_deviceSystemTitle.GetByteArray().Length != 8)
+                if (Parent.Settings.DeviceSystemTitle.Length != 8)
                 {
-                    sender.AddError(() => _deviceSystemTitle, Properties.Resources.InvalidSystemTitle);
+                    sender.AddError(() => Parent.Settings.DeviceSystemTitle, Properties.Resources.InvalidSystemTitle);
                 }
             }
-            if (HasValue(BlockCipherKey) && _blockCipherKey != null)
+            if (Parent.Settings.BlockCipherKey?.Any() == true)
             {
-                var bytes = _blockCipherKey.GetByteArray();
-                if ((s.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 16) ||
-                (s.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 32))
+                if ((Parent.Settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.BlockCipherKey.Length != 16) ||
+                (Parent.Settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.BlockCipherKey.Length != 32))
                 {
-                    sender.AddError(() => _blockCipherKey, Properties.Resources.InvalidBlockCipherKey);
+                    sender.AddError(() => Parent.Settings.BlockCipherKey, Properties.Resources.InvalidBlockCipherKey);
                 }
             }
-            if (HasValue(AuthenticationKey) && _authenticationKey != null)
+            if (Parent.Settings.AuthenticationKey?.Any() == true)
             {
-                var bytes = _authenticationKey.GetByteArray();
-                if ((s.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 16) ||
-                (s.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 32))
+                if ((Parent.Settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.AuthenticationKey.Length != 16) ||
+                (Parent.Settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.AuthenticationKey.Length != 32))
                 {
-                    sender.AddError(() => _authenticationKey, Properties.Resources.InvalidAuthenticationKey);
+                    sender.AddError(() => Parent.Settings.AuthenticationKey, Properties.Resources.InvalidAuthenticationKey);
                 }
             }
         }
     }
 
-    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
-    {
-        s.ClientSystemTitle = GXDLMSTranslator.ToHex(_clientSystemTitle?.GetByteArray(), false);
-        s.DeviceSystemTitle = GXDLMSTranslator.ToHex(_deviceSystemTitle?.GetByteArray(), false);
-        s.BlockCipherKey = GXDLMSTranslator.ToHex(_blockCipherKey?.GetByteArray(), false);
-        s.AuthenticationKey = GXDLMSTranslator.ToHex(_authenticationKey?.GetByteArray(), false);
-    }
-
-    private InputHexAscii? _clientSystemTitle;
-    private InputHexAscii? _deviceSystemTitle;
-    private InputHexAscii? _blockCipherKey;
-    private InputHexAscii? _authenticationKey;
-    private GXValidator? _validator;
     private Guid SelectedSettings { get; set; }
 
     [Parameter]
-    public DeviceTemplate? Parent { get; set; }
+    public DeviceTemplateGeneral? Parent { get; set; }
 
     internal GXDeviceTemplate? Active
     {
@@ -248,45 +220,8 @@
         Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
         if (!string.IsNullOrEmpty(value?.Settings))
         {
-            current = (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings).Security;
+            current = (Gurux.DLMS.Enums.Security)(JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings ?? "{}") ?? new()).Security;
         }
         return current;
-    }
-
-    private byte[]? ClientSystemTitle
-    {
-        get;
-        set;
-    }
-
-    private byte[]? DeviceSystemTitle
-    {
-        get;
-        set;
-    }
-
-    private byte[]? BlockCipherKey
-    {
-        get;
-        set;
-    }
-
-    private byte[]? AuthenticationKey
-    {
-        get;
-        set;
-    }
-
-    private bool HasValue(byte[]? value)
-    {
-        return value != null && value.Any();
-    }
-
-    protected override void OnInitialized()
-    {
-        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
-        {
-            Update(s, false);
-        }
     }
 }

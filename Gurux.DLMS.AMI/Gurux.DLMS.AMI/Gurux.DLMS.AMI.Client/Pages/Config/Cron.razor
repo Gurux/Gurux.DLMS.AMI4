@@ -1,35 +1,32 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -48,25 +45,27 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @implements IGXConfigUpdate
+
+<GXHelpContext Topic="Cron" />
 
 @if (_settings != null)
 {
     <p>
-        <MenuControl RightCorner=true>
+        <GXMenuControl RightCorner=true>
             <ChildContent>
-                <MenuItem Id="Run" Text="Run cron" OnClick="@OnRun" />
+                <GXMenuEntry Id="Run" Text="@Properties.Resources.RunCron" OnClick="@OnRun" />
             </ChildContent>
-        </MenuControl>
+        </GXMenuControl>
     </p>
     <p>
     </p>
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@MenuService.EditContext">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
@@ -82,16 +81,12 @@
                     <p></p>
                 </div>
                 <div class="form-group">
-                    <label>Run cron every</label>
-                    <select class="form-select" @bind="@_settings.Interval">
-                        @foreach (var it in Intervals)
-                        {
-                            <option value="@it.Key">@it.Value</option>
-                        }
-                    </select>
+                    <label>@Properties.Resources.RunCronEvery</label>
+                    <GXInputDropdown class="form-select" RememberValue="false" Items="@Intervals.Keys"
+                                     Formatter="@(value => Intervals[value])" @bind-Value="_settings.Interval" />
                 </div>
                 <div class="form-group">
-                    <label>Next estimated run time</label>
+                    <label>@Properties.Resources.NextEstimatedRunTime</label>
                     @if (_settings.EstimatedNextTime != null)
                     {
                         <input class="form-control" type="text" readonly="readonly" value="@_settings.EstimatedNextTime.ToString()" />
@@ -107,6 +102,13 @@
 }
 
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Parent component.
     /// </summary>
@@ -118,7 +120,7 @@
     {
         if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
         {
-            _settings = JsonSerializer.Deserialize<CronSettings>(Parent.Active.Settings);
+            LoadSettings(Parent.Active.Settings);
         }
         InvokeAsync(StateHasChanged);
     }
@@ -127,8 +129,24 @@
 
     CronSettings? _settings;
 
+    private void LoadSettings(string? settings)
+    {
+        _settings = string.IsNullOrEmpty(settings) ? new CronSettings()
+            : JsonSerializer.Deserialize<CronSettings>(settings) ?? new CronSettings();
+        MenuService.EditContext = new EditContext(_settings);
+    }
+
+
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         Intervals.Add(0, "Never");
         Intervals.Add(1, "1 hours");
         Intervals.Add(3, "3 hours");
@@ -139,58 +157,60 @@
 
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingCron);
+            NotificationService?.RemoveByKey("Pages/Config/Cron.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), async (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
-            {
-                try
+                foreach (var it in items)
                 {
-                    if (configurations != null)
+                    if (it.Type == GXConfigurationPolicies.Cron)
                     {
-                        foreach (var it in configurations)
+                        if (it.Id == GXCronNotifications.ScheduleUpdated && !string.IsNullOrEmpty(it.Settings))
                         {
-                            if (it.Name == GXConfigurations.Cron && !string.IsNullOrEmpty(it.Settings))
+                            var runtime = JsonSerializer.Deserialize<CronSettings>(it.Settings);
+                            if (runtime != null)
                             {
-                                _settings = JsonSerializer.Deserialize<CronSettings>(it.Settings);
-                                InvokeAsync(StateHasChanged);
-                                break;
+                                // Runtime timestamps do not modify the editable interval.
+                                if (_settings == null)
+                                {
+                                    LoadSettings(it.Settings);
+                                }
+                                else
+                                {
+                                    _settings.Run = runtime.Run;
+                                    _settings.EstimatedNextTime = runtime.EstimatedNextTime;
+                                }
                             }
+                            _ = InvokeAsync(StateHasChanged);
+                            break;
+                        }
+                    }
+                    else if (it.Type == GXConfigurationPolicies.Edit && it.Id == Parent?.Active?.Id.ToString()
+                        && MenuService.EditContext?.IsModified() != true)
+                    {
+                        try
+                        {
+                            //Get configuration data.
+                            GXConfiguration? tmp = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", Parent?.Active?.Id))).Item;
+                            if (!string.IsNullOrEmpty(tmp?.Settings) && MenuService.EditContext?.IsModified() != true)
+                            {
+                                LoadSettings(tmp.Settings);
+                                _ = InvokeAsync(StateHasChanged);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            NotificationService?.ReportError(ex, "Pages/Config/Cron.OnInitialized");
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Notifier?.ProcessError(ex);
-                }
             });
-            Notifier.On(this, nameof(IGXHubEvents.CronCompleate), async () =>
-            {
-                try
-                {
-                    //Get configuration data.
-                    GXConfiguration? tmp = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", Parent?.Active.Id))).Item;
-                    if (!string.IsNullOrEmpty(tmp?.Settings))
-                    {
-                        _settings = JsonSerializer.Deserialize<CronSettings>(tmp.Settings);
-                        InvokeAsync(StateHasChanged);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Notifier?.ProcessError(ex);
-                }
-            });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            MenuService.Clear();
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave), Gurux.UI.Components.Enums.EnableStyle.Modified));
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<CronSettings>(Parent.Active.Settings);
+                LoadSettings(Parent.Active.Settings);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -199,11 +219,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Cron.OnInitialized");
         }
     }
 
@@ -212,8 +228,8 @@
     /// </summary>
     private async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingCron);
+        NotificationService?.RemoveByKey("Pages/Config/Cron.OnSave");
         try
         {
             if (Parent?.Active == null)
@@ -224,15 +240,11 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Cron.OnSave");
         }
     }
 
@@ -241,8 +253,8 @@
     /// </summary>
     public async Task OnRun()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingCron);
+        NotificationService?.RemoveByKey("Pages/Config/Cron.OnRun");
         try
         {
             ConfigurationRunCron req = new ConfigurationRunCron();
@@ -250,11 +262,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Cron.OnRun");
         }
     }
 
@@ -263,11 +271,12 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        MenuService.Dispose();
+        Notifier?.RemoveListener(this);
     }
 }

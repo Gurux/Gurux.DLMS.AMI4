@@ -1,3 +1,30 @@
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using System.Security.Claims;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Components.Account.Pages;
@@ -14,6 +41,17 @@ namespace Microsoft.AspNetCore.Routing
 {
     internal static class IdentityComponentsEndpointRouteBuilderExtensions
     {
+        // Routing is case insensitive: the Identity API confirmation URL also matches
+        // the Razor confirmation page. Keep the API endpoint as a fallback while the
+        // normal browser flow selects the page; other Identity API routes retain order.
+        public static void PreferIdentityConfirmationPage(EndpointBuilder endpoint)
+        {
+            if (endpoint is RouteEndpointBuilder route &&
+                route.RoutePattern.RawText?.EndsWith("/confirmEmail", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                route.Order = 1;
+            }
+        }
         // These endpoints are required by the Identity Razor components defined in the /Components/Account/Pages directory of this project.
         public static IEndpointConventionBuilder MapAdditionalIdentityEndpoints(this IEndpointRouteBuilder endpoints)
         {
@@ -83,7 +121,10 @@ namespace Microsoft.AspNetCore.Routing
                 }
 
                 var userId = await userManager.GetUserIdAsync(user);
-                downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
+                if (downloadLogger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+                {
+                    downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
+                }
 
                 // Only include personal data for download
                 var personalData = new Dictionary<string, string>();

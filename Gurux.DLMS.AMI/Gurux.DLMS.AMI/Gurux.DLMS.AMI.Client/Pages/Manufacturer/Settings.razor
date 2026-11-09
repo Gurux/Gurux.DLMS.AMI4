@@ -1,36 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
@@ -47,14 +45,18 @@
 @using System.Globalization
 @using System.Text.Json;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 
-<GXTable @ref="table"
+<GXHelpContext Topic="Settings" />
+
+<GXViewTable ViewName="Manufacturer.Settings" ViewColumns="ViewColumnDefaults" TItem="GXDeviceSettings" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
+         OnChecked="@(items => Parent!.Owner.InstalledSettings = items.ToArray())"
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
          ShowAllUsers="false"
@@ -64,38 +66,49 @@
          OnCheckboxDisabled="@OnCheckboxDisabled"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
-        </th>
-        <th>
+        <GXFh Id="Authentication">
+        </GXFh>
+        <GXFh Id="InterfaceType">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-        </th>
+        </GXFh>
+        <GXFh Id="Security"></GXFh>
+        <GXFh Id="PreEstablished"></GXFh>
+        <GXFh Id="Installed"></GXFh>
     </FilterContent>
     <HeaderContent>
-        <th>@Properties.Resources.Authentication</th>
-        <th>@Properties.Resources.InterfaceType</th>
-        <th>@Properties.Resources.Security</th>
-        <th>Pre-established</th>
-        <th>@Properties.Resources.Installed</th>
+        <GXTh Id="Authentication" TItem="GXDeviceSettings">@Properties.Resources.Authentication</GXTh>
+        <GXTh Id="InterfaceType" TItem="GXDeviceSettings">@Properties.Resources.InterfaceType</GXTh>
+        <GXTh Id="Security" TItem="GXDeviceSettings">@Properties.Resources.Security</GXTh>
+        <GXTh Id="PreEstablished" TItem="GXDeviceSettings">@Properties.Resources.PreEstablished</GXTh>
+        <GXTh Id="Installed" TItem="GXDeviceSettings">@Properties.Resources.Installed</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>@GetAuthenticationLevel(item)</td>
-        <td>@GetInterfaceType(item)</td>
-        <td>@GetSecurity(item)</td>
-        <td>@GetPreEstablished(item)</td>
-        <td>@item.InstallationTime</td>
+        <GXTd Id="Authentication">@GetAuthenticationLevel(item)</GXTd>
+        <GXTd Id="InterfaceType">@GetInterfaceType(item)</GXTd>
+        <GXTd Id="Security">@GetSecurity(item)</GXTd>
+        <GXTd Id="PreEstablished">@GetPreEstablished(item)</GXTd>
+        <GXTd Id="Installed">@item.InstallationTime</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="DeleteConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Authentication") { Position = 0, Description = "Authentication", Visibility = (byte)Visibility.All },
+        new("InterfaceType") { Position = 1, Description = "InterfaceType", Visibility = (byte)Visibility.All },
+        new("Security") { Position = 2, Description = "Security", Visibility = (byte)Visibility.All },
+        new("PreEstablished") { Position = 3, Description = Properties.Resources.PreEstablished, Visibility = (byte)Visibility.All },
+        new("Installed") { Position = 4, Description = "Installed", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+
+    private IGXNotificationService? NotificationService;
+
     [CascadingParameter]
-    private Manufacturer? Parent { get; set; }
+    private ManufacturerGeneral? Parent { get; set; }
 
     private GXDeviceVersion? Version
     {
@@ -107,30 +120,27 @@
 
     string GetInterfaceType(GXDeviceSettings value)
     {
-        return ((Gurux.DLMS.Enums.InterfaceType)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).InterfaceType).ToString();
+        return ((Gurux.DLMS.Enums.InterfaceType)(JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings ?? "{}") ?? new()).InterfaceType).ToString();
     }
 
     string GetSecurity(GXDeviceSettings value)
     {
-        return ((Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).Security).ToString();
+        return ((Gurux.DLMS.Enums.Security)(JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings ?? "{}") ?? new()).Security).ToString();
     }
 
     string GetPreEstablished(GXDeviceSettings value)
     {
-        return JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).PreEstablished.ToString();
+        return (JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings ?? "{}") ?? new()).PreEstablished.ToString();
     }
-    
 
     string GetAuthenticationLevel(GXDeviceSettings value)
     {
-        GXDLMSSettings settings = new();
-        if (!string.IsNullOrEmpty(value.Settings))
-        {
-            var tmp = JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings);
-            if (tmp != null)
+        // Catalog entries contain a profile name before their settings are
+        // downloaded. Missing settings do not imply Authentication.None.
+        var settings = string.IsNullOrWhiteSpace(value.Settings) ? null : JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings);
+        if (settings == null)
             {
-                settings = tmp;
-            }
+            return value.Name ?? string.Empty;
         }
         if (!string.IsNullOrEmpty(settings.AuthenticationName))
         {
@@ -144,15 +154,11 @@
     /// Settings filter.
     /// </summary>
     private GXDeviceSettings filter = new GXDeviceSettings();
-    /// <summary>
-    /// User is verified before manufacturer is removed.
-    /// </summary>
-    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXDeviceSettings>? table;
+    protected GXViewTable<GXDeviceSettings>? table;
 
     /// <summary>
     /// Update installed items.
@@ -175,6 +181,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
         await Task.Delay(1);
         try
@@ -186,13 +199,13 @@
                 if (table != null)
                 {
                     //Get last selected item.
-                    table.Active = first;
+                    table.RestoreSelection(first);
                 }
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -201,7 +214,7 @@
     /// </summary>
     public void OnCheckboxDisabled(GXDeviceSettings value, out bool disabled, out bool check)
     {
-        check = disabled = value.Template != null;
+        disabled = value.Template != null; check = disabled || Parent?.Owner.InstalledSettings.Any(item => item.Id == value.Id) == true;
     }
 
     /// <summary>
@@ -213,7 +226,7 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Manufacturer/Settings.Updated");
                 await table.RefreshDataAsync(true);
                 //Select first setting.
                 GXDeviceSettings? first = Version?.Settings?.FirstOrDefault();
@@ -222,14 +235,14 @@
                     if (table != null)
                     {
                         //Get last selected item.
-                        table.Active = first;
+                        table.RestoreSelection(first);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/Settings.Updated");
         }
     }
 
@@ -249,11 +262,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -261,15 +270,22 @@
     /// <summary>
     /// Remove selected models.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = true,
+                    Items = table.SingleOrDefault().Select(s => s.Name).ToArray()
+                });
+            await OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -277,14 +293,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected models.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
@@ -304,13 +320,13 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

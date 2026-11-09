@@ -1,0 +1,104 @@
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/NotificationType/Edit/{Id:guid}"
+@using Gurux.DLMS.AMI.Client.Shared
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IServiceProvider Services
+
+@if (_settings != null)
+{
+    <h1>@_settings.Name</h1>
+    <EditForm EditContext="@GXEditContexts.For(_settings)" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXTabControl>
+            <GXTabPage Path="general" Text="@Properties.Resources.GeneralInformation">
+                <GXHelpScope Topic="notification-type">
+                    <div class="form-group">
+                        <label>@Properties.Resources.Name</label>
+                        <InputText class="form-control" @bind-Value="_settings.Name" />
+                    </div>
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="_settings.Enabled" />
+                </GXHelpScope>
+            </GXTabPage>
+            <GXTabPage Path="policies" Text="@Properties.Resources.Policies2">
+                <GXHelpScope Topic="notification-type.policies">
+                    <div class="form-group notification-type-policy">
+                        <Gurux.UI.Components.GXPolicyEditor @bind-Value="_settings.Policies" Disabled="@_saving" />
+                    </div>
+                </GXHelpScope>
+            </GXTabPage>
+        </GXTabControl>
+        <AuthorizeView Policy="@GXNotificationTypePolicies.Edit" Context="typeEditContext">
+            <button type="submit" class="btn btn-primary" disabled="@_saving">@Properties.Resources.Save</button>
+        </AuthorizeView>
+        <button type="button" class="btn btn-secondary" disabled="@_saving" @onclick="Cancel">@Properties.Resources.Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private GXNotificationType? _settings;
+    private bool _saving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsJsonAsync<GetNotificationTypeResponse>("api/NotificationType?id=" + Id);
+            _settings = response.Item;
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { Services.GetService<IGXNotificationService>()?.ReportError(ex); }
+    }
+
+    private async Task Save()
+    {
+        if (_settings == null || _saving)
+        {
+            return;
+        }
+        _saving = true;
+        try
+        {
+            await Http.PostAsJson<UpdateNotificationTypeResponse>("api/NotificationType/Update",
+                new UpdateNotificationType { NotificationTypes = [_settings] });
+            Cancel();
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { Services.GetService<IGXNotificationService>()?.ReportError(ex); }
+        finally { _saving = false; }
+    }
+
+    private void Cancel() => ClientHelpers.NavigateToLastPage(NavigationManager);
+}

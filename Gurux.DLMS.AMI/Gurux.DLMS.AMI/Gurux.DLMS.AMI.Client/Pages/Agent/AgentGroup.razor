@@ -1,188 +1,153 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/AgentGroup/{Id:guid?}"
+@page "/AgentGroup/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.User
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Agent
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs;
 
-@attribute [Authorize(Roles = "Admin, AgentGroupManager")]
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="AgentGroup" />
 
-<EditForm Model="@Active">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-    <div class="row">
-        <div style="width:100%">
-            <div class="form-group">
-                <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="Active.Name" />
-            </div>
-            <div class="form-group">
-                <InputNullableSwitch Text="@Properties.Resources.Active"
-                                     @bind-Value="Active.Active" />
-            </div>
-            <div class="form-group">
-                <InputNullableSwitch Text="@Properties.Resources.DefaultGroup"
-                                     @bind-Value="Active.Default" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Description</label>
-                <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="Active.Description" />
-            </div>
-            <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                  Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-            @if (action == CrudAction.Delete)
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
             {
-                <hr />
-                <p>
-                </p>
-                <div class="form-group">
-                    <InputRadioGroup @bind-Value="DeleteTarget">
-                        <InputRadio Value="false">
-                        </InputRadio>
-                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                        <InputRadio Value="true">
-                        </InputRadio>
-                        <label>@Properties.Resources.TargetDeleteQuestion</label>
-                    </InputRadioGroup>
-                    <br />
-                </div>
+                <TabHeader Name="@GXMenus.AgentGroupTab" Parameters="@TabParameters" />
             }
-        </div>
-    </div>
-</EditForm>
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
 @code {
-    [CascadingParameter]
-    private AgentGroupTab? Parent { get; set; }
+    private bool _ready;
 
-    private GXAgentGroup? _active;
-
-    private GXAgentGroup? Active
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        get
-        {
-            if (Parent?.Active != null)
-            {
-                return Parent.Active;
-            }
-            return _active;
-        }
-    }
+        ["Active"] = Active,
+        ["Action"] = _action
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
     /// <summary>
-    /// User action.
+    /// Action.
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
     /// <summary>
-    /// Selected item.
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
     /// </summary>
     [Parameter]
     public Guid? Id { get; set; }
 
-    private bool DeleteTarget;
-    public string? IsDeleting
-    {
-        get
-        {
-            if (action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    private CrudAction _action;
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXAgentGroup Active = new GXAgentGroup(null);
+
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        _action = ClientHelpers.GetAction(NavigationManager, Action);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
+            switch (_action)
+            {
+                case CrudAction.Create:
+                    Title = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    Title = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.AgentGroup;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAgentGroup);
+            NotificationService?.RemoveByKey("Pages/Agent/AgentGroup.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get agent group data.
-                var tmp = (await Http.GetAsJsonAsync<GetAgentGroupResponse>(string.Format("api/AgentGroup?id={0}", Id)));
+                var tmp = (await Http.GetAsJsonAsync<GetAgentGroupResponse>(string.Format("api/AgentGroup?Id={0}", Id)));
                 if (tmp?.Item != null)
                 {
-                    _active = tmp.Item;
+                    Active = tmp.Item;
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem()
-                {
-                    Text = Properties.Resources.Remove,
-                    Icon = "Remove",
-                    OnClick = EventCallback.Factory.Create(this, OnSave)
-                });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem(
-                     Properties.Resources.Save,
-                     "Save",
-                     EventCallback.Factory.Create(this, OnSave)
-                 ));
-            }
-            Notifier.AddMenuItem(new GXMenuItem()
-            {
-                Text = Properties.Resources.Cancel,
-                Icon = "Cancel",
-                OnClick = EventCallback.Factory.Create(this, OnCancel)
-            });
-            Notifier.UpdateButtons();
+            SetEditorMenu();
+            _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -190,18 +155,15 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentGroup.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Save agent.
-    /// </summary>
-    public async void OnSave()
+    private GXEditorMenu? _editorMenu;
+    public bool DeleteTarget { get; set; }
+    private void SetEditorMenu() { _editorMenu = new GXEditorMenu(SharedMenuService); _editorMenu.Set(Active, _action, OnSave, () => { OnCancel(); return Task.CompletedTask; }); }
+    public void Dispose() => _editorMenu?.Dispose();
+    public async Task OnSave()
     {
         try
         {
@@ -209,9 +171,12 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            if (_action != CrudAction.Delete && !GXEditContexts.For(Active).Validate()) {
+                return;
+            }
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAgentGroup);
+            NotificationService?.RemoveByKey("Pages/Agent/AgentGroup.OnSave");
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAgentGroupResponse>("api/AgentGroup/Delete", new RemoveAgentGroup()
                 {
@@ -222,11 +187,11 @@
             else
             {
                 string address;
-                if (action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
                     address = "api/AgentGroup/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (_action == CrudAction.Update)
                 {
                     address = "api/AgentGroup/Update";
                 }
@@ -236,7 +201,7 @@
                 }
                 await Http.PostAsJson<AddAgentGroupResponse>(address, new AddAgentGroup() { AgentGroups = new GXAgentGroup[] { Active } });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -244,19 +209,13 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentGroup.OnSave");
         }
     }
-
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 }
+
+

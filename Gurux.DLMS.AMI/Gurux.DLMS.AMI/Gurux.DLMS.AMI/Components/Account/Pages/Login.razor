@@ -1,35 +1,68 @@
-﻿@page "/Account/Login"
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using Gurux.DLMS.AMI.Data
+@using Gurux.DLMS.AMI.Module
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IGXAmiModuleServices ModuleServices
+@inject UserManager<ApplicationUser> UserManager
+@inject Gurux.DLMS.AMI.Server.Services.GXAccountRegistrationPolicy RegistrationPolicy
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.LogInText</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
+<h1>@Gurux.DLMS.AMI.Properties.Resources.LogInText</h1>
+<div class="row mx-0">
     <div class="col-lg-6">
         <section>
             <StatusMessage Message="@errorMessage" />
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
+                <h2>@Gurux.DLMS.AMI.Properties.Resources.UseALocalAccountToLogIn</h2>
                 <hr />
                 <ValidationSummary class="text-danger" role="alert" />
                 <div class="form-floating mb-3">
                     <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Email</label>
+                    <label for="Input.Email" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.SiteEmailAddress</label>
                     <ValidationMessage For="() => Input.Email" class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="@Gurux.DLMS.AMI.Properties.Resources.Password2" />
+                    <label for="Input.Password" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.Password</label>
                     <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
                 <div class="checkbox mb-3">
@@ -39,17 +72,27 @@
                     </label>
                 </div>
                 <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                    @if (qrFeatures.PhoneApprovalEnabled)
+                    {
+                        <div class="form-check mb-3">
+                            <InputCheckbox id="phone-approval" class="form-check-input" @bind-Value="Input.UsePhoneApproval" />
+                            <label for="phone-approval">@Gurux.DLMS.AMI.Properties.Resources.VerifyThisLoginByScanningAQRCodeWithMySignedInPhone</label>
+                        </div>
+                    }
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.LogInText</button>
                 </div>
                 <div>
                     <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
+                        <a href="Account/ForgotPassword">@Gurux.DLMS.AMI.Properties.Resources.ForgotYourPassword</a>
                     </p>
+                    @if (publicRegistrationAllowed)
+                    {
                     <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
+                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">@Gurux.DLMS.AMI.Properties.Resources.RegisterAsANewUser</a>
                     </p>
+                    }
                     <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
+                        <a href="Account/ResendEmailConfirmation">@Gurux.DLMS.AMI.Properties.Resources.ResendEmailConfirmation</a>
                     </p>
                 </div>
             </EditForm>
@@ -57,27 +100,44 @@
     </div>
     <div class="col-lg-4 col-lg-offset-2">
         <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
             <ExternalLoginPicker />
+            @if (qrFeatures.TotpEnrollmentEnabled)
+            {
+                <hr />
+                <h3>@Gurux.DLMS.AMI.Properties.Resources.UseAnAuthenticatorApp</h3>
+                <p>@Gurux.DLMS.AMI.Properties.Resources.LogInWithYourPasswordAndTheCodeFromYourAuthenticatorApp</p>
+                <a href="Account/Manage/EnableAuthenticator">@Gurux.DLMS.AMI.Properties.Resources.SetUpTwoFactorAuthentication</a>
+                <p class="text-muted">@Gurux.DLMS.AMI.Properties.Resources.SignInFirstToScanYourPersonalSetupQRCode</p>
+            }
+            @if (qrFeatures.PhoneApprovalEnabled)
+            {
+                <hr />
+                <h3>@Gurux.DLMS.AMI.Properties.Resources.ApproveWithYourPhone</h3>
+                <p>@Gurux.DLMS.AMI.Properties.Resources.SelectPhoneVerificationAndEnterYourPasswordThenScanTheQRCodeAndApproveOnAPhoneAlready</p>
+            }
         </section>
     </div>
 </div>
 
 @code {
     private string? errorMessage;
+    private bool publicRegistrationAllowed;
+    private AmiQrLoginFeatures qrFeatures = new(false, false);
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
+        publicRegistrationAllowed = (await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted)).PublicRegistrationAllowed;
+        qrFeatures = await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted);
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             // Clear the existing external cookie to ensure a clean login process
@@ -87,6 +147,11 @@
 
     public async Task LoginUser()
     {
+        if (Input.UsePhoneApproval)
+        {
+            await BeginPhoneApprovalAsync();
+            return;
+        }
         // This doesn't count login failures towards account lockout
         // To enable password failures to trigger account lockout, set lockoutOnFailure: true
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
@@ -108,8 +173,45 @@
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidLoginAttempt;
         }
+    }
+
+    private async Task BeginPhoneApprovalAsync()
+    {
+        if (!HttpContext.Request.IsHttps || !qrFeatures.PhoneApprovalEnabled)
+        {
+            errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailableHTTPSAndAnEnabledQRCodeModuleAreRequired;
+            return;
+        }
+        var user = await UserManager.FindByNameAsync(Input.Email);
+        var result = user is null ? Microsoft.AspNetCore.Identity.SignInResult.Failed :
+            await SignInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
+        if (!result.Succeeded)
+        {
+            errorMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidLoginAttempt;
+            return;
+        }
+        try
+        {
+            var grant = new AmiQrLoginGrant(user!.Id, await UserManager.GetSecurityStampAsync(user), Input.RememberMe, ReturnUrl);
+            var challenge = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginChallenge?>(
+                (service, _) => Task.FromResult(service.Create(grant, HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown")),
+                HttpContext.RequestAborted);
+            if (challenge is null)
+            {
+                errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailablePleaseTryAgain;
+                return;
+            }
+            HttpContext.Response.Cookies.Append(QrLoginFlow.CookieName, challenge.Id + "." + challenge.BrowserKey,
+                QrLoginFlow.CookieOptions(HttpContext));
+        }
+        catch (AmiModuleUnavailableException)
+        {
+            errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailablePleaseTryAgain;
+            return;
+        }
+        RedirectManager.RedirectTo("Account/LoginWithQrCode");
     }
 
     private sealed class InputModel
@@ -122,7 +224,8 @@
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Remember me?")]
+        [Display(Name = nameof(Gurux.DLMS.AMI.Properties.Resources.RememberMe), ResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources))]
         public bool RememberMe { get; set; }
+        public bool UsePhoneApproval { get; set; }
     }
 }

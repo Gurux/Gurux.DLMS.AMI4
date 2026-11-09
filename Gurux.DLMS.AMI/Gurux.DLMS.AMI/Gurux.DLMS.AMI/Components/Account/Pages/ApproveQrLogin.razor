@@ -1,0 +1,124 @@
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/ApproveQrLogin"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.ComponentModel.DataAnnotations
+@using Gurux.DLMS.AMI.Data
+@using Gurux.DLMS.AMI.Module
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authentication
+@inject IGXAmiModuleServices ModuleServices
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ApproveComputerLogin</PageTitle>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.ApproveComputerLogin</h1>
+@if (info is not null && !approved)
+{
+    <p>@Gurux.DLMS.AMI.Properties.Resources.ApproveOnlyALoginYouJustStartedOnYourOwnComputer</p>
+    <p>Computer address: @info.RemoteAddress. Expires: @info.ExpiresAt.ToString("HH:mm:ss 'UTC'").</p>
+    <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" method="post" FormName="approve-qr-login" OnValidSubmit="ApproveAsync">
+        <DataAnnotationsValidator />
+        <label for="qr-number">@Gurux.DLMS.AMI.Properties.Resources.EnterTheSixDigitNumberShownOnYourComputer</label>
+        <InputText id="qr-number" class="form-control mb-3" @bind-Value="Input.Number" inputmode="numeric" autocomplete="off" />
+        <ValidationMessage For="() => Input.Number" />
+        <button type="submit" class="btn btn-primary">@Gurux.DLMS.AMI.Properties.Resources.ApproveLogin</button>
+    </EditForm>
+}
+<p role="status">@message</p>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    [SupplyParameterFromQuery] public string? Id { get; set; }
+    [SupplyParameterFromForm] private ApprovalInput Input { get; set; } = default!;
+    private AmiQrLoginInfo? info;
+    private string? userId;
+    private bool approved;
+    private string message = Gurux.DLMS.AMI.Properties.Resources.TheRequestIsUnavailableExpiredOrBelongsToAnotherAccount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        HttpContext.Response.Headers.CacheControl = "no-store";
+        HttpContext.Response.Headers["Referrer-Policy"] = "no-referrer";
+        // Validate the session stamp immediately rather than waiting for periodic cookie validation.
+        var user = await SignInManager.ValidateSecurityStampAsync(HttpContext.User);
+        if (user is null || !await SignInManager.CanSignInAsync(user) ||
+            (UserManager.SupportsUserLockout && await UserManager.IsLockedOutAsync(user)) || Id?.Length != 64)
+        {
+            return;
+        }
+        userId = user.Id;
+        try
+        {
+            info = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginInfo?>((service, _) => Task.FromResult(service.GetForApproval(Id, userId)), HttpContext.RequestAborted);
+            if (info is not null)
+            {
+                var session = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+                if (QrLoginFlow.SessionStartedAt(session.Properties) is not { } issuedAt || issuedAt > info.CreatedAt)
+                {
+                    info = null;
+                    message = Gurux.DLMS.AMI.Properties.Resources.SignInOnYourPhoneFirstThenStartANewLoginOnYourComputer;
+                }
+                else
+                {
+                    message = "";
+                }
+            }
+        }
+        catch (AmiModuleUnavailableException)
+        {
+        }
+    }
+
+    private async Task ApproveAsync()
+    {
+        if (info is null || userId is null || Id is null)
+        {
+            return;
+        }
+        try
+        {
+            approved = await ModuleServices.InvokeAsync<IGXAmiQrLogin, bool>((service, _) => Task.FromResult(service.Approve(Id, userId, Input.Number)), HttpContext.RequestAborted);
+            message = approved ? Gurux.DLMS.AMI.Properties.Resources.LoginApprovedReturnToYourComputer : Gurux.DLMS.AMI.Properties.Resources.TheNumberIsIncorrectOrTheRequestIsNoLongerAvailable;
+        }
+        catch (AmiModuleUnavailableException)
+        {
+            message = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailable;
+            info = null;
+        }
+    }
+
+    private sealed class ApprovalInput
+    {
+        [Required, RegularExpression("^[0-9]{6}$")]
+        public string Number { get; set; } = "";
+    }
+}

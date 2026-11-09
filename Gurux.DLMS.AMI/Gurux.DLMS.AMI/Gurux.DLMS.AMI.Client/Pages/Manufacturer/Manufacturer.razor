@@ -1,221 +1,199 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Module
-@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs
 
+@inject IGXMenuService SharedMenuService
+@inject IGXAmiConfirmation Confirmation
+@implements IDisposable
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Manufacturer" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="disabled" @bind-Value="Active.Name" class="form-control"
-                               placeholder=@Properties.Resources.Name />
-                </div>
-                <table style="width:100%;">
-                    <thead>
-                        <tr>
-                            <td style="width:49%">
-                                Models
-                            </td>
-                            <td style="width:49%">
-                                Versions
-                            </td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="vertical-align:top">
-                                <CascadingValue Value="this">
-                                    <Models @ref="_models"></Models>
-                                </CascadingValue>
-                            </td>
-                            <td style="vertical-align:top">
-                                <CascadingValue Value="this">
-                                    <Versions @ref="_versions"></Versions>
-                                </CascadingValue>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <CascadingValue Value="this">
-                    <Settings @ref="_settings"></Settings>
-                </CascadingValue>
-                @if (Active.CreationTime != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.CreationTime</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                                   @bind-Value="Active.CreationTime" />
-                    </div>
-                }
-                @if (Active.Updated != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Updated</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                                   @bind-Value="Active.Updated" />
-                    </div>
-                }
-                @if (Active.Removed != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Removed</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                                   @bind-Value="Active.Removed" />
-                    </div>
-                }
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
+<h1>
+    @Title
+</h1>
 
-    <Confirm @ref="InstallConfirmation"
-             ConfirmationChanged="OnInstallConfirmation"
-             OkTitle="@Properties.Resources.Install"
-             AllowDelete="false"
-             ConfirmationMessage=""
-             ConfirmationTitle="@Properties.Resources.InstallMetersVerify">
-    </Confirm>
-}
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
+            {
+                <TabHeader Name="@GXMenus.ManufacturerDetailsTab" Parameters="@TabParameters" ParametersForLink="@GetTabParameters" LinkFilter="@ShowManufacturerTab">
+                    <ContentForLink Context="link">
+                        @if (!string.IsNullOrEmpty(link.TargetType))
+                        {
+                            var componentType = Type.GetType(link.TargetType);
+                            <div style="position: relative; width: 100%;">
+                                @if (link.Url == "ModelProfilePicture" && Model != null)
+                                {
+                                    <h2>@Model.Name</h2>
+                                }
+                                <DynamicComponent Type="@componentType" Parameters="@GXTabParameters.Filter(componentType!, TabParameters, GetTabParameters(link))" />
+                            </div>
+                        }
+                    </ContentForLink>
+                </TabHeader>
+            }
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
 @code {
-    private bool DeleteTarget;
-    [CascadingParameter]
-    private ManufacturerTab? Parent { get; set; }
+    private bool _ready;
 
-    private Models? _models;
-    private Versions? _versions;
-    private Settings? _settings;
-
-    internal GXManufacturer? Active
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        get
+        ["Active"] = Active ?? throw new InvalidOperationException(Properties.Resources.NoManufacturerIsSelected),
+        ["Action"] = _action
+    };
+
+    private IDictionary<string, object>? GetTabParameters(GXMenuLink link)
+    {
+        if (Type.GetType(link.TargetType ?? string.Empty) != typeof(ProfilePictureEditor)) {
+            return null;
+        }
+        var model = link.Url == "ModelProfilePicture" ? Model : null;
+        return new Dictionary<string, object>
         {
-            return Parent?.Active;
+            [nameof(ProfilePictureEditor.Value)] = (link.Url == "ModelProfilePicture" ? model?.ProfilePicture : Active?.ProfilePicture)!,
+            [nameof(ProfilePictureEditor.ValueChanged)] = EventCallback.Factory.Create<GXAppearance?>(this,
+                image => ProfilePictureChanged(model, image)),
+            [nameof(ProfilePictureEditor.Disabled)] = _savingProfilePictures || _action != CrudAction.Update || (link.Url == "ModelProfilePicture" && model == null),
+            [nameof(ProfilePictureEditor.Id)] = model == null ? "manufacturer-profile-picture-editor" : "device-model-profile-picture-editor"
+        };
+    }
+
+    private bool ShowManufacturerTab(GXMenuLink link)
+        => Type.GetType(link.TargetType ?? string.Empty) != typeof(ProfilePictureEditor) ||
+            (_action != CrudAction.Create && (link.Url != "ModelProfilePicture" || Model != null));
+
+    private void ProfilePictureChanged(GXDeviceModel? model, GXAppearance? image)
+    {
+        if (_savingProfilePictures || _action != CrudAction.Update || Active == null) {
+            return;
+        }
+        if (model == null)
+        {
+            Active.ProfilePicture = image;
+            _manufacturerPictureChanged = true;
+            GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXManufacturer.ProfilePicture)));
+        }
+        else
+        {
+            if (!_modelPictureEdits.ContainsKey(model.Id))
+                {
+                _modelPictureEdits.Add(model.Id, (model, new GXProfilePictureEdit(model.ProfilePicture?.Id, model.Creator?.Id ?? Active.Creator?.Id)));
+            }
+            model.ProfilePicture = image;
+            GXEditContexts.For(model).NotifyFieldChanged(new FieldIdentifier(model, nameof(GXDeviceModel.ProfilePicture)));
+            GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXManufacturer.Models)));
         }
     }
 
-    internal GXDeviceModel? Model;
-    internal GXDeviceVersion? Version;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
-    /// <summary>
-    /// User is verified before manufacturer is installed.
-    /// </summary>
-    protected ConfirmBase? InstallConfirmation;
-
-
-    public async Task ModelChanged(GXDeviceModel value)
-    {
-        Model = value;
-        if (_versions != null)
-        {
-            await _versions.Updated();
-        }
-    }
-
-    public async Task VersionChanged(GXDeviceVersion value)
-    {
-        Version = value;
-        if (_settings != null)
-        {
-            await _settings.Updated();
-        }
-    }
-
-    /// <summary>
-    /// User action.
-    /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
 
-    protected override void OnInitialized()
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXManufacturer? Active;
+
+    protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
+            switch (Action)
             {
-                Notifier.AddMenuItem(new GXMenuItem()
-                {
-                    Text = Properties.Resources.Remove,
-                    Icon = "Remove",
-                    OnClick = EventCallback.Factory.Create(this, OnSave)
-                });
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.Manufacturer;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingManufacturer);
+            NotificationService?.RemoveByKey("Pages/Manufacturer/Manufacturer.OnInitializedAsync");
+            //Get manufacturer data.
+            var tmp = (await Http.GetAsJsonAsync<GetManufacturerResponse>(string.Format("api/Manufacturer?id={0}", Id)));
+            if (tmp?.Item != null)
+            {
+                Active = tmp.Item;
             }
             else
             {
-                Notifier.AddMenuItem(new GXMenuItem()
-                {
-                    Text = Properties.Resources.Save,
-                    Icon = "Save",
-                    OnClick = EventCallback.Factory.Create(this, OnSave)
-                });
+                NavigationManager.NavigateTo("404");
+                return;
             }
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            Model = Active.Models?.FirstOrDefault();
+            SetEditorMenu();
+            _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -223,114 +201,146 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/Manufacturer.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Save manufacture settings.
-    /// </summary>
-    public void OnSave()
+    private GXEditorMenu? _editorMenu;
+    private GXProfilePictureEdit? _profilePictureEdit;
+    private bool _manufacturerPictureChanged;
+    private bool _savingProfilePictures;
+    private readonly Dictionary<Guid, (GXDeviceModel Model, GXProfilePictureEdit Edit)> _modelPictureEdits = [];
+    public bool DeleteTarget { get; set; }
+    public GXDeviceModel? Model { get; set; }
+    internal Task SelectModelAsync(GXDeviceModel model)
     {
+        Model = model;
+        return InvokeAsync(StateHasChanged);
+    }
+    public GXDeviceVersion? Version { get; set; }
+    public GXDeviceModel[] InstalledModels { get; set; } = [];
+    public GXDeviceVersion[] InstalledVersions { get; set; } = [];
+    public GXDeviceSettings[] InstalledSettings { get; set; } = [];
+    private void SetEditorMenu()
+    {
+        _profilePictureEdit = new GXProfilePictureEdit(Active?.ProfilePicture?.Id, Active?.Creator?.Id);
+        _editorMenu = new GXEditorMenu(SharedMenuService);
+        _editorMenu.Set(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget), _action, OnSave, () => { OnCancel(); return Task.CompletedTask; });
+    }
+    public void Dispose() => _editorMenu?.Dispose();
+
+    public async Task OnSave()
+    {
+        if (_savingProfilePictures) {
+            return;
+        }
         try
         {
-            if (Active == null || _settings == null)
+            if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Manufacturer/ManufacturerGeneral.OnSave");
             var items = GetInstalledMeters();
             if (items.Any())
             {
-                InstallConfirmation?.Show(items);
+                var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.InstallMetersVerify, "",
+                    new AmiConfirmationOptions
+                    {
+                        ConfirmText = Properties.Resources.Install,
+                        AllowDelete = false,
+                        Items = items
+                    });
+                await OnInstallConfirmation(confirmation);
             }
             else
             {
-                ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                await SaveProfilePicturesAsync();
+                ClientHelpers.NavigateToLastPage(NavigationManager);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/ManufacturerGeneral.OnSave");
+        }
+    }
+
+    private async Task SaveProfilePicturesAsync()
+    {
+        if (_savingProfilePictures || Active == null || (!_manufacturerPictureChanged && _modelPictureEdits.Count == 0)) {
+            return;
+        }
+        _savingProfilePictures = true;
+        try
+        {
+            var manufacturer = Active;
+            var modelEdits = _modelPictureEdits.Values.ToArray();
+            Func<Task> save = async () =>
+            {
+                await Http.PostAsJson<UpdateManufacturerResponse>("api/Manufacturer/Update",
+                    new UpdateManufacturer { Manufacturers = [manufacturer] });
+            };
+            if (_manufacturerPictureChanged)
+            {
+                var saveOwner = save;
+                save = () => (_profilePictureEdit ??= new GXProfilePictureEdit(null, manufacturer.Creator?.Id)).SaveAsync(Http,
+                    manufacturer.ProfilePicture, image => manufacturer.ProfilePicture = image, saveOwner,
+                    error => NotificationService?.ReportError(error, "Manufacturer.ProfilePicture.Cleanup"));
+            }
+            foreach (var pending in modelEdits)
+            {
+                var saveOwner = save;
+                save = () => pending.Edit.SaveAsync(Http, pending.Model.ProfilePicture,
+                    image => pending.Model.ProfilePicture = image, saveOwner,
+                    error => NotificationService?.ReportError(error, "Manufacturer.ModelProfilePicture.Cleanup"));
+            }
+            await save();
+            foreach (var pending in modelEdits) {
+                GXEditContexts.For(pending.Model).MarkAsUnmodified();
+            }
+            _modelPictureEdits.Clear();
+            _manufacturerPictureChanged = false;
+            GXEditContexts.For(manufacturer).MarkAsUnmodified();
+        }
+        finally
+        {
+            _savingProfilePictures = false;
         }
     }
 
     private string[] GetInstalledMeters()
     {
-        List<string> models = new List<string>();
-        List<string> versions = new List<string>();
-        List<string> settings = new List<string>();
-        if (_models != null)
+        var items = InstalledModels
+            .Where(model => model.Versions != null && !model.Versions.Any(version => version.Settings?.Any(setting => setting.Template != null) == true))
+            .Select(model => string.Format(Properties.Resources.InstallVersions, model.ToString())).ToList();
+        if (items.Count == 0)
         {
-            foreach (var model in _models.GetInstalledItems())
+            items.AddRange(InstalledVersions
+                .Where(version => version.Settings != null && !version.Settings.Any(setting => setting.Template != null))
+                .Select(version => string.Format(Properties.Resources.InstallAllSettings, Model?.ToString(), version.ToString())));
+            if (items.Count == 0)
             {
-                //Check that model is not already installed.
-                if (model.Versions != null)
-                {
-                    models.Add(string.Format(Properties.Resources.InstallVersions, model.ToString()));
-                    foreach (var version in model.Versions)
-                    {
-                        if (version.Settings != null)
-                        {
-                            foreach (var setting in version.Settings)
-                            {
-                                if (setting.Template != null)
-                                {
-                                    models.RemoveAt(models.Count - 1);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+                items.AddRange(InstalledSettings.Where(setting => setting.Template == null)
+                    .Select(setting => Model?.ToString() + " " + Version?.ToString() + " " + setting.ToString()));
             }
         }
-        if (!models.Any() && _versions != null)
-        {
-            foreach (var version in _versions.GetInstalledItems())
-            {
-                if (version.Settings != null)
-                {
-                    versions.Add(string.Format(Properties.Resources.InstallAllSettings, Model?.ToString(), version.ToString()));
-                    foreach (var setting in version.Settings)
-                    {
-                        if (setting.Template != null)
-                        {
-                            versions.RemoveAt(versions.Count - 1);
-                            break;
-                        }
-                    }
-                }
-            }
-            if (!models.Any() && !versions.Any() && _settings != null)
-            {
-                foreach (var setting in _settings.GetInstalledItems())
-                {
-                    if (setting.Template == null)
-                    {
-                        settings.Add(Model?.ToString() + " " + Version?.ToString() + " " + setting?.ToString());
-                    }
-                }
-            }
-        }
-        models.AddRange(versions);
-        models.AddRange(settings);
-        return models.ToArray();
+        return items.ToArray();
     }
 
-    /// <summary>
-    /// Install the selected manufacturers.
-    /// </summary>
-    public async Task OnInstallConfirmation(ConfirmArgs args)
+    public async Task OnInstallConfirmation(AmiConfirmationResult args)
     {
+        if (_savingProfilePictures) {
+            return;
+        }
         try
         {
             if (args.Confirm)
             {
-                Notifier.ProgressStart();
-                var models = _models?.GetInstalledItems();
-                var versions = _versions?.GetInstalledItems();
-                var settings = _settings?.GetInstalledItems();
+                await SaveProfilePicturesAsync();
+                using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingManufacturer);
+                var models = InstalledModels;
+                var versions = InstalledVersions;
+                var settings = InstalledSettings;
                 await Http.PostAsJson<InstallManufacturersResponse>("api/Manufacturer/Install",
           new InstallManufacturers()
           {
@@ -338,7 +348,7 @@
               Versions = versions,
               Settings = settings
           });
-                ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                ClientHelpers.NavigateToLastPage(NavigationManager);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -347,22 +357,22 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
         finally
         {
             if (args.Confirm)
             {
-                Notifier.ProgressEnd();
             }
         }
 
     }
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
+
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        if (_savingProfilePictures) {
+            return;
+        }
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 }

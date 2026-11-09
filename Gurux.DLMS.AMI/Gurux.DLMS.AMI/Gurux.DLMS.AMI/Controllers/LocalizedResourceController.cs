@@ -1,37 +1,31 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Authorization;
@@ -42,36 +36,30 @@ namespace Gurux.DLMS.AMI.Server.Controllers
     /// <summary>
     /// This controller is used to handle the localized resources.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class LocalizedResourceController : ControllerBase
+    public class LocalizedResourceController(ILocalizedResourceRepository localizedResourceRepository) : ControllerBase
     {
-        private readonly ILocalizedResourceRepository _localizedResourceRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public LocalizedResourceController(ILocalizedResourceRepository localizedResourceRepository)
-        {
-            _localizedResourceRepository = localizedResourceRepository;
-        }
+        private readonly ILocalizedResourceRepository _localizedResourceRepository = localizedResourceRepository;
 
         /// <summary>
         /// Update localized resource.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXLocalizedResourcePolicies.Add)]
-        public async Task<ActionResult<UpdateLocalizedResourceResponse>> Post(UpdateLocalizedResource request)
+        public async Task<ActionResult<UpdateLocalizedResourceResponse>> Post(UpdateLocalizedResource request, CancellationToken cancellationToken = default)
         {
-            if (request.LocalizedResources == null || request.LocalizedResources.Length == 0)
+            UpdateLocalizedResourceResponse ret = new()
             {
-                return BadRequest("Invalid localized resources");
-            }
-            UpdateLocalizedResourceResponse ret = new UpdateLocalizedResourceResponse();
-            ret.Ids = await _localizedResourceRepository.UpdateAsync(request.LocalizedResources);
+                Ids = await _localizedResourceRepository.UpsertAsync(request.LocalizedResources, cancellationToken)
+            };
             return ret;
         }
 
@@ -80,13 +68,12 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// </summary>
         /// <returns>Available localized resources.</returns>
         [HttpPost("List")]
-        [Authorize(Policy = GXLocalizedResourcePolicies.View)]
-        [Authorize(Policy = GXUserPolicies.View)]
+        [AllowAnonymous]
         public async Task<ActionResult<ListLocalizedResourcesResponse>> Post(
             ListLocalizedResources request,
             CancellationToken cancellationToken)
         {
-            ListLocalizedResourcesResponse ret = new ListLocalizedResourcesResponse();
+            ListLocalizedResourcesResponse ret = new();
             await _localizedResourceRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -98,12 +85,15 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <param name="lang">Used language identifier.</param>
         /// <param name="text">Resource text.</param>
         /// <returns>LocalizedResource information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
-        [Authorize(Policy = GXLocalizedResourcePolicies.View)]
-        public async Task<ActionResult<GetLocalizedResourceResponse>> Get(string lang, string hash, string? text)
+        [AllowAnonymous]
+        public async Task<ActionResult<GetLocalizedResourceResponse>> Get(string lang, string hash, string? text, CancellationToken cancellationToken = default)
         {
-            var ret = new GetLocalizedResourceResponse();
-            ret.Item = await _localizedResourceRepository.ReadAsync(lang, hash, text);
+            var ret = new GetLocalizedResourceResponse
+            {
+                Item = await _localizedResourceRepository.ReadAsync(lang, hash, text, cancellationToken)
+            };
             return ret;
         }
 
@@ -112,13 +102,9 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXLocalizedResourcePolicies.Delete)]
-        public async Task<ActionResult<LocalizedResourceDeleteResponse>> Post(LocalizedResourceDelete request)
+        public async Task<ActionResult<LocalizedResourceDeleteResponse>> Post(LocalizedResourceDelete request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _localizedResourceRepository.DeleteAsync(request.Ids);
+            await _localizedResourceRepository.DeleteAsync(request.Ids, cancellationToken);
             return new LocalizedResourceDeleteResponse();
         }
 
@@ -128,13 +114,10 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <returns></returns>
         [HttpPost("LastChanged")]
         [AllowAnonymous]
-        public async Task<ActionResult<DateTimeOffset?>> Post()
+        public async Task<ActionResult<DateTimeOffset?>> Post(CancellationToken cancellationToken = default)
         {
-            var ret = await _localizedResourceRepository.LastChanged();
-            if (ret == null)
-            {
-                ret = DateTimeOffset.MinValue;
-            }
+            _ = cancellationToken;
+            var ret = await _localizedResourceRepository.LastChanged() ?? DateTimeOffset.MinValue;
             return Ok(ret);
         }
     }

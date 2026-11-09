@@ -1,0 +1,89 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+
+<div class="update-heading">
+    <strong>
+        @if (!string.IsNullOrWhiteSpace(ModuleUrl))
+        {
+            <a href="@ModuleUrl">@Item.Name</a>
+        }
+        else
+        {
+            @Item.Name
+        }
+        <span class="installed-version" title="@Item.InstalledVersion">@InstalledVersionText</span>
+    </strong>
+    @if (Item.SecurityUpdateRequired)
+    {
+        <strong class="security-required" role="status">@Gurux.DLMS.AMI.Client.Properties.Resources.SecurityUpdateRequired <span aria-hidden="true">❗</span></strong>
+    }
+    else
+    {
+        <span class="update-status">
+            @StatusText
+            @if (Item.Status == GXUpdateStatus.UpToDate)
+            {
+                <span class="status-check" aria-hidden="true">✓</span>
+            }
+        </span>
+    }
+</div>
+@if (Item.SecurityRelease is GXAvailableRelease security)
+{
+    <UpdateReleaseRow Label="@Properties.Resources.SecurityUpdate" Release="security" ReleaseNotesLabel="@ReleaseNotesLabel" />
+}
+@if (Item.LatestRelease is GXAvailableRelease latest)
+{
+    <UpdateReleaseRow Label="@LatestVersionLabel" Release="latest" ReleaseNotesLabel="@ReleaseNotesLabel" />
+    @foreach (var release in Item.AdditionalReleases)
+    {
+        <UpdateReleaseRow @key="release.Version" Label="@Properties.Resources.AlsoAvailable" Release="release" ReleaseNotesLabel="@ReleaseNotesLabel" />
+    }
+}
+else
+{
+    <UpdateReleaseRow Label="@LatestVersionLabel" Release="@(new GXAvailableRelease { Version = Item.AvailableVersion ?? UnknownLabel, PublishedAt = Item.PublishedAt, ReleaseNotesUrl = Item.ReleaseNotesUrl })" ReleaseNotesLabel="@ReleaseNotesLabel" />
+}
+
+@code {
+    [Parameter, EditorRequired] public GXAvailableUpdate Item { get; set; } = new();
+    [Parameter] public string? ModuleUrl { get; set; }
+    [Parameter] public string StatusText { get; set; } = "";
+    [Parameter] public string ReleaseNotesLabel { get; set; } = Properties.Resources.ReleaseNotes;
+    [Parameter] public string LatestVersionLabel { get; set; } = Properties.Resources.UpdatesLatestVersion;
+    [Parameter] public string UnknownLabel { get; set; } = "Unknown";
+    [Parameter] public string NotInstalledLabel { get; set; } = Properties.Resources.UpdatesNotInstalled;
+
+    private string InstalledVersionText => string.IsNullOrWhiteSpace(Item.InstalledVersion)
+        ? Item.Status == GXUpdateStatus.Available ? NotInstalledLabel : UnknownLabel
+        : Item.InstalledVersion.Length == 64 && Item.InstalledVersion.All(Uri.IsHexDigit)
+            ? Item.InstalledVersion[..12] + "…" : Item.InstalledVersion;
+}

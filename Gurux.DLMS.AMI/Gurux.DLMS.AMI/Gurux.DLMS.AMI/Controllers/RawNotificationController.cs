@@ -1,34 +1,30 @@
-//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -39,23 +35,36 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gurux.DLMS.AMI.Server.Repository;
 
 /// <summary>Stores raw notification chunks and coordinates deferred parsing through connection leases.</summary>
+/// <remarks>Creates a controller for the authenticated raw notification repository.</remarks>
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public sealed class RawNotificationController : ControllerBase
+public sealed class RawNotificationController(IRawNotificationRepository rawNotificationRepository) : ControllerBase
 {
-    private readonly IRawNotificationRepository repository;
-
-    /// <summary>Creates a controller for the authenticated raw notification repository.</summary>
-    public RawNotificationController(IRawNotificationRepository rawNotificationRepository) => repository = rawNotificationRepository;
+    private readonly IRawNotificationRepository repository = rawNotificationRepository;
 
     private async Task<ActionResult<T>> ExecuteAsync<T>(Func<Task<T>> action)
     {
-        try { return await action(); }
-        catch (ArgumentException ex) { return BadRequest(ex.Message); }
-        catch (UnauthorizedAccessException) { return Forbid(); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+        try
+        {
+            return await action();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 
     /// <summary>Reads an accessible notification without reserving it.</summary>
@@ -79,7 +88,10 @@ public sealed class RawNotificationController : ControllerBase
     [Authorize(Policy = GXRawNotificationPolicies.Add)]
     public Task<ActionResult<AddRawNotificationResponse>> Post(AddRawNotification request, CancellationToken cancellationToken = default) =>
         ExecuteAsync(async () => {
-            if (request.RawNotifications == null) throw new ArgumentException("Notifications are required.");
+            if (request.RawNotifications == null)
+            {
+                throw new ArgumentException("Notifications are required.");
+            }
             return new AddRawNotificationResponse { Ids = await repository.AddAsync(request.RawNotifications, cancellationToken) };
         });
 
@@ -130,7 +142,10 @@ public sealed class RawNotificationController : ControllerBase
     [Authorize(Policy = GXRawNotificationPolicies.Delete)]
     public Task<ActionResult<DeleteRawNotificationResponse>> Post(DeleteRawNotification request, CancellationToken cancellationToken = default) =>
         ExecuteAsync(async () => {
-            if (request.Ids == null) throw new ArgumentException("Notification identifiers are required.");
+            if (request.Ids == null)
+            {
+                throw new ArgumentException("Notification identifiers are required.");
+            }
             await repository.DeleteAsync(request.Ids, cancellationToken);
             return new DeleteRawNotificationResponse();
         });

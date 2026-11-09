@@ -1,43 +1,65 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+    <PropertyGroup>
+        <DefaultItemExcludes>$(DefaultItemExcludes);Testing/**</DefaultItemExcludes>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GuruxDlmsUiComponentsSourceProject Condition="'$(GuruxDlmsUiComponentsSourceProject)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\Gurux.DLMS.UI.Components\Development\Gurux.DLMS.UI.Components.csproj</GuruxDlmsUiComponentsSourceProject>
+        <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+        <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+        <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+        <UseAmiSharedSource Condition="'$(UseAmiSharedSource)' == '' and Exists('..\..\..\Gurux.DLMS.AMI.Shared\Gurux.DLMS.AMI.Shared.csproj')">true</UseAmiSharedSource>
+        <GuruxUiComponentsSourceProject Condition="'$(GuruxUiComponentsSourceProject)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\Gurux.UI.Components\Development\Gurux.UI.Components.csproj</GuruxUiComponentsSourceProject>
+        <GuruxUiComponentsVersion>4.0.2611.605-local</GuruxUiComponentsVersion>
+        <UseGuruxUiComponentsSource Condition="'$(UseGuruxUiComponentsSource)' == '' and Exists('$(GuruxUiComponentsSourceProject)')">true</UseGuruxUiComponentsSource>
+        <GuruxUpdaterSourceProject Condition="'$(GuruxUpdaterSourceProject)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\Gurux.Updater.Net\Development\Gurux.Updater.Net\Gurux.Updater.Net.csproj</GuruxUpdaterSourceProject>
+        <UseGuruxUpdaterSource Condition="'$(UseGuruxUpdaterSource)' == '' and Exists('$(GuruxUpdaterSourceProject)')">true</UseGuruxUpdaterSource>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.1.2611.605" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
+        <PackageReference Include="Gurux.DLMS.AMI.Http" Version="4.1.2611.501" />
+        <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.1.2611.901" />
+        <PackageReference Include="Gurux.DLMS.UI.Components" Version="1.0.2611.902" />
+        <PackageReference Include="Gurux.UI.Components" Version="$(GuruxUiComponentsVersion)" Condition="'$(UseGuruxUiComponentsSource)' != 'true'" />
+        <PackageReference Include="Gurux.Net" Version="8.4.2604.201" />
+        <PackageReference Include="Gurux.Scheduling" Version="1.0.2609.2201" />
+        <PackageReference Include="Gurux.Serial" Version="8.4.2503.603" />
+        <PackageReference Include="Gurux.Updater.Net" Version="1.0.2611.303" Condition="'$(UseGuruxUpdaterSource)' != 'true'" />
+        <PackageReference Include="Gurux.Updater.Net" Version="1.0.2611.601" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Connections.Client" Version="10.0.14" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.14" />
+    </ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
-    <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Gurux.DLMS" Version="9.0.2603.3001" />
-    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2604.201" />
-    <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2604.202" />
-    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2604.202" />
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2604.201" />
-    <PackageReference Include="Gurux.Net" Version="8.4.2604.201" />
-    <PackageReference Include="Gurux.Serial" Version="8.4.2503.603" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Connections.Client" Version="10.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.5" />
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Update="Properties\Resources.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Resources.resx</DependentUpon>
+        </Compile>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Update="Properties\Resources.resx">
+            <Generator>ResXFileCodeGenerator</Generator>
+            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+    </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Pages\Announcement\" />
-  </ItemGroup>
-
+    <ItemGroup>
+        <Content Include="..\..\..\README.md" Link="wwwroot\readme.md" ContentRoot="$(MSBuildProjectDirectory)\..\..\..\" />
+    </ItemGroup>
+    <ItemGroup>
+        <TrimmerRootDescriptor Include="ModuleComponents.xml" />
+    </ItemGroup>
+    <ItemGroup>
+        <Using Include="Gurux.DLMS.AMI.Http" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(AmiReleaseBuild)' == 'true'">
+        <Content Remove="wwwroot/appsettings.Development*.json" />
+    </ItemGroup>
 </Project>

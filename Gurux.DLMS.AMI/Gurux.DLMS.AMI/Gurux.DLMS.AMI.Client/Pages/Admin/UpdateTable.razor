@@ -1,0 +1,155 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Module
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IServiceProvider Services
+
+<GXViewTable ViewName="Admin.UpdateTable" ViewColumns="ViewColumnDefaults" TItem="GXAvailableUpdate" @ref="_table" Context="item" ItemsProvider="GetItems"
+         Menu="false"
+         ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+    <HeaderContent><GXTh Id="AvailableUpdates" TItem="GXAvailableUpdate">@Properties.Resources.AvailableUpdates</GXTh></HeaderContent>
+    <ItemContent>
+        <GXTd Id="AvailableUpdates">
+            <article class="update-row @StatusClass(item)">
+                <UpdateReleasePanel Item="item" ModuleUrl="@(Modules ? Navigation.GetCurrentPagePath("/Config/Module/" + item.Id) : null)"
+                    StatusText="@StatusText(item.Status)" ReleaseNotesLabel="@Properties.Resources.ReleaseNotes"
+                    LatestVersionLabel="@Properties.Resources.UpdatesLatestVersion" UnknownLabel="@Properties.Resources.Unknown"
+                    NotInstalledLabel="@Properties.Resources.UpdatesNotInstalled" />
+                @if (Modules && _versions.TryGetValue(item.Id, out var versions) && versions.Count != 0)
+                {
+                    <div class="version-selector">
+                        <label for="@("update-version-" + item.Id)">@Properties.Resources.VersionToInstall</label>
+                        <GXInputDropdown TValue="Guid" id="@("update-version-" + item.Id)" class="form-select" Disabled="@_updating" Value="@_selected.GetValueOrDefault(item.Id)" ValueChanged="@(value => SelectVersion(item.Id, value))" Items="@versions.Where(version => version.Installable).Select(version => version.Id)" Formatter="@(value => versions.First(version => version.Id == value).Number + (versions.First(version => version.Id == value).Prerelease ? " " + Properties.Resources.Prerelease : ""))" RememberValue="false" />
+                        <AuthorizeView Policy="@GXModulePolicies.Add">
+                            <button type="button" class="btn btn-info" disabled="@_updating" @onclick="@(() => UpdateAsync(item))">@Properties.Resources.Update</button>
+                        </AuthorizeView>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(item.Description))
+                {
+                    <p class="update-description">@item.Description</p>
+                }
+            </article>
+        </GXTd>
+    </ItemContent>
+</GXViewTable>
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("AvailableUpdates") { Position = 0, Description = Properties.Resources.AvailableUpdates, Visibility = (byte)Visibility.All },
+    ];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<GXAvailableUpdate> Items { get; set; } = [];
+    [Parameter] public bool Modules { get; set; }
+    [Parameter] public EventCallback OnUpdated { get; set; }
+    private GXTable<GXAvailableUpdate>? _table;
+    private Dictionary<string, List<ModuleReleaseInfo>> _versions = new();
+    private readonly Dictionary<string, Guid> _selected = new();
+    private bool _versionsLoaded;
+    private bool _updating;
+
+    private void SelectVersion(string id, object? value)
+    {
+        if (Guid.TryParse(value?.ToString(), out var version))
+        {
+            _selected[id] = version;
+        }
+    }
+
+    private async Task UpdateAsync(GXAvailableUpdate module)
+    {
+        if (_updating)
+        {
+            return;
+        }
+        _updating = true;
+        var notifications = Services.GetService<IGXNotificationService>();
+        try
+        {
+            var version = _selected.GetValueOrDefault(module.Id);
+            if (!_versions.TryGetValue(module.Id, out var versions) || !versions.Any(item => item.Id == version && item.Installable))
+            {
+                throw new InvalidOperationException(Properties.Resources.SelectAnInstallableModuleVersion);
+            }
+        
+            using var progress = Services.GetService<IGXProgress>()?.ProgressStart(Gurux.DLMS.AMI.Client.Properties.Resources.UpdatingModule);
+            var result = await Http.PostAsJson<InstallModuleResponse>("api/Module/Install", new InstallModule { Module = new GXModule(module.Id), VersionId = version });
+            notifications?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Success, result.Restart ? Properties.Resources.ModuleUpdatedRestartTheServerToApplyTheChange : Properties.Resources.ModuleUpdated, "", "Updates.Module"));
+            await OnUpdated.InvokeAsync();
+        }
+        catch (Exception error)
+        {
+            notifications?.ReportError(error, "Updates.Module");
+        }
+        finally
+        {
+            _updating = false;
+        }
+    }
+
+    private static string StatusClass(GXAvailableUpdate item) => item.SecurityUpdateRequired ? "security-update"
+        : item.Status == GXUpdateStatus.UpdateAvailable ? "bg-info" : "";
+    private static string StatusText(GXUpdateStatus status) => status switch
+    {
+        GXUpdateStatus.UpToDate => Properties.Resources.UpdatesUpToDate,
+        GXUpdateStatus.UpdateAvailable => Properties.Resources.UpdatesUpdateAvailable,
+        GXUpdateStatus.Available => Properties.Resources.UpdatesAvailable,
+        _ => Properties.Resources.Unknown
+    };
+
+    private async ValueTask<ItemsProviderResult<GXAvailableUpdate>> GetItems(GXItemsProviderRequest request)
+    {
+        if (Modules && !_versionsLoaded)
+        {
+            var response = await Http.PostAsJson<ListModulesResponse>("api/Module/List", new ListModules { CatalogOnly = true, IncludePrereleases = true, AllUsers = true }, request.CancellationToken);
+            _versions = response.CatalogVersions;
+            foreach (var item in Items)
+            {
+                var versions = _versions.GetValueOrDefault(item.Id) ?? [];
+                var selected = versions.FirstOrDefault(version => version.Installable && version.Number == item.AvailableVersion) ?? versions.FirstOrDefault(version => version.Installable);
+                if (selected != null)
+                {
+                    _selected[item.Id] = selected.Id;
+                }
+            }
+        
+            _versionsLoaded = true;
+        }
+        var rows = request.Count > 0 ? Items.Skip(request.StartIndex).Take(request.Count) : Items;
+        return new ItemsProviderResult<GXAvailableUpdate>(rows.ToArray(), Items.Count);
+    }
+}

@@ -1,35 +1,33 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/DeviceTemplate/Groups"
 @page "/DeviceTemplate"
 @page "/DeviceTemplateGroup"
 
@@ -42,44 +40,41 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceTemplateManager + "," + GXRoles.DeviceTemplateGroupManager)]
 @inject NavigationManager NavigationManager
 
 @*If user adds a new item or modifies the existing one.*@
+<GXHelpContext Topic="DeviceTemplateManage" />
+
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
     @if (string.Compare(Path, "DeviceTemplateGroup", true) == 0)
     {
-        <DeviceTemplateGroupTab Action="@Action" Id="@Id"></DeviceTemplateGroupTab>
+        <DeviceTemplateGroup Action="@Action" Id="@Id"></DeviceTemplateGroup>
     }
     else if (string.Compare(Path, "DeviceTemplate", true) == 0)
     {
-        <DeviceTemplateTab Action="@Action" Id="@Id"></DeviceTemplateTab>
+        <DeviceTemplate Action="@Action" Id="@Id"></DeviceTemplate>
     }
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="DeviceTemplate" Active="@Path" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
-            @context.Text
+            <GXImage Id="@context.Icon" />
+            <GXLocalizedText Value="@context.Text" />
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplate)>
-                <TabPage Path="DeviceTemplate" Text=@Properties.Resources.DeviceTemplates Icon="DeviceTemplates">
-                    <DeviceTemplates Id="@Id"></DeviceTemplates>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateGroupManager)>
-                <TabPage Path="DeviceTemplateGroup" Text=@Properties.Resources.DeviceTemplateGroups Icon="DeviceTemplateGroups">
-                    <DeviceTemplateGroups Id="@Id"></DeviceTemplateGroups>
-                </TabPage>
-            </AuthorizeView>
+            <TabHeader Name="@GXMenus.DeviceTemplateTab"></TabHeader>
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 <br />
 @code {
+    protected override void OnParametersSet()
+    {
+        Path = GXTabRoutes.Active(NavigationManager, "DeviceTemplate", 0, Path);
+    }
+
     /// <summary>
     /// User action.
     /// </summary>
@@ -97,7 +92,7 @@ else
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
     }
@@ -105,7 +100,9 @@ else
     protected override void OnInitialized()
     {
         //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        Path = GXTabRoutes.Active(NavigationManager, "DeviceTemplate", 0, Path);
     }
 }
+
+
 

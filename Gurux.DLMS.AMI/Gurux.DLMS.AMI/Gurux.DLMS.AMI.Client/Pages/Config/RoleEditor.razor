@@ -1,152 +1,310 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Accordion
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.UI.Components.Accordion
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
+<GXHelpContext Topic="RoleEditor" />
 
-<h1>Available roles</h1>
-<Search Placeholder="@Properties.Resources.FilterByName"
-        Id="Roles.Filter"
-        Immediate="true"
-        @bind-Value="@Filter"
-        OnClickAsync="@(async (e) => await Update())" />
+<h1>@Properties.Resources.Roles</h1>
 <hr />
-<GXTable @ref="table"
-         Context="it"
-         ItemsProvider="@GetItems"
-         OnSearch="@Update"
-         ShowAllUsers="false"
-         ShowRemoved="false"
-         ShowAllData="true">
+<GXViewTable ViewName="Config.RoleEditor" ViewColumns="RoleColumnDefaults" ViewPolicies="@(new List<string> { GXRolePolicies.View })" TItem="GXRole" @ref="table"
+             Context="it"
+             ItemsProvider="@GetItems"
+             SelectionMode="@SelectionMode"
+             OnSearch="@Update"
+             ShowAllUsers="false"
+             ShowRemoved="false"
+             Filter="false"
+             ShowAllData="true">
+    <FilterContent>
+        @if (Edit)
+        {
+            <GXFh Id="Default"></GXFh>
+        }
+        <GXFh Id="Name">
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    Id="roles.filter"
+                    Immediate="true"
+                    @bind-Value="@Filter"
+                    @bind-Value:after="Update" />
+        </GXFh>
+        @if (!AssignmentMode)
+        {
+            <GXFh Id="Permissions"></GXFh>
+        }
+    </FilterContent>
     <MenuContent>
     </MenuContent>
     <HeaderContent>
-        <th>
-            @Properties.Resources.DefaultRole
-            <div class="form-check form-switch">
-                <input type="checkbox" class="form-check-input" id="roles_all"
-                       @onchange="@((ChangeEventArgs __e) => @CheckAll(Convert.ToBoolean(__e.Value)))" />
-                <label>@Properties.Resources.Roles</label>
-            </div>
-        </th>
-        <th>@Properties.Resources.Name</th>
-        <th>Scopes</th>
+        @if (Edit)
+        {
+            <GXTh Id="Default" TItem="GXRole">
+                @(AssignmentMode? Properties.Resources.Roles : Properties.Resources.DefaultRole)
+                @if (AssignmentMode)
+                {
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="roles_all"
+                           disabled="@(AssignmentMode && AdminSelected)"
+                           @onchange="@((ChangeEventArgs __e) => AllDefault(Convert.ToBoolean(__e.Value)))" />
+                    <label>@Properties.Resources.Roles</label>
+                </div>
+                }
+            </GXTh>
+        }
+        <GXTh Id="Name" TItem="GXRole">@Properties.Resources.Name</GXTh>
+        @if (!AssignmentMode)
+        {
+            <GXTh Id="Permissions" TItem="GXRole"><GXLocalizedText Value="@Properties.Resources.Permissions" /></GXTh>
+        }
     </HeaderContent>
     <ItemContent>
-        <td>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox"
-                       checked="@it.Default"
-                       @onchange="@((e) => it.Default = Convert.ToBoolean(e.Value))" />
-            </div>
-        </td>
-        <td>
-            @(string.IsNullOrEmpty(it.LocalizedName) ? it.Name : it.LocalizedName)
-        </td>
-        <td>
-            @if (it.Scopes != null)
+        @if (Edit)
+        {
+            <GXTd Id="Default">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="@(AssignmentMode ? "checkbox" : "radio")" name="roles_default"
+                           checked="@it.Default"
+                           disabled="@(AssignmentMode ? AdminSelected && !IsAdmin(it) : !CanEditRole(it) || !_canEdit)"
+                           @onchange="@((e) => Check(it, AssignmentMode ? Convert.ToBoolean(e.Value) : true))" />
+                </div>
+            </GXTd>
+        }
+        <GXTd Id="Name">
+            @if (!AssignmentMode && CanEditRole(it) && EditingRoles.Contains(it))
             {
-                @if (it.Default != true)
+                <label>@Properties.Resources.Name</label>
+                <input class="form-control" maxlength="256" readonly="@(it.SystemDefined == true)" @bind="it.Name" @bind:event="oninput" @bind:after="Changed" />
+                <label>@Properties.Resources.Description</label>
+                <textarea class="form-control" @bind="it.Description" @bind:event="oninput" @bind:after="Changed"></textarea>
+            }
+            else
+            {
+            <GXLocalizedText Value="@ClientHelpers.KebabToTitle(it.Name)" />
+                @if (!AssignmentMode && !string.IsNullOrEmpty(it.Description))
                 {
-                    <Accordion Id="content-type-authoring">
+                    <div class="small text-muted">@it.Description</div>
+                }
+            }
+        </GXTd>
+        @if (!AssignmentMode)
+        {
+            <GXTd Id="Permissions">
+                @if (IsAdmin(it))
+                {
+                    <GXLocalizedText Value="@Properties.Resources.All" />
+                }
+                else if (AssignmentMode || !CanEditRole(it))
+                {
+                    @string.Join(", ", it.Permissions?.Select(p => p.Name) ?? Enumerable.Empty<string?>())
+                }
+                else
+                {
+                    <GXAccordion Id="@($"role-permissions-{it.Id}")">
                         <HeaderTemplate>
-                            @GetScopesAsString(it)
+                            @string.Join(", ", it.Permissions?.Select(p => p.Name) ?? Enumerable.Empty<string?>())
                         </HeaderTemplate>
                         <ChildContent>
-                            @foreach (var scope in it.Scopes)
+                            @foreach (var permission in PermissionCatalog.Concat(it.Permissions ?? new List<GXPermission>()).DistinctBy(p => p.Name))
                             {
-                                @(string.IsNullOrEmpty(scope.LocalizedName) ? scope.Name : scope.LocalizedName)
-                                <div class="form-check form-switch">
+                                <div class="form-check">
                                     <input class="form-check-input" type="checkbox"
-                                           checked="@scope.Default"
-                                           @onchange="@((e) => CheckScope(scope, Convert.ToBoolean(e.Value)))" />
+                                           checked="@(it.Permissions?.Any(p => string.Equals(p.Name, permission.Name, StringComparison.OrdinalIgnoreCase)) == true)"
+                                           @onchange="@(e => CheckPermission(it, permission, Convert.ToBoolean(e.Value)))" />
+                                    <label class="form-check-label">@permission.Name</label>
                                 </div>
                             }
                         </ChildContent>
-                    </Accordion>
+                    </GXAccordion>
                 }
-            }
-        </td>
+            </GXTd>
+        }
     </ItemContent>
-</GXTable>
+</GXViewTable>
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Default") { Position = 0, Description = "DefaultRole", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Permissions") { Position = 2, Description = "Permissions", Visibility = (byte)Visibility.All },
+    ];
+
+    private IReadOnlyList<GXViewColumn> RoleColumnDefaults => ViewColumnDefaults
+        .Where(column => (Edit || column.Name != "Default") &&
+            (!AssignmentMode || column.Name == "Default" || column.Name == "Name"))
+        .ToArray();
+
+    protected override void OnInitialized()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+    }
+
+    private IGXNotifier2? Notifier;
+    private bool _canEdit;
+    private bool _canAdd;
+    private bool CanEditRole(GXRole role) => Edit && (string.IsNullOrEmpty(role.Id) ? _canAdd : _canEdit);
+
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// User can't edit roles if Edit is false.
+    /// This is used when showing the default roles of a user, so they can't be edited.
+    /// </summary>
+    [Parameter]
+    public bool Edit { get; set; }
+    [Parameter]
+    public bool AssignmentMode { get; set; }
+    [Parameter]
+    public Gurux.UI.Components.Table.SelectionMode SelectionMode { get; set; } = Gurux.UI.Components.Table.SelectionMode.Single;
+
+    public GXRole[] SelectedRoles => table?.SingleOrDefault().ToArray() ?? [];
+    public HashSet<GXRole> EditingRoles { get; } = new();
+    private Task Changed() => OnChanged.InvokeAsync(Roles);
+
+    public async Task EditRoles(IEnumerable<GXRole> roles)
+    {
+        foreach (var role in roles)
+        {
+            EditingRoles.Add(role);
+        }
+        await Update();
+        await InvokeAsync(StateHasChanged);
+    }
+    [Parameter]
+    public IEnumerable<GXPermission> PermissionCatalog { get; set; } = Array.Empty<GXPermission>();
+
+    [Parameter]
+    public List<GXRole>? Roles { get; set; }
+
+    [Parameter]
+    public EventCallback<List<GXRole>> OnChanged { get; set; }
+
     /// <summary>
     /// Filter.
     /// </summary>
-    public string? Filter
-    {
-        get;
-        set;
-    }
+    public string? Filter { get; set; }
 
     /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXRole>? table;
 
-    [Parameter]
-    public List<GXRole>? Roles { get; set; }
+    private static bool IsAdmin(GXRole role) => string.Equals(role.Name, GXRoles.Admin, StringComparison.OrdinalIgnoreCase);
+    private bool AdminSelected => Roles?.Any(r => IsAdmin(r) && r.Default == true) == true;
 
-    private GXRole? _active = null;
-    //If role is not active it can't be the default role.
-    private string? IsDefault(GXRole selected)
+    protected override async Task OnParametersSetAsync()
     {
-        return selected.Default.HasValue && selected.Default.Value ? null : "disabled";
+        if (!AssignmentMode)
+        {
+            var authorization = Services.GetService<IAuthorizationService>();
+            var authentication = Services.GetService<AuthenticationStateProvider>();
+            if (authorization != null && authentication != null)
+            {
+                var user = (await authentication.GetAuthenticationStateAsync()).User;
+                _canEdit = (await authorization.AuthorizeAsync(user, GXRolePolicies.Edit)).Succeeded;
+                _canAdd = (await authorization.AuthorizeAsync(user, GXRolePolicies.Add)).Succeeded;
+            }
+        }
+        if (AssignmentMode && AdminSelected && Roles != null)
+        {
+            foreach (var role in Roles.Where(r => !IsAdmin(r)))
+            {
+                role.Default = false;
+            }
+        }
     }
 
-    private string GetSelectedClass(GXRole selected)
+    /// <summary>
+    /// Check or uncheck a role as default.
+    /// </summary>
+    /// <param name="role">The role to check or uncheck.</param>
+    /// <param name="check">True to set as default, false to unset.</param>
+    private void Check(GXRole role, bool check)
     {
-        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-    private void RowSelected(GXRole selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.Modules, _active);
+        if (!AssignmentMode)
+        {
+            if (!check || Roles == null)
+            {
+                return;
+            }
+            foreach (var other in Roles)
+            {
+                other.Default = ReferenceEquals(other, role);
+            }
+        }
+        if (AssignmentMode && AdminSelected && !IsAdmin(role))
+        {
+            return;
+        }
+        role.Default = check;
+        if (AssignmentMode && check && IsAdmin(role) && Roles != null)
+        {
+            foreach (var other in Roles.Where(r => !IsAdmin(r)))
+            {
+                other.Default = false;
+            }
+        }
+        if (OnChanged.HasDelegate)
+        {
+            OnChanged.InvokeAsync(Roles);
+        }
     }
 
     /// <summary>
     /// Set or unset all roles to default.
     /// </summary>
     /// <param name="check"></param>
-    private void CheckAll(bool check)
+    private void AllDefault(bool check)
     {
+        if (!AssignmentMode)
+        {
+            return;
+        }
+        if (AssignmentMode && AdminSelected)
+        {
+            return;
+        }
         if (Roles != null)
         {
             foreach (var it in Roles)
@@ -156,59 +314,30 @@
                     it.Default = check;
                 }
             }
-        }
-    }
-
-    /// <summary>
-    /// Check the scope.
-    /// </summary>
-    /// <param name="scope"></param>
-    private void CheckScope(GXScope scope, bool value)
-    {
-        scope.Default = value;
-        if (value == true && Roles != null)
-        {
-            foreach (var role in Roles)
+            if (OnChanged.HasDelegate)
             {
-                if (role.Scopes?.Contains(scope) == true)
-                {
-                    role.Default = false;
-                    break;
-                }
+                OnChanged.InvokeAsync(Roles);
             }
         }
     }
 
     /// <summary>
-    /// Convert role scopes to string.
+    /// Check the permission.
     /// </summary>
-    private static string? GetScopesAsString(GXRole role)
+    /// <param name="permission"></param>
+    private void CheckPermission(GXRole role, GXPermission permission, bool selected)
     {
-        string? str = null;
-        if (role.Default == true)
+        role.Permissions ??= new List<GXPermission>();
+        role.Permissions.RemoveAll(p => string.Equals(p.Name, permission.Name, StringComparison.OrdinalIgnoreCase));
+        if (selected)
         {
-            str = Properties.Resources.All;
+            role.Permissions.Add(permission.Clone());
         }
-        else
+        if (OnChanged.HasDelegate)
         {
-            if (role.Scopes != null)
-            {
-                foreach (var scope in role.Scopes)
-                {
-                    if (scope.Default == true)
-                    {
-                        if (str != null)
-                        {
-                            str += ",";
-                        }
-                        str += string.IsNullOrEmpty(scope.LocalizedName) ? scope.Name : scope.LocalizedName;
-                    }
-                }
-            }
+            _ = OnChanged.InvokeAsync(Roles);
         }
-        return str;
     }
-
     private ValueTask<ItemsProviderResult<GXRole>> GetItems(GXItemsProviderRequest request)
     {
         List<GXRole>? list;
@@ -236,18 +365,18 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Config/RoleEditor.Update");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/RoleEditor.Update");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }

@@ -1,0 +1,81 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Diagnostics
+
+
+<GXHelpContext Topic="Component" />
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4">
+    @foreach (var it in _styles)
+    {
+        <div class="col">
+            <div class="card card-var p-3">
+                <label class="form-label">@it.Description <small>@it.Name</small></label>
+                <div class="d-flex align-items-center gap-3">
+                    <input type="color" class="form-control form-control-color" value="@it.Value"
+                           @onchange="@((ChangeEventArgs e) => ChangeColor(it, e))" />
+                    <button type="button" class="btn btn-link" @onclick="@(() => ResetColor(it))">@Gurux.DLMS.AMI.Client.Properties.Resources.Reset</button>
+                    <div class="preview-box flex-grow-1" style="@($"background: var({it.Value})")"></div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@code {
+    [CascadingParameter] public Theme Owner { get; set; } = default!;
+    [Parameter] public List<GXAppearance>? AvailableThemes { get; set; }
+    private IEnumerable<GXThemeStyle> _styles => Owner.GetStyles(GetDefaultValues());
+    public void ChangeColor(GXThemeStyle item, ChangeEventArgs value) => Owner.ChangeStyle(item, Convert.ToString(value.Value));
+    public void ResetColor(GXThemeStyle item) => Owner.ResetStyle(item);
+    protected override Task OnInitializedAsync() => Owner.LoadStylesAsync(GetDefaultValues());
+    private static IEnumerable<GXThemeStyle> GetDefaultValues()
+    {
+        return [new GXThemeStyle((byte)ThemeType.Color, "--bs-primary", "primary", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-secondary", "Secondary", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-success", "Success", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-info", "Info", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-warning", "Warning", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-danger", "Danger", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-light", "Light", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-dark", "Dark", null),
+    ];
+    }
+}

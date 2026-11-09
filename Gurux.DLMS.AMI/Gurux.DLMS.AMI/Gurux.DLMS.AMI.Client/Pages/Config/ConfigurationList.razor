@@ -1,0 +1,96 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Menu
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager NavigationManager
+
+    <h1><GXLocalizedText Value="@Properties.Resources.Settings" /></h1>
+    <GXSearch placeholder="@Properties.Resources.FilterByName"
+            class="form-control"
+            id="Configurations.Filter"
+            Immediate="true"
+            RememberValue="true"
+            @bind-Value="@Parent.Filter"
+            @bind-Value:after="Parent.Updated" />
+    <hr />
+    <GXViewTable ViewName="Config.ConfigurationList" ViewColumns="ViewColumnDefaults" TItem="GXMenuLink" @ref="Parent.table"
+             Context="conf"
+             ItemsProvider="@Parent.GetItems"
+             Filter="false"
+             OnSearch="@Parent.Updated"
+             ShowAllUsers="false"
+             ShowRemoved="false"
+             ShowAllData="true">
+        <FilterContent>
+            <GXFh Id="Icon">
+            </GXFh>
+            <GXFh Id="Name">
+                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                       @onchange="@((ChangeEventArgs __e) => Parent.Filter = Convert.ToString(__e.Value))" />
+            </GXFh>
+            <GXFh Id="Description">
+            </GXFh>
+        </FilterContent>
+        <MenuContent>
+            <AuthorizeView Roles=@GXRoles.Admin>
+                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@Parent.OnEdit"></GXContextMenuItem>
+            </AuthorizeView>
+        </MenuContent>
+        <HeaderContent>
+            <GXTh Id="Icon" TItem="GXMenuLink" width="1%"></GXTh>
+            <GXTh Name="Name" Target="@conf" SortMode="SortMode.Ascending"><GXLocalizedText Value="@Properties.Resources.Name" /></GXTh>
+            <GXTh Id="Description" TItem="GXMenuLink" style="display:table-cell; width:100%">
+                <GXLocalizedText Value="@Properties.Resources.Description" />
+            </GXTh>
+        </HeaderContent>
+        <ItemContent>
+            <GXTd Id="Icon" class="img-cell">
+                <GXImage Id="@(conf.Icon)"></GXImage>
+            </GXTd>
+            <GXTd Id="Name"><a href="@NavigationManager.GetCurrentPagePath(conf.Url ?? "/Config")"><GXLocalizedText Value="@conf.Name" /></a></GXTd>
+            <GXTd Id="Description"><GXLocalizedText Value="@conf.Description" /></GXTd>
+        </ItemContent>
+    </GXViewTable>
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Icon") { Position = 0, Description = "Icon", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Description") { Position = 2, Description = "Description", Visibility = (byte)Visibility.All },
+    ];
+
+    /// <summary>The configuration page that owns the list and its filter.</summary>
+    [Parameter, EditorRequired]
+    public Configurations Parent { get; set; } = default!;
+}

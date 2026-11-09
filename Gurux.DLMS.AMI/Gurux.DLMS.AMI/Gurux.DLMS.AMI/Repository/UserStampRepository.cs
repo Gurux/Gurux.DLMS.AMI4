@@ -1,55 +1,55 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.Service.Orm.Enums;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
-using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.Module;
-using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
-using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
-using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using System.Security.Claims;
+
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -57,117 +57,132 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class UserStampRepository : IUserStampRepository
     {
         private readonly ClaimsPrincipal User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
-        private readonly ISystemLogRepository _systemLogRepository;
-        private readonly ITaskRepository _taskRepository;
-        private readonly IDeviceErrorRepository _deviceErrorRepository;
-        private readonly IAgentLogRepository _agentLogRepository;
-        private readonly IModuleLogRepository _moduleLogRepository;
-        private readonly IScheduleLogRepository _scheduleLogRepository;
-        private readonly IGatewayLogRepository _gatewayLogRepository;
-        private readonly IScriptLogRepository _scriptLogRepository;
-        private readonly IWorkflowLogRepository _workflowLogRepository;
-        private readonly IKeyManagementLogRepository _keyManagementLogRepository;
-
+        private readonly IDbConnectionFactory _dbFactory;
+        private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public UserStampRepository(
-            IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
-            IGXEventsNotifier eventsNotifier,
-            ISystemLogRepository systemLogRepository,
-            ITaskRepository taskRepository,
-            IDeviceErrorRepository deviceErrorRepository,
-            IAgentLogRepository agentLogRepository,
-            IModuleLogRepository moduleLogRepository,
-            IScheduleLogRepository scheduleLogRepository,
-            IGatewayLogRepository gatewayLogRepository,
-            IScriptLogRepository scriptLogRepository,
-            IWorkflowLogRepository workflowLogRepository,
-            IKeyManagementLogRepository keyManagementLogRepository)
+            IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
+            IServiceProvider serviceProvider)
         {
-            var user = contextAccessor?.User;
-            if (user == null ||
-                (!user.IsInRole(GXRoles.Admin) &&
-                !user.IsInRole(GXRoles.User)))
+            if (httpContextAccessor.HttpContext?.User == null)
             {
                 throw new UnauthorizedAccessException();
             }
-            User = user;
-            _host = host;
-            _eventsNotifier = eventsNotifier;
-            _systemLogRepository = systemLogRepository;
-            _taskRepository = taskRepository;
-            _deviceErrorRepository = deviceErrorRepository;
-            _agentLogRepository = agentLogRepository;
-            _moduleLogRepository = moduleLogRepository;
-            _scheduleLogRepository = scheduleLogRepository;
-            _gatewayLogRepository = gatewayLogRepository;
-            _scriptLogRepository = scriptLogRepository;
-            _workflowLogRepository = workflowLogRepository;
-            _keyManagementLogRepository = keyManagementLogRepository;
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
+            _serviceProvider = serviceProvider;
         }
 
+        /// <summary>Gets or sets the user1.</summary>
+        public ClaimsPrincipal User1 => User;
+
         /// <inheritdoc />
-        public async Task DeleteAsync(IEnumerable<Guid> stamps)
+        public async Task DeleteAsync(IEnumerable<Guid> stamps, CancellationToken cancellationToken = default)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.User))
+            try
             {
-                throw new UnauthorizedAccessException();
+
+                if (!User1.HasClaim("Permission", GXRoles.Admin) && !User1.HasClaim("Permission", GXRoles.Authenticated))
+                {
+                    throw new UnauthorizedAccessException();
+                }
+                GXSelectArgs arg;
+                if (User1.HasClaim("Permission", GXRoles.Admin))
+                {
+                    arg = GXSelectArgs.Select<GXUserStamp>(a => a.Id, q => stamps.Contains(q.Id));
+                }
+                else
+                {
+                    GXUser user2 = new() { Id = ServerHelpers.GetUserId(User1) };
+                    arg = GXSelectArgs.Select<GXUserStamp>(a => a.Id,
+                        q => q.Creator == user2 && stamps.Contains(q.Id));
+                }
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                List<GXUserStamp> list = connection.Select<GXUserStamp>(arg);
+                foreach (GXUserStamp it in list)
+                {
+                    await connection.DeleteAsync(GXDeleteArgs.DeleteById<GXUserStamp>(it.Id), cancellationToken);
+                }
+
             }
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            catch (GXDatabaseException ex)
             {
-                arg = GXSelectArgs.Select<GXUserStamp>(a => a.Id, q => stamps.Contains(q.Id));
-            }
-            else
-            {
-                GXUser user2 = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-                arg = GXSelectArgs.Select<GXUserStamp>(a => a.Id,
-                    q => q.Creator == user2 && stamps.Contains(q.Id));
-            }
-            List<GXUserStamp> list = _host.Connection.Select<GXUserStamp>(arg);
-            foreach (GXUserStamp it in list)
-            {
-                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXUserStamp>(it.Id));
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(stamps, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
         }
 
         /// <inheritdoc />
-        public async Task<GXUserStamp[]> ListAsync(
+        public async Task<IEnumerable<GXUserStamp>> ListAsync(
             ListUserStamps? request,
             ListUserStampsResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            GXUser user = new GXUser() { Id = ServerHelpers.GetUserId(User) };
+            var systemLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("system");
+            var taskRepository = _serviceProvider.GetRequiredService<ITaskRepository>();
+            var deviceErrorRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("device-error");
+            var agentLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("agent");
+            var moduleLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("module");
+            var scheduleLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("schedule");
+            var gatewayLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("gateway");
+            var scriptLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("script");
+            var workflowLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("workflow");
+            var keyManagementLogRepository = _serviceProvider.GetRequiredService<ILogRepository>().ForSource("key-management");
+            GXUser user = new() { Id = ServerHelpers.GetUserId(User1) };
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserStamp>(q => q.Creator == user);
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXUserStamp>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXUserStamp>(w => request.Included.Contains(w.Id));
                 }
             }
+            GXDateTimeFilters.Apply<GXUserStamp>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXUserStamp>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXUserStamp>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = await _host.Connection.SingleOrDefaultAsync<int>(total, cancellationToken);
+                    response.Count = await connection.SingleOrDefaultAsync<long>(total, cancellationToken);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -176,27 +191,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                arg.OrderBy.Add<GXUserStamp>(q => q.CreationTime);
+                arg.OrderBy.Add<GXUserStamp>(q => q.CreationTime!);
             }
-            GXUserStamp[] stamps = (await _host.Connection.SelectAsync<GXUserStamp>(arg, cancellationToken)).ToArray();
+            GXUserStamp[] stamps = [.. (await connection.SelectAsync<GXUserStamp>(arg, cancellationToken))];
 
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
+            bool isAdmin = User1.HasClaim("Permission", GXRoles.Admin);
             foreach (GXUserStamp stamp in stamps)
             {
                 if (isAdmin && stamp.TargetType == "SystemLog")
                 {
                     //Get system log errors.
-                    ListSystemLogs req = new ListSystemLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXSystemLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListSystemLogsResponse ret = new ListSystemLogsResponse();
-                    await _systemLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await systemLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null && ret.Count < 50)
                     {
                         foreach (var it in ret.Logs)
@@ -219,11 +234,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.TaskManager)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXTaskPolicies.View)) &&
                     stamp.TargetType == TargetType.Task.ToString())
                 {
                     //Get Tasks.
-                    ListTasks req = new ListTasks()
+                    ListTasks req = new()
                     {
                         Filter = new GXTask()
                         {
@@ -232,31 +247,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         Count = 50,
                         Descending = true
                     };
-                    ListTasksResponse ret = new ListTasksResponse();
-                    await _taskRepository.ListAsync(req, ret, cancellationToken);
+                    ListTasksResponse ret = new();
+                    await taskRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Count < 50)
                     {
-                        stamp.Informational = ret.Count;
+                        stamp.Informational = checked((int)ret.Count);
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.DeviceLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXDeviceLogPolicies.View)) &&
                     stamp.TargetType == TargetType.DeviceLog.ToString())
                 {
                     //Get device errors.
-                    ListDeviceErrors req = new ListDeviceErrors()
+                    ListLogs req = new()
                     {
-                        Filter = new GXDeviceError()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListDeviceErrorsResponse ret = new ListDeviceErrorsResponse();
-                    await _deviceErrorRepository.ListAsync(req, ret, cancellationToken);
-                    if (ret.Errors != null)
+                    ListLogsResponse ret = new();
+                    await deviceErrorRepository.ListAsync(req, ret, cancellationToken);
+                    if (ret.Logs != null)
                     {
-                        foreach (var it in ret.Errors)
+                        foreach (var it in ret.Logs)
                         {
                             switch (it.Level)
                             {
@@ -276,21 +291,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.AgentLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXAgentLogPolicies.View)) &&
                     stamp.TargetType == TargetType.AgentLog.ToString())
                 {
                     //Get agent logs.
-                    ListAgentLogs req = new ListAgentLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXAgentLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListAgentLogsResponse ret = new ListAgentLogsResponse();
-                    await _agentLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await agentLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -313,21 +328,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.ModuleLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXModuleLogPolicies.View)) &&
                     stamp.TargetType == TargetType.ModuleLog.ToString())
                 {
                     //Get module log.
-                    ListModuleLogs req = new ListModuleLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXModuleLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListModuleLogsResponse ret = new ListModuleLogsResponse();
-                    await _moduleLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await moduleLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -350,21 +365,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.ScheduleLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXScheduleLogPolicies.View)) &&
                     stamp.TargetType == TargetType.ScheduleLog.ToString())
                 {
                     //Get schedule log.
-                    ListScheduleLogs req = new ListScheduleLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXScheduleLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListScheduleLogsResponse ret = new ListScheduleLogsResponse();
-                    await _scheduleLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await scheduleLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -387,21 +402,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.GatewayLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXGatewayLogPolicies.View)) &&
                     stamp.TargetType == TargetType.GatewayLog.ToString())
                 {
                     //Get gateway log.
-                    ListGatewayLogs req = new ListGatewayLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXGatewayLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListGatewayLogsResponse ret = new ListGatewayLogsResponse();
-                    await _gatewayLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await gatewayLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -424,21 +439,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.ScriptLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXScriptLogPolicies.View)) &&
                     stamp.TargetType == TargetType.ScriptLog.ToString())
                 {
                     //Get module log.
-                    ListScriptLogs req = new ListScriptLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXScriptLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListScriptLogsResponse ret = new ListScriptLogsResponse();
-                    await _scriptLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await scriptLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -461,21 +476,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.WorkflowLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXWorkflowLogPolicies.View)) &&
                     stamp.TargetType == TargetType.WorkflowLog.ToString())
                 {
                     //Get workflow log.
-                    ListWorkflowLogs req = new ListWorkflowLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXWorkflowLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListWorkflowLogsResponse ret = new ListWorkflowLogsResponse();
-                    await _workflowLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await workflowLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -498,21 +513,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                else if ((isAdmin || User.IsInRole(GXRoles.KeyManagementLog)) &&
+                else if ((isAdmin || User1.HasClaim("Permission", GXKeyManagementLogPolicies.View)) &&
                     stamp.TargetType == TargetType.KeyManagementLog.ToString())
                 {
                     //Get key management log.
-                    ListKeyManagementLogs req = new ListKeyManagementLogs()
+                    ListLogs req = new()
                     {
-                        Filter = new GXKeyManagementLog()
+                        Filter = new GXLog()
                         {
                             CreationTime = stamp.Updated,
                         },
                         Count = 50,
                         Descending = true
                     };
-                    ListKeyManagementLogsResponse ret = new ListKeyManagementLogsResponse();
-                    await _keyManagementLogRepository.ListAsync(req, ret, cancellationToken);
+                    ListLogsResponse ret = new();
+                    await keyManagementLogRepository.ListAsync(req, ret, cancellationToken);
                     if (ret.Logs != null)
                     {
                         foreach (var it in ret.Logs)
@@ -536,47 +551,72 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
             }
-            if (response != null)
-            {
-                response.Stamps = stamps;
-            }
+            response?.Stamps = stamps;
             return stamps;
         }
 
         /// <inheritdoc />
-        public async Task UpdateAsync(IEnumerable<GXUserStamp> stamps)
+        public async Task UpsertAsync(IEnumerable<GXUserStamp> stamps, CancellationToken cancellationToken = default)
         {
-            GXUser user = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            DateTime now = DateTime.Now;
-            foreach (GXUserStamp it in stamps)
+            try
             {
-                GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserStamp>(q => q.TargetType == it.TargetType);
-                arg.Joins.AddInnerJoin<GXUserStamp, GXUser>(j => j.Creator, j => j.Id);
-                arg.Where.And<GXUser>(w => w.Id == user.Id);
-                arg.Columns.Exclude<GXUserStamp>(e => new { e.Creator, e.CreationTime, e.Target });
-                var stamp = (await _host.Connection.SingleOrDefaultAsync<GXUserStamp>(arg));
-                if (stamp == null)
+                GXUser user = new() { Id = ServerHelpers.GetUserId(User1) };
+                DateTime now = DateTime.Now;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                foreach (GXUserStamp it in stamps)
                 {
-                    it.CreationTime = now;
-                    it.Creator = user;
-                    GXInsertArgs args = GXInsertArgs.Insert(it);
-                    args.Exclude<GXUserStamp>(q => q.Updated);
-                    _host.Connection.Insert(args);
+                    GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserStamp>(q => q.TargetType == it.TargetType);
+                    arg.Joins.AddInnerJoin<GXUserStamp, GXUser>(j => j.Creator!, j => j.Id!);
+                    arg.Where.And<GXUser>(w => w.Id == user.Id);
+                    arg.Columns.Exclude<GXUserStamp>(e => new { e.Creator, e.CreationTime, e.Target });
+                    var stamp = (await connection.SingleOrDefaultAsync<GXUserStamp>(arg));
+                    if (stamp == null)
+                    {
+                        it.CreationTime = now;
+                        it.Creator = user;
+                        GXInsertArgs args = GXInsertArgs.Insert(it);
+                        args.Exclude<GXUserStamp>(q => q.Updated!);
+                        connection.Insert(args);
+                    }
+                    else
+                    {
+                        // Clients can mark a target without knowing the persisted stamp id.
+                        it.Id = stamp.Id;
+                        //Is's OK if user ConcurrencyStamp has been changed.
+                        it.Updated = now;
+                        it.ConcurrencyStamp = Guid.NewGuid().ToString();
+                        GXUpdateArgs args = GXUpdateArgs.Update(it, c => new
+                        {
+                            c.Updated,
+                            c.ConcurrencyStamp
+                        });
+                        connection.Update(args);
+                    }
+                }
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await UpsertAsync(stamps, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    //Is's OK if user ConcurrencyStamp has been changed.
-                    it.Updated = now;
-                    it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it, c => new
-                    {
-                        c.Updated,
-                        c.ConcurrencyStamp
-                    });
-                    _host.Connection.Update(args);
+                    throw;
                 }
             }
-            await _eventsNotifier.UserStampUpdate([user.Id], stamps);
         }
     }
 }

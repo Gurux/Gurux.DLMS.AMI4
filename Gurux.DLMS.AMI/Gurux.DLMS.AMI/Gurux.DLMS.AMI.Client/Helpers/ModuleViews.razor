@@ -1,0 +1,213 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Pages.Module
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ModuleLoader Loader
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@inject IGXNotificationService Notifications
+@implements IDisposable
+
+@if (_views.Count == 0)
+{
+    @ChildContent
+}
+@foreach (var item in _views)
+{
+    @if (Display == AmiViewDisplay.Tab && WrapInTab)
+    {
+        <GXTabPage Path="@($"module/{item.Id}/{Area}/{item.View.Key ?? item.View.Component}")" @key="(item.Id, item.View)" Text="@(item.View.Title ?? item.Id)" Policy="@item.View.Policy" Icon="@item.View.Icon" IconColor="@GXModulePresentation.IconColor(item.State, item.Enabled)">
+            @if (item.Type != null)
+            {
+                <ModuleView ModuleId="@item.Id" View="@item.View" ComponentType="@item.Type" Target="@Target" Parameters="@Parameters" />
+            }
+        </GXTabPage>
+    }
+    else
+    {
+        @if (item.Type != null)
+        {
+            <ModuleView @key="(item.Id, item.View)" ModuleId="@item.Id" View="@item.View" ComponentType="@item.Type" Target="@Target" Parameters="@Parameters" />
+        }
+    }
+}
+
+@code {
+    [Parameter] public AmiViewArea Area { get; set; }
+    [Parameter] public AmiViewDisplay Display { get; set; } = AmiViewDisplay.Tab;
+    /// <summary>Wraps a registered tab view in a tab; disable when the menu already supplies it.</summary>
+    [Parameter] public bool WrapInTab { get; set; } = true;
+    [Parameter] public string? ModuleId { get; set; }
+    [Parameter] public string? ViewKey { get; set; }
+    [Parameter] public object? Target { get; set; }
+    [Parameter] public IDictionary<string, object>? Parameters { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly SemaphoreSlim _gate = new(1);
+    private List<(string Id, AmiModuleView View, Type? Type, AmiModuleState State, bool Enabled)> _views = [];
+    private bool _interactive;
+    private long _revision;
+
+    protected override void OnInitialized()
+    {
+        Loader.Changed += Changed;
+        Authentication.AuthenticationStateChanged += AuthenticationChanged;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        _interactive = true;
+        try
+        {
+            if (!Loader.IsInitialized)
+            {
+                await Loader.RefreshAsync(_lifetime.Token);
+            }
+        
+            await RefreshViewsAsync();
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Notifications.ReportError(error);
+        }
+    }
+    protected override Task OnParametersSetAsync()
+    {
+        ++_revision;
+        return _interactive ? RefreshViewsAsync() : Task.CompletedTask;
+    }
+    private void Changed()
+    {
+        ++_revision;
+        _ = InvokeAsync(async () => { _views = []; StateHasChanged(); await RefreshViewsAsync(); });
+    }
+    private void AuthenticationChanged(Task<AuthenticationState> state)
+    {
+        ++_revision;
+        _ = InvokeAsync(async () =>
+        {
+            _views = [];
+            StateHasChanged();
+            try
+            {
+                await Loader.RefreshAsync(_lifetime.Token);
+                await RefreshViewsAsync();
+            }
+            catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+            {
+            }
+            catch (Exception error)
+            {
+                Notifications.ReportError(error);
+            }
+        });
+    }
+    private async Task RefreshViewsAsync()
+    {
+        var revision = _revision;
+        try
+        {
+            await _gate.WaitAsync(_lifetime.Token);
+            try
+            {
+                var user = (await Authentication.GetAuthenticationStateAsync()).User;
+                var views = new List<(string Id, AmiModuleView View, Type? Type, AmiModuleState State, bool Enabled)>();
+                foreach (var module in Loader.AddIns.OrderBy(m => m.Id))
+                {
+                    if (ModuleId != null && !string.Equals(module.Id, ModuleId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+        
+                    foreach (var view in module.Views.Where(v => v.Area == Area && v.Display == Display && (ViewKey == null || string.Equals(v.Key, ViewKey, StringComparison.OrdinalIgnoreCase))))
+                    {
+                        if (string.IsNullOrWhiteSpace(view.Policy) || !(await Authorization.AuthorizeAsync(user, Target, view.Policy)).Succeeded)
+                        {
+                            continue;
+                        }
+        
+                        try
+                        {
+                            var type = await Loader.GetViewTypeAsync(module.Id, view.Area, view.Key, _lifetime.Token);
+                            if ((type != null || Display == AmiViewDisplay.Tab && module.State != AmiModuleState.Active) && Loader.AddIns.Any(m => m.Id == module.Id && m.ContentId == module.ContentId))
+                            {
+                                views.Add((module.Id, view, type, module.State, module.Enabled));
+                            }
+                        }
+                        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+                        {
+                            throw;
+                        }
+                        catch (Exception error)
+                        {
+                            Notifications.ReportError(error);
+                        }
+                    }
+                }
+        
+                if (_lifetime.IsCancellationRequested || revision != _revision)
+                {
+                    return;
+                }
+        
+                _views = views.OrderBy(v => v.View.Order).ThenBy(v => v.Id).ThenBy(v => v.View.Key).ToList();
+                StateHasChanged();
+            }
+            finally
+            {
+                _gate.Release();
+            }
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            _views = [];
+            Notifications.ReportError(error);
+        }
+    }
+    public void Dispose()
+    {
+        Loader.Changed -= Changed;
+        Authentication.AuthenticationStateChanged -= AuthenticationChanged;
+        _views = [];
+        _lifetime.Cancel();
+    }
+}

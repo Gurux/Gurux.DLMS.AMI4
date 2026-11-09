@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -49,57 +46,59 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @implements IGXConfigUpdate
 
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Status" />
 
 @if (_settings != null)
 {
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@MenuService.EditContext">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <label>Site version</label>
+                    <label>@Properties.Resources.SiteVersion</label>
                     <InputText id="siteVersion" class="form-control" readonly="readonly"
                                @bind-Value="_settings.SiteVersion" />
                 </div>
                 <div class="form-group">
-                    <label>Start time</label>
+                    <label>@Properties.Resources.StartTime</label>
                     <input type="text" id="startTime" class="form-control" readonly="readonly"
-                           Value="@Convert.ToString(_settings.StartTime)" />
+                           Value="@Convert.ToString(_settings.StartTime.ToLocalTime())" />
                 </div>
                 <div class="form-group">
-                    <label>System Up Time</label>
+                    <label>@Properties.Resources.SystemUpTime</label>
                     <input type="text" id="upTime" class="form-control" readonly="readonly"
-                           Value="@Convert.ToString(DateTime.Now - _settings.StartTime)" />
+                           Value="@GetUptime()" />
                 </div>
             </div>
         </div>
     </EditForm>
 }
-<MenuControl>
+<GXMenuControl>
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Search" Id="Search" OnClick="@(async () => Updated())" />
+        <GXMenuEntry Text="@Properties.Resources.Search" Id="Search" OnClick="@Updated" />
     </ChildContent>
-</MenuControl>
+</GXMenuControl>
 @if (_assemblies != null)
 {
     <table class="table table-striped">
         <thead>
             <tr>
                 <th>
-                    <input class="form-control" type="text" placeholder="Filter by name..."
-                           @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                           @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value) ?? string.Empty)" />
                 </th>
                 <th>
-                    <input class="form-control" type="text" placeholder="Filter by version..."
-                           @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByVersion"
+                           @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value) ?? string.Empty)" />
                 </th>
                 <th>
-                    <input class="form-control" type="text" placeholder="Filter by location..."
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByLocation"
                            @onchange="@((ChangeEventArgs __e) => filter.Location = Convert.ToString(__e.Value))" />
                 </th>
             </tr>
@@ -112,7 +111,7 @@
         <tbody>
             @foreach (var assembly in _assemblies)
             {
-                <tr class=@(GetSelectedClass(assembly)) @onclick="@(()=>RowSelected(assembly))">
+                <tr class=@(GetSelectedClass(assembly)) @onclick="@(() => RowSelected(assembly))">
                     <td>@assembly.Name</td>
                     <td>@assembly.Version</td>
                     <td>@assembly.Location</td>
@@ -122,6 +121,15 @@
     </table>
 }
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Parent component.
     /// </summary>
@@ -129,13 +137,62 @@
     public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     StatusSettings? _settings;
+    private readonly CancellationTokenSource _uptimeLifetime = new();
+    private bool _disposed;
+
+    private string GetUptime()
+    {
+        if (_settings == null || _settings.StartTime == default)
+        {
+            return string.Empty;
+        }
+        var seconds = Math.Max(0, Math.Floor((DateTimeOffset.UtcNow - _settings.StartTime).TotalSeconds));
+        return TimeSpan.FromSeconds(seconds).ToString("c", CultureInfo.CurrentCulture);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ = RefreshUptimeAsync(_uptimeLifetime.Token);
+        }
+    }
+
+    private async Task RefreshUptimeAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(() =>
+                {
+                    if (!_disposed)
+                    {
+                        StateHasChanged();
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+
+    private void LoadSettings(string? settings)
+    {
+        _settings = string.IsNullOrEmpty(settings) ? new StatusSettings()
+            : JsonSerializer.Deserialize<StatusSettings>(settings) ?? new StatusSettings();
+        MenuService.EditContext = new EditContext(_settings);
+    }
 
     /// <inheritdoc/>
     public void Update()
     {
         if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
         {
-            _settings = JsonSerializer.Deserialize<StatusSettings>(Parent.Active.Settings);
+            LoadSettings(Parent.Active.Settings);
         }
         InvokeAsync(StateHasChanged);
     }
@@ -148,11 +205,7 @@
     /// <summary>
     /// Total numbers of rows in the database.
     /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
+    internal int Total { get; private set; }
 
     /// <summary>
     /// Selected item.
@@ -169,7 +222,7 @@
         _selected = selected;
     }
 
-    GXAssembly[]? _assemblies;
+    IEnumerable<GXAssembly>? _assemblies;
 
     /// <summary>
     /// Update virtualized items.
@@ -178,21 +231,17 @@
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingStatus);
+            NotificationService?.RemoveByKey("Pages/Config/Status.Updated");
             _assemblies = null;
             LoadedAssemblies req = new LoadedAssemblies() { Filter = filter };
             var ret = await Http.PostAsJson<LoadedAssembliesResponse>("api/Configuration/Assemblies", req);
             _assemblies = ret.Assemblies;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Status.Updated");
         }
     }
 
@@ -203,31 +252,34 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingStatus);
+            NotificationService?.RemoveByKey("Pages/Config/Status.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                if (configurations != null)
+                _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Status, configuration =>
                 {
-                    foreach (var it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Status && !string.IsNullOrEmpty(it.Settings))
-                        {
-                            _settings = JsonSerializer.Deserialize<StatusSettings>(it.Settings);
-                            InvokeAsync(StateHasChanged);
-                            break;
-                        }
+                    if (Parent?.Active?.Id != configuration.Id) {
+                        return;
                     }
-                }
+                    Parent.Active.Settings = configuration.Settings;
+                    Update();
+                }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
             });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "Cancel", OnClick = EventCallback.Factory.Create(this, OnCancel) });
-            Notifier.UpdateButtons();
+            MenuService.Clear();
+            MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "Cancel", OnClick = EventCallback.Factory.Create(this, OnCancel) });
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<StatusSettings>(Parent.Active.Settings);
+                LoadSettings(Parent.Active.Settings);
             }
             await Updated();
         }
@@ -237,11 +289,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Status.OnInitializedAsync");
         }
     }
 
@@ -250,11 +298,20 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        _uptimeLifetime.Cancel();
+        _uptimeLifetime.Dispose();
+        _configurationRefresh.Dispose();
+        MenuService.Dispose();
+        Notifier?.RemoveListener(this);
     }
 }

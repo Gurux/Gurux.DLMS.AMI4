@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
@@ -41,65 +40,68 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
 @implements IDisposable
 
+<GXHelpContext Topic="Languages" />
+
 <h1>
-    <LocalizedText Value="@Properties.Resources.SupportedLanguages" />
+    <GXLocalizedText Value="@Properties.Resources.SupportedLanguages" />
 </h1>
+<InstallableLanguages />
 @if (_active != null)
 {
-    <Dialog OnCancel="Cancel"
+    <GXDialog OnCancel="Cancel"
             CancelButtonTitle="@Properties.Resources.Cancel"
             OkButtonTitle="@Properties.Resources.Ok"
             OnOk="Save">
-        <EditForm Model="@_active">
+        <EditForm EditContext="@GXEditContexts.For(_active)">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <GXValidator @ref="_validator" OnValidate="OnValidate" />
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <CopyLabel Value="@_active.Id">@Properties.Resources.Identification</CopyLabel>
+                        <GXCopyButton Value="@_active.Id">@Properties.Resources.Identification</GXCopyButton>
                         <InputText id="description" readonly @bind-Value="_active.Id" class="form-control" />
                     </div>
                 </div>
                 <div style="width:100%">
                     <div class="form-group">
-                        <CopyLabel Value="@_active.Id">@Properties.Resources.EnglishName</CopyLabel>
+                        <GXCopyButton Value="@_active.Id">@Properties.Resources.EnglishName</GXCopyButton>
                         <InputText id="description" readonly @bind-Value="_active.EnglishName" class="form-control" />
                     </div>
                 </div>
                 <div style="width:100%">
                     <div class="form-group">
-                        <CopyLabel Value="@_active.Id">@Properties.Resources.NativeName</CopyLabel>
+                        <GXCopyButton Value="@_active.Id">@Properties.Resources.NativeName</GXCopyButton>
                         <InputText id="description" readonly @bind-Value="_active.NativeName" class="form-control" />
                     </div>
                 </div>
                 <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="_active.Active" />
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="_active.Enabled" />
                 </div>
                 <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.Default" @bind-Value="_active.Default" />
+                    <GXInputSwitch Text="@Properties.Resources.Default" @bind-Value="_active.Default" />
                 </div>
             </div>
         </EditForm>
-    </Dialog>
+    </GXDialog>
 }
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-    <MenuControl RightCorner="true">
+<AuthorizeView Roles=@GXRoles.Admin>
+    <GXMenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Refresh" Id="Refresh" OnClick="@OnRefresh" />
+            <GXMenuEntry Text="@Properties.Resources.Refresh" Id="Refresh" OnClick="@OnRefresh" />
         </ChildContent>
-    </MenuControl>
+    </GXMenuControl>
 </AuthorizeView>
 
+<h2>@Properties.Resources.Installed</h2>
 @if (AvailableLanguages != null)
 {
-    <GXTable @ref="table"
+    <GXViewTable ViewName="Config.Languages" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXLanguagePolicies.View })" TItem="GXLanguage" @ref="table"
              Context="item"
              ItemsProvider="@GetItems"
              SelectionMode="SelectionMode.Single"
@@ -107,42 +109,56 @@
         <FilterContent>
         </FilterContent>
         <MenuContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-                <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
+            <AuthorizeView Roles=@GXRoles.Admin>
+                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit"></GXContextMenuItem>
             </AuthorizeView>
         </MenuContent>
         <HeaderContent>
-            <th width="1%"></th>
-            <Th Name="Name" Target="@item">@Properties.Resources.Name</Th>
-            <Th Name="Active" Target="@item">@Properties.Resources.Active</Th>
-            <Th Name="Default" Target="@item">@Properties.Resources.Default</Th>
+            <GXTh Id="Icon" TItem="GXLanguage" width="1%"></GXTh>
+            <GXTh Name="Name" Target="@item">@Properties.Resources.Name</GXTh>
+            <GXTh Name="Enabled" Target="@item">@Properties.Resources.Enabled</GXTh>
+            <GXTh Name="Default" Target="@item">@Properties.Resources.Default</GXTh>
         </HeaderContent>
         <ItemContent>
-            <td class="img-cell">
+            <GXTd Id="Icon" class="img-cell">
                 @if (!string.IsNullOrEmpty(item.Id))
                 {
-                    <Image Id="@item.Id" Width="24" Height="24"></Image>
+                    <GXImage Id="@item.Id" Width="24" Height="24"></GXImage>
                 }
-            </td>
-            <td><LinkButton Target="@item" OnClick="@Edit" Text="@(item.NativeName + " (" + @item.EnglishName + ")")" /></td>
-            <td>
+            </GXTd>
+            <GXTd Id="Name"><GXLinkButton TItem="GXLanguage" Target="@item" OnClick="@Edit" Text="@(item.NativeName + " (" + @item.EnglishName + ")")" /></GXTd>
+            <GXTd Id="Enabled">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox"
-                           checked="@item.Active"
-                           @onchange="@((e) => item.Active = Convert.ToBoolean(e.Value))" />
+                           checked="@item.Enabled"
+                           @onchange="@((e) => Owner.SetEnabled(item, Convert.ToBoolean(e.Value)))" />
                 </div>
-            </td>
-            <td>
+            </GXTd>
+            <GXTd Id="Default">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox"
                            disabled="@IsActive(item)" checked="@item.Default"
-                           @onchange="@((e) => item.Default = Convert.ToBoolean(e.Value))" />
+                           @onchange="@((e) => Owner.SetDefault(item, Convert.ToBoolean(e.Value)))" />
                 </div>
-            </td>
+            </GXTd>
         </ItemContent>
-    </GXTable>
+    </GXViewTable>
 }
 @code {
+    [CascadingParameter] public ConfigurationLanguages Owner { get; set; } = default!;
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Icon") { Position = 0, Description = "Icon", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Enabled") { Position = 2, Description = "Enabled", Visibility = (byte)Visibility.All },
+        new("Default") { Position = 3, Description = "Default", Visibility = (byte)Visibility.All },
+    ];
+
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     [Parameter]
     public List<GXLanguage> AvailableLanguages { get; set; } = new List<GXLanguage>();
 
@@ -166,15 +182,16 @@
     {
         if (_active != null && string.IsNullOrEmpty(_active.Id))
         {
-            sender.AddError(() => _active.Id, "Invalid identifier.");
+            sender.AddError(() => _active.Id, Properties.Resources.InvalidIdentifier);
         }
     }
 
     private GXLanguage? _active { get; set; } = null;
+    private GXLanguage? _editingLanguage;
     //If language is not active it can't be the default language.
     protected string? IsActive(GXLanguage selected)
     {
-        return selected.Active.HasValue && selected.Active.Value ? null : "disabled";
+        return selected.Enabled.HasValue && selected.Enabled.Value ? null : "disabled";
     }
 
     protected string GetSelectedClass(GXLanguage selected)
@@ -184,8 +201,7 @@
 
     protected void RowSelected(GXLanguage selected)
     {
-        _active = selected;
-        Notifier.UpdateData(GXPages.Modules, _active);
+        Edit(selected);
     }
 
 
@@ -197,8 +213,8 @@
         try
         {
             AvailableLanguages.Clear();
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingLanguage);
+            NotificationService?.RemoveByKey("Pages/Config/Languages.Updated");
             var tmp = (await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages())).Languages;
             if (tmp != null)
             {
@@ -208,11 +224,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Languages.Updated");
         }
     }
 
@@ -224,12 +236,13 @@
         try
         {
             Action = CrudAction.Update;
-            _active = value;
+            _editingLanguage = value;
+            _active = ClientHelpers.Clone<GXLanguage>(value);
             InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -240,10 +253,10 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Config/Languages.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             Edit(table.Active);
         }
@@ -253,37 +266,37 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnEdit");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingLanguages);
+            NotificationService?.RemoveByKey("Pages/Config/Languages.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<IEnumerable<GXLanguage>>>(this, nameof(IGXHubEvents.LanguageUpdate), async (languages) =>
-            {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXLanguagePolicies.Add ||
+                       it.Type == GXLanguagePolicies.Edit ||
+                       it.Type == GXLanguagePolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem()
-            {
-                Text = Properties.Resources.Save,
-                Icon = "Save",
-                OnClick = EventCallback.Factory.Create(this, OnSave)
-            });
-            Notifier.AddMenuItem(new GXMenuItem(
-                Properties.Resources.Cancel,
-                "Cancel",
-                EventCallback.Factory.Create(this, OnCancel)
-            ));
-            Notifier.UpdateButtons();
             //Read languages as a default.
             if (!AvailableLanguages.Any())
             {
@@ -292,52 +305,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
-    }
-
-    /// <summary>
-    /// Save values.
-    /// </summary>
-    private async void OnSave()
-    {
-        try
-        {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            List<GXLanguage> list = new List<GXLanguage>();
-            //Only ID, Default and active states are sent.
-            bool defaultLanguage = false;
-            foreach (var it in AvailableLanguages)
-            {
-                list.Add(new GXLanguage() { Id = it.Id, Active = it.Active, Default = it.Default });
-                if (it.Active.HasValue && it.Active.Value &&
-                    it.Default.HasValue && it.Default.Value)
-                {
-                    defaultLanguage = true;
-                }
-            }
-            if (!defaultLanguage)
-            {
-                throw new ArgumentException("Default language is not selected.");
-            }
-            UpdateLocalization req = new UpdateLocalization()
-            {
-                Localizations = AvailableLanguages.ToArray()
-            };
-            await Http.PostAsJson("api/Localization/Update", req);
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnInitializedAsync");
         }
     }
 
@@ -354,37 +322,25 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
+            using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingLanguage);
+            NotificationService?.RemoveByKey("Pages/Config/Languages.OnRefresh");
             List<GXLanguage> list = new List<GXLanguage>();
             //Only active language IDs are send.
             foreach (var it in AvailableLanguages)
             {
-                if (it.Active.HasValue && it.Active.Value)
+                if (it.Enabled.HasValue && it.Enabled.Value)
                 {
                     list.Add(new GXLanguage() { Id = it.Id });
                 }
             }
             RefreshLocalization req = new RefreshLocalization();
             await Http.PostAsJson("api/Localization/Refresh", req);
-            Notifier?.ShowInformation(Properties.Resources.Refreshed);
+            NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.Refreshed, string.Empty, Closable: false));
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnRefresh");
         }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
-    }
-
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
-    private void OnCancel()
-    {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     /// <summary>
@@ -396,16 +352,21 @@
         {
             _validator?.ClearErrors();
             if (_validator != null &&
-                !_validator.Validate())
+                !await _validator.ValidateAsync())
             {
                 return;
             }
             UpdateLocalization req = new UpdateLocalization()
             {
-                Localizations = [_active]
+                Localizations = [_active ?? throw new InvalidOperationException(Properties.Resources.NoLanguageIsSelected)]
             };
-            _active = null;
             await Http.PostAsJson<UpdateLocalizationResponse>("api/Localization/Update", req);
+            if (_active != null && _editingLanguage != null)
+                {
+                ClientHelpers.Copy(_active, _editingLanguage);
+            }
+            _active = null;
+            _editingLanguage = null;
             if (table != null)
             {
                 await table.RefreshDataAsync(true);
@@ -413,7 +374,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -424,11 +385,17 @@
     public void Cancel()
     {
         _active = null;
+        _editingLanguage = null;
         StateHasChanged();
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

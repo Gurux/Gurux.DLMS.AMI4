@@ -1,0 +1,196 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@inject AuthenticationStateProvider Authentication
+@inject IServiceProvider Services
+@inject ILogger<UpdateNavigation> Logger
+@implements IDisposable
+
+@if (_admin && (_software || _security || _database))
+{
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="updates">
+            <span class="oi oi-reload" aria-hidden="true"></span> Update
+            @if (_security)
+            {
+                <span class="badge bg-danger ms-1">@Properties.Resources.SecurityUpdateAvailable</span>
+            }
+            @if (_database)
+            {
+                <span class="badge bg-warning text-dark ms-1" title="@Properties.Resources.DatabaseSchemaUpdatesRequired">!</span>
+            }
+        </NavLink>
+    </div>
+}
+
+@code {
+    private bool _admin;
+    private bool _software;
+    private bool _security;
+    private bool _database;
+    private bool _interactive;
+    private bool _disposed;
+    private int _generation;
+    private IGXNotifier2? _notifier;
+
+    protected override void OnInitialized()
+    {
+        Authentication.AuthenticationStateChanged += AuthenticationChanged;
+        _notifier = Services.GetService<IGXNotifier2>();
+        _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+        {
+            if (!_disposed && items.Any(item =>
+                (item.Type == GXConfigurationPolicies.Cron && item.Id == GXCronNotifications.Completed) ||
+                (item.Type == GXConfigurationPolicies.Edit && item.Id == "database-schema")))
+            {
+                _ = InvokeAsync(LoadAsync);
+            }
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactive = true;
+            await RefreshAuthenticationAsync();
+        }
+    }
+
+    private async void AuthenticationChanged(Task<AuthenticationState> state)
+    {
+        try
+        {
+            await state;
+            if (!_disposed)
+            {
+                await InvokeAsync(RefreshAuthenticationAsync);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Update navigation authentication refresh failed.");
+        }
+    }
+
+    private async Task RefreshAuthenticationAsync()
+    {
+        int generation = ++_generation;
+        var state = await Authentication.GetAuthenticationStateAsync();
+        if (_disposed || generation != _generation)
+        {
+            return;
+        }
+        _admin = state.User.Identity?.IsAuthenticated == true && state.User.IsInRole("admin");
+        _software = _security = _database = false;
+        StateHasChanged();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (!_interactive || _disposed)
+        {
+            return;
+        }
+        int generation = ++_generation;
+        var state = await Authentication.GetAuthenticationStateAsync();
+        if (_disposed || generation != _generation)
+        {
+            return;
+        }
+        _admin = state.User.Identity?.IsAuthenticated == true && state.User.IsInRole("admin");
+        if (!_admin)
+        {
+            _software = _security = _database = false;
+            StateHasChanged();
+            return;
+        }
+        async Task<bool?> SoftwareAsync()
+        {
+            try
+            {
+                var snapshot = await Http.GetAsJsonAsync<GXAvailableUpdatesResponse>("api/Update/List");
+                if (!_disposed && generation == _generation)
+                {
+                    _security = snapshot.Core.SecurityUpdateRequired;
+                }
+            
+                return snapshot.Core.Status == GXUpdateStatus.UpdateAvailable || snapshot.Core.SecurityUpdateRequired || snapshot.Modules.Any(item => item.Status == GXUpdateStatus.UpdateAvailable) || snapshot.Agents.Any(item => item.Status == GXUpdateStatus.UpdateAvailable) || snapshot.DeviceProfiles.Any(item => item.Status == GXUpdateStatus.UpdateAvailable);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Unable to load available update status.");
+                return null;
+            }
+        }
+        async Task<bool?> DatabaseAsync()
+        {
+            try
+            {
+                var tables = await Http.PostAsJson<IEnumerable<string>>("api/Configuration/GetTablesWithSchemaChangesAsync", new { });
+                return tables.Any();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Unable to load database schema update status.");
+                return null;
+            }
+        }
+        var software = SoftwareAsync();
+        var database = DatabaseAsync();
+        await Task.WhenAll(software, database);
+        if (_disposed || generation != _generation)
+        {
+            return;
+        }
+        if (software.Result.HasValue)
+        {
+            _software = software.Result.Value;
+        }
+        if (database.Result.HasValue)
+        {
+            _database = database.Result.Value;
+        }
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        ++_generation;
+        Authentication.AuthenticationStateChanged -= AuthenticationChanged;
+        _notifier?.RemoveListener(this);
+    }
+}

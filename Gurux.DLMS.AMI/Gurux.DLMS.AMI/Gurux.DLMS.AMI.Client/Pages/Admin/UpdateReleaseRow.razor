@@ -1,0 +1,74 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+
+<div class="release-row">
+    <span class="release-label">@Label:</span>
+    <div class="release-version">
+        @if (NotesUrl is string url)
+        {
+            <a href="@url" target="_blank" rel="noopener noreferrer">@Release.Version</a>
+        }
+        else
+        {
+            <span>@Release.Version</span>
+        }
+        @if (Release.Prerelease)
+        {
+            <span class="prerelease">@Properties.Resources.Prerelease</span>
+        }
+        @if (Release.PublishedAt is DateTimeOffset published)
+        {
+            <time datetime="@published.ToString("O")">(@published.ToLocalTime().ToString("yyyy-MMM-dd"))</time>
+        }
+    </div>
+    <div class="release-notes">
+        @if (NotesUrl is string notes)
+        {
+            <a href="@notes" target="_blank" rel="noopener noreferrer">@ReleaseNotesLabel</a>
+        }
+        else if (!string.IsNullOrWhiteSpace(Release.ReleaseNotes))
+        {
+            <details>
+                <summary>@ReleaseNotesLabel</summary>
+                <pre>@Release.ReleaseNotes</pre>
+            </details>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public GXAvailableRelease Release { get; set; } = new();
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string ReleaseNotesLabel { get; set; } = Properties.Resources.ReleaseNotes;
+
+    private string? NotesUrl => Uri.TryCreate(Release.ReleaseNotesUrl, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) ? uri.AbsoluteUri : null;
+}

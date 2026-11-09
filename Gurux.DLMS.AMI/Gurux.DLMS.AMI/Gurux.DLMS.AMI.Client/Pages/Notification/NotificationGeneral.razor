@@ -1,0 +1,467 @@
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Notification
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text.Json
+@using System.Diagnostics
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+
+
+@inject ILogger<NotificationGeneral> Logger
+@inject HttpClient Http
+<GXHelpContext Topic="NotificationGeneral" />
+
+@if (Active != null)
+{
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXTabControl PersistSelectionInUrl="@(Editor?.Embedded != true)" NavigateOnSelection="false" RouteGroup="notification-editor" Active="GeneralInformation">
+            <TabTextTemplate Context="tab">
+                <GXImage Id="@tab.Icon" />
+                @tab.Text
+            </TabTextTemplate>
+            <ChildContent>
+                <TabHeader Name="@GXMenus.NotificationDetailsTab">
+                    <ContentForLink Context="link">
+                        @switch (link.Url)
+                        {
+                            case "GeneralInformation":
+                                <div class="row">
+                                    <div style="width:100%">
+                                        <div class="form-group">
+                                            <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Active.Enabled" />
+                                        </div>
+                                        <div class="form-group">
+                                            <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                                            <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label>@Properties.Resources.Description</label>
+                                            <InputText id="name" disabled="@IsDeleting" class="form-control"
+                                                       @bind-Value="Active.Description" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="notification-type">@Properties.Resources.NotificationDelivery</label><br />
+                                            @if (Action == CrudAction.Create)
+                                            {
+                                                <GXInputDropdown id="notification-type" class="form-select" Disabled="@_loadingType"
+                                                                 RememberValue="false" Items="@NotificationTypeChoices"
+                                                                 Formatter="@(choice => choice.Name)" @bind-Value="SelectedTypeChoice"
+                                                                 @bind-Value:after="NotificationTypeChangedAsync" />
+                                            }
+                                            else
+                                            {
+                                                <label>@Active.Type?.Name</label>
+                                            }
+                                        </div>
+                                        @if (IsToaster)
+                                        {
+                                            <div class="form-group">
+                                                <label for="toaster-max-count"><GXLocalizedText>@Properties.Resources.MaximumNotifications</GXLocalizedText></label>
+                                                <GXInputNumber RememberValue="false" id="toaster-max-count" class="form-control" min="1" placeholder="20"
+                                                             disabled="@IsDeleting" @bind-Value="ToasterMaxCount" Max="@GXNumberBounds.Maximum(ToasterMaxCount)" />
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                break;
+                            case "Notifications":
+                                <div class="table-responsive">
+                                    <GXViewTable ViewName="Notification.NotificationGeneral" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXNotificationPolicies.View })"
+                                                 TItem="PermissionGroup" @ref="table" Context="it"
+                                                 ItemsProvider="@GetItems"
+                                                 OnSearch="@Update"
+                                                 ShowAllUsers="false"
+                                                 ShowRemoved="false"
+                                                 ShowAllData="true">
+                                        <FilterContent>
+                                            <GXFh Id="Name">
+                                                <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                                                        Id="permissions.filter"
+                                                        Immediate="true"
+                                                        @bind-Value="@Filter"
+                                                        @bind-Value:after="Update" />
+                                            </GXFh>
+                                            <GXFh Id="Notifications"></GXFh>
+                                        </FilterContent>
+                                        <HeaderContent>
+                                            <GXTh Id="Name">
+                                                @Properties.Resources.Name
+                                                <div class="form-check form-switch">
+                                                    <input type="checkbox" class="form-check-input" id="permissions_all"
+                                                           checked="@VisibleGroups().SelectMany(g => g.Permissions).All(IsSelected)"
+                                                           @onchange="@((ChangeEventArgs __e) => AllNotify(Convert.ToBoolean(__e.Value)))" />
+                                                    <label>@Properties.Resources.All</label>
+                                                </div>
+                                            </GXTh>
+                                            <GXTh Id="Notifications">@Properties.Resources.Notifications</GXTh>
+                                        </HeaderContent>
+                                        <ItemContent>
+                                            <GXTd Id="Name">
+                                                <GXLocalizedText Value="@ClientHelpers.KebabToTitle(it.Name)" />
+                                            </GXTd>
+                                            <GXTd Id="Notifications">
+                                                <Gurux.UI.Components.Accordion.GXAccordion Id="@("notification-permissions-" + it.Name)">
+                                                    <HeaderTemplate>
+                                                        <span>@string.Join(", ", it.Permissions.Where(IsSelected).Select(p => ClientHelpers.KebabToTitle(PermissionAction(p.Name!))))</span>
+                                                    </HeaderTemplate>
+                                                    <ChildContent>
+                                                        @foreach (var permission in it.Permissions)
+                                                        {
+                                                            <div class="d-flex align-items-center gap-2 mb-2" @key="permission.Name">
+                                                                <GXInputSwitch TValue="bool?" Inline="true" Value="@IsSelected(permission)"
+                                                                        Save="false"
+                                                                        OnChange="@((bool? value) => SetSelected(permission, value == true))"></GXInputSwitch>
+                                                                <GXLocalizedText Value="@ClientHelpers.KebabToTitle(PermissionAction(permission.Name!))" />
+                                                            </div>
+                                                        }
+                                                    </ChildContent>
+                                                </Gurux.UI.Components.Accordion.GXAccordion>
+                                            </GXTd>
+                                        </ItemContent>
+                                    </GXViewTable>
+                                </div>
+                                break;
+                        }
+                    </ContentForLink>
+                </TabHeader>
+                @if (!string.IsNullOrWhiteSpace(Active.Type?.Code))
+                {
+                    <ModuleViews Area="Gurux.DLMS.AMI.Module.Enums.AmiViewArea.Notification" ModuleId="@Active.Type.Code" Target="@Active" />
+                }
+            </ChildContent>
+        </GXTabControl>
+    </EditForm>
+}
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Notifications") { Position = 1, Description = "Notifications", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    [Parameter, EditorRequired] public List<GXPermission>? AvailablePermissions { get; set; }
+
+    /// <summary>Available delivery types for a new notification.</summary>
+    [Parameter] public IReadOnlyList<GXNotificationType> AvailableTypes { get; set; } = [];
+
+    private sealed record NotificationTypeChoice(Guid? Id, string Name);
+    private IEnumerable<NotificationTypeChoice> NotificationTypeChoices =>
+        new[] { new NotificationTypeChoice(null, Properties.Resources.NotificationDelivery) }
+            .Concat(AvailableTypes.Select(type => new NotificationTypeChoice(type.Id, type.Name ?? string.Empty)));
+    private NotificationTypeChoice SelectedTypeChoice
+    {
+        get => NotificationTypeChoices.FirstOrDefault(choice => choice.Id == SelectedTypeId)
+            ?? NotificationTypeChoices.First();
+        set => SelectedTypeId = value.Id;
+    }
+    private bool _loadingType;
+
+    private async Task NotificationTypeChangedAsync()
+    {
+        _loadingType = true;
+        try
+        {
+            if (Editor != null) {
+                await Editor.LoadTypeSettingsAsync();
+            }
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { Services.GetService<IGXNotificationService>()?.ReportError(ex, "Notification.TypeSettings"); }
+        finally { _loadingType = false; }
+    }
+
+    private Guid? SelectedTypeId
+    {
+        get => Active?.Type?.Id;
+        set
+        {
+            if (Active == null) {
+                return;
+            }
+            Active.Type = AvailableTypes.FirstOrDefault(t => t.Id == value);
+            GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXNotification.Type)));
+        }
+    }
+
+    [CascadingParameter] public Notification? Editor { get; set; }
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+
+    private string? Filter;
+    private bool IsToaster => string.Equals(Active?.Type?.Code, "toaster", StringComparison.OrdinalIgnoreCase);
+    private bool IsEmail => string.Equals(Active?.Type?.Code, "smtp", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Active?.Type?.Code, "email", StringComparison.OrdinalIgnoreCase);
+    private int? ToasterMaxCount { get => Editor?.ToasterMaxCount; set { if (Editor != null) {
+        Editor.ToasterMaxCount = value;
+    } } }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<PermissionGroup>? table;
+
+    public sealed class PermissionGroup
+    {
+        public string Name { get; init; } = string.Empty;
+        public List<GXPermission> Permissions { get; init; } = [];
+    }
+
+    private static string PermissionGroupName(string name)
+    {
+        var separator = name.LastIndexOf('.');
+        return separator > 0 ? name[..separator] : name;
+    }
+
+    private static string PermissionAction(string name)
+    {
+        var separator = name.LastIndexOf('.');
+        return separator >= 0 ? name[(separator + 1)..] : name;
+    }
+
+    private ValueTask<ItemsProviderResult<PermissionGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        var groups = VisibleGroups().ToList();
+        return new(new ItemsProviderResult<PermissionGroup>(groups, groups.Count));
+    }
+    private IEnumerable<PermissionGroup> VisibleGroups() => (AvailablePermissions ?? [])
+            .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+            .GroupBy(p => PermissionGroupName(p.Name!), StringComparer.Ordinal)
+            .Select(g => new PermissionGroup
+            {
+                Name = g.Key,
+                Permissions = g.OrderBy(p => PermissionAction(p.Name!), StringComparer.Ordinal).ToList()
+            })
+            .Where(g => string.IsNullOrWhiteSpace(Filter)
+                || (ClientHelpers.KebabToTitle(g.Name) ?? string.Empty).Contains(Filter, StringComparison.OrdinalIgnoreCase)
+                || g.Permissions.Any(p => p.Name!.Contains(Filter, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(g => g.Name, StringComparer.Ordinal)
+            .ToList();
+    /// <summary>
+    /// Set or unset all notifications.
+    /// </summary>
+    /// <param name="check"></param>
+    private void AllNotify(bool check)
+    {
+        if (AvailablePermissions != null)
+        {
+            foreach (var it in VisibleGroups().SelectMany(g => g.Permissions))
+            {
+                if (it.Name == null) {
+                    continue;
+                }
+                if (check) {
+                    _selectedSources.Add(it.Name);
+                }
+                else {
+                    _selectedSources.Remove(it.Name);
+                }
+            }
+            SourcesChanged();
+        }
+    }
+
+    private void SourcesChanged()
+    {
+        if (Active == null || AvailablePermissions == null)
+        {
+            return;
+        }
+        Active.Sources = _selectedSources.Order(StringComparer.Ordinal).ToList();
+        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXNotification.Sources)));
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    public async Task Update()
+    {
+        try
+        {
+            if (table != null)
+            {
+                NotificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.Update");
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.Update");
+        }
+    }
+
+    /// <summary>
+    /// Selected notification.
+    /// </summary>
+    private GXNotification? _active;
+    private readonly HashSet<string> _selectedSources = new(StringComparer.Ordinal);
+    private bool IsSelected(GXPermission permission) => permission.Name != null && _selectedSources.Contains(permission.Name);
+    private void SetSelected(GXPermission permission, bool selected)
+    {
+        if (string.IsNullOrWhiteSpace(permission.Name)) {
+            return;
+        }
+        if (selected) {
+            _selectedSources.Add(permission.Name);
+        }
+        else {
+            _selectedSources.Remove(permission.Name);
+        }
+        SourcesChanged();
+    }
+
+    [Parameter, EditorRequired]
+    public GXNotification? Active { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        UpdateEditContext();
+    }
+
+    private void UpdateEditContext()
+    {
+        if (ReferenceEquals(_active, Active))
+        {
+            return;
+        }
+        _active = Active;
+        _selectedSources.Clear();
+        _selectedSources.UnionWith(Active?.Sources ?? []);
+        if (Active != null)
+        {
+            _ = GXEditContexts.For(Active);
+
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter, EditorRequired]
+    public CrudAction Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    ///Notification types.
+    /// </summary>
+    List<NotificationAction> notificationTypes = new List<NotificationAction>();
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public string? IsDestinationDeleting
+    {
+        get => Action != CrudAction.Delete && IsEmail ? null : "disabled";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        try
+        {
+            notificationTypes.AddRange(Enum.GetValues<NotificationAction>());
+            notificationTypes.Remove(NotificationAction.None);
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingNotification);
+            NotificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.OnInitializedAsync");
+
+            if (Active == null && Id != null)
+            {
+                //Get notification data.
+                var tmp = (await Http.GetAsJsonAsync<GetNotificationResponse>(string.Format("api/Notification?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    UpdateEditContext();
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            _ = GXEditContexts.For(Active);
+
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.OnInitializedAsync");
+        }
+    }
+
+
+}
+

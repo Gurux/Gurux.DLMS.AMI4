@@ -1,0 +1,134 @@
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@inject HttpClient Http
+@implements IGXConfigUpdate
+
+<h2><GXLocalizedText Value="@Properties.Resources.HTTPProxy" /></h2>
+<p><GXLocalizedText Value="@Properties.Resources.AllowClientsToRetrieveFeedsAndMapTilesThroughThisServer" /></p>
+@if (_error is not null)
+{
+    <p class="alert alert-danger" role="alert">@_error</p>
+}
+<EditForm EditContext="@GXEditContexts.For(_settings)" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <fieldset disabled="@_saving">
+        <div class="form-check mb-3">
+            <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="http-proxy-enabled" class="form-check-input" @bind-Value="_settings.Enabled" />
+            <label for="http-proxy-enabled"><GXLocalizedText Value="@Properties.Resources.Enabled" /></label>
+        </div>
+        <div class="mb-3">
+            <label for="http-proxy-origins"><GXLocalizedText Value="@Properties.Resources.AllowedServerOriginsOnePerLine" /></label>
+            <Microsoft.AspNetCore.Components.Forms.InputTextArea id="http-proxy-origins" class="form-control" rows="5" @bind-Value="_origins" />
+            <small><GXLocalizedText Value="@Properties.Resources.IncludeTheSchemeAndOptionalPortForExampleHttpsGuruxFiAndHttpsTileOpenstreetmapOrgWild" /></small>
+        </div>
+        <div class="mb-3">
+            <label for="http-proxy-cache"><GXLocalizedText Value="@Properties.Resources.FallbackCacheTimeoutSeconds0DisablesCaching" /></label>
+            <GXInputNumber RememberValue="false" id="http-proxy-cache" class="form-control" @bind-Value="_settings.CacheTimeoutSeconds" Min="@GXNumberBounds.Minimum(_settings.CacheTimeoutSeconds)" Max="@GXNumberBounds.Maximum(_settings.CacheTimeoutSeconds)" />
+        </div>
+        <div class="mb-3">
+            <label for="http-proxy-timeout"><GXLocalizedText Value="@Properties.Resources.RequestTimeoutSeconds" /></label>
+            <GXInputNumber RememberValue="false" id="http-proxy-timeout" class="form-control" @bind-Value="_settings.RequestTimeoutSeconds" Min="@GXNumberBounds.Minimum(_settings.RequestTimeoutSeconds)" Max="@GXNumberBounds.Maximum(_settings.RequestTimeoutSeconds)" />
+        </div>
+        <div class="mb-3">
+            <label for="http-proxy-size"><GXLocalizedText Value="@Properties.Resources.MaximumResponseSizeBytes" /></label>
+            <GXInputNumber RememberValue="false" id="http-proxy-size" class="form-control" @bind-Value="_settings.MaxResponseBytes" Min="@GXNumberBounds.Minimum(_settings.MaxResponseBytes)" Max="@GXNumberBounds.Maximum(_settings.MaxResponseBytes)" />
+        </div>
+        <AuthorizeView Policy="@GXConfigurationPolicies.Edit" Context="authorization">
+            <button type="submit" class="btn btn-primary"><GXLocalizedText Value="@Properties.Resources.Save" /></button>
+        </AuthorizeView>
+        <button type="button" class="btn btn-secondary" @onclick="Update"><GXLocalizedText Value="@Properties.Resources.Cancel" /></button>
+    </fieldset>
+</EditForm>
+
+@code {
+    /// <summary>The configuration page providing the persisted settings.</summary>
+    [Parameter] public Configurations? Parent { get; set; }
+    private HttpProxySettings _settings = new();
+    private string _origins = string.Empty;
+    private string? _error;
+    private bool _saving;
+    private Guid? _loadedId;
+
+    protected override void OnParametersSet()
+    {
+        if (_loadedId != Parent?.Active?.Id)
+        {
+            Update();
+        }
+    }
+
+    /// <summary>Restores the saved proxy settings in the editor.</summary>
+    public void Update()
+    {
+        _loadedId = Parent?.Active?.Id;
+        _error = null;
+        _settings = string.IsNullOrWhiteSpace(Parent?.Active?.Settings) ? new()
+            : JsonSerializer.Deserialize<HttpProxySettings>(Parent.Active.Settings) ?? new();
+        _origins = string.Join(Environment.NewLine, _settings.AllowedOrigins);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving)
+        {
+            return;
+        }
+        _saving = true;
+        _error = null;
+        try
+        {
+            _settings.AllowedOrigins = _origins.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            _settings.Validate();
+            var active = Parent?.Active ?? throw new InvalidOperationException(Properties.Resources.ConfigurationIsUnavailable);
+            var update = ClientHelpers.Clone<GXConfiguration>(active);
+            update.Settings = JsonSerializer.Serialize(_settings);
+            await Http.PostAsJson("api/Configuration/Update", new ConfigurationUpdate { Configurations = [update] });
+            active.Settings = update.Settings;
+        }
+        catch (Microsoft.AspNetCore.Components.WebAssembly.Authentication.AccessTokenNotAvailableException ex)
+        {
+            ex.Redirect();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

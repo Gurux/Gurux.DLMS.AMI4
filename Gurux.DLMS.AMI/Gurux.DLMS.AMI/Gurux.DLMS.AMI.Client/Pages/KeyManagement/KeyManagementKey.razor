@@ -1,36 +1,33 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
+@using Gurux.DLMS.AMI.Client.Shared.KeyManagement
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
@@ -44,15 +41,17 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Text
+@using System.Net.Http.Json
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="KeyManagementKey" />
 
 @if (Active != null)
 {
-    <Dialog OnOk="OnSave" OnCancel="OnCancel">
-        <EditForm Model="@Active">
+    <GXDialog OnOk="OnSave" OnCancel="OnCancel">
+        <EditForm EditContext="@GXEditContexts.For(Active)">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <GXValidator @ref="_validator" OnValidate="OnValidate" />
@@ -61,26 +60,43 @@
                     <div class="form-group">
                         <div class="col-auto">
                             <label>@Properties.Resources.KeyManagementKeyType</label>
-                            <select class="form-select" @bind="KeyType">
-                                @foreach (var it in KeyTypes)
-                                {
-                                    <option value="@Convert.ToInt32(it)">
-                                        @ClientHelpers.GetKeyTypeDescription(it)
-                                    </option>
-                                }
-                            </select>
+                            <GXInputDropdown class="form-select" @bind-Value="KeyType" Disabled="@(Active.Id != Guid.Empty)" RememberValue="false" Items="@(KeyTypes.Select(it => (int)it))" Formatter="@(value => ClientHelpers.GetKeyTypeDescription((KeyManagementType)value))" />
                         </div>
                         <ValidationMessage For="@(() => KeyType)" />
                     </div>
                     <div class="form-group">
                         <label>@ClientHelpers.GetKeyTypeDescription(Active.KeyType)</label>
-                        <InputNullableSwitch OnChange="OnHexChange"
-                                         Disabled="@IsHexDisabled()" @bind-Value="Active.IsHex">
-                            @Properties.Resources.Hex
-                        </InputNullableSwitch>
-                        <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Data" />
-                        <ValidationMessage For="@(() => Active.Data)" />
+                        @if (Parent?.KeyManagement?.ProviderId == "KmipClient" && Active.Id == Guid.Empty)
+                        {
+                            <label>@Properties.Resources.RemoteObjectIdentifier</label>
+                            <InputText @bind-Value="Active.ExternalId" />
+                            <p>@Properties.Resources.TheKeyMetadataIsReadFromTheConfiguredKMIPServerMaterialIsNotCopiedIntoAMIStorage</p>
+                        }
+                        else
+                        {
+                            <GXInputHexAscii Id="key-management-value" Disabled="@(Active.Id != Guid.Empty)"
+                                           @bind-Value="@Active.Key">
+                            </GXInputHexAscii>
+                        }
+                        <ValidationMessage For="@(() => Active.Key)" />
+                        @if (Active.Id != Guid.Empty)
+                        {
+                            <p>@Properties.Resources.KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState</p>
+                            <dl>
+                                <dt>@Properties.Resources.State</dt>
+                                <dd>@Active.State</dd>
+                                <dt>@Properties.Resources.Algorithm</dt>
+                                <dd>@Active.Algorithm (@Active.CryptographicLength bits)</dd>
+                                <dt>@Properties.Resources.PermittedUsage</dt>
+                                <dd>@Active.UsageMask</dd>
+                                <dt>@Properties.Resources.ExternalIdentifier</dt>
+                                <dd>@Active.ExternalId</dd>
+                                <dt>@Properties.Resources.Activation</dt>
+                                <dd>@Active.ActivationDate</dd>
+                                <dt>@Properties.Resources.Deactivation</dt>
+                                <dd>@Active.DeactivationDate</dd>
+                            </dl>
+                        }
                     </div>
                     @if (Active.CreationTime != null)
                     {
@@ -88,7 +104,7 @@
                             <label>@Properties.Resources.CreationTime</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation"
                                        readonly="readonly" class="form-control"
-                               @bind-Value="Active.CreationTime" />
+                                       @bind-Value="Active.CreationTime" />
                         </div>
                     }
                     @if (Active.Updated != null)
@@ -97,7 +113,7 @@
                             <label>@Properties.Resources.Updated</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation"
                                        readonly="readonly" class="form-control"
-                               @bind-Value="Active.Updated" />
+                                       @bind-Value="Active.Updated" />
                         </div>
                     }
                     @if (Active.Removed != null)
@@ -106,15 +122,17 @@
                             <label>@Properties.Resources.Removed</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="removed"
                                        class="form-control"
-                               @bind-Value="Active.Removed" />
+                                       @bind-Value="Active.Removed" />
                         </div>
                     }
                 </div>
             </div>
         </EditForm>
-    </Dialog>
+    </GXDialog>
 }
 @code {
+
+    private IGXNotificationService? NotificationService;
 
     private GXValidator? _validator;
 
@@ -166,7 +184,6 @@
         KeyManagementType.PrivateKey,
         KeyManagementType.PublicKey});
 
-    private bool DeleteTarget;
     public string? IsDeleting
     {
         get
@@ -179,81 +196,13 @@
         }
     }
 
-    private bool IsHexDisabled()
-    {
-        switch ((KeyManagementType)KeyType)
-        {
-            case KeyManagementType.PrivateKey:
-            case KeyManagementType.PublicKey:
-                return true;
-            default:
-                break;
-        }
-        if (Active?.Data == null || !Active.IsHex.GetValueOrDefault(false))
-        {
-            return false;
-        }
-        return !IsAsciiString(GXDLMSTranslator.HexToBytes(Active.Data));
-    }
-
-    /// <summary>
-    /// Check is byte buffer ASCII string.
-    /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    public static bool IsAsciiString(byte[] value)
-    {
-        if (value != null)
-        {
-            foreach (byte it in value)
-            {
-                if (it < 32 || it > 127)
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// User changes value type from ASCII to HEX or vice versa.
-    /// </summary>
-    /// <param name="value"></param>
-    private void OnHexChange(bool value)
-    {
-        try
-        {
-            if (Active != null)
-            {
-                if (!string.IsNullOrEmpty(Active?.Data))
-                {
-                    if (value)
-                    {
-                        //Convert ASCII to hex.
-                        Active.Data = GXDLMSTranslator.ToHex(ASCIIEncoding.ASCII.GetBytes(Active.Data));
-                    }
-                    else
-                    {
-                        //Convert hex to ASCII.
-                        Active.Data = ASCIIEncoding.ASCII.GetString(GXDLMSTranslator.HexToBytes(Active.Data));
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _validator?.AddError(() => Active.Data, ex.Message);
-        }
-    }
-
-
     protected override void OnInitialized()
     {
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKey.OnInitialized");
             if (Active == null || Parent?.KeyManagement?.Keys == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -286,9 +235,9 @@
         {
             if (_validator != null && Active != null)
             {
-                _validator.AddError(() => Active.Data, ex.Message);
+                _validator.AddError(() => Active.Key, ex.Message);
             }
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKey.OnInitialized");
         }
     }
 
@@ -298,6 +247,29 @@
     /// <param name="sender"></param>
     private void OnValidate(GXValidator sender)
     {
+        if (Active?.Id != Guid.Empty)
+        {
+            return;
+        }
+        if (Parent?.KeyManagement?.ProviderId == "KmipClient")
+        {
+            if (KeyType == 0)
+            {
+                sender.AddError(() => KeyType, Properties.Resources.SelectADLMSKeyRole);
+            }
+        
+            if (Parent.KeyManagement.Id == Guid.Empty)
+            {
+                sender.AddError(() => Active!.ExternalId, Properties.Resources.SaveTheKeyManagementAndItsKMIPConnectionBeforeBindingARemoteObject);
+            }
+        
+            if (string.IsNullOrWhiteSpace(Active?.ExternalId))
+            {
+                sender.AddError(() => Active!.ExternalId, Properties.Resources.ARemoteObjectIdentifierIsRequired);
+            }
+        
+            return;
+        }
         if (Active != null)
         {
             if (Parent?.KeyManagement?.Keys == null || Active == null)
@@ -306,11 +278,11 @@
             }
             if (KeyType == 0)
             {
-                sender.AddError(() => KeyType, "Invalid key type.");
+                sender.AddError(() => KeyType, Properties.Resources.InvalidKeyType);
             }
-            if (string.IsNullOrEmpty(Active.Data))
+            if (Active.Key?.Any() != true)
             {
-                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+                sender.AddError(() => Active.Key, Properties.Resources.InvalidKey);
             }
             try
             {
@@ -319,29 +291,14 @@
                     case KeyManagementType.BlockCipher:
                     case KeyManagementType.Authentication:
                     case KeyManagementType.Broadcast:
-                        if (Active.IsHex.GetValueOrDefault(false))
+                        if (Active.Key?.Length is not (16 or 24 or 32))
                         {
-                            if (GXDLMSTranslator.HexToBytes(Active.Data).Length != 16)
-                            {
-                                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
-                            }
-                        }
-                        else
-                        {
-                            if (Active.Data != null && Active.Data.Length != 16)
-                            {
-                                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
-                            }
-
+                            sender.AddError(() => Active.Key, Properties.Resources.InvalidKey);
                         }
                         break;
                     case KeyManagementType.PrivateKey:
-                        //Validate private key.
-                        GXPkcs8.FromPem(Active.Data);
-                        break;
                     case KeyManagementType.PublicKey:
-                        //Validate public key.
-                        GXx509Certificate.FromPem(Active.Data);
+                        // The server validates the declared curve and raw/DER/PEM encoding.
                         break;
                     default:
                         break;
@@ -349,7 +306,7 @@
             }
             catch (Exception)
             {
-                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+                sender.AddError(() => Active.Key, Properties.Resources.InvalidKey);
             }
         }
     }
@@ -357,7 +314,7 @@
     /// <summary>
     /// Save key management group.
     /// </summary>
-    public void OnSave()
+    public async System.Threading.Tasks.Task OnSave()
     {
         try
         {
@@ -366,28 +323,42 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_validator != null && !_validator.Validate())
+            if (_validator != null && !await _validator.ValidateAsync())
             {
                 return;
             }
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKey.OnSave");
             if (Parent?.KeyAction == CrudAction.Create)
             {
-                Parent.KeyManagement.Keys.Add(Active);
+                if (Parent.KeyManagement.ProviderId == "KmipClient")
+                {
+                    using var response = await Http.PostAsJsonAsync("api/extensions/KeyManagement/ImportExternal", new GXImportExternalKeyRequest { ManagementId = Parent.KeyManagement.Id, ObjectId = Active.ExternalId!, Role = Active.KeyType!.Value });
+                    response.EnsureSuccessStatusCode();
+                    var imported = await response.Content.ReadFromJsonAsync<GXKeyManagementKey>() ?? throw new InvalidOperationException("Missing imported key metadata.");
+                    Parent.KeyManagement.Keys.Add(imported);
+                }
+                else
+                {
+                    Parent.KeyManagement.Keys.Add(Active);
+                }
             }
             else if (Parent?.KeyAction == CrudAction.Update)
             {
-                //Do nothing.
+            //Do nothing.
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
+            if (Parent?.KeyManagement is { } management)
+                {
+                GXEditContexts.For(management).NotifyFieldChanged(new FieldIdentifier(management, nameof(GXKeyManagement.Keys)));
+            }
             Parent?.Update();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKey.OnSave");
         }
     }
 
@@ -404,3 +375,4 @@
         Parent?.Update();
     }
 }
+

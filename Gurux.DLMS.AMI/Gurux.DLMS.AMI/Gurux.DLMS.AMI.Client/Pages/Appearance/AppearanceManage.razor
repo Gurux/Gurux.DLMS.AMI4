@@ -1,37 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/config/appearance"
-@page "/config/appearance/icon"
+@page "/config/appearance/image"
 @page "/config/appearance/theme"
 @page "/config/appearance/iconpack"
 
@@ -45,55 +42,49 @@
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Text.Json
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AppearanceManager)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-
+@implements IDisposable
 @*If user adds a new item or modifies the existing one.*@
+<GXHelpContext Topic="AppearanceManage" />
+
 @if (string.Compare(Action, "Add", true) == 0 ||
 (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
-    @if (string.Compare(Path, "/config/appearance/theme", true) == 0)
+    @if (string.Compare(Path, "config/appearance/theme", true) == 0)
     {
-        <ThemeTab Action="@Action" Id="@Id"></ThemeTab>
+        <Theme Action="@Action" Id="@Id"></Theme>
     }
-    @if (string.Compare(Path, "/config/appearance/iconpack", true) == 0)
+    @if (string.Compare(Path, "config/appearance/iconpack", true) == 0)
     {
-        <IconPackTab></IconPackTab>
+        <IconPack></IconPack>
     }
-}
-else if (string.Compare(Path, "/config/appearance/iconpack", true) == 0)
-{
-    <IconPackTab></IconPackTab>
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="appearance" Active="@Path" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-             <Image Id="@context.Icon" />
+            <GXImage Id="@context.Icon" />
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
-                <TabPage Path="config/appearance/Images" Text=@Properties.Resources.Icons
-                         Icon="Images">
-                    <Images Id="@Id" IconPacks="@IconPacks"></Images>
-                </TabPage>
-                <TabPage Path="config/appearance/theme" Text=@Properties.Resources.Theme
-                         Icon="Theme">
-                    <ThemeTab Id="@Id"></ThemeTab>
-                </TabPage>
-                <TabPage Path="config/appearance/iconpack" Text=@Properties.Resources.IconPack
-                         Icon="IconPack">
-                    <IconPackTab></IconPackTab>
-                </TabPage>
-            </AuthorizeView>
+            <TabHeader Name="@GXMenus.AppearanceTab" Parameters="@TabParameters" />
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 <br />
 @code {
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Id"] = Id!,
+        ["IconPacks"] = IconPacks!
+    };
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+    private bool _disposed;
+    private IGXNotifier? Notifier;
+
     /// <summary>
     /// Appearance settings.
     /// </summary>
@@ -112,34 +103,48 @@ else
     /// Selected item.
     /// </summary>
     [Parameter]
-    public string? Id { get; set; }
+    public Guid? Id { get; set; }
 
     private string? Path { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var path = NavigationManager.GetCurrentPagePath().Trim('/');
+        Path = string.Equals(path, "config/appearance/image", StringComparison.OrdinalIgnoreCase)
+            ? "config/appearance/Image" : path.ToLowerInvariant();
+    }
 
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        Notifier = Services.GetService<IGXNotifier>();
+        if (Notifier == null)
+        {
+            return;
+        }
 
         //Get active icon packs.
         ListAppearances req1 = new ListAppearances()
         {
+            AllUsers = true,
             Filter = new()
             {
                 ResourceType = (byte)ResourceType.Iconpack,
-                Active = true
+                Enabled = true
             }
         };
         var ret2 = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", req1);
+        if (_disposed) {
+            return;
+        }
         if (ret2.Appearances != null)
         {
             IconPacks = ret2.Appearances;
@@ -155,32 +160,27 @@ else
         };
 
         var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
-        if (ret?.Configurations?.Length == 1)
-        {
-            Configuration = ret.Configurations[0];
+        if (_disposed) {
+            return;
         }
-        Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+        if (ret?.Configurations?.Count() == 1)
         {
-            try
+            Configuration = ret.Configurations.First();
+        }
+        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+        {
+            _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Appearance, configuration =>
             {
-                if (configurations != null)
-                {
-                    foreach (var it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Appearance && !string.IsNullOrEmpty(it.Settings))
-                        {
-                            Configuration = it;
-                            InvokeAsync(StateHasChanged);
-                            break;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Notifier?.ProcessError(ex);
-            }
+                Configuration = configuration;
+                StateHasChanged();
+            }, () => true, Services.GetService<IGXNotificationService>()));
         });
     }
-}
 
+    public void Dispose()
+    {
+        _disposed = true;
+        _configurationRefresh.Dispose();
+        Notifier?.RemoveListener(this);
+    }
+}

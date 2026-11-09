@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -42,19 +38,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the tokens.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class TokenController : ControllerBase
+    public class TokenController(IPatRepository patRepository) : ControllerBase
     {
-        private readonly IPatRepository _patRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public TokenController(IPatRepository patRepository)
-        {
-            _patRepository = patRepository;
-        }
+        private readonly IPatRepository _patRepository = patRepository;
 
         /// <summary>
         /// Get available tokens.
@@ -62,9 +53,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Get available tokens.</returns>
         [HttpGet]
         [Authorize(Policy = GXTokenPolicies.View)]
-        public async Task<ActionResult<ListTokensResponse>> Get()
+        public async Task<ActionResult<ListTokensResponse>> Get(CancellationToken cancellationToken = default)
         {
-            return await Post(new ListTokens());
+            _ = cancellationToken;
+            return await Post(new ListTokens(), cancellationToken);
         }
 
         /// <summary>
@@ -75,11 +67,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </remarks>
         [HttpPost("List")]
         [Authorize(Policy = GXTokenPolicies.View)]
-        public async Task<ActionResult<ListTokensResponse>> Post(ListTokens request)
+        public async Task<ActionResult<ListTokensResponse>> Post(ListTokens request, CancellationToken cancellationToken = default)
         {
-            ListTokensResponse ret = new ListTokensResponse();
-            ret.Tokens = await _patRepository.GetPersonalTokensAsync(request);
-            ret.Count = ret.Tokens.Length;
+            ListTokensResponse ret = new()
+            {
+                Tokens = await _patRepository.GetPersonalTokensAsync(request, cancellationToken)
+            };
+            ret.Count = ret.Tokens.Count();
             return ret;
         }
 
@@ -88,16 +82,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXTokenPolicies.Add)]
-        public async Task<ActionResult<UpdateTokenResponse>> Post(UpdateToken request)
+        public async Task<ActionResult<UpdateTokenResponse>> Post(UpdateToken request, CancellationToken cancellationToken = default)
         {
             if (request.Tokens == null || !request.Tokens.Any())
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            UpdateTokenResponse ret = new UpdateTokenResponse();
+            UpdateTokenResponse ret = new();
             foreach (GXPersonalToken it in request.Tokens)
             {
                 if (string.IsNullOrEmpty(it.Name))
@@ -106,10 +101,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (string.IsNullOrEmpty(it.Id))
                 {
-                    ret.Token = await _patRepository.AddPersonalTokenAsync(it);
+                    ret.Token = await _patRepository.AddPersonalTokenAsync(it, cancellationToken);
                 }
             }
             return ret;
+        }
+
+        /// <summary>Extends an owned token's expiration while keeping its value unchanged.</summary>
+        [HttpPost("Extend")]
+        [Authorize(Policy = GXTokenPolicies.Edit)]
+        public async Task<ActionResult<ExtendTokenResponse>> Extend(ExtendToken request, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(request.Id) || request.Expiration == null)
+                {
+                return BadRequest("A token identifier and expiration are required.");
+            }
+            try
+            {
+                return new ExtendTokenResponse { Item = await _patRepository.ExtendPersonalTokenAsync(request.Id, request.Expiration.Value, cancellationToken) };
+            }
+            catch (ArgumentException error) { return BadRequest(error.Message); }
+            catch (InvalidOperationException error) { return Conflict(error.Message); }
         }
 
         /// <summary>
@@ -117,7 +129,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXTokenPolicies.Delete)]
-        public async Task<ActionResult<DeleteTokenResponse>> Post(DeleteToken request)
+        public async Task<ActionResult<DeleteTokenResponse>> Post(DeleteToken request, CancellationToken cancellationToken = default)
         {
             if (request.Ids == null || !request.Ids.Any())
             {
@@ -125,7 +137,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             foreach (var id in request.Ids)
             {
-                await _patRepository.RemovePersonalTokenAsync(id);
+                await _patRepository.RemovePersonalTokenAsync(id, cancellationToken);
             }
             return new DeleteTokenResponse();
         }

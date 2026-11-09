@@ -1,36 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Enums
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Microsoft.AspNetCore.Authorization
@@ -42,23 +40,26 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Module;
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @implements IDisposable
 
+<GXHelpContext Topic="ModulesManage" />
+
 <h1>@Properties.Resources.ModulesTitle</h1>
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Module)
+<AuthorizeView Roles=@GXRoles.Admin
                Policy=@GXModulePolicies.Add>
-    <MenuControl RightCorner="true">
+    <GXMenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
         </ChildContent>
-    </MenuControl>
+    </GXMenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table"
+<label><input type="checkbox" @bind="_includePrereleases" @bind:after="ChannelChangedAsync" /> Show prereleases</label>
+<GXViewTable ViewName="Module.ModulesManage" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXModulePolicies.View })"
+         TItem="GXModule" @ref="table"
          Context="module"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Single"
@@ -66,85 +67,118 @@
          ShowAllUsers="false"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <GXFh Id="Image">
             @*Icon*@
-        </th>
-        <th>
+        </GXFh>
+        <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by version..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value) ?? string.Empty)" />
+        </GXFh>
+        <GXFh Id="Version">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByVersion"
                    @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by latest version..."
+        </GXFh>
+        <GXFh Id="AvailableVersion">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByLatestVersion"
                    @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
-        </th>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="ModulesManage-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <th>
-            <input class="form-control" placeholder="Filter by updated time..."
+        </GXFh>
+        <GXFh Id="Updated">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByUpdatedTime"
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Updated = Convert.ToDateTime(__e.Value))" />
-        </th>
+        </GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Module)
-                       Policy="@GXModulePolicies.Add">
-            <ContextMenuItem Text="@Properties.Resources.Install"
+        <AuthorizeView Policy="@GXModulePolicies.Add">
+            <GXContextMenuItem Text="@Properties.Resources.Install"
                              Id="Install"
-                             OnClick="@OnInstall"></ContextMenuItem>
+                             OnClick="@OnInstall"></GXContextMenuItem>
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>
-        <th width="1%"></th>
-        <th>@Properties.Resources.Name</th>
-        <th>@Properties.Resources.Version</th>
-        <th>@Properties.Resources.AvailableVersion</th>
-        <th>@Properties.Resources.CreationTime</th>
-        <th>@Properties.Resources.Updated</th>
+        <GXTh Id="Image" width="1%"></GXTh>
+        <GXTh Id="Name">@Properties.Resources.Name</GXTh>
+        <GXTh Id="Version">@Properties.Resources.Version</GXTh>
+        <GXTh Id="AvailableVersion">@Properties.Resources.AvailableVersion</GXTh>
+        <GXTh Id="CreationTime">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Id="Updated">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td class="img-cell">
-            <Image Id="@module.Id"></Image>
-        </td>
-        <td>@module.Id</td>
-        <td>@module.Version</td>
-        <td>@module.AvailableVersion</td>
-        <td>@module.CreationTime</td>
-        <td>@module.Updated</td>
+        <GXTd Id="Image" class="img-cell">
+            <GXImage Id="@module.Id"></GXImage>
+        </GXTd>
+        <GXTd Id="Name">@module.Id</GXTd>
+        <GXTd Id="Version">@module.Version</GXTd>
+        <GXTd Id="AvailableVersion">
+            <GXInputDropdown TValue="string" class="form-control" Value="@SelectedVersion(module.Id)" ValueChanged="@(value => SelectVersion(module.Id, value))" Items="@(new[] { "" }.Concat((_versions.GetValueOrDefault(module.Id) ?? []).Where(version => version.Installable).Select(version => version.Id.ToString())))" Formatter="@(value => CatalogVersionLabel(module.Id, value))" RememberValue="false" />
+        </GXTd>
+        <GXTd Id="CreationTime">@module.CreationTime</GXTd>
+        <GXTd Id="Updated">@module.Updated</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="RestartConfirmation"
-         ConfirmationChanged="OnRestartConfirmation"
-         OkTitle="@Properties.Resources.Restart"
-         ConfirmationTitle="Confirm restart"
-         AllowDelete="false"
-         ConfirmationMessage="@Properties.Resources.ModuleNeedsRestart">
-</Confirm>
 
 @code {
+    private string? CatalogVersionLabel(string id, string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return _includePrereleases ? Properties.Resources.LatestIncludingPrereleases : Properties.Resources.LatestStable;
+        }
+        var version = _versions[id].First(version => version.Id.ToString() == value);
+        return version.Number + (version.Prerelease ? " (prerelease)" : "");
+    }
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Image") { Position = 0, Description = "Image", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Version") { Position = 2, Description = "Version", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("AvailableVersion") { Position = 3, Description = "AvailableVersion", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CreationTime") { Position = 4, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Updated") { Position = 5, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// System error filter.
     /// </summary>
     private GXModule filter = new GXModule();
+    private bool _includePrereleases;
+    private Dictionary<string,List<ModuleReleaseInfo>> _versions=new();
+    private readonly Dictionary<string,Guid> _selectedVersions=new();
+    private string SelectedVersion(string id)=>_selectedVersions.TryGetValue(id,out var version)?version.ToString():"";
+    private void SelectVersion(string id,object? value){
+        if (Guid.TryParse(value?.ToString(), out var version))
+        {
+            _selectedVersions[id] = version;
+        }
+        else
+        {
+            _selectedVersions.Remove(id);
+        }
+    }
+    private Task ChannelChangedAsync(){_selectedVersions.Clear();
+        if (table != null)
+        {
+            table.ResetPage();
+        }
+        return table?.RefreshDataAsync(true)??Task.CompletedTask;}
 
-    /// <summary>
-    /// User is asked should server restart.
-    /// </summary>
-    protected ConfirmBase? RestartConfirmation;
 
 
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXModule>? table;
+    protected GXViewTable<GXModule>? table;
 
     /// <summary>
     /// Update table.
@@ -155,28 +189,44 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Module/ModulesManage.Updated");
+                table.ResetPage();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), async (modules) =>
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModulesManage);
+            NotificationService?.RemoveByKey("Pages/Module/ModulesManage.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXModulePolicies.Add ||
+                        it.Type == GXModulePolicies.Edit ||
+                        it.Type == GXModulePolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -184,22 +234,21 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingModulesManage);
+        using var linked=CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken,(progressScope2?.CancellationToken ?? CancellationToken.None));
         try
         {
             ListModules req = new ListModules()
             {
+                CatalogOnly = true,
+                IncludePrereleases = _includePrereleases,
                 Index = request.StartIndex,
                 Count = request.Count,
                 Filter = filter,
@@ -207,9 +256,10 @@
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
             };
-            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, linked.Token);
+            _versions=ret.CatalogVersions;
             //Get only selected amount of the modules.
-            return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+            return new ItemsProviderResult<GXModule>((ret.Modules ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
         catch (TaskCanceledException)
         {
@@ -218,11 +268,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -234,22 +280,19 @@
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingModulesManage);
+            NotificationService?.RemoveByKey("Pages/Module/ModulesManage.OnInstall");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            @if ((table.Active.Status & AMI.Shared.DTOs.Enums.ModuleStatus.Installed) != 0)
+            var selected = _selectedVersions.GetValueOrDefault(table.Active.Id);
+            if (selected == Guid.Empty && _includePrereleases)
             {
-                throw new Exception(string.Format("Module {0} is already installed.", table.Active.Id));
+                selected = _versions.GetValueOrDefault(table.Active.Id)?.FirstOrDefault(v => v.Installable)?.Id ?? Guid.Empty;
             }
-            UpdateModule req = new UpdateModule() { Module = table.Active };
-            var ret = await Http.PostAsJson<UpdateModuleResponse>("api/Module/Install", req);
-            if (RestartConfirmation != null && ret.Restart)
-            {
-                RestartConfirmation.Show();
-            }
+            InstallModule req = new InstallModule() { Module = new GXModule(table.Active.Id), VersionId = selected != Guid.Empty ? selected : null };
+            await Http.PostAsJson<InstallModuleResponse>("api/Module/Install", req, (progressScope3?.CancellationToken ?? CancellationToken.None));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -257,11 +300,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnInstall");
         }
     }
 
@@ -272,8 +311,8 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/Module/Add");
+            NotificationService?.RemoveByKey("Pages/Module/ModulesManage.OnAdd");
+            ClientHelpers.NavigateTo(NavigationManager,  "/config/Module/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -281,40 +320,22 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-    }
-
-    /// <summary>
-    /// Ask should the application restart.
-    /// </summary>
-    public async Task OnRestartConfirmation(ConfirmArgs args)
-    {
-        try
-        {
-            if (args.Confirm)
-            {
-                StopApplicationRequest req = new StopApplicationRequest();
-                await Http.PostAsJson("api/Configuration/Restart", req);
-            }
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnAdd");
         }
     }
 
     void OnClose(object sender)
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/module");
+        ClientHelpers.NavigateTo(NavigationManager,  "/module");
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

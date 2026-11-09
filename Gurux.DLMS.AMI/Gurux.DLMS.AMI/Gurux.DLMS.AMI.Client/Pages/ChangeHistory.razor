@@ -1,0 +1,79 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/changehistory"
+@namespace Gurux.DLMS.AMI.Client.Pages
+@using Gurux.DLMS.AMI.Shared.DTOs.History
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = GXChangeHistoryPolicies.View)]
+
+<PageTitle>Change history</PageTitle>
+<h1>Change history</h1>
+
+@if (!_identityLoaded)
+{
+    <p role="status">@Properties.Resources.Loading</p>
+}
+else
+{
+    <div class="history-content">
+        @if (_changesError != null)
+        {
+            <div class="alert alert-danger" role="alert">@_changesError</div>
+        }
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" @onclick="RefreshChangesAsync">
+            @Properties.Resources.Refresh
+        </button>
+        <div class="table-responsive history-changes">
+            <GXTable TItem="GXChangeHistoryItem" Context="item" @ref="_changesTable"
+                     Id="change-history-items" ItemsProvider="GetChangesAsync" PageSize="25"
+                     SelectionMode="SelectionMode.None" Filter="false" Menu="false" CanEdit="false" Save="false">
+                <HeaderContent>
+                    <th scope="col">Changed By</th>
+                    <th scope="col">Change Type</th>
+                    <th scope="col">Changed Date</th>
+                </HeaderContent>
+                <ItemContent>
+                    <td>@ActorName(item.ChangedBy)</td>
+                    <td>@item.Operation</td>
+                    <td>
+                        @if (item.ChangedAt is { } changedAt)
+                        {
+                            <time datetime="@changedAt.ToString("O")">@changedAt.ToLocalTime().ToString("g")</time>
+                        }
+                    </td>
+                </ItemContent>
+            </GXTable>
+        </div>
+        @if (_changesLoaded && _totalChanges == 0 && _changesError == null)
+        {
+            <p role="status">No changes have been recorded.</p>
+        }
+    </div>
+}

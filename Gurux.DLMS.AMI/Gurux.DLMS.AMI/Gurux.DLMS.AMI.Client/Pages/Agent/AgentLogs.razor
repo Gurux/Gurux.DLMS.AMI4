@@ -1,37 +1,35 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @page "/AgentLogs"
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -44,116 +42,110 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = "Admin, AgentLogManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject ConfirmBase Confirm
-@inject IGXNotifier2 Notifier
 @inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
+
+<GXHelpContext Topic="AgentLogs" />
 
 @if (Title)
 {
     <PageTitle>@Properties.Resources.AgentLogs (@Properties.Resources.Total: @Total)</PageTitle>
 }
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentLog)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Close" Id="Close" OnClick="@OnClose" />
-            <MenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Close" Id="Close" OnClick="@OnClose" Policy="@GXAgentLogPolicies.Close" />
+        <GXMenuEntry Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" Policy="@GXAgentLogPolicies.Clear" />
+    </ChildContent>
+</GXMenuControl>
 
-<GXTable @ref="table"
-         Context="error"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         Filter="@Filter"
-         ShowAllUsers="@Header"
-         Columns="@Columns"
-         OnSearch="@Updated">
+<GXViewTable ViewName="Agent.AgentLogs" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXAgentLogPolicies.View })" TItem="GXLog" @ref="table"
+             Context="error"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             ShowRemoved="false"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             Columns="@Columns"
+             OnSearch="@Updated">
     <FilterContent>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="AgentLogs-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <Fh Id="Type" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="Type" Visibility="Visibility.Medium">
             <EnumTypeSelector Type="@TargetType.AgentLog"
                               @bind-Value="@filter.Type"
                               OnSelected="@((int? e) => Updated())">
             </EnumTypeSelector>
-        </Fh>
-        <th>
-            @if (filter.Agent != null)
-            {
-                <GXInputText class="form-control"
-                             Id="AgentLog-Agent"
-                             @bind-Value="@filter.Agent.Name"
-                             Placeholder="Filter by agent...">
-                </GXInputText>
-            }
-        </th>
-        <th>
+        </GXFh>
+        <GXFh Id="Name">
+            <GXInputText class="form-control" @bind-Value="CreatorFilter" Placeholder="@Properties.Resources.AgentID" />
+        </GXFh>
+        <GXFh Id="Message">
             <GXInputText class="form-control" Id="AgentLog-Message"
                          @bind-Value="@filter.Message"
-                         Placeholder="Filter by message...">
+                         Placeholder="@Properties.Resources.FilterByMessage">
             </GXInputText>
-        </th>
-        <th>
+        </GXFh>
+        <GXFh Id="Level">
             <GXInputDropdown class="form-select"
-                                 Id="AgentLogs-TraceLevel"
-                                 LastValue="true"
-                                 @bind-Value="TraceLevel"
-                                 OnSelected="@((TraceLevel e) => Updated())">
+                             Id="AgentLogs-TraceLevel"
+                             RememberValue="true"
+                             @bind-Value="TraceLevel"
+                             OnSelected="@((TraceLevel e) => Updated())">
             </GXInputDropdown>
-        </th>
-        <th>
+        </GXFh>
+        <GXFh Id="Closed">
             @*Closed time.*@
-        </th>
+        </GXFh>
     </FilterContent>
     <MenuContent>
-        <ContextMenuItem Text="@Properties.Resources.Show" Id="Show" OnClick="@OnShow"></ContextMenuItem>
-        <ContextMenuItem Text="@Properties.Resources.Close" Id="Close" OnClick="@OnClose"></ContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Show" Id="show" OnClick="@OnShow"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Close" Id="close" OnClick="@OnClose"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <Th Name="CreationTime" Target="@error" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Type" Target="@error">@Properties.Resources.Type</Th>
-        <Th Name="Name" Target="@error">@Properties.Resources.Name</Th>
-        <Th Name="Message" Target="@error">@Properties.Resources.Error</Th>
-        <Th Name="Level" Target="@error">@Properties.Resources.Level</Th>
-        <Th Name="Closed" Target="@error">@Properties.Resources.CloseTime</Th>
+        <GXTh Name="CreationTime" Target="@error" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Name="Type" Target="@error">@Properties.Resources.Type</GXTh>
+        <GXTh Id="Name" TItem="GXLog">@Properties.Resources.Name</GXTh>
+        <GXTh Name="Message" Target="@error">@Properties.Resources.Error</GXTh>
+        <GXTh Name="Level" Target="@error">@Properties.Resources.Level</GXTh>
+        <GXTh Name="Closed" Target="@error">@Properties.Resources.CloseTime</GXTh>
     </HeaderContent>
     <ItemContent>
-        <Td Link="@("AgentLog/Edit/" + error.Id)">@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</Td>
-        <td>@(ResourceStorage.GetEnumType(TargetType.AgentLog, error.Type))</td>
-        <td>@(error.Agent != null ? error.Agent.Name : "")</td>
-        <td>@error.Message</td>
-        <td>@ClientHelpers.LevelToString(error.Level)</td>
-        <td>@ResourceStorage.DateTimeOffsetToString(error.Closed)</td>
+        <GXTd Id="CreationTime" Link="@NavigationManager.GetCurrentPagePath("/AgentLog/Edit/" + error.PublicId)">@ResourceStorage.DateTimeOffsetToString(error.CreationTime)</GXTd>
+        <GXTd Id="Type">@(ResourceStorage.GetEnumType(TargetType.AgentLog, error.Type))</GXTd>
+        <GXTd Id="Name"><LogCreatorLabel Creator="@error.Creator" Resource="Agent" /></GXTd>
+        <GXTd Id="Message">@error.Message</GXTd>
+        <GXTd Id="Level">@ClientHelpers.LevelToString(error.Level)</GXTd>
+        <GXTd Id="Closed">@ResourceStorage.DateTimeOffsetToString(error.Closed)</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 
 <br />
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
-</Confirm>
 
-<Confirm @ref="CloseConfirmation"
-         ConfirmationChanged="OnCloseConfirmation"
-         ConfirmationTitle="Confirm close"
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Close"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToCloseSelectedItems">
-</Confirm>
+
+
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("CreationTime") { Position = 0, Description = "CreationTime", Visibility = (byte)Visibility.All },
+        new("Type") { Position = 1, Description = "Type", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 2, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Message") { Position = 3, Description = "Error", Visibility = (byte)Visibility.All },
+        new("Level") { Position = 4, Description = "Level", Visibility = (byte)Visibility.All },
+        new("Closed") { Position = 5, Description = "CloseTime", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Action.
     /// </summary>
@@ -163,11 +155,7 @@
     /// <summary>
     /// Trace level.
     /// </summary>
-    private TraceLevel TraceLevel
-    {
-        get;
-        set;
-    }
+    private TraceLevel TraceLevel { get; set; }
 
     /// <summary>
     /// Selected schedule group ID.
@@ -180,7 +168,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.AgentLogs;
+            return Properties.Resources.AgentLogs;
         }
     }
 
@@ -198,7 +186,7 @@
     {
         get
         {
-            return "AgentLogsIcon";
+            return "agent-logs";
         }
     }
 
@@ -238,33 +226,23 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    internal int Total
-    {
-        get;
-        private set;
-    }
+    internal long Total { get; private set; }
 
     /// <summary>
     /// Agent error filter.
     /// </summary>
-    private GXAgentLog filter = new GXAgentLog()
+    private GXLog filter = new GXLog();
+    private string? CreatorFilter
     {
-        Agent = new GXAgent()
-    };
-    /// <summary>
-    /// User is verified before agent errors are cleared.
-    /// </summary>
-    protected ConfirmBase? ClearConfirmation;
+        get => filter.Creator?.ToString();
+        set => filter.Creator = Guid.TryParse(value, out var id) ? id : null;
+    }
 
-    /// <summary>
-    /// User is verified before agent errors are closed.
-    /// </summary>
-    protected ConfirmBase? CloseConfirmation;
 
     /// <summary>
     /// Reference to the table.
     /// </summary>
-    protected GXTable<GXAgentLog>? table;
+    protected GXViewTable<GXLog>? table;
 
     /// <summary>
     /// Closed errors are shown.
@@ -274,7 +252,7 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXAgentLog? Active
+    public GXLog? Active
     {
         get
         {
@@ -290,41 +268,47 @@
         {
             if (table != null)
             {
-                Notifier.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Agent/AgentLogs.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentLogs.Updated");
         }
     }
 
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXAgent>?>(this, nameof(IGXHubEvents.ClearAgentLogs), async (logs) =>
+            NotificationService?.RemoveByKey("Pages/Agent/AgentLogs.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                ResourceStorage.ClearEnumTypes(TargetType.AgentLog);
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXAgentLogPolicies.Add ||
+                        it.Type == GXAgentLogPolicies.Clear ||
+                        it.Type == GXAgentLogPolicies.Close)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXAgentLog>>(this, nameof(IGXHubEvents.AddAgentLogs), async (logs) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXAgentLog>>(this, nameof(IGXHubEvents.CloseAgentLogs), async (logs) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = new GXAgentLog() { Id = Id.Value };
+                table.RestoreSelection(new GXLog() { PublicId = Id.Value });
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -333,14 +317,14 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentLogs.OnInitialized");
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXAgentLog>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAgentLogs);
         try
         {
             if (ShowClosedErrors)
@@ -366,7 +350,7 @@
                 filter.Level = (int)TraceLevel;
             }
 
-            ListAgentLogs req = new ListAgentLogs()
+            ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
@@ -381,11 +365,17 @@
             }
             //Get enum types.
             await ResourceStorage.RefreshEnumTypesAsync(TargetType.AgentLog);
-            var ret = await Http.PostAsJson<ListAgentLogsResponse>("api/AgentLog/List", req, request.CancellationToken);
+            var ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=agent", req, request.CancellationToken);
             if (ret.Logs != null)
             {
                 //Mark agent logs as seen.
-                await Notifier.Mark(Http, TargetType.AgentLog, ret.Logs.Max(s => s.CreationTime));
+                if (ret.Logs.Any())
+                {
+                    if (Notifier != null)
+                    {
+                        await Notifier.Mark(Http, TargetType.AgentLog, ret.Logs.Max(s => s.CreationTime));
+                    }
+                }
             }
             Total = ret.Count;
             //Get only selected amount of the agent logs.
@@ -393,7 +383,11 @@
             {
                 ret.Count = Total;
             }
-            return new ItemsProviderResult<GXAgentLog>(ret.Logs, ret.Count);
+            if (Id.HasValue && table != null)
+            {
+                table.RestoreSelection(ret.Logs?.FirstOrDefault(log => log.PublicId == Id.Value));
+            }
+            return new ItemsProviderResult<GXLog>((ret.Logs ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
         catch (TaskCanceledException)
         {
@@ -410,11 +404,7 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -426,12 +416,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Agent/AgentLogs.OnShow");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/AgentLog/Edit/" + table?.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "/AgentLog/Edit/" + table?.Active.PublicId);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -439,22 +429,29 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentLogs.OnShow");
         }
     }
 
     /// <summary>
     /// Close the selected logs.
     /// </summary>
-    public void OnClose()
+    public async Task OnClose()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            CloseConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Message).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmClose, Properties.Resources.AreYouSureYouWantToCloseSelectedItems,
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Close,
+                    AllowDelete = false,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Message).ToArray()
+                });
+            await OnCloseConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -462,24 +459,24 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Close the selected logs.
     /// </summary>
-    public async Task OnCloseConfirmation(ConfirmArgs args)
+    public async Task OnCloseConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
-                CloseAgentLog req = new CloseAgentLog()
+                CloseLog req = new CloseLog()
                 {
-                    Logs = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    Ids = table.SingleOrDefault().Select(w => w.PublicId).ToArray()
                 };
-                await Http.PostAsJson<CloseAgentLogResponse>("api/AgentLog/Close", req);
+                await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=agent", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -488,42 +485,52 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 
     /// <summary>
     /// Clear the agent error list.
     /// </summary>
 
-    public void OnClear()
+    public async Task OnClear()
     {
-        Notifier.ClearStatus();
-        ClearConfirmation?.Show();
+        NotificationService?.RemoveByKey("Pages/Agent/AgentLogs.OnClear");
+        var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearLog,
+            new AmiConfirmationOptions
+            {
+                ConfirmText = Properties.Resources.Clear,
+                AllowDelete = false
+            });
+        await OnClearConfirmation(confirmation);
     }
 
     /// <summary>
     /// Clear the agent error list.
     /// </summary>
-    public async Task OnClearConfirmation(ConfirmArgs args)
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (args.Confirm)
             {
-                Notifier.ProgressStart();
+                using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAgentLog);
                 try
                 {
-                    await Http.PostAsJson<ClearAgentLogsResponse>("api/AgentLog/Clear", new ClearAgentLogs());
+                    await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=agent", new ClearLog());
                 }
                 finally
                 {
-                    Notifier.ProgressEnd();
                 }
             }
         }
@@ -533,7 +540,7 @@
         }
         catch (Exception ex)
         {
-            Notifier.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 }

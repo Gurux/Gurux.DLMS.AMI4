@@ -1,4 +1,33 @@
-﻿@page "/Account/LoginWithRecoveryCode"
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/LoginWithRecoveryCode"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -9,26 +38,25 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWithRecoveryCode> Logger
 
-<PageTitle>Recovery code verification</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.RecoveryCodeVerification</PageTitle>
 
-<h1>Recovery code verification</h1>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.RecoveryCodeVerification</h1>
 <hr />
 <StatusMessage Message="@message" />
 <p>
-    You have requested to log in with a recovery code. This login will not be remembered until you provide
-    an authenticator app code at log in or disable 2FA and log in again.
+    @Gurux.DLMS.AMI.Properties.Resources.YouHaveRequestedToLogInWithARecoveryCodeThisLoginWillNotBeRememberedUntilYouProvideAn
 </p>
-<div class="row">
+<div class="row mx-0">
     <div class="col-md-4">
-        <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="form-control" autocomplete="off" placeholder="RecoveryCode" />
-                <label for="Input.RecoveryCode" class="form-label">Recovery Code</label>
+                <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="form-control" autocomplete="off" placeholder="@Gurux.DLMS.AMI.Properties.Resources.RecoveryCode2" />
+                <label for="Input.RecoveryCode" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.RecoveryCode</label>
                 <ValidationMessage For="() => Input.RecoveryCode" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.LogInText</button>
         </EditForm>
     </div>
 </div>
@@ -38,16 +66,17 @@
     private ApplicationUser user = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
         // Ensure the user has gone through the username & password screen first
         user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
-            throw new InvalidOperationException("Unable to load two-factor authentication user.");
+            throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.UnableToLoadTwoFactorAuthenticationUser);
     }
 
     private async Task OnValidSubmitAsync()
@@ -71,7 +100,7 @@
         else
         {
             Logger.LogWarning("Invalid recovery code entered for user with ID '{UserId}' ", userId);
-            message = "Error: Invalid recovery code entered.";
+            message = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidRecoveryCodeEntered;
         }
     }
 
@@ -79,7 +108,7 @@
     {
         [Required]
         [DataType(DataType.Text)]
-        [Display(Name = "Recovery Code")]
+        [Display(Name = nameof(Gurux.DLMS.AMI.Properties.Resources.RecoveryCode), ResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources))]
         public string RecoveryCode { get; set; } = "";
     }
 }

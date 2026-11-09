@@ -1,35 +1,32 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Module
@@ -48,14 +45,16 @@
 @using System.Text;
 @using Gurux.DLMS.AMI.Client.Helpers
 
-@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
+<GXHelpContext Topic="ObjectTemplate" />
 
 @if (Active != null)
 {
-    <EditForm Model="@Active">
+    <EditForm EditContext="@GXEditContexts.For(Active)">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <div class="row">
@@ -70,167 +69,166 @@
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                                @bind-Value="Active.Name" />
                 </div>
-                <TabControl>
+                <GXTabControl PersistSelectionInUrl="true">
                     <ChildContent>
-                        <TabPage Icon="ObjectView"
-                                 Text="Default values">
-                            @*Object view is used to shown default template value.*@
-                            <ObjectView Template="@_active"
-                                        Action="Edit"></ObjectView>
-                        </TabPage>
-                        <TabPage Icon="Generic"
-                                 Text=@Properties.Resources.Generic>
-                            <table class="table table-striped" width="100%">
-                                <thead>
-                                    <tr>
-                                        <th>Index</th>
-                                        <th>@Properties.Resources.Name</th>
-                                        <th>@Properties.Resources.DataType</th>
-                                        <th>@Properties.Resources.UIDataType</th>
-                                        <th>@Properties.Resources.Scaler</th>
-                                        <th>@Properties.Resources.Unit</th>
-                                        <th>Access rights</th>
-                                        <th>Expiration time</th>
-                                        <th width="1%"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var it in GetAttributes())
-                                    {
-                                        @if (it.Modified)
-                                        {
+                        <TabHeader Name="@GXMenus.ObjectTemplateDetailsTab">
+                            <ContentForLink Context="link">
+                                @if (link.Url == "Defaultvalues")
+                                {
+                                    @*Object view is used to shown default template value.*@
+                                    <ObjectView Template="@_active"
+                                                Action="Edit"></ObjectView>
+                                }
+                                else if (link.Url == "Generic")
+                                {
+                                    <table class="table table-striped" width="100%">
+                                        <thead>
                                             <tr>
-                                                <td>@it.Index</td>
-                                                <td>@it.Name</td>
-                                                <td>
-                                                    <select class="form-select" @bind="@it.DataType">
-                                                        @foreach (var type in GetDataTypes())
-                                                        {
-                                                            <option value="@Convert.ToInt32(type)">@type</option>
-                                                        }
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select class="form-select" @bind="@it.UIDataType">
-                                                        @foreach (var type in GetDataTypes())
-                                                        {
-                                                            <option value="@Convert.ToInt32(type)">@type</option>
-                                                        }
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    @if (IsNumber(it.DataType))
-                                                    {
-                                                        <InputNumber step="0.0001"
-                                                                     class="form-control"
-                                                                     id="scaler"
-                                                                     @bind-Value="@it.Scaler" />
-                                                    }
-                                                    else
-                                                    {
-                                                        @*Scaler is shown only for number data types.*@
-                                                    }
-                                                </td>
-                                                <td>
-                                                    <InputText class="form-control" id="unit" @bind-Value="@it.Unit" />
-                                                </td>
-                                                <td>@GetAccessRights(it)</td>
-                                                <td><InputNullableDateTimeOffsetTimeSpan @bind-Value="it.ExpirationTime"></InputNullableDateTimeOffsetTimeSpan></td>
-                                                <td>
-                                                    <button type="button" class="btn btn-primary"
-                                                            @onclick="() => UpdateInstance(it, true)">
-                                                        @Properties.Resources.Update
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
-                                                        @Properties.Resources.Cancel
-                                                    </button>
-                                                </td>
+                                                <th>@Properties.Resources.Index</th>
+                                                <th>@Properties.Resources.Name</th>
+                                                <th>@Properties.Resources.DataType</th>
+                                                <th>@Properties.Resources.UIDataType</th>
+                                                <th>@Properties.Resources.Scaler</th>
+                                                <th>@Properties.Resources.Unit</th>
+                                                <th>@Properties.Resources.AccessRights</th>
+                                                <th>@Properties.Resources.ExpirationTime</th>
+                                                <th width="1%"></th>
                                             </tr>
-                                        }
-                                        else
-                                        {
-                                            <tr class=@(GetSelectedClass(it)) @onclick="@(() => RowSelected(it))">
-                                                <td>@it.Index</td>
-                                                <td><LinkButton Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
-                                                <td>@GetDataType(it.DataType)</td>
-                                                <td>@GetDataType(it.UIDataType)</td>
-                                                <td>@it.Scaler</td>
-                                                <td>@it.Unit</td>
-                                                <td>@GetAccessRights(it)</td>
-                                                <td>@GetExpirationTime(it)</td>
-                                                @if (_activeAttribute == it)
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var it in GetAttributes())
+                                            {
+                                                @if (IsEditing(it))
                                                 {
-                                                    <td>
-                                                        <ContextMenuController>
-                                                            <ChildContent>
-                                                                <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="() => OnEdit(it)"></ContextMenuItem>
-                                                            </ChildContent>
-                                                        </ContextMenuController>
-                                                    </td>
+                                                    <tr>
+                                                        <td>@it.Index</td>
+                                                        <td>@it.Name</td>
+                                                        <td>
+                                                            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="it.DataType"
+                                                                             Items="@(GetDataTypes().Select(type => (int)type))" Formatter="@((int value) => ((Gurux.DLMS.Enums.DataType)value).ToString())" />
+                                                        </td>
+                                                        <td>
+                                                            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="it.UIDataType"
+                                                                             Items="@(GetDataTypes().Select(type => (int)type))" Formatter="@((int value) => ((Gurux.DLMS.Enums.DataType)value).ToString())" />
+                                                        </td>
+                                                        <td>
+                                                            @if (IsNumber(it.DataType))
+                                                            {
+                                                                <GXInputNumber RememberValue="false"
+                                                                             AdditionalAttributes="@(new Dictionary<string, object> { ["step"] = "0.0001", ["class"] = "form-control", ["id"] = "scaler" })"
+                                                                             @bind-Value="@it.Scaler" Min="@GXNumberBounds.Minimum(it.Scaler)" Max="@GXNumberBounds.Maximum(it.Scaler)" />
+                                                            }
+                                                            else
+                                                            {
+                                                                @*Scaler is shown only for number data types.*@
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            <InputText class="form-control" id="unit" @bind-Value="@it.Unit" />
+                                                        </td>
+                                                        <td>@GetAccessRights(it)</td>
+                                                        <td><AttributeExpirationEditor Template="@it" /></td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-primary"
+                                                                    @onclick="() => UpdateInstance(it, true)">
+                                                                @Properties.Resources.Update
+                                                            </button>
+                                                            <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
+                                                                @Properties.Resources.Cancel
+                                                            </button>
+                                                        </td>
+                                                    </tr>
                                                 }
                                                 else
                                                 {
-                                                    <td>&nbsp;&nbsp;&nbsp;</td>
+                                                    <tr class=@(GetSelectedClass(it)) @onclick="@(() => RowSelected(it))">
+                                                        <td>@it.Index</td>
+                                                        <td><GXLinkButton TItem="GXAttributeTemplate" Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
+                                                        <td>@GetDataType(it.DataType)</td>
+                                                        <td>@GetDataType(it.UIDataType)</td>
+                                                        <td>@it.Scaler</td>
+                                                        <td>@it.Unit</td>
+                                                        <td>@GetAccessRights(it)</td>
+                                                        <td>@GetExpirationTime(it)</td>
+                                                        @if (_activeAttribute == it)
+                                                        {
+                                                            <td>
+                                                                <GXContextMenuController>
+                                                                    <ChildContent>
+                                                                        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="() => OnEdit(it)"></GXContextMenuItem>
+                                                                    </ChildContent>
+                                                                </GXContextMenuController>
+                                                            </td>
+                                                        }
+                                                        else
+                                                        {
+                                                            <td>@Properties.Resources.Text2</td>
+                                                        }
+                                                    </tr>
                                                 }
+                                            }
+                                        </tbody>
+                                    </table>
+
+                                    <table class="table table-striped" width="100%">
+                                        <thead>
+                                            <tr>
+                                                <th>@Properties.Resources.Index</th>
+                                                <th>@Properties.Resources.Name</th>
+                                                <th>@Properties.Resources.AccessRights</th>
                                             </tr>
-                                        }
-                                    }
-                                </tbody>
-                            </table>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var it in GetActions())
+                                            {
+                                                <tr>
+                                                    <td>@it.Index</td>
+                                                    <td>@it.Description</td>
+                                                    <td>@it.AccessLevel</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
 
-                            <table class="table table-striped" width="100%">
-                                <thead>
-                                    <tr>
-                                        <th>Index</th>
-                                        <th>@Properties.Resources.Name</th>
-                                        <th>Access rights</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var it in GetActions())
+                                    @if (Active.Updated != null)
                                     {
-                                        <tr>
-                                            <td>@it.Index</td>
-                                            <td>@it.Description</td>
-                                            <td>@it.AccessLevel</td>
-                                        </tr>
+                                        <div class="form-group">
+                                            <label>@Properties.Resources.Updated</label>
+                                            <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                                                       @bind-Value="Active.Updated" />
+                                        </div>
                                     }
-                                </tbody>
-                            </table>
+                                    @if (Active.Removed != null)
+                                    {
+                                        <div class="form-group">
+                                            <label>@Properties.Resources.Remove</label>
+                                            <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
+                                                       @bind-Value="Active.Removed" />
+                                        </div>
+                                    }
 
-                            @if (Active.Updated != null)
-                            {
-                                <div class="form-group">
-                                    <label>@Properties.Resources.Updated</label>
-                                    <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                                               @bind-Value="Active.Updated" />
-                                </div>
-                            }
-                            @if (Active.Removed != null)
-                            {
-                                <div class="form-group">
-                                    <label>@Properties.Resources.Remove</label>
-                                    <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                                               @bind-Value="Active.Removed" />
-                                </div>
-                            }
-                        </TabPage>
+                                }
+                            </ContentForLink>
+                        </TabHeader>
                     </ChildContent>
-                </TabControl>
+                </GXTabControl>
             </div>
         </div>
     </EditForm>
 }
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     [CascadingParameter]
     private ObjectTemplates? Parent { get; set; }
 
-    private GXObjectTemplate _active
-    {
-        get;
-        set;
-    } = new GXObjectTemplate();
+    private GXObjectTemplate _active { get; set; } = new GXObjectTemplate();
 
     private GXObjectTemplate? Active
     {
@@ -311,6 +309,8 @@
     /// List of the modified items.
     /// </summary>
     private Dictionary<GXAttributeTemplate, GXAttributeTemplate> Modified = new Dictionary<GXAttributeTemplate, GXAttributeTemplate>();
+
+    private bool IsEditing(GXAttributeTemplate attribute) => Modified.Values.Any(working => ReferenceEquals(working, attribute));
 
     /// <summary>
     /// Get attributes.
@@ -412,7 +412,7 @@
         }
         if (key == null)
         {
-            throw new Exception("Invalid target.");
+            throw new Exception(Properties.Resources.InvalidTarget);
         }
         if (save)
         {
@@ -422,7 +422,6 @@
         {
             Modified.Remove(key);
         }
-        key.Modified = false;
     }
 
     protected string GetSelectedClass(GXAttributeTemplate selected)
@@ -438,7 +437,7 @@
     {
         get
         {
-            if (Notifier.Action != CrudAction.Delete)
+            if (action != CrudAction.Delete)
             {
                 return null;
             }
@@ -458,7 +457,7 @@
         {
             if (template.ExpirationTime.Value.Year == DateTimeOffset.MaxValue.Year)
             {
-                str = "static";
+                str = Properties.Resources.AttributeReadOnce;
             }
             else
             {
@@ -472,11 +471,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
+            action = ClientHelpers.GetAction(NavigationManager, Action);
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplate);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnInitializedAsync");
+            MenuService.Clear();
             if (Active?.ObjectType.GetValueOrDefault(0) == 0 && Id != null)
             {
                 //Get object template data.
@@ -484,8 +492,6 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
-                    //Update UI for the default values.
-                    InvokeAsync(StateHasChanged);
                 }
                 else
                 {
@@ -502,17 +508,16 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            action = ClientHelpers.GetAction(Action);
+
             if (action == CrudAction.Delete)
             {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
+                MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
             }
             else
             {
-                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+                MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
             }
-            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -520,11 +525,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplate.OnInitializedAsync");
         }
     }
 
@@ -532,7 +533,6 @@
     {
         GXAttributeTemplate tmp = ClientHelpers.Clone<GXAttributeTemplate>(template);
         Modified.Add(template, tmp);
-        tmp.Modified = true;
         InvokeAsync(StateHasChanged);
     }
 
@@ -547,8 +547,8 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingObjectTemplate);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnSave");
             if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAgentResponse>("api/ObjectTemplate/Delete", new RemoveAgent() { Ids = new Guid[] { Active.Id } });
@@ -570,7 +570,7 @@
                 }
                 await Http.PostAsJson<UpdateObjectTemplateResponse>(address, new UpdateObjectTemplate() { ObjectTemplates = new GXObjectTemplate[] { Active } });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -578,11 +578,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplate.OnSave");
         }
     }
 
@@ -591,6 +587,11 @@
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+    }
+
+    public void Dispose()
+    {
+        MenuService.Dispose();
     }
 }

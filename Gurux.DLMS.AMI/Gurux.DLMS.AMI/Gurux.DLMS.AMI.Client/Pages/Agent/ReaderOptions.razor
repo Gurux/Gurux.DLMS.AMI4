@@ -1,37 +1,34 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Enums;
+
 @using Gurux.DLMS.AMI.Shared
+@using Gurux.UI.Components.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -42,40 +39,37 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
 
+<GXHelpContext Topic="ReaderOptions" />
+
 @if (Settings != null)
 {
-    <EditForm Model="@Settings">
+    <EditForm EditContext="@(GXEditContexts.For(Owner?.Active ?? (object)Settings))">
         <DataAnnotationsValidator />
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Settings.Enabled" />
                     <br />
                 </div>
-                <fieldset disabled="@(!Settings.Active)">
+                <fieldset disabled="@(!Settings.Enabled)">
                     <div class="form-group">
                         <label>@Properties.Resources.Threads</label>
-                        <InputNumber id="threads" class="form-control"
+                        <GXInputNumber RememberValue="false" id="threads" class="form-control"
                                      @bind-Value="Settings.Threads"
-                                     disabled="@IsDisabled()" />
+                                     disabled="@IsDisabled()" Min="@GXNumberBounds.Minimum(Settings.Threads)" Max="@GXNumberBounds.Maximum(Settings.Threads)" />
                         <ValidationMessage For="@(() => Settings.Threads)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.AliveTime</label>
-                        <InputIntegerTimeSpan id="aliveTime" class="form-control"
+                        <GXInputTimeSpan RememberValue="false" id="aliveTime" class="form-control"
                                               TimeSpanUnit="TimeSpanUnit.Minute"
                                               @bind-Value="Settings.AliveTime" />
                         <ValidationMessage For="@(() => Settings.AliveTime)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.TraceLevel</label>
-                        <select class="form-select" @bind="Settings.TraceLevel">
-                            @foreach (var it in TraceLevels)
-                            {
-                                <option value="@it"> @it </option>
-                            }
-                        </select>
+                        <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(TraceLevels)" />
                     </div>
                     <ValidationMessage For="@(() => Settings.TraceLevel)" />
                 </fieldset>
@@ -85,30 +79,20 @@
 }
 
 @code {
+    [CascadingParameter] public Agent? Owner { get; set; }
+
     TraceLevel[] TraceLevels = new TraceLevel[] { TraceLevel.Off, TraceLevel.Error, TraceLevel.Warning, TraceLevel.Info, TraceLevel.Verbose };
 
     [Parameter]
     public ReaderSettings? Settings { get; set; }
     private GXValidator? _validator;
 
-    private string? _serialPort;
 
     /// <summary>
     /// The serial port of the agent.
     /// </summary>
     [Parameter]
-    public string? SerialPort
-    {
-        get => _serialPort;
-        set
-        {
-            if (_serialPort != value)
-            {
-                _serialPort = value;
-                SerialPortChanged.InvokeAsync(value);
-            }
-        }
-    }
+    public string? SerialPort { get; set; }
 
     /// <summary>
     /// Amount of the threads is disabled when agent is used for the serial port.
@@ -116,7 +100,7 @@
     /// <returns></returns>
     private bool IsDisabled()
     {
-        return !string.IsNullOrEmpty(_serialPort);
+        return !string.IsNullOrEmpty(SerialPort);
     }
 
     /// <summary>
@@ -126,23 +110,26 @@
     public EventCallback<string?> SerialPortChanged { get; set; }
 
 
-    public void Validate(GXValidator sender)
+    public async Task ValidateAsync(GXValidator sender)
     {
         OnValidate(sender);
-        _validator?.Validate();
+        if (_validator != null)
+        {
+            await _validator.ValidateAsync();
+        }
     }
 
     public void OnValidate(GXValidator sender)
     {
-        if (Settings != null && Settings.Active)
+        if (Settings != null && Settings.Enabled)
         {
             if (Settings.Threads < 1 || Settings.Threads > 10000)
             {
-                sender.AddError(() => Settings.Threads, "Invalid threads amount.");
+                sender.AddError(() => Settings.Threads, Properties.Resources.InvalidThreadsAmount);
             }
             if (Settings.AliveTime < 1)
             {
-                sender.AddError(() => Settings.AliveTime, "Invalid alive time.");
+                sender.AddError(() => Settings.AliveTime, Properties.Resources.InvalidAliveTime);
             }
         }
     }

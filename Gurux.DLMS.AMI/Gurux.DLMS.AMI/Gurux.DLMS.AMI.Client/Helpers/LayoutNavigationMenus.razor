@@ -1,0 +1,138 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Internal
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Components.Routing
+@inject IServiceProvider Services
+@inject ILogger<LayoutNavigationMenus> Logger
+@implements IDisposable
+
+@foreach (var menu in _menus.Where(m => m.Location == Location).OrderBy(m => m.Order).ThenBy(m => m.Name))
+{
+    <nav @key="menu.Id" class="layout-navigation @(Location is MenuLocation.Left or MenuLocation.Right ? "layout-navigation-column" : null)"
+         aria-label="@MenuTitle(menu)">
+        <span class="layout-navigation-title"><GXLocalizedText Value="@MenuTitle(menu)" /></span>
+        @foreach (var link in menu.Links ?? [])
+        {
+            @if (SafeUrl(link.Url) is { } url)
+            {
+                <NavLink @key="link.Id" class="nav-link" href="@url" Match="@(url == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    @if (!string.IsNullOrEmpty(link.Icon)) { <GXImage Id="@link.Icon" /> }
+                    <GXLocalizedText Value="@link.Name" />
+                </NavLink>
+            }
+        }
+    </nav>
+}
+
+@code {
+    [Parameter] public MenuLocation Location { get; set; }
+    private IAmiNavigationMenuStorage? _storage;
+    private IReadOnlyList<GXMenu> _menus = [];
+    private bool _disposed;
+    private long _version;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _storage = Services.GetService<IAmiNavigationMenuStorage>();
+        if (_storage == null)
+        {
+            return;
+        }
+        _storage.NavigationMenusChanged += OnChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var version = ++_version;
+        try
+        {
+            var menus = await _storage!.GetNavigationMenusAsync();
+            if (!_disposed && version == _version)
+            {
+                _menus = menus;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Cannot load placed navigation menus.");
+        }
+    }
+
+    private void OnChanged(object? sender, EventArgs args) => _ = InvokeAsync(async () =>
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _menus = [];
+        StateHasChanged();
+        await LoadAsync();
+        if (!_disposed)
+        {
+            StateHasChanged();
+        }
+    });
+
+    private static string? SafeUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || url.Any(char.IsControl))
+        {
+            return null;
+        }
+        url = url.Trim();
+        if (url.StartsWith("//") || url.Contains('\\'))
+        {
+            return null;
+        }
+        if (url.StartsWith('/'))
+        {
+            return url;
+        }
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var absolute))
+        {
+            return url.Split('/', '?', '#')[0].Contains(':') ? null : url;
+        }
+        return absolute.Scheme is "https" or "http" && string.IsNullOrEmpty(absolute.UserInfo) ? url : null;
+    }
+
+    private static string? MenuTitle(GXMenu menu) => string.IsNullOrWhiteSpace(menu.Title) ? menu.Name : menu.Title;
+
+    public void Dispose()
+    {
+        _disposed = true;
+        ++_version;
+        if (_storage != null)
+        {
+            _storage.NavigationMenusChanged -= OnChanged;
+        }
+    }
+}

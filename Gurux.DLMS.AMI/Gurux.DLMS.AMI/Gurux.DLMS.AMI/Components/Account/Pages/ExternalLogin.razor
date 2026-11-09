@@ -1,4 +1,33 @@
-﻿@page "/Account/ExternalLogin"
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/ExternalLogin"
 
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
@@ -15,46 +44,50 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ExternalLogin> Logger
+@inject Gurux.DLMS.AMI.Server.Services.GXAccountRegistrationPolicy RegistrationPolicy
 
-<PageTitle>Register</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.Register</PageTitle>
 
 <StatusMessage Message="@message" />
-<h1>Register</h1>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.Register</h1>
+@if (registrationAllowed && !registrationCompleted)
+{
 <h2>Associate your @ProviderDisplayName account.</h2>
 <hr />
 
 <div  class="alert alert-info">
-    You've successfully authenticated with <strong>@ProviderDisplayName</strong>.
-    Please enter an email address for this site below and click the Register button to finish
-    logging in.
+    @Gurux.DLMS.AMI.Properties.Resources.YouVeSuccessfullyAuthenticatedWith <strong>@ProviderDisplayName</strong>@Gurux.DLMS.AMI.Properties.Resources.PleaseEnterAnEmailAddressForThisSiteBelowAndClickTheRegisterButtonToFinishLoggingIn
 </div>
 
-<div class="row">
+<div class="row mx-0">
     <div class="col-md-4">
-        <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="confirmation" method="post">
+        <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" OnValidSubmit="OnValidSubmitAsync" FormName="confirmation" method="post">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="email" placeholder="Please enter your email." />
-                <label for="Input.Email" class="form-label">Email</label>
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="email" placeholder="@Gurux.DLMS.AMI.Properties.Resources.PleaseEnterYourEmail" />
+                <label for="Input.Email" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.SiteEmailAddress</label>
                 <ValidationMessage For="() => Input.Email" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.Register</button>
         </EditForm>
     </div>
 </div>
+}
 
 @code {
     public const string LoginCallbackAction = "LoginCallback";
 
     private string? message;
     private ExternalLoginInfo? externalLoginInfo;
+    private bool registrationAllowed;
+    private bool registrationCompleted;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? RemoteError { get; set; }
@@ -69,6 +102,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
         if (RemoteError is not null)
         {
             RedirectManager.RedirectToWithStatus("Account/Login", $"Error from external provider: {RemoteError}", HttpContext);
@@ -77,7 +111,7 @@
         var info = await SignInManager.GetExternalLoginInfoAsync();
         if (info is null)
         {
-            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information.", HttpContext);
+            RedirectManager.RedirectToWithStatus("Account/Login", Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingExternalLoginInformation, HttpContext);
         }
 
         externalLoginInfo = info;
@@ -94,13 +128,31 @@
             // the login page if we get here some other way.
             RedirectManager.RedirectTo("Account/Login");
         }
+        else
+        {
+            await CheckRegistrationAllowedAsync();
+        }
+    }
+
+    private async Task<bool> CheckRegistrationAllowedAsync()
+    {
+        registrationAllowed = (await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted)).CanCreate(HttpContext.User);
+        if (!registrationAllowed)
+        {
+            message = Gurux.DLMS.AMI.Properties.Resources.RegistrationDisabled;
+            if (!HttpContext.Response.HasStarted)
+            {
+                HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+            }
+        }
+        return registrationAllowed;
     }
 
     private async Task OnLoginCallbackAsync()
     {
         if (externalLoginInfo is null)
         {
-            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information.", HttpContext);
+            RedirectManager.RedirectToWithStatus("Account/Login", Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingExternalLoginInformation, HttpContext);
         }
 
         // Sign in the user with this external login provider if the user already has a login.
@@ -123,6 +175,17 @@
             RedirectManager.RedirectTo("Account/Lockout");
         }
 
+        // A linked account that cannot sign in must never enter the signup flow.
+        if (await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey) is not null)
+        {
+            message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+            return;
+        }
+        if (!await CheckRegistrationAllowedAsync())
+        {
+            return;
+        }
+
         // If the user does not have an account, then ask the user to create an account.
         if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
         {
@@ -132,9 +195,20 @@
 
     private async Task OnValidSubmitAsync()
     {
+        if (!await CheckRegistrationAllowedAsync())
+        {
+            return;
+        }
         if (externalLoginInfo is null)
         {
-            RedirectManager.RedirectToWithStatus("Account/Login", "Error loading external login information during confirmation.", HttpContext);
+            RedirectManager.RedirectToWithStatus("Account/Login", Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingExternalLoginInformationDuringConfirmation, HttpContext);
+        }
+
+        if (await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey) is not null)
+        {
+            registrationAllowed = false;
+            message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+            return;
         }
 
         var emailStore = GetEmailStore();
@@ -159,13 +233,22 @@
                     NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
                     new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
                 await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-
-                // If account confirmation is required, we need to show the link if we don't have a real email sender
-                if (UserManager.Options.SignIn.RequireConfirmedAccount)
+                registrationCompleted = true;
+                if (!user.IsApproved)
                 {
-                    RedirectManager.RedirectTo("Account/RegisterConfirmation", new() { ["email"] = Input.Email });
+                    message = Gurux.DLMS.AMI.Properties.Resources.RegistrationPendingApproval;
+                    return;
                 }
-
+                if (!await UserManager.IsEmailConfirmedAsync(user))
+                {
+                    message = Gurux.DLMS.AMI.Properties.Resources.RegistrationConfirmationRequired;
+                    return;
+                }
+                if (!await SignInManager.CanSignInAsync(user))
+                {
+                    message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+                    return;
+                }
                 await SignInManager.SignInAsync(user, isPersistent: false, externalLoginInfo.LoginProvider);
                 RedirectManager.RedirectTo(ReturnUrl);
             }

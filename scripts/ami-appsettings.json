@@ -1,0 +1,9 @@
+{
+  "Database": {
+    "Type": "SQLite",
+    "Settings": "Data Source=ami.db;Foreign Keys=True"
+  },
+  "Server": { "Address": "http://localhost:8080" },
+  "Logging": { "LogLevel": { "Default": "Information", "Microsoft.AspNetCore": "Warning" } },
+  "AllowedHosts": "*"
+}

@@ -1,98 +1,117 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
-using System.Security.Claims;
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Client.Pages.Agent;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using System.Data;
+using Gurux.DLMS.AMI.Server.Services;
 using System.Net.Http.Headers;
-using Gurux.DLMS.AMI.Client.Helpers;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using System.Security.Claims;
+
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
+
     /// <inheritdoc />
     public class ManufacturerRepository : IManufacturerRepository
     {
+
         private readonly ClaimsPrincipal User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IManufacturerGroupRepository _manufacturerGroupRepository;
         private readonly IDeviceTemplateRepository _deviceTemplateRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public ManufacturerRepository(IGXHost host,
+        public ManufacturerRepository(IAuthorizationService authorizationService,
+            IDbConnectionFactory dbFactory,
             IUserRepository userRepository,
-            IGXAmiContextAccessor contextAccessor,
+            IHttpContextAccessor httpContextAccessor,
             IServiceProvider serviceProvider,
             IManufacturerGroupRepository manufacturerGroupRepository,
-            IGXEventsNotifier eventsNotifier,
             IDeviceTemplateRepository deviceTemplateRepository,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache)
         {
-            _host = host;
-            var user = contextAccessor?.User;
-            if (user == null)
+            _dbFactory = dbFactory;
+            if (httpContextAccessor.HttpContext?.User == null)
             {
                 throw new UnauthorizedAccessException();
             }
-            User = user;
-            _eventsNotifier = eventsNotifier;
+            User = httpContextAccessor.HttpContext.User;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
             _manufacturerGroupRepository = manufacturerGroupRepository;
             _deviceTemplateRepository = deviceTemplateRepository;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
         }
 
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXManufacturer), id, action, GXManufacturerPolicies.View, connection, transaction, notifications: _notificationCache);
+
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? manufacturerId)
+        public async Task<List<string>> GetUsersAsync(Guid? manufacturerId, CancellationToken cancellationToken = default)
         {
-            GXSelectArgs args = GXQuery.GetUsersByManufacturer(s => s.Id,
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByManufacturer(s => s.Id!,
                 ServerHelpers.GetUserId(User), manufacturerId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (manufacturerId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXManufacturer), manufacturerId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -101,12 +120,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerIds, CancellationToken cancellationToken = default)
         {
-            GXSelectArgs args = GXQuery.GetUsersByManufacturers(s => s.Id,
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByManufacturers(s => s.Id!,
                 ServerHelpers.GetUserId(User), manufacturerIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -116,49 +137,80 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task DeleteAsync(IEnumerable<Guid> manufacturers,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ManufacturerManager)))
+            manufacturers = manufacturers.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXManufacturer, Guid>(_dbFactory, User, _serviceProvider, manufacturers,
+        async () =>
+        {
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.Select<GXManufacturer>(a => a.Id, q => manufacturers.Contains(q.Id));
-            List<GXManufacturer> list = _host.Connection.Select<GXManufacturer>(arg);
-            DateTime now = DateTime.Now;
-            Dictionary<GXManufacturer, List<string>> updates = new();
-            foreach (GXManufacturer it in list)
-            {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(it.Id);
-                if (delete)
+
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.Delete);
+                GXSelectArgs arg = GXSelectArgs.Select<GXManufacturer>(a => a.Id, q => manufacturers.Contains(q.Id));
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                List<GXManufacturer> list = connection.Select<GXManufacturer>(arg);
+                DateTime now = DateTime.Now;
+                Dictionary<GXManufacturer, List<string>> updates = [];
+                foreach (GXManufacturer it in list)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXManufacturer>(it.Id));
+                    it.Removed = now;
+                    List<string> users = await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection);
+                    if (delete)
+                    {
+                        await connection.DeleteAsync(GXDeleteArgs.DeleteById<GXManufacturer>(it.Id), cancellationToken);
+                    }
+                    else
+                    {
+                        connection.Update(GXUpdateArgs.Update(it, q => q.Removed!));
+                    }
+                    updates[it] = users;
+                }
+                foreach (var it in updates)
+                {
+                    var users = it.Value;
+                    if (users == null)
+                    {
+                        break;
+                    }
+                    GXManufacturer tmp = new() { Id = it.Key.Id };
+                    _notificationCache.Add(users, new GXTarget(GXManufacturerPolicies.Delete, tmp.Id));
+                }
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(manufacturers, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                    throw;
                 }
-                updates[it] = users;
             }
-            foreach (var it in updates)
-            {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.Manufacturer, NotificationAction.Remove);
-                if (users == null)
-                {
-                    break;
-                }
-                GXManufacturer tmp = new GXManufacturer() { Id = it.Key.Id };
-                await _eventsNotifier.ManufacturerDelete(users, [tmp]);
-            }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXManufacturer[]> ListAsync(
+        public async Task<IEnumerable<GXManufacturer>> ListAsync(
             ListManufacturers? request,
             ListManufacturersResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXManufacturer>();
             bool joinAdded = false;
             if (request?.Filter != null)
@@ -176,10 +228,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             DateTimeOffset dt = settings.InstallationTime.Value;
                             settings.InstallationTime = null;
                             joinAdded = true;
-                            arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer);
-                            arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model);
-                            arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version);
-                            arg.Joins.AddLeftJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                            arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer!);
+                            arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model!);
+                            arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version!);
+                            arg.Joins.AddLeftJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template!, j => j.Id);
                             arg.Where.And<GXDeviceSettings>(w => w.InstallationTime >= dt);
                         }
                         if (settings?.Template != null && settings.Template.Id != Guid.Empty)
@@ -192,11 +244,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 request.Filter.Models = null;
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXManufacturer>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXManufacturer>(w => request.Included.Contains(w.Id));
                 }
@@ -208,22 +260,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                arg.OrderBy.Add<GXManufacturer>(q => q.CreationTime);
+                arg.OrderBy.Add<GXManufacturer>(q => q.CreationTime!);
                 arg.Descending = true;
             }
             arg.Distinct = true;
+            GXDateTimeFilters.Apply<GXManufacturer>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXManufacturer>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXManufacturer>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null)
             {
@@ -232,17 +291,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Get model versions
                     if (!joinAdded)
                     {
-                        arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer);
-                        arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model);
-                        arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version);
-                        arg.Joins.AddLeftJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                        arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer!);
+                        arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model!);
+                        arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version!);
+                        arg.Joins.AddLeftJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template!, j => j.Id);
                     }
                     arg.Columns.Add<GXDeviceModel>();
-                    arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer);
+                    arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer!);
                     arg.Columns.Add<GXDeviceVersion>();
-                    arg.Columns.Exclude<GXDeviceVersion>(e => e.Model);
+                    arg.Columns.Exclude<GXDeviceVersion>(e => e.Model!);
                     arg.Columns.Add<GXDeviceSettings>();
-                    arg.Columns.Exclude<GXDeviceSettings>(e => e.Version);
+                    arg.Columns.Exclude<GXDeviceSettings>(e => e.Version!);
                     //Select device template ID and name.
                     arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Name });
                 }
@@ -251,13 +310,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Get models
                     if (!joinAdded)
                     {
-                        arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer);
+                        arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer!);
                     }
                     arg.Columns.Add<GXDeviceModel>();
-                    arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer);
+                    arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer!);
                 }
             }
-            GXManufacturer[] manufacturers = (await _host.Connection.SelectAsync<GXManufacturer>(arg)).ToArray();
+            GXManufacturer[] manufacturers = [.. (await connection.SelectAsync<GXManufacturer>(arg))];
             if (response != null)
             {
                 response.Manufacturers = manufacturers;
@@ -267,255 +326,320 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXManufacturer> ReadAsync(
-            Guid id)
+        public async Task<GXManufacturer> ReadAsync(Guid id, Expression<Func<GXManufacturer, object>>? columns = null,
+            CancellationToken cancellationToken = default)
         {
-            GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            try
             {
-                //Admin can see all the manufacturers.
-                arg = GXSelectArgs.SelectAll<GXManufacturer>();
-                arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer);
-                arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model);
-                arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version);
-                arg.Joins.AddLeftJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template, j => j.Id);
-            }
-            else
-            {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetManufacturersByUser(s => "*", userId, id);
-            }
-            arg.Where.And<GXManufacturer>(w => w.Id == id);
-            arg.Columns.Add<GXDeviceModel>();
-            arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer);
-            arg.Columns.Add<GXDeviceVersion>();
-            arg.Columns.Exclude<GXDeviceVersion>(e => e.Model);
-            arg.Columns.Add<GXDeviceSettings>();
-            arg.Columns.Exclude<GXDeviceSettings>(e => e.Version);
-            arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Name });
-            arg.Distinct = true;
-            GXManufacturer manufacturer = await _host.Connection.SingleOrDefaultAsync<GXManufacturer>(arg);
-            if (manufacturer == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            arg = GXSelectArgs.SelectAll<GXManufacturerGroup>();
-            arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXManufacturerGroupManufacturer, GXManufacturerGroup>(x => x.ManufacturerGroupId, y => y.Id);
-            arg.Where.And<GXManufacturerGroupManufacturer>(w => w.ManufacturerId == id);
-            manufacturer.ManufacturerGroups = await _host.Connection.SelectAsync<GXManufacturerGroup>(arg);
-            return manufacturer;
-        }
 
-        /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
-
-            IEnumerable<GXManufacturer> manufacturers,
-            Expression<Func<GXManufacturer, object?>>? columns)
-        {
-            DateTime now = DateTime.Now;
-            List<Guid> list = new();
-            Dictionary<GXManufacturer, List<string>> updates = new();
-            foreach (GXManufacturer uManufacturer in manufacturers)
-            {
-                bool update = false;
-                if (string.IsNullOrEmpty(uManufacturer.Name))
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+                GXSelectArgs arg;
+                if (User.IsInRole(GXRoles.Admin))
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
-                }
-                if (!uManufacturer.Template.GetValueOrDefault(false) &&
-                    (uManufacturer.ManufacturerGroups == null || !uManufacturer.ManufacturerGroups.Any()))
-                {
-                    ListManufacturerGroups request = new ListManufacturerGroups()
-                    {
-                        Filter = new GXManufacturerGroup() { Default = true }
-                    };
-                    uManufacturer.ManufacturerGroups = new List<GXManufacturerGroup>();
-                    uManufacturer.ManufacturerGroups.AddRange(await _manufacturerGroupRepository.ListAsync(request,
-                        null, CancellationToken.None));
-                    if (!uManufacturer.ManufacturerGroups.Any())
-                    {
-                        throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
-                    }
-                }
-                if (uManufacturer.Id == Guid.Empty)
-                {
-                    uManufacturer.CreationTime = now;
-                    GXInsertArgs args = GXInsertArgs.Insert(uManufacturer);
-                    args.Exclude<GXManufacturer>(q => new
-                    {
-                        q.ManufacturerGroups,
-                        uManufacturer.Models
-                    });
-                    _host.Connection.Insert(args);
-                    list.Add(uManufacturer.Id);
-                    AddModelsToManufacturer(uManufacturer, uManufacturer.Models);
-                    AddManufacturerToManufacturerGroups(uManufacturer.Id, uManufacturer.ManufacturerGroups);
-                    updates[uManufacturer] = await GetUsersAsync(uManufacturer.Id);
-                    update = true;
+                    //Admin can see all the manufacturers.
+                    arg = GXSelectArgs.SelectAll<GXManufacturer>();
+                    arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer!);
+                    arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model!);
+                    arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version!);
+                    arg.Joins.AddLeftJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template!, j => j.Id);
                 }
                 else
                 {
-                    GXSelectArgs m = GXSelectArgs.Select<GXManufacturer>(q => q.ConcurrencyStamp, where => where.Id == uManufacturer.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
-                    if (!string.IsNullOrEmpty(updated) && updated != uManufacturer.ConcurrencyStamp)
+                    string userId = ServerHelpers.GetUserId(User);
+                    arg = GXQuery.GetManufacturersByUser(s => "*", userId, id);
+                }
+                arg.Where.And<GXManufacturer>(w => w.Id == id);
+                arg.Columns.Add<GXDeviceModel>();
+                arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer!);
+                arg.Columns.Add<GXDeviceVersion>();
+                arg.Columns.Exclude<GXDeviceVersion>(e => e.Model!);
+                arg.Columns.Add<GXDeviceSettings>();
+                arg.Columns.Exclude<GXDeviceSettings>(e => e.Version!);
+                arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Name });
+                arg.Distinct = true;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXManufacturer? manufacturer = await connection.SingleOrDefaultAsync<GXManufacturer>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                arg = GXSelectArgs.SelectAll<GXManufacturerGroup>();
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXManufacturerGroupManufacturer, GXManufacturerGroup>(x => x.ManufacturerGroupId, y => y.Id);
+                arg.Where.And<GXManufacturerGroupManufacturer>(w => w.ManufacturerId == id);
+                manufacturer.ManufacturerGroups = await connection.SelectAsync<GXManufacturerGroup>(arg);
+                manufacturer.ProfilePicture = await ReadManufacturerPictureAsync(connection, id, cancellationToken);
+                manufacturer.Creator = await ReadManufacturerCreatorAsync(connection, id, cancellationToken);
+                foreach (var model in manufacturer.Models ?? [])
+                {
+                    model.ProfilePicture = await ReadModelPictureAsync(connection, model.Id, cancellationToken);
+                    model.Creator = await ReadModelCreatorAsync(connection, model.Id, cancellationToken);
+                }
+                return manufacturer;
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
                     {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
                     }
-                    uManufacturer.Updated = now;
-                    uManufacturer.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(uManufacturer, columns);
-                    args.Exclude<GXManufacturer>(q => new
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
                     {
-                        q.CreationTime,
-                        q.ManufacturerGroups,
-                        q.Models
-                    });
-                    _host.Connection.Update(args);
-                    //Map manufacturer groups to manufacturer.
-                    List<GXManufacturerGroup> manufacturerGroups;
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
-                    {
-                        IManufacturerGroupRepository manufacturerGroupRepository = scope.ServiceProvider.GetRequiredService<IManufacturerGroupRepository>();
-                        manufacturerGroups = await manufacturerGroupRepository.GetJoinedManufacturerGroups(uManufacturer.Id);
+                        throw ex;
                     }
-                    if (uManufacturer.ManufacturerGroups != null)
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Guid>> UpsertAsync(
+            IEnumerable<GXManufacturer> manufacturers,
+            Expression<Func<GXManufacturer, object>>? columns, CancellationToken cancellationToken = default)
+        {
+            manufacturers = manufacturers.ToArray();
+            return await GXHistoryMutation.RunAsync<GXManufacturer, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, manufacturers,
+        async () =>
+        {
+            manufacturers = manufacturers.ToArray();
+            try
+            {
+
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.Add, GXManufacturerPolicies.Edit);
+                DateTime now = DateTime.Now;
+                List<Guid> list = [];
+                List<(List<string> Users, GXTarget Target)> notifications = [];
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                // Validate every image before writing any catalog references. Policy readers use their own commands.
+                var originals = new Dictionary<Guid, GXManufacturer>();
+                foreach (var manufacturer in manufacturers)
+                {
+                    await _authorizationService.EnsureAnyPolicyAsync(User, manufacturer.Id == Guid.Empty ? GXManufacturerPolicies.Add : GXManufacturerPolicies.Edit);
+                    if (string.IsNullOrEmpty(manufacturer.Name))
                     {
-                        var comparer = new UniqueComparer<GXManufacturerGroup, Guid>();
-                        List<GXManufacturerGroup> removedManufacturerGroups = manufacturerGroups.Except(uManufacturer.ManufacturerGroups, comparer).ToList();
-                        List<GXManufacturerGroup> addedManufacturerGroups = uManufacturer.ManufacturerGroups.Except(manufacturerGroups, comparer).ToList();
-                        if (removedManufacturerGroups.Any())
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
+                    if (!manufacturer.Template.GetValueOrDefault(false) &&
+                        (manufacturer.ManufacturerGroups == null || manufacturer.ManufacturerGroups.Count == 0))
+                    {
+                        ListManufacturerGroups request = new()
                         {
-                            RemoveManufacturersFromManufacturerGroup(uManufacturer.Id, removedManufacturerGroups);
-                            update = true;
-                        }
-                        if (addedManufacturerGroups.Any())
+                            Filter = new GXManufacturerGroup() { Default = true }
+                        };
+                        manufacturer.ManufacturerGroups =
+                        [
+                            .. await _manufacturerGroupRepository.ListAsync(request,
+                            null, CancellationToken.None),
+                    ];
+                        if (manufacturer.ManufacturerGroups.Count == 0)
                         {
-                            AddManufacturerToManufacturerGroups(uManufacturer.Id, addedManufacturerGroups);
-                            update = true;
+                            throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
                         }
                     }
-                    GXManufacturer iManufacturer = await ReadAsync(uManufacturer.Id);
-                    if (uManufacturer.Models != null)
+
+                    if (manufacturer.Id == Guid.Empty || columns == null || ServerHelpers.Contains(columns, nameof(GXManufacturer.ProfilePicture)))
+                        {
+                        await GXProfilePictures.ValidateAsync(connection, _authorizationService, User, manufacturer.ProfilePicture?.Id, cancellationToken);
+                    }
+                    foreach (var model in manufacturer.Models ?? [])
+                        {
+                        await GXProfilePictures.ValidateAsync(connection, _authorizationService, User, model.ProfilePicture?.Id, cancellationToken);
+                    }
+                    if (manufacturer.Id != Guid.Empty)
+                        {
+                        originals[manufacturer.Id] = await ReadAsync(manufacturer.Id, cancellationToken: cancellationToken);
+                    }
+                }
+                await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+                foreach (GXManufacturer uManufacturer in manufacturers)
+                {
+
+                    if (uManufacturer.Id == Guid.Empty)
                     {
-                        var comparer = new UniqueComparer<GXDeviceModel, Guid>();
-                        List<GXDeviceModel>? addedModels;
-                        if (iManufacturer.Models == null)
+                        uManufacturer.CreationTime = now;
+                        GXInsertArgs args = GXInsertArgs.Insert(uManufacturer);
+                        args.Exclude<GXManufacturer>(q => new
                         {
-                            //If new model is added.
-                            AddModelsToManufacturer(uManufacturer, uManufacturer.Models);
-                            update = true;
+                            q.ManufacturerGroups,
+                            q.Models
+                        });
+                        connection.Insert(transaction, args);
+                        list.Add(uManufacturer.Id);
+                        AddModelsToManufacturer(connection, transaction, uManufacturer, uManufacturer.Models);
+                        AddManufacturerToManufacturerGroups(connection, transaction, uManufacturer.Id, uManufacturer.ManufacturerGroups);
+                        notifications.Add((await GetNotifiedUsers(uManufacturer.Id, NotificationAction.Add, connection, transaction),
+                            new GXTarget(GXManufacturerPolicies.Add, uManufacturer.Id, uManufacturer.Name)));
+
+                    }
+                    else
+                    {
+                        GXSelectArgs m = GXSelectArgs.Select<GXManufacturer>(q => q.ConcurrencyStamp!, where => where.Id == uManufacturer.Id);
+                        string? updated = connection.SingleOrDefault<string>(transaction, m);
+                        if (!string.IsNullOrEmpty(updated) && updated != uManufacturer.ConcurrencyStamp)
+                        {
+                            throw new ArgumentException(Properties.Resources.ContentEdited);
                         }
-                        else
+                        uManufacturer.Updated = now;
+                        uManufacturer.ConcurrencyStamp = Guid.NewGuid().ToString();
+                        GXUpdateArgs args = GXUpdateArgs.Update(uManufacturer, columns);
+                        args.Exclude<GXManufacturer>(q => new
                         {
-                            List<GXDeviceModel> removedModels = iManufacturer.Models.Except(uManufacturer.Models, comparer).ToList();
-                            addedModels = uManufacturer.Models.Except(iManufacturer.Models, comparer).ToList();
-                            if (removedModels != null && removedModels.Any())
+                            q.CreationTime,
+                            q.ManufacturerGroups,
+                            q.Models
+                        });
+                        connection.Update(transaction, args);
+                        //Map manufacturer groups to manufacturer.
+                        List<GXManufacturerGroup> manufacturerGroups;
+                        manufacturerGroups = originals[uManufacturer.Id].ManufacturerGroups ?? [];
+                        if (uManufacturer.ManufacturerGroups != null)
+                        {
+                            var comparer = new UniqueComparer<GXManufacturerGroup, Guid>();
+                            List<GXManufacturerGroup> removedManufacturerGroups = [.. manufacturerGroups.Except(uManufacturer.ManufacturerGroups, comparer)];
+                            List<GXManufacturerGroup> addedManufacturerGroups = [.. uManufacturer.ManufacturerGroups.Except(manufacturerGroups, comparer)];
+                            if (removedManufacturerGroups.Count != 0)
                             {
-                                RemoveModelsFromManufacturer(removedModels);
-                                update = true;
+                                RemoveManufacturersFromManufacturerGroup(connection, transaction, uManufacturer.Id, removedManufacturerGroups);
                             }
-                            if (addedModels.Any())
+                            if (addedManufacturerGroups.Count != 0)
                             {
-                                AddModelsToManufacturer(uManufacturer, addedModels);
-                                update = true;
+                                AddManufacturerToManufacturerGroups(connection, transaction, uManufacturer.Id, addedManufacturerGroups);
+                            }
+                        }
+                        GXManufacturer iManufacturer = originals[uManufacturer.Id];
+                        if (uManufacturer.Models != null)
+                        {
+                            foreach (var model in uManufacturer.Models.Where(m => iManufacturer.Models?.Any(existing => existing.Id == m.Id) == true))
+                                {
+                                connection.Update(transaction, GXUpdateArgs.Update(model, m => m.ProfilePicture!));
+                            }
+                            var comparer = new UniqueComparer<GXDeviceModel, Guid>();
+                            List<GXDeviceModel>? addedModels;
+                            if (iManufacturer.Models == null)
+                            {
+                                //If new model is added.
+                                AddModelsToManufacturer(connection, transaction, uManufacturer, uManufacturer.Models);
                             }
                             else
                             {
-                                //Add new versions.
-                                var comparer2 = new UniqueComparer<GXDeviceVersion, Guid>();
-                                foreach (GXDeviceModel uModel in uManufacturer.Models)
+                                List<GXDeviceModel> removedModels = [.. iManufacturer.Models.Except(uManufacturer.Models, comparer)];
+                                addedModels = [.. uManufacturer.Models.Except(iManufacturer.Models, comparer)];
+                                if (removedModels != null && removedModels.Count != 0)
                                 {
-                                    GXDeviceModel? iModel = iManufacturer.Models.Where(w => w.Id == uModel.Id).SingleOrDefault();
-                                    if (iModel == null)
+                                    RemoveModelsFromManufacturer(connection, transaction, removedModels);
+                                }
+                                if (addedModels.Count != 0)
+                                {
+                                    AddModelsToManufacturer(connection, transaction, uManufacturer, addedModels);
+                                }
+                                else
+                                {
+                                    //Add new versions.
+                                    var comparer2 = new UniqueComparer<GXDeviceVersion, Guid>();
+                                    foreach (GXDeviceModel uModel in uManufacturer.Models)
                                     {
-                                        throw new Exception("Unknown device model.");
-                                    }
-                                    List<GXDeviceVersion>? removedVersions = null;
-                                    if (iModel.Versions != null && uModel.Versions != null)
-                                    {
-                                        removedVersions = iModel.Versions.Except(uModel.Versions, comparer2).ToList();
-                                    }
-                                    List<GXDeviceVersion>? addedVersions = null;
-                                    if (uModel.Versions != null)
-                                    {
-                                        if (iModel.Versions == null)
+                                        GXDeviceModel? iModel = iManufacturer.Models.Where(w => w.Id == uModel.Id).SingleOrDefault() ?? throw new Exception("Unknown device model.");
+                                        List<GXDeviceVersion>? removedVersions = null;
+                                        if (iModel.Versions != null && uModel.Versions != null)
                                         {
-                                            addedVersions = uModel.Versions;
+                                            removedVersions = [.. iModel.Versions.Except(uModel.Versions, comparer2)];
                                         }
-                                        else
+                                        List<GXDeviceVersion>? addedVersions = null;
+                                        if (uModel.Versions != null)
                                         {
-                                            addedVersions = uModel.Versions.Except(iModel.Versions, comparer2).ToList();
-                                        }
-                                    }
-                                    if (removedVersions != null && removedVersions.Any())
-                                    {
-                                        RemoveVersionsFromModel(removedVersions);
-                                        update = true;
-                                    }
-                                    if (addedVersions != null && addedVersions.Any())
-                                    {
-                                        AddVersionsToModel(iModel, addedVersions);
-                                        update = true;
-                                    }
-                                    //Add new settings.
-                                    if (uModel.Versions != null)
-                                    {
-                                        List<GXDeviceSettings> addedSettings = new List<GXDeviceSettings>();
-                                        foreach (var uVersion in uModel.Versions)
-                                        {
-                                            if (uVersion.Id == Guid.Empty)
+                                            if (iModel.Versions == null)
                                             {
-                                                //If new version.
-                                                AddVersionsToModel(iModel, new[] { uVersion });
+                                                addedVersions = uModel.Versions;
                                             }
-                                            if (uVersion.Settings != null)
+                                            else
                                             {
-                                                foreach (var it in uVersion.Settings)
+                                                addedVersions = [.. uModel.Versions.Except(iModel.Versions, comparer2)];
+                                            }
+                                        }
+                                        if (removedVersions != null && removedVersions.Count != 0)
+                                        {
+                                            RemoveVersionsFromModel(connection, transaction, removedVersions);
+                                        }
+                                        if (addedVersions != null && addedVersions.Count != 0)
+                                        {
+                                            AddVersionsToModel(connection, transaction, iModel, addedVersions);
+                                        }
+                                        //Add new settings.
+                                        if (uModel.Versions != null)
+                                        {
+                                            List<GXDeviceSettings> addedSettings = [];
+                                            foreach (var uVersion in uModel.Versions)
+                                            {
+                                                if (uVersion.Id == Guid.Empty)
                                                 {
-                                                    if (it.Id == Guid.Empty)
-                                                    {
-                                                        addedSettings.Add(it);
-                                                        update = true;
-                                                    }
+                                                    //If new version.
+                                                    AddVersionsToModel(connection, transaction, iModel, [uVersion]);
                                                 }
-                                                AddSettingsToVersion(uVersion, addedSettings);
+                                                if (uVersion.Settings != null)
+                                                {
+                                                    foreach (var it in uVersion.Settings)
+                                                    {
+                                                        if (it.Id == Guid.Empty)
+                                                        {
+                                                            addedSettings.Add(it);
+                                                        }
+                                                        else if (it.ProfileId != null)
+                                                        {
+                                                            // Refresh catalog metadata without replacing an installed template.
+                                                            connection.Update(transaction, GXUpdateArgs.Update(it, s => new { s.ProfileId, s.Name, s.Location, s.Settings }));
+                                                        }
+                                                    }
+                                                    AddSettingsToVersion(connection, transaction, uVersion, addedSettings);
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                        notifications.Add((await GetNotifiedUsers(uManufacturer.Id, NotificationAction.Edit, connection, transaction),
+                            new GXTarget(GXManufacturerPolicies.Edit, uManufacturer.Id, uManufacturer.Name)));
                     }
-                    if (update)
+                }
+                await transaction.CommitAsync(cancellationToken);
+                foreach (var notification in notifications)
                     {
-                        updates[uManufacturer] = await GetUsersAsync(uManufacturer.Id);
+                    _notificationCache.Add(notification.Users, notification.Target);
+                }
+                return [.. list];
+
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(manufacturers, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
                     }
                 }
-            }
-            List<GXManufacturer> tmp = new List<GXManufacturer>();
-            //Add updated manufacturers to same list.
-            foreach (var it in updates)
-            {
-                tmp.Add(new GXManufacturer()
+                else
                 {
-                    Id = it.Key.Id,
-                    Name = it.Key.Name
-                });
-            }
-            //Users that are already notified.
-            List<string> notified = new List<string>();
-            foreach (var it in updates)
-            {
-                //Notification user only once.
-                it.Value.RemoveAll(w => notified.Contains(w));
-                if (it.Value.Any())
-                {
-                    await _eventsNotifier.ManufacturerUpdate(it.Value, tmp.ToArray());
-                    notified.AddRange(it.Value);
+                    throw;
                 }
             }
-            return list.ToArray();
+        }, cancellationToken);
         }
 
 
@@ -523,23 +647,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// Download and install device template from the GitHub.
         /// </summary>
         private async Task DownloadAndInstallDeviceTemplate(
-
             GXDeviceSettings settings,
             string templateName)
         {
-            HttpClient client = new HttpClient();
+            HttpClient client = new();
             client.DefaultRequestHeaders.Add("User-Agent", "C# App");
             //Define request data format  
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpResponseMessage response = await client.GetAsync(settings.Location);
             response.EnsureSuccessStatusCode();
             string xml = await response.Content.ReadAsStringAsync();
-            List<GXDeviceTemplate> templates = ClientHelpers.ConvertToTemplates(null, xml);
+            List<GXDeviceTemplate> templates = settings.ProfileId != null
+                ? Gurux.DLMS.AMI.Update.GXManufacturerIndex.ParseProfiles(xml, templateName)
+                : ClientHelpers.ConvertToTemplates(null, xml);
             foreach (var template in templates)
             {
                 template.Name = templateName;
             }
-            await _deviceTemplateRepository.UpdateAsync(templates);
+            await _deviceTemplateRepository.UpsertAsync(templates);
             foreach (var template in templates)
             {
                 settings.Template = template;
@@ -549,15 +674,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <summary>
         /// Map manufacturer group to user groups.
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// </summary>
         /// <param name="manufacturerId">Manufacturer ID.</param>
         /// <param name="groups">Group IDs of the manufacturer groups where the manufacturer is added.</param>
-        public void AddManufacturerToManufacturerGroups(Guid manufacturerId, IEnumerable<GXManufacturerGroup>? groups)
+        private static void AddManufacturerToManufacturerGroups(GXDbConnection connection, IDbTransaction transaction,
+            Guid manufacturerId, IEnumerable<GXManufacturerGroup>? groups)
         {
             if (groups != null && groups.Any())
             {
                 DateTime now = DateTime.Now;
-                List<GXManufacturerGroupManufacturer> list = new();
+                List<GXManufacturerGroupManufacturer> list = [];
                 foreach (GXManufacturerGroup it in groups)
                 {
                     list.Add(new GXManufacturerGroupManufacturer()
@@ -567,29 +695,35 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         CreationTime = now
                     });
                 }
-                _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+                connection.Insert(transaction, GXInsertArgs.InsertRange(list));
             }
         }
 
         /// <summary>
         /// Remove map between manufacturer group and manufacturer.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// <param name="manufacturerId">Manufacturer ID.</param>
         /// <param name="groups">Group IDs of the manufacturer groups where the manufacturer is removed.</param>
-        public void RemoveManufacturersFromManufacturerGroup(Guid manufacturerId, IEnumerable<GXManufacturerGroup> groups)
+        private static void RemoveManufacturersFromManufacturerGroup(GXDbConnection connection, IDbTransaction transaction,
+            Guid manufacturerId, IEnumerable<GXManufacturerGroup> groups)
         {
             foreach (GXManufacturerGroup it in groups)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXManufacturerGroupManufacturer>(w => w.ManufacturerId == manufacturerId && w.ManufacturerGroupId == it.Id));
+                connection.Delete(transaction, GXDeleteArgs.Delete<GXManufacturerGroupManufacturer>(w => w.ManufacturerId == manufacturerId && w.ManufacturerGroupId == it.Id));
             }
         }
 
         /// <summary>
         /// Map models to manufacturer.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// <param name="manufacturer">Manufacturer.</param>
         /// <param name="models">Added models.</param>
-        public void AddModelsToManufacturer(GXManufacturer manufacturer, IEnumerable<GXDeviceModel>? models)
+        private static void AddModelsToManufacturer(GXDbConnection connection, IDbTransaction transaction,
+            GXManufacturer manufacturer, IEnumerable<GXDeviceModel>? models)
         {
             if (models != null && models.Any())
             {
@@ -601,10 +735,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 GXInsertArgs args = GXInsertArgs.InsertRange(models);
                 args.Exclude<GXDeviceModel>(e => new { e.Updated, e.Removed, e.Versions });
-                _host.Connection.Insert(args);
+                connection.Insert(transaction, args);
                 foreach (GXDeviceModel model in models)
                 {
-                    AddVersionsToModel(model, model.Versions);
+                    AddVersionsToModel(connection, transaction, model, model.Versions);
                 }
             }
         }
@@ -612,24 +746,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove map between manufacturer group and manufacturer.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// <param name="models">Removed models</param>
-        public void RemoveModelsFromManufacturer(IEnumerable<GXDeviceModel> models)
+        private static void RemoveModelsFromManufacturer(GXDbConnection connection, IDbTransaction transaction,
+            IEnumerable<GXDeviceModel> models)
         {
             DateTime now = DateTime.Now;
             foreach (GXDeviceModel it in models)
             {
                 it.Removed = now;
             }
-            GXUpdateArgs args = GXUpdateArgs.UpdateRange(models, c => c.Removed);
-            _host.Connection.UpdateAsync(args);
+            GXUpdateArgs args = GXUpdateArgs.UpdateRange(models, c => c.Removed!);
+            connection.Update(transaction, args);
         }
 
         /// <summary>
         /// Map versions to models.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// <param name="model">Model.</param>
         /// <param name="versions">Added versions.</param>
-        public void AddVersionsToModel(GXDeviceModel model, IEnumerable<GXDeviceVersion>? versions)
+        private static void AddVersionsToModel(GXDbConnection connection, IDbTransaction transaction,
+            GXDeviceModel model, IEnumerable<GXDeviceVersion>? versions)
         {
             if (versions != null && versions.Any())
             {
@@ -641,10 +781,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 GXInsertArgs args = GXInsertArgs.InsertRange(versions);
                 args.Exclude<GXDeviceVersion>(e => new { e.Updated, e.Removed, e.Settings });
-                _host.Connection.Insert(args);
+                connection.Insert(transaction, args);
                 foreach (GXDeviceVersion it in versions)
                 {
-                    AddSettingsToVersion(it, it.Settings);
+                    AddSettingsToVersion(connection, transaction, it, it.Settings);
                 }
             }
         }
@@ -653,9 +793,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map settings to versions.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// <param name="version">Device version.</param>
         /// <param name="settings">Added settings.</param>
-        public void AddSettingsToVersion(GXDeviceVersion version, IEnumerable<GXDeviceSettings>? settings)
+        private static void AddSettingsToVersion(GXDbConnection connection, IDbTransaction transaction,
+            GXDeviceVersion version, IEnumerable<GXDeviceSettings>? settings)
         {
             if (settings != null && settings.Any())
             {
@@ -666,7 +809,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Version = version;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     args.Exclude<GXDeviceSettings>(e => new { e.Updated, e.Removed });
-                    _host.Connection.Insert(args);
+                    connection.Insert(transaction, args);
                 }
             }
         }
@@ -674,29 +817,65 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove map between manufacturer group and manufacturer.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
+        /// <param name="transaction">Catalog write transaction.</param>
         /// <param name="versions">Removed versions</param>
-        public void RemoveVersionsFromModel(IEnumerable<GXDeviceVersion> versions)
+        private static void RemoveVersionsFromModel(GXDbConnection connection, IDbTransaction transaction,
+            IEnumerable<GXDeviceVersion> versions)
         {
             DateTime now = DateTime.Now;
             foreach (GXDeviceVersion it in versions)
             {
                 it.Removed = now;
             }
-            GXUpdateArgs args = GXUpdateArgs.UpdateRange(versions, c => c.Removed);
-            _host.Connection.UpdateAsync(args);
+            GXUpdateArgs args = GXUpdateArgs.UpdateRange(versions, c => c.Removed!);
+            connection.Update(transaction, args);
+        }
+
+        private static async Task<GXAppearance?> ReadManufacturerPictureAsync(GXDbConnection connection, Guid id, CancellationToken token)
+        {
+            var query = GXSelectArgs.Select<GXAppearance>(a => a.Id);
+            query.Joins.AddInnerJoin<GXManufacturer, GXAppearance>(m => m.ProfilePicture!, a => a.Id);
+            query.Where.And<GXManufacturer>(m => m.Id == id);
+            return await connection.SingleOrDefaultAsync<GXAppearance>(query, token);
+        }
+
+        private static async Task<GXUser?> ReadManufacturerCreatorAsync(GXDbConnection connection, Guid id, CancellationToken token)
+        {
+            var query = GXSelectArgs.Select<GXUser>(u => u.Id!);
+            query.Joins.AddInnerJoin<GXManufacturer, GXUser>(m => m.Creator!, u => u.Id!);
+            query.Where.And<GXManufacturer>(m => m.Id == id);
+            return await connection.SingleOrDefaultAsync<GXUser>(query, token);
+        }
+
+        private static async Task<GXUser?> ReadModelCreatorAsync(GXDbConnection connection, Guid id, CancellationToken token)
+        {
+            var query = GXSelectArgs.Select<GXUser>(u => u.Id!);
+            query.Joins.AddInnerJoin<GXDeviceModel, GXUser>(m => m.Creator!, u => u.Id!);
+            query.Where.And<GXDeviceModel>(m => m.Id == id);
+            return await connection.SingleOrDefaultAsync<GXUser>(query, token);
+        }
+
+        private static async Task<GXAppearance?> ReadModelPictureAsync(GXDbConnection connection, Guid id, CancellationToken token)
+        {
+            var query = GXSelectArgs.Select<GXAppearance>(a => a.Id);
+            query.Joins.AddInnerJoin<GXDeviceModel, GXAppearance>(m => m.ProfilePicture!, a => a.Id);
+            query.Where.And<GXDeviceModel>(m => m.Id == id);
+            return await connection.SingleOrDefaultAsync<GXAppearance>(query, token);
         }
 
         /// <inheritdoc />
-        public async Task<GXDeviceModel> ReadModelAsync(Guid id)
+        public async Task<GXDeviceModel> ReadModelAsync(Guid id, CancellationToken cancellationToken)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
             bool isAdmin = User.IsInRole(GXRoles.Admin);
             GXSelectArgs arg;
             if (isAdmin)
             {
                 //Admin can see all the manufacturers.
                 arg = GXSelectArgs.SelectAll<GXDeviceModel>();
-                arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model);
-                arg.Joins.AddInnerJoin<GXDeviceModel, GXManufacturer>(y => y.Manufacturer, x => x.Id);
+                arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model!);
+                arg.Joins.AddInnerJoin<GXDeviceModel, GXManufacturer>(y => y.Manufacturer!, x => x.Id);
             }
             else
             {
@@ -706,27 +885,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Where.And<GXDeviceModel>(w => w.Id == id);
             arg.Columns.Add<GXManufacturer>(c => c.Id);
             arg.Columns.Add<GXDeviceVersion>();
-            arg.Columns.Exclude<GXManufacturer>(e => e.Models);
-            arg.Columns.Exclude<GXDeviceVersion>(e => e.Model);
+            arg.Columns.Exclude<GXManufacturer>(e => e.Models!);
+            arg.Columns.Exclude<GXDeviceVersion>(e => e.Model!);
             arg.Distinct = true;
-            GXDeviceModel model = await _host.Connection.SingleOrDefaultAsync<GXDeviceModel>(arg);
-            if (model == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            GXDeviceModel? model = await connection.SingleOrDefaultAsync<GXDeviceModel>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+            model.ProfilePicture = await ReadModelPictureAsync(connection, id, cancellationToken);
+            model.Creator = await ReadModelCreatorAsync(connection, id, cancellationToken);
             return model;
         }
 
         /// <inheritdoc />
-        public async Task<GXDeviceVersion> ReadVersionAsync(Guid id)
+        public async Task<GXDeviceVersion> ReadVersionAsync(Guid id, CancellationToken cancellationToken)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
             GXSelectArgs arg;
             if (User.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the manufacturers.
                 arg = GXSelectArgs.SelectAll<GXDeviceVersion>(w => w.Id == id);
-                arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceModel>(j => j.Model, j => j.Id);
-                arg.Joins.AddLeftJoin<GXDeviceModel, GXManufacturer>(y => y.Manufacturer, x => x.Id);
+                arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceModel>(j => j.Model!, j => j.Id);
+                arg.Joins.AddLeftJoin<GXDeviceModel, GXManufacturer>(y => y.Manufacturer!, x => x.Id);
             }
             else
             {
@@ -736,11 +915,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Columns.Add<GXDeviceModel>(c => c.Id);
             arg.Where.And<GXDeviceVersion>(w => w.Id == id);
             arg.Distinct = true;
-            GXDeviceVersion version = await _host.Connection.SingleOrDefaultAsync<GXDeviceVersion>(arg);
-            if (version == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            GXDeviceVersion? version = await connection.SingleOrDefaultAsync<GXDeviceVersion>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
             return version;
         }
 
@@ -749,17 +925,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXManufacturer>? manufacturers,
             IEnumerable<GXDeviceModel>? models,
             IEnumerable<GXDeviceVersion>? versions,
-            IEnumerable<GXDeviceSettings>? settings)
+            IEnumerable<GXDeviceSettings>? settings, CancellationToken cancellationToken)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.Add);
             DateTime now = DateTime.UtcNow;
             GXSelectArgs arg;
             if (User.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the manufacturers.
                 arg = GXSelectArgs.SelectAll<GXManufacturer>();
-                arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer);
-                arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model);
-                arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version);
+                arg.Joins.AddLeftJoin<GXManufacturer, GXDeviceModel>(x => x.Id, y => y.Manufacturer!);
+                arg.Joins.AddLeftJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model!);
+                arg.Joins.AddLeftJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version!);
             }
             else
             {
@@ -768,37 +945,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (manufacturers != null && manufacturers.Any())
             {
-                List<Guid> list = new List<Guid>();
-                list.AddRange(manufacturers.Select(s => s.Id));
+                List<Guid> list = [.. manufacturers.Select(s => s.Id)];
                 arg.Where.And<GXManufacturer>(w => list.Contains(w.Id));
             }
             if (models != null && models.Any())
             {
-                List<Guid> list = new List<Guid>();
-                list.AddRange(models.Select(s => s.Id));
+                List<Guid> list = [.. models.Select(s => s.Id)];
                 arg.Where.And<GXDeviceModel>(w => list.Contains(w.Id));
             }
             if (versions != null && versions.Any())
             {
-                List<Guid> list = new List<Guid>();
-                list.AddRange(versions.Select(s => s.Id));
+                List<Guid> list = [.. versions.Select(s => s.Id)];
                 arg.Where.And<GXDeviceVersion>(w => list.Contains(w.Id));
             }
             if (settings != null && settings.Any())
             {
-                List<Guid> list = new List<Guid>();
-                list.AddRange(settings.Select(s => s.Id));
+                List<Guid> list = [.. settings.Select(s => s.Id)];
                 arg.Where.And<GXDeviceSettings>(w => list.Contains(w.Id));
             }
             arg.Where.And<GXDeviceSettings>(w => w.Template == null);
             arg.Columns.Add<GXDeviceModel>();
-            arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer);
+            arg.Columns.Exclude<GXDeviceModel>(e => e.Manufacturer!);
             arg.Columns.Add<GXDeviceVersion>();
-            arg.Columns.Exclude<GXDeviceVersion>(e => e.Model);
+            arg.Columns.Exclude<GXDeviceVersion>(e => e.Model!);
             arg.Columns.Add<GXDeviceSettings>();
-            arg.Columns.Exclude<GXDeviceSettings>(e => e.Version);
+            arg.Columns.Exclude<GXDeviceSettings>(e => e.Version!);
             arg.Distinct = true;
-            List<GXManufacturer> iManufacturers = await _host.Connection.SelectAsync<GXManufacturer>(arg);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXManufacturer> iManufacturers = await connection.SelectAsync<GXManufacturer>(arg);
             foreach (var manufacturer in iManufacturers)
             {
                 if (manufacturer.Models != null)
@@ -815,16 +989,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                     foreach (var it in version.Settings)
                                     {
                                         //Install device templates.
-                                        await DownloadAndInstallDeviceTemplate(it, it.Name);
+                                        await DownloadAndInstallDeviceTemplate(it, it.Name ?? throw new ArgumentException("Device template name is missing."));
                                         it.InstallationTime = now;
                                         //Save device template ID to the database.
                                         GXUpdateArgs args = GXUpdateArgs.Update(it, c => new { c.Template, c.InstallationTime });
-                                        await _host.Connection.UpdateAsync(args);
+                                        await connection.UpdateAsync(args, cancellationToken);
                                     }
                                 }
                             }
                         }
                     }
+                }
+                if ((manufacturer.Models ?? []).SelectMany(model => model.Versions ?? [])
+                    .SelectMany(version => version.Settings ?? []).Any(settings => settings.Template != null && settings.InstallationTime != null))
+                {
+                    manufacturer.ProfilesInstalled = true;
+                    manufacturer.Version ??= manufacturer.AvailableVersion;
+                    await connection.UpdateAsync(GXUpdateArgs.Update(manufacturer,
+                        m => new { m.ProfilesInstalled, m.Version }), cancellationToken);
                 }
             }
         }

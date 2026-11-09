@@ -1,35 +1,32 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -48,35 +45,31 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Authentication" />
 
 @if (_active != null)
 {
-    <EditForm Model="@_active">
+    <EditForm EditContext="@GXEditContexts.For(_active)">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <label>Authentication service</label>
-                    <select class="form-select"
-                            disabled="@IsCreating"
-                            @bind="@_active.Name">
-                        @foreach (var it in _services)
-                        {
-                            <option value="@it">@it</option>
-                        }
-                    </select>
+                    <label>@Properties.Resources.AuthenticationService</label>
+                    <GXInputDropdown class="form-select" Disabled="@(IsCreating != null)"
+                                     RememberValue="false" Items="@_services" @bind-Value="_active.Name" />
                 </div>
                 <div class="form-group">
-                    <label>Client ID</label>
+                    <label>@Properties.Resources.ClientID</label>
                     <InputText id="name" class="form-control"
                                disabled="@IsDeleting"
                                @bind-Value="_active.ClientId" />
                 </div>
                 <div class="form-group">
-                    <label>Client Secret</label>
+                    <label>@Properties.Resources.ClientSecret</label>
                     <InputText id="name" class="form-control"
                                disabled="@IsDeleting"
                                @bind-Value="_active.ClientSecret" />
@@ -87,6 +80,13 @@
 }
 
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     private AuthenticationSettings? _active;
 
     /// <summary>
@@ -144,11 +144,19 @@
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
             _services.Add("GitHub");
-            Notifier.ClearStatus();
-            action = ClientHelpers.GetAction(Action);
+            NotificationService?.RemoveByKey("Pages/Config/Authentication.OnInitialized");
+            action = ClientHelpers.GetAction(NavigationManager, Action);
             if (Parent?.GetAuthentications() == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -172,10 +180,10 @@
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
             }
-            Notifier.Clear();
+            MenuService.Clear();
             if (action == CrudAction.Delete)
             {
-                Notifier.AddMenuItem(new GXMenuItem()
+                MenuService.AddMenuItems(new GXMenuItem()
                 {
                     Text = Properties.Resources.Remove,
                     Icon = "Remove",
@@ -184,24 +192,23 @@
             }
             else
             {
-                Notifier.AddMenuItem(new GXMenuItem()
+                MenuService.AddMenuItems(new GXMenuItem()
                 {
                     Text = Properties.Resources.Save,
                     Icon = "Save",
                     OnClick = EventCallback.Factory.Create(this, OnSave)
                 });
             }
-            Notifier.AddMenuItem(new GXMenuItem()
+            MenuService.AddMenuItems(new GXMenuItem()
             {
                 Text = Properties.Resources.Cancel,
                 Icon = "Cancel",
                 OnClick = EventCallback.Factory.Create(this, OnCancel)
             });
-            Notifier.UpdateButtons();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Authentication.OnInitialized");
         }
     }
 
@@ -210,8 +217,8 @@
     /// </summary>
     private async void OnSave()
     {
-        Notifier.ProgressStart();
-        Notifier.ClearStatus();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingAuthentication);
+        NotificationService?.RemoveByKey("Pages/Config/Authentication.OnSave");
         try
         {
             if (Parent?.GetAuthentications() != null && _active != null)
@@ -235,25 +242,21 @@
                         //Do nothing.
                         break;
                     default:
-                        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
+                        ClientHelpers.NavigateTo(NavigationManager,  "/configurations");
                         return;
                 }
             }
             //Get selected item.
-            GXConfiguration? conf = Parent.Parent?.Active;
-            conf.Settings = JsonSerializer.Serialize(Parent.GetAuthentications());
+            GXConfiguration conf = Parent?.Parent?.Active ?? throw new InvalidOperationException(Properties.Resources.NoAuthenticationConfigurationIsSelected);
+            conf.Settings = JsonSerializer.Serialize(Parent?.GetAuthentications());
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { conf };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Authentication.OnSave");
         }
     }
 
@@ -262,13 +265,13 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.Clear();
-        Notifier.UpdateButtons();
-        Notifier.RemoveListener(this);
+        MenuService.Dispose();
+        MenuService.Clear();
+        Notifier?.RemoveListener(this);
     }
 }

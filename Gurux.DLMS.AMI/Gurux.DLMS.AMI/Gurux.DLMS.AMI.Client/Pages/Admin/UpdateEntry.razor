@@ -1,0 +1,88 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+
+<GXHelpContext Topic="UpdateEntry" />
+
+<article class="update-entry @StatusClass">
+    <div class="update-heading">
+        <strong>@Item.Name</strong>
+        <span class="update-status">@StatusText</span>
+    </div>
+    <div class="update-details">
+        <div>
+            <span class="version-label">@Properties.Resources.UpdatesInstalledVersion:</span>
+            <span>@InstalledVersionText</span>
+        </div>
+        <div>
+            <span class="version-label">@Properties.Resources.UpdatesLatestVersion:</span>
+            <span>@(string.IsNullOrWhiteSpace(Item.AvailableVersion) ? Properties.Resources.Unknown : Item.AvailableVersion)</span>
+            @if (ReleaseNotesUrl != null)
+            {
+                <a href="@ReleaseNotesUrl" target="_blank" rel="noopener noreferrer">@Properties.Resources.ReleaseNotes</a>
+            }
+            @if (Item.PublishedAt is DateTimeOffset published)
+            {
+                <time datetime="@published.ToString("O")">@published.ToLocalTime().ToString("d")</time>
+            }
+        </div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Item.Description))
+    {
+        <p class="update-description">@Item.Description</p>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public GXAvailableUpdate Item { get; set; } = new();
+
+    private string InstalledVersionText => !string.IsNullOrWhiteSpace(Item.InstalledVersion)
+        ? Item.InstalledVersion : Item.Status == GXUpdateStatus.Available ? Properties.Resources.UpdatesNotInstalled : Properties.Resources.Unknown;
+
+    private string StatusText => Item.Status switch
+    {
+        GXUpdateStatus.UpToDate => Properties.Resources.UpdatesUpToDate,
+        GXUpdateStatus.UpdateAvailable => Properties.Resources.UpdatesUpdateAvailable,
+        GXUpdateStatus.Available => Properties.Resources.UpdatesAvailable,
+        _ => Properties.Resources.Unknown
+    };
+
+    private string StatusClass => Item.Status switch
+    {
+        GXUpdateStatus.UpToDate => "up-to-date",
+        GXUpdateStatus.UpdateAvailable => "update-available",
+        GXUpdateStatus.Available => "available",
+        _ => "unknown"
+    };
+
+    private string? ReleaseNotesUrl => Uri.TryCreate(Item.ReleaseNotesUrl, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) ? uri.AbsoluteUri : null;
+}

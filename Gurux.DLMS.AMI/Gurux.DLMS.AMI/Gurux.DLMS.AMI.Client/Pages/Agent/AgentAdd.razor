@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/agentadd"
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
@@ -38,22 +35,38 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Gurux.DLMS.AMI.Shared.Rest
 @using Gurux.DLMS.AMI.Client.Pages.Agent
 @using System.Text.Json
 
-@attribute [Authorize(Roles = "Admin, AgentManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="AgentAdd" />
 
-<h1>Configure your account</h1>
-Configure your account by following the steps outlined <a target="_blank" href="https://www.gurux.fi/agent-configure">here</a>.
+<h1>@Properties.Resources.ConfigureYourAccount</h1>
+@Gurux.DLMS.AMI.Client.Properties.Resources.ConfigureYourAccountByFollowingTheStepsOutlined <a target="_blank" href="https://www.gurux.fi/agent-configure">@Properties.Resources.Here</a>.
 
-<EditForm Model="@this">
+<EditForm EditContext="@GXEditContexts.For(this)">
     <DataAnnotationsValidator />
     <ValidationSummary />
-    <button class="btn btn-secondary" @onclick="OnDownload">
+    <div class="form-group mb-2">
+        <label for="agent-download-version">@Properties.Resources.Version</label>
+        <select id="agent-download-version" class="form-select" @bind="_downloadVersion" disabled="@(_loadingVersions || _downloading || _downloadVersions.Length == 0)">
+            @if (_downloadVersions.Length == 0)
+            {
+                <option value="">@Properties.Resources.UpdatesLatestVersion</option>
+            }
+            @foreach (var version in _downloadVersions)
+            {
+                <option value="@version.Number">@version.Number</option>
+            }
+        </select>
+    </div>
+    <button type="button" id="agent-download" class="btn btn-secondary" @onclick="OnDownload" disabled="@(_loadingVersions || _downloading)">
         <div class="Download"></div>
         &nbsp;@Properties.Resources.DownloadAgent
     </button>
@@ -61,7 +74,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
         <hr />
     </p>
     <div class="form-group">
-        <CopyLabel Value="@TokenName">@Properties.Resources.Name</CopyLabel>
+        <GXCopyButton Value="@TokenName">@Properties.Resources.Name</GXCopyButton>
         <InputText id="token" class="form-control" @bind-Value="TokenName" />
     </div>
     <div class="form-group">
@@ -76,7 +89,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
     @if (Token != null)
     {
         <div class="form-group">
-            <CopyLabel Value="@Token">@Properties.Resources.TokensTitle</CopyLabel>
+            <GXCopyButton Value="@Token">@Properties.Resources.TokensTitle</GXCopyButton>
             <InputText id="token" class="form-control" readonly="readonly"
                        @bind-Value="Token" />
         </div>
@@ -90,72 +103,82 @@ Configure your account by following the steps outlined <a target="_blank" href="
     }
 </EditForm>
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private GXAgentVersion[] _downloadVersions = [];
+    private string? _downloadVersion;
+    private bool _loadingVersions = true;
+    private bool _downloading;
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     [Inject]
-    public IJSRuntime JSRuntime { get; set; }
+    public IJSRuntime JSRuntime { get; set; } = default!;
     //Token expiration time.
-    public DateTimeOffset? TokenExpiration
-    {
-        get;
-        set;
-    }
+    public DateTimeOffset? TokenExpiration { get; set; }
 
     //Generated token.
     public string TokenName { get; set; } = "Generated";
 
     //Generated token.
-    public string? Token
-    {
-        get;
-        set;
-    }
+    public string? Token { get; set; }
 
     /// <summary>
-    /// Download the latest agent.
+    /// Download the selected agent release, or resolve the latest release if no local catalog is available.
     /// </summary>
-    public async void OnDownload()
+    public async Task OnDownload()
     {
+        if (_loadingVersions || _downloading)
+        {
+            return;
+        }
+        _downloading = true;
         try
         {
-            DownloadAgent req = new DownloadAgent();
-            var ret = await Http.PostAsJson<DownloadAgentResponse>("api/Agent/Download", req);
-            string? url = ret.Urls.FirstOrDefault();
-            IJSObjectReference module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./download.js");
+            var req = new DownloadAgent
+            {
+                Agent = string.IsNullOrEmpty(_downloadVersion) ? null : new GXAgent { UpdateVersion = _downloadVersion }
+            };
+            var ret = await Http.PostAsJson<DownloadAgentResponse>("api/Agent/Download", req, _lifetime.Token);
+            string url = ret.Urls?.FirstOrDefault() ?? throw new InvalidOperationException(Properties.Resources.TheAgentDownloadURLIsMissing);
+            await using IJSObjectReference module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./download.js");
             await module.InvokeVoidAsync("saveFile", url);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            _downloading = false;
         }
     }
 
     /// <summary>
     /// Generate new token.
     /// </summary>
-    public async void OnToken()
+    public async Task OnToken()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingAgentAdd);
+        NotificationService?.RemoveByKey("Pages/Agent/AgentAdd.OnToken");
         try
         {
+            var scopes = await Http.GetAsJsonAsync<string[]>("api/Role/AgentTokenScopes");
+            // An empty scope list would grant all of the issuing user's permissions.
+            if (scopes?.Length is not > 0)
+            {
+                throw new InvalidOperationException("The agent role must have permissions configured in access control before an agent token can be generated.");
+            }
             GXPersonalToken token = new GXPersonalToken();
             token.Name = TokenName;
             token.Expiration = TokenExpiration;
-            token.Scopes = new string[] { "agent.view","agent.add", "agent.edit",
-            "task.view", "task.edit", "object.edit",
-            "device.view", "device.add","device-log.add",
-            "agent-log.add", "device-trace.add",
-            "device-action.add", "value.add", "attribute.edit",
-            "script.view",
-            "script-log.add",
-            "key-management.view",
-            "gateway.view","gateway.add","gateway.edit",
-            "gateway-group.view",
-            "gateway-log.add"
-        };
+            token.Scopes = scopes;
             UpdateToken req = new UpdateToken() { Tokens = new GXPersonalToken[] { token } };
             var ret = await Http.PostAsJson<UpdateTokenResponse>("api/Token/Add", req);
             Token = ret.Token;
@@ -163,31 +186,57 @@ Configure your account by following the steps outlined <a target="_blank" href="
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentAdd.OnToken");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.PostAsJson<ListAgentInstallersResponse>("api/Agent/Installers", new ListAgentInstallers(), _lifetime.Token);
+            // Show every available catalog version, independent of server assembly versions.
+            _downloadVersions = (response.Agents ?? []).SelectMany(agent => agent.Versions ?? [])
+                .Where(version => version.Removed == null && version.Enabled != false &&
+                    GXReleaseVersionComparer.TryNormalize(version.Number, out _))
+                .OrderByDescending(version => version.Number, GXReleaseVersionComparer.Instance)
+                .ThenByDescending(version => version.CreationTime)
+                .DistinctBy(version => GXReleaseVersionComparer.TryNormalize(version.Number, out var normalized) ? normalized.Split('+')[0] : string.Empty)
+                .ToArray();
+            _downloadVersion = _downloadVersions.FirstOrDefault()?.Number;
+        }
+        catch (AccessTokenNotAvailableException error)
+        {
+            error.Redirect();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            NotificationService?.ReportError(error, "Pages/Agent/AgentAdd.Versions");
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            _loadingVersions = false;
         }
     }
 
     protected override void OnInitialized()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem()
+            NotificationService?.RemoveByKey("Pages/Agent/AgentAdd.OnInitialized");
+            MenuService.Clear();
+            MenuService.AddMenuItems(new GXMenuItem()
             {
                 Text = Properties.Resources.Close,
                 Icon = "Close",
                 OnClick = EventCallback.Factory.Create(this, OnCancel)
             });
-            Notifier.UpdateButtons();
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -195,7 +244,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentAdd.OnInitialized");
         }
     }
 
@@ -204,6 +253,13 @@ Configure your account by following the steps outlined <a target="_blank" href="
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+    }
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        MenuService.Dispose();
     }
 }

@@ -1,46 +1,48 @@
-﻿@*
+@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Client.Helpers.Toaster
+
+@using Gurux.DLMS.AMI.Client.Internal
+@using MenuLocation = Gurux.DLMS.AMI.Shared.Enums.MenuLocation
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using Gurux.DLMS.AMI.Shared.Rest;
 
+@using Gurux.UI.Component.Toaster
+@using Gurux.UI.Components.Enums
+@using Gurux.UI.Components.Help
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums
 @using System.Security.Claims
 @using System.Globalization
 @using System.Diagnostics
+@using System.Text.Json
 
 @inject NavigationManager NavigationManager
 @implements IAsyncDisposable
@@ -48,23 +50,14 @@
 @inject ILogger<MainLayout> Logger
 @inject HttpClient Http
 @inject IServiceProvider Services
-@inject IGXResourceStorage ResourceStorage
-@inject GXNotifierService Notifier
 
 <HeadContent>
     @if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
     {
         <link rel="stylesheet" href="@CurrentTheme.CssFile" />
     }
-    @if (IconPacks?.Any() == true)
-    {
-        @foreach (var it in IconPacks)
-        {
-            <link rel="stylesheet" href=@GetIconPack(it) integrity=""
-                  crossorigin="anonymous" />
-        }
-    }
-    @if (CurrentTheme?.Styles.Any() == true)
+    <IconPackStyles Packs="@IconPacks" />
+    @if (CurrentTheme?.Styles?.Any() == true)
     {
         <style>
             :root {
@@ -78,67 +71,145 @@
     }
 </HeadContent>
 
-<CascadingValue Value="ResourceStorage">
-    <div class="page">
-        <Spinner Visible="@(_onProgress != 0)" />
-        <div class="sidebar">
-            <NavMenu />
-        </div>
+<AmiHelpPanel />
+<div class="page">
+    <header class="layout-header">
+        @foreach (var block in GetBlocks(BlockLocation.Header))
+        {
+            <div class="@GetVisibilityClass(block.Visibility)">
+                <BlockModule Location="@block.Location" Blocks="@(new[] { block })" />
+            </div>
+        }
+    </header>
+    <GXSpinner />
+    <div class="layout-body @(FillSidebarsBetweenHeaderAndFooter ? "fill-sidebars" : string.Empty)">
+        <aside class="sidebar sidebar-left">
+            <LayoutNavigationMenus Location="MenuLocation.Left" />
+            @if (GetBlocks(BlockLocation.SidebarLeft).Any())
+            {
+                @foreach (var block in GetBlocks(BlockLocation.SidebarLeft))
+                {
+                    <div class="@GetVisibilityClass(block.Visibility)">
+                        <BlockModule Location="@block.Location" Blocks="@(new[] { block })">
+                        </BlockModule>
+                    </div>
+                }
+            }
+            else
+            {
+                @*Show default navigation menu.*@
+                <NavMenuHeader />
+                <NavMenu />
+            }
+        </aside>
         <main>
+            @foreach (var block in GetBlocks(BlockLocation.ContentHeader))
+            {
+                <div class="@GetVisibilityClass(block.Visibility)">
+                    <BlockModule Location="@block.Location" Blocks="@(new[] { block })" />
+                </div>
+            }
+
             <div class="top-row px-4 auth">
-                <Breadcrumb SegmentLabelMap="@_maps" class="me-auto" />
-                <TopMenu />
+                <LayoutNavigationMenus Location="MenuLocation.Top" />
+                <FavoriteTile />
+                <GXBreadcrumb SegmentLabelMap="@_maps" HiddenSegments="@(new[] { "Edit", "Remove" })" class="me-auto" />
+                <GXMenuBar MenuId="@GXEditorMenu.MenuId" ProtectedMenuIds="@ProtectedMenus"
+                           PreserveCommandsOnNavigation="@GXTabRoutes.IsTabNavigation"
+                           WarnOnUnsavedChanges="true"
+                           UnsavedChangesTitle="@Properties.Resources.UnsavedChanges"
+                           UnsavedChangesMessage="@Properties.Resources.DiscardChangesQuestion"
+                           DiscardChangesText="@Properties.Resources.DiscardChanges" StayText="@Properties.Resources.Cancel" />
+                <GXMenuBar NavigationGuardEnabled="false" />
                 <LoginDisplay @ref="LoginDisplay" />
                 <AuthorizeView>
-                    <Authorized>
-                        <FavoriteTile />
+                    <Authorized Context="auth">
                         <a href="Account/Manage">
-                            <Image Id="User"></Image>
-                        </a>
-                        <a href="@("/about/" + Guid.NewGuid())">
-                            <LocalizedText Value="@Properties.Resources.About" />
+                            <UserProfileAvatar />
                         </a>
                     </Authorized>
                 </AuthorizeView>
+                <a href="/about/true" @onclick="OpenAbout" @onclick:preventDefault="true">
+                    <GXLocalizedText Value="@Properties.Resources.About" />
+                </a>
+                <GXHelp />
             </div>
-            <StatusTile @ref=Status Closable=false />
-            <AuthorizeView>
-                <Authorized>
-                    <BlockTile Location="BlockLocation.Header"></BlockTile>
-                </Authorized>
-            </AuthorizeView>
-            <Toaster />
-            @if (Status == null || !Status.MaintenanceMode || Status.IsAdmin)
+            <GXNotificationsTile />
+            <MaintenanceBanner OnBlockingChanged="@(blocking => _maintenanceBlocked = blocking)" />
+            <GXToaster />
+            @if (!_maintenanceBlocked || NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("Account/", StringComparison.OrdinalIgnoreCase))
             {
                 <div class="content px-4">
-                    <GXErrorBoundary>
+                    <GXErrorBoundary RecoveryKey="@NavigationManager.Uri">
                         <ChildContent>
-                            @Body
+                            <article class="content">
+                                @foreach (var block in GetBlocks(BlockLocation.Content))
+                                {
+                                    <div class="@GetVisibilityClass(block.Visibility)">
+                                        <BlockModule Location="@block.Location" Blocks="@(new[] { block })" />
+                                    </div>
+                                }
+                                <ModuleWrapper></ModuleWrapper>
+                                @Body
+                            </article>
                         </ChildContent>
                     </GXErrorBoundary>
                 </div>
             }
-            <AuthorizeView>
-                <Authorized>
-                    <BlockTile Location="BlockLocation.Footer"></BlockTile>
-                </Authorized>
-            </AuthorizeView>
+            @foreach (var block in GetBlocks(BlockLocation.ContentFooter))
+            {
+                <div class="@GetVisibilityClass(block.Visibility)">
+                    <BlockModule Location="@block.Location" Blocks="@(new[] { block })" />
+                </div>
+            }
+            <LayoutNavigationMenus Location="MenuLocation.Bottom" />
         </main>
+        <aside class="sidebar sidebar-right @GetAreaVisibilityClass(BlockLocation.SidebarRight)">
+            <LayoutNavigationMenus Location="MenuLocation.Right" />
+            @foreach (var block in GetBlocks(BlockLocation.SidebarRight))
+            {
+                <BlockModule Location="@block.Location" Blocks="@(new[] { block })" />
+            }
+        </aside>
     </div>
-    <div id="blazor-error-ui" data-nosnippet>
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
-    </div>
-</CascadingValue>
-@code {
+    <footer class="layout-footer">
+        <LayoutNavigationMenus Location="MenuLocation.Footer" />
+        @if (GetBlocks(BlockLocation.Footer).Any())
+        {
+            @foreach (var block in GetBlocks(BlockLocation.Footer))
+            {
+                <div class="@GetVisibilityClass(block.Visibility)">
+                    <BlockModule Location="@block.Location" Blocks="@(new[] { block })" />
+                </div>
+            }
+        }
+        else
+        {
+            @*Show default footer content here if no blocks are available*@
+            <img src='footer.png' style='position: absolute; bottom: 0; left: 0; height: 3px; width: 100%;' />
+            <img src='leaf.png' style='position: absolute; bottom: 0; left: 0;' />
+            <img src='factory.png' style='position: absolute; bottom: 0; right: 0;' />
+        }
+    </footer>
+</div>
+<AmiConfirmationHost />
+<div id="blazor-error-ui" data-nosnippet>
+    @Gurux.DLMS.AMI.Client.Properties.Resources.AnUnhandledErrorHasOccurred
+    <a href="." class="reload">@Properties.Resources.Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+@if (_showAbout)
+{
+    <Gurux.DLMS.AMI.Client.Pages.About Show="true" OnClosed="CloseAbout" />
+}
+<ModuleViews Area="Gurux.DLMS.AMI.Module.Enums.AmiViewArea.Application"
+             Display="Gurux.DLMS.AMI.Module.Enums.AmiViewDisplay.Append" />
 
-    private string GetIconPack(string path)
-    {
-        // Convert quotes to single.
-        string clean = path.Replace("\\\"", "\"");
-        return clean.Replace("\"", "'");
-    }
+@code {
+    private static readonly Guid?[] ProtectedMenus = [GXEditorMenu.MenuId, null];
+    private bool _showAbout;
+    private void OpenAbout() => _showAbout = true;
+    private void CloseAbout() => _showAbout = false;
 
     private string GetStyle(GXThemeStyle style)
     {
@@ -162,107 +233,143 @@
         return tmp;
     }
 
+    private readonly List<GXBlock> _blocks = new List<GXBlock>();
     Dictionary<string, string> _maps = new Dictionary<string, string>();
     private LoginDisplay? LoginDisplay;
-    private NavMenu? NavMenu;
 
-    //Save or load is on progress.
-    private int _onProgress;
+    private GXAmiNotifierService? Notifier = null;
+
     private GXThemeInfo? CurrentTheme;
 
     private IEnumerable<string>? IconPacks;
 
-    [CascadingParameter]
-    public Task<AuthenticationState> AuthState { get; set; }
+    private IGXProgress? Progress
+    {
+        get
+        {
+            return Services.GetService<IGXProgress>();
+        }
+    }
+
+    private IGXNotificationService? NotificationService
+    {
+        get
+        {
+            return Services.GetService<IGXNotificationService>();
+        }
+    }
+
+    private IGXResourceStorage? ResourceStorage
+    {
+        get
+        {
+            return Services.GetService<IGXResourceStorage>();
+        }
+    }
 
     /// <summary>
     /// Status is shown here.
     /// </summary>
     public StatusTile? Status { get; set; }
+    private bool _maintenanceBlocked;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
+        _blockStorage = Services.GetService<IAmiBlockStorage>();
+        if (_blockStorage != null)
+        {
+            _blockStorage.BlocksChanged += BlocksChanged;
+        }
+        _initialResources = Services.GetService<GXResourceStorage>();
+        if (_initialResources != null)
+        {
+            _initialResources.OnThemeChanged += InitialThemeChanged;
+            _initialResources.OnIconPacksChanged += InitialIconPacksChanged;
+            _ = LoadInitialResourcesAsync(_initialResources);
+        }
         try
         {
-            //Wait until user has authenticated.
-            var t = await AuthState;
-            if (t.User.Identity?.IsAuthenticated == true)
+            Notifier = Services.GetService<GXAmiNotifierService>();
+            if (Notifier != null)
             {
-                try
+                using (Progress?.ProgressStart(Properties.Resources.Connecting))
+                using (IServiceScope scope = Services.CreateScope())
                 {
-                    using (IServiceScope scope = Services.CreateScope())
+                    _ = Notifier.StartAsync(scope, Http, NavigationManager).ContinueWith(async t =>
                     {
-                        await Notifier.StartAsync(t.User, scope, Http, NavigationManager);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex.Message);
-                    //It's OK if this fails.
-                }
-                Notifier.OnPageChanged += () =>
-                {
-                    _onProgress = 0;
-                    //This must be in InvokeAsync, because event is called outside Blazor context.
-                    InvokeAsync(StateHasChanged);
-                };
-
-                Notifier.OnProgressStart += () =>
-                {
-                    ++_onProgress;
-                    //This must be in InvokeAsync, because event is called outside Blazor context.
-                    InvokeAsync(StateHasChanged);
-                };
-                Notifier.OnProgressEnd += () =>
-                {
-                    if (--_onProgress < 1)
-                    {
-                        _onProgress = 0;
-                        //This must be in InvokeAsync, because event is called outside Blazor context.
-                        InvokeAsync(StateHasChanged);
-                    }
-                };
-                Notifier.OnClearStatus += () =>
-                {
-                    Status?.Clear();
-                };
-                Notifier.OnProcessError += (ex) =>
-                {
-                    Status?.ProcessError(ex);
-                };
-                Notifier.OnProcessErrors += (errors) =>
-                {
-                    Status?.ProcessErrors(errors);
-                };
-                Notifier.OnShowInformation += (info, closable) =>
-                {
-                    Status?.ShowInformation(info, closable);
-                };
-                await ResourceStorage.UpdateLocalizationAsync();
-                CurrentTheme = await ResourceStorage.GetCurrentThemeAsync();
-                ResourceStorage.OnThemeChanged += (sender, theme) =>
-                {
-                    CurrentTheme = theme;
-                    StateHasChanged();
-                };
-                if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
-                {
-                    Logger.LogDebug("Current theme:{0}", CurrentTheme.CssFile);
-                }
-                if (CurrentTheme?.Styles != null)
-                {
-                    foreach (var style in CurrentTheme.Styles)
-                    {
-                        Logger.LogDebug("Style: {0}", GetStyle(style));
-                    }
-                }
-                IconPacks = await ResourceStorage.GetCurrentIconPacksAsync();
-                if (IconPacks != null)
-                {
-                    foreach (var ip in IconPacks)
-                    {
-                        Logger.LogDebug("Iconpack: {0}", ip);
-                    }
+                        if (t.IsCanceled)
+                        {
+                            return;
+                        }
+                        if (t.IsFaulted)
+                        {
+                            return;
+                        }
+                        Notifier.OnPageChanged += () =>
+                        {
+                            _maps.Clear();
+                            //This must be in InvokeAsync, because event is called outside Blazor context.
+                            InvokeAsync(StateHasChanged);
+                        };
+                        Notifier.OnClearStatus += () =>
+                        {
+                            Status?.Clear();
+                        };
+                        Notifier.OnProcessError += (ex) =>
+                        {
+                            Status?.ProcessError(ex);
+                        };
+                        Notifier.OnProcessErrors += (errors) =>
+                        {
+                            Status?.ProcessErrors(errors);
+                        };
+                        Notifier.OnShowInformation += (info, closable) =>
+                        {
+                            Status?.ShowInformation(info, closable);
+                        };
+                        if (ResourceStorage != null)
+                        {
+                            try
+                            {
+                                _ = ResourceStorage.UpdateLocalizationAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError(ex.Message);
+                                //It's OK if this fails.
+                            }
+                            _ = ResourceStorage.GetCurrentThemeAsync().ContinueWith(t =>
+                            {
+                                CurrentTheme = t.Result;
+                                if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
+                                {
+                                    Logger.LogDebug("Current theme:{0}", CurrentTheme.CssFile);
+                                }
+                                if (CurrentTheme?.Styles != null)
+                                {
+                                    foreach (var style in CurrentTheme.Styles)
+                                    {
+                                        Logger.LogDebug("Style: {0}", GetStyle(style));
+                                    }
+                                }
+                            });
+                            ResourceStorage.OnThemeChanged += (sender, theme) =>
+                            {
+                                CurrentTheme = theme;
+                                StateHasChanged();
+                            };
+                            _ = ResourceStorage.GetCurrentIconPacksAsync().ContinueWith(t2 =>
+                                {
+                                    if (IconPacks != null)
+                                    {
+                                        foreach (var ip in IconPacks)
+                                        {
+                                            Logger.LogDebug("Iconpack: {0}", ip);
+                                        }
+                                    }
+                                });
+                        }
+                    });
                 }
             }
         }
@@ -270,11 +377,186 @@
         {
             Logger.LogError(ex.Message);
         }
-        Logger.LogError($"MainLayout  init END {DateTime.Now:O}");
     }
 
     public async ValueTask DisposeAsync()
     {
-        await Notifier.StopAsync();
+        _initialDisposed = true;
+        if (_blockStorage != null)
+        {
+            _blockStorage.BlocksChanged -= BlocksChanged;
+        }
+        if (_initialResources != null)
+        {
+            _initialResources.OnThemeChanged -= InitialThemeChanged;
+        }
+        if (_initialResources != null)
+        {
+            _initialResources.OnIconPacksChanged -= InitialIconPacksChanged;
+        }
+        if (Notifier != null)
+        {
+            await Notifier.StopAsync();
+        }
+    }
+
+    private GXResourceStorage? _initialResources;
+    private IAmiBlockStorage? _blockStorage;
+    private long _blockDisplayGeneration;
+    private bool _initialDisposed;
+
+    private void BlocksChanged(object? sender, GXBlocksChangedEventArgs args)
+    {
+        var generation = Interlocked.Increment(ref _blockDisplayGeneration);
+        _ = InvokeAsync(() =>
+        {
+            if (_initialDisposed || generation != Interlocked.Read(ref _blockDisplayGeneration))
+            {
+                return;
+            }
+            _blocks.Clear();
+            _blocks.AddRange(args.Blocks);
+            StateHasChanged();
+        });
+    }
+
+    private void InitialThemeChanged(object? sender, GXThemeInfo theme) => _ = InvokeAsync(() =>
+    {
+        if (_initialDisposed)
+        {
+            return;
+        }
+        CurrentTheme = theme;
+        StateHasChanged();
+    });
+
+    private void InitialIconPacksChanged(object? sender, IEnumerable<string>
+    packs) => _ = InvokeAsync(() =>
+    {
+        if (_initialDisposed)
+        {
+            return;
+        }
+        IconPacks = packs;
+        StateHasChanged();
+    });
+
+    private async Task LoadInitialResourcesAsync(GXResourceStorage resources)
+    {
+        try
+        {
+            using var progress = Progress?.ProgressStart(Properties.Resources.Connecting);
+            var names = new List<string>();
+            var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant();
+            var tab = path.StartsWith("config/devicetemplate") ? GXMenus.DeviceTemplateTab : path.StartsWith("config/device") ? GXMenus.DeviceTab : path.StartsWith("config/agent") ? GXMenus.AgentTab : path.StartsWith("config/schedule") ? GXMenus.ScheduleTab : path.StartsWith("config/gateway") ? GXMenus.GatewayTab : path.StartsWith("user/") ? GXMenus.UserDetailsTab : path.StartsWith("updates") ? GXMenus.UpdateTab : path.StartsWith("admin/log") ? GXMenus.LogTab : null;
+            if (tab != null)
+            {
+                names.Add(tab);
+            }
+
+            var initial = resources.InitializeAsync(names);
+            CurrentTheme = await resources.GetCurrentThemeAsync();
+            IconPacks = await resources.GetCurrentIconPacksAsync();
+            if (!_initialDisposed)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+
+            await initial;
+            if (_initialDisposed)
+            {
+                return;
+            }
+
+            CurrentTheme = await resources.GetCurrentThemeAsync();
+            IconPacks = await resources.GetCurrentIconPacksAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Cannot load initial layout resources.");
+        }
+    }
+
+    [Parameter]
+    public bool FillSidebarsBetweenHeaderAndFooter { get; set; } = true;
+
+    private IEnumerable<GXBlock> GetBlocks(BlockLocation location) => _blocks.Where(block => block.Location == location)
+        .OrderBy(block => block.LocationOrder ?? 0).ThenBy(block => block.Id);
+
+    private string GetAreaVisibilityClass(BlockLocation location) =>
+    GetVisibilityClass(_blocks.FirstOrDefault(block => block.Location == location)?.Visibility);
+
+    private static string GetVisibilityClass(int? visibility) => visibility switch
+    {
+        (int)Visibility.All => "visibility-all",
+        (int)Visibility.ExtraLargeLarge => "visibility-xxl-up",
+        (int)Visibility.ExtraLarge => "visibility-xl-up",
+        (int)Visibility.Large => "visibility-lg-up",
+        (int)Visibility.Medium => "visibility-md-up",
+        (int)Visibility.Small => "visibility-sm-up",
+        (int)Visibility.ExtraSmall => "visibility-all",
+        (int)Visibility.Print => "visibility-print-only",
+        (int)Visibility.PrintHide => "visibility-print-hide",
+        _ => "visibility-all"
+    };
+
+    private static class Area
+    {
+        public const string Header = "Header";
+        public const string SidebarLeft = "SidebarLeft";
+        public const string SidebarRight = "SidebarRight";
+        public const string Content = "Content";
+        public const string Footer = "Footer";
+        public const string ContentHeader = "ContentHeader";
+        public const string ContentFooter = "ContentFooter";
+        public const string Component = "Component";
+    }
+
+    private sealed record BlockDefinition(BlockLocation Location, string Description, string Area, Visibility Visibility);
+
+    protected override Task OnInitializedAsync() => LoadBlocksAsync();
+
+    /// <summary>
+    /// Load active blocks and update the layout on the renderer context.
+    /// </summary>
+    private async Task LoadBlocksAsync()
+    {
+        if (_blockStorage == null)
+        {
+            return;
+        }
+        try
+        {
+            using var progress = Progress?.ProgressStart(Properties.Resources.ReadingBlocks);
+            var generation = Interlocked.Read(ref _blockDisplayGeneration);
+            var blocks = await _blockStorage.GetBlocksAsync();
+            if (_initialDisposed)
+            {
+                return;
+            }
+            await InvokeAsync(() =>
+            {
+                if (_initialDisposed || generation != Interlocked.Read(ref _blockDisplayGeneration))
+                {
+                    return;
+                }
+                _blocks.Clear();
+                _blocks.AddRange(blocks);
+                StateHasChanged();
+            });
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            if (!_initialDisposed)
+            {
+                Logger.LogError(ex, "Block list failed.");
+                NotificationService?.ReportError(ex);
+            }
+        }
     }
 }

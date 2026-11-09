@@ -1,0 +1,229 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/config/view/{Id:guid?}"
+@page "/config/view/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.View
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
+@inject HttpClient Http
+<GXHelpContext Topic="View" />
+
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
+            {
+                <TabHeader Name="@GXMenus.ViewDetailsTab" Parameters="@TabParameters" />
+            }
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+@code {
+    private GXEditorMenu? _editorMenu;
+    public bool DeleteTarget { get; set; }
+    public EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+    private void InitializeEditorMenu()
+    {
+        _editorMenu ??= new GXEditorMenu(SharedMenuService);
+        _editorMenu.Set(Active, _action, OnSave, OnCancel);
+    }
+    private Task OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
+    }
+    public void Dispose() => _editorMenu?.Dispose();
+    private async Task OnSave()
+    {
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            using var progressScope2 = Progress?.ProgressStart(Properties.Resources.SavingView);
+            NotificationService?.RemoveByKey("Pages/View/ViewGeneral.OnSave");
+            await InvokeAsync(StateHasChanged);
+            if (_action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveViewResponse>("api/View/Delete", new RemoveView()
+                {
+                    Ids = new Guid[] { Active.Id },
+                    Delete = DeleteTarget
+                });
+            }
+            else
+            {
+                string address;
+                if (_action == CrudAction.Create)
+                {
+                    address = "api/View/Add";
+                }
+                else if (_action == CrudAction.Update)
+                {
+                    address = "api/View/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateViewResponse>(address, new UpdateView() { Views = new List<GXView>() { Active } });
+            }
+            FormContext.MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGeneral.OnSave");
+        }
+    }
+
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active,
+        ["Action"] = _action
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXView Active = new GXView(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + "View";
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingViews);
+            NotificationService?.RemoveByKey("Pages/View/View.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get view data.
+                var tmp = (await Http.GetAsJsonAsync<GetViewResponse>(string.Format("api/View?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    if (Active.Columns == null)
+                    {
+                        Active.Columns = [];
+                    }
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                    return;
+                }
+            }
+            InitializeEditorMenu();
+            _ready = true;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/View.OnInitializedAsync");
+        }
+    }
+}

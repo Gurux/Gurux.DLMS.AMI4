@@ -1,0 +1,107 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/learn-the-fundamentals"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = GXRoles.Admin)]
+
+<PageTitle>@Properties.Resources.LearnTheFundamentals</PageTitle>
+<AuthorizeView Roles="@GXRoles.Admin">
+    <section class="fundamentals" aria-labelledby="fundamentals-title">
+        <a href="">@Properties.Resources.Walkthroughs</a>
+        <h1 id="fundamentals-title">@Properties.Resources.LearnTheFundamentals</h1>
+        <p>@Properties.Resources.FundamentalsDescription</p>
+        <details open>
+            <summary>@Properties.Resources.FundamentalsAgentTitle</summary>
+            <div class="step-content">
+                <p>@Properties.Resources.FundamentalsAgentDescription</p>
+                <ol>
+                    <li>@Properties.Resources.FundamentalsAgentDownload</li>
+                    <li>@Properties.Resources.FundamentalsAgentToken</li>
+                    <li>@Properties.Resources.FundamentalsAgentConfigure</li>
+                </ol>
+                <a class="btn btn-primary" href="agentadd">@Properties.Resources.ConfigureYourAccount</a>
+                <a href="User/Edit?tab=PersonalAccessTokens">@Properties.Resources.PersonalAccessTokens</a>
+                <a href="agents">@Properties.Resources.Agents</a>
+            </div>
+        </details>
+        <details>
+            <summary>@Properties.Resources.FundamentalsImportTitle</summary>
+            <div class="step-content">
+                <p>@Properties.Resources.FundamentalsImportDescription</p>
+                <ul>
+                    <li>@Properties.Resources.FundamentalsManufacturerImport</li>
+                    <li>@Properties.Resources.FundamentalsTemplateImport</li>
+                </ul>
+                <a class="btn btn-primary" href="config/Manufacturer">@Properties.Resources.Manufacturers</a>
+                <a href="DeviceTemplate/Add">@Properties.Resources.ImportCustomDeviceTemplate</a>
+            </div>
+        </details>
+        <details>
+            <summary>@Properties.Resources.FundamentalsTemplateTitle</summary>
+            <div class="step-content">
+                <p>@Properties.Resources.FundamentalsTemplateDescription</p>
+                <ol>
+                    <li>@Properties.Resources.FundamentalsTemplateSelect</li>
+                    <li>@Properties.Resources.FundamentalsTemplateConnection</li>
+                    <li>@Properties.Resources.FundamentalsTemplateSave</li>
+                </ol>
+                <a class="btn btn-primary" href="Device/Add">@Properties.Resources.CreateDeviceFromTemplate</a>
+                <a href="DeviceTemplates">@Properties.Resources.DeviceTemplates</a>
+            </div>
+        </details>
+        <details>
+            <summary>@Properties.Resources.FundamentalsDeviceTitle</summary>
+            <div class="step-content">
+                <p>@Properties.Resources.FundamentalsDeviceDescription</p>
+                <ol>
+                    <li>@Properties.Resources.FundamentalsDeviceSettings</li>
+                    <li>@Properties.Resources.FundamentalsDeviceSecurity</li>
+                    <li>@Properties.Resources.FundamentalsDeviceSave</li>
+                </ol>
+                <a class="btn btn-primary" href="Device/Add">@Properties.Resources.AddDevice</a>
+                <a href="Devices">@Properties.Resources.Devices</a>
+            </div>
+        </details>
+        <details>
+            <summary>@Properties.Resources.FundamentalsScheduleTitle</summary>
+            <div class="step-content">
+                <p>@Properties.Resources.FundamentalsScheduleDescription</p>
+                <ol>
+                    <li>@Properties.Resources.FundamentalsScheduleCreate</li>
+                    <li>@Properties.Resources.FundamentalsScheduleTargets</li>
+                    <li>@Properties.Resources.FundamentalsScheduleSave</li>
+                </ol>
+                <a class="btn btn-primary" href="Schedule/Add">@Properties.Resources.AddSchedule</a>
+                <a href="Schedules">@Properties.Resources.SchedulesTitle</a>
+            </div>
+        </details>
+        <p class="back-link"><a href="get-started">← @Properties.Resources.GetStartedWithGuruxDlmsAmi</a></p>
+    </section>
+</AuthorizeView>

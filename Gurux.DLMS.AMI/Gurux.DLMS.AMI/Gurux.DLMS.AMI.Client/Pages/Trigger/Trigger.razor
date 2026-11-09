@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.DLMS.AMI.Shared.DTOs.Trigger
@@ -41,41 +38,42 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Globalization
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Trigger)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
-                </div>
-                <div class="form-group">
-                                        <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="disabled" @bind-Value="Active.Name" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>Activities</label>
-                    <ul class="form-control">
-                        @if (Active.Activities != null)
-                        {
-                            @foreach (var it in Active.Activities)
-                            {
-                                <li>@it.Name</li>
-                            }
-                        }
-                    </ul>
-                </div>
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-            </div>
-        </div>
-    </EditForm>
-}
+<GXHelpContext Topic="Trigger" />
+
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
+            {
+                <TabHeader Name="@GXMenus.TriggerDetailsTab" Parameters="@TabParameters" />
+            }
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+
 @code {
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active!,
+        ["Action"] = action
+    };
+
+    private GXEditorMenu? _editorMenu;
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     private GXTrigger? Active;
 
     /// <summary>
@@ -93,11 +91,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTrigger);
+            NotificationService?.RemoveByKey("Pages/Trigger/Trigger.OnInitializedAsync");
             if (Active == null && Id != null)
             {
                 //Get trigger data.
@@ -109,14 +109,17 @@
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
             if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            action = ClientHelpers.GetAction(Action); Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            action = ClientHelpers.GetAction(NavigationManager, Action);
+            _editorMenu ??= new GXEditorMenu(SharedMenuService);
+            _editorMenu.Set(Active, action, OnSave, OnCancel);
+            _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -124,19 +127,48 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Trigger/Trigger.OnInitializedAsync");
         }
     }
 
     /// <summary>
     /// Cancel update.
     /// </summary>
-    private void OnCancel()
+    private Task OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
+    }
+
+    private async Task OnSave()
+    {
+        try
+        {
+            if (Active == null || action != CrudAction.Update)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            using var progressScope = Progress?.ProgressStart(GXProgress.SavingTrigger);
+            NotificationService?.RemoveByKey("Pages/Trigger/Trigger.OnSave");
+            await Http.PostAsJson<UpdateTriggerResponse>("api/Trigger/Update", new UpdateTrigger
+            {
+                Triggers = [Active]
+            });
+            GXEditContexts.For(Active).MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Trigger/Trigger.OnSave");
+        }
+    }
+
+    public void Dispose()
+    {
+        _editorMenu?.Dispose();
     }
 }

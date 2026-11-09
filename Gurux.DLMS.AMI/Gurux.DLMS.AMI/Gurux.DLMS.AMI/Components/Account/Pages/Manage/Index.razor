@@ -1,60 +1,200 @@
-﻿@page "/Account/Manage"
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/Manage"
 
 @using System.ComponentModel.DataAnnotations
+@using System.Text.Json
 @using Microsoft.AspNetCore.Identity
 @using Gurux.DLMS.AMI.Data
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@using Gurux.DLMS.AMI.Db
+@using Gurux.DLMS.AMI.Server.Services
+@using Microsoft.AspNetCore.Authorization
+@using Gurux.Service.Orm
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityUserAccessor UserAccessor
 @inject IdentityRedirectManager RedirectManager
+@inject IAppearanceRepository Appearances
+@inject IDbConnectionFactory DbFactory
+@inject IAuthorizationService Authorization
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.Profile</PageTitle>
 
-<h3>Profile</h3>
+<h3>@Gurux.DLMS.AMI.Properties.Resources.Profile</h3>
 <StatusMessage />
 
-<div class="row">
+<div class="row mx-0">
     <div class="col-xl-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
+            <div class="mb-3">
+                <label for="profile-picture">@Gurux.DLMS.AMI.Properties.Resources.ProfilePicture</label>
+                <Gurux.UI.Components.GXInputDropdown id="profile-picture" class="form-select"
+                                                   RememberValue="false" @bind-Value="Input.ProfilePictureIndex"
+                                                   Items="@Enumerable.Range(0, profilePictureOptions.Length)"
+                                                   Formatter="FormatProfilePicture" />
+                <InputText type="hidden" @bind-Value="Input.ProfilePictureOptions" />
+                @if (images.FirstOrDefault(image => image.Id == Input.ProfilePictureId) is { } selectedPicture)
+                {
+                    <Gurux.UI.Components.GXImage Value="@selectedPicture.Value" Alt="Profile picture" />
+                }
             </div>
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
+                <input type="text" value="@username" id="username" class="form-control" placeholder="@Gurux.DLMS.AMI.Properties.Resources.ChooseYourUsername" disabled />
+                <label for="username" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.Username</label>
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="@Gurux.DLMS.AMI.Properties.Resources.EnterYourPhoneNumber" />
+                <label for="Input.PhoneNumber" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.PhoneNumber</label>
                 <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.Save</button>
         </EditForm>
     </div>
 </div>
 
 @code {
     private ApplicationUser user = default!;
+    private GXUser profile = default!;
     private string? username;
     private string? phoneNumber;
+    private GXAppearance[] images = [];
+    private Guid?[] profilePictureOptions = [];
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         username = await UserManager.GetUserNameAsync(user);
         phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+        await using (var connection = await DbFactory.GetConnectionAsync())
+        {
+            profile = await connection.SingleOrDefaultAsync<GXUser>(
+                GXSelectArgs.Select<GXUser>(item => new { item.Id, item.ProfilePicture }, item => item.Id == user.Id))
+                ?? throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.TheProfileUserWasNotFound);
+        }
 
         Input.PhoneNumber ??= phoneNumber;
+        if (!HttpMethods.IsPost(HttpContext.Request.Method))
+        {
+            Input.ProfilePictureId = profile.ProfilePicture?.Id;
+        }
+        images = (await Appearances.ListAsync(new ListAppearances
+        {
+            Filter = new GXAppearance { ResourceType = (byte)ResourceType.Image }
+        }, null)).ToArray();
+        if (!HttpMethods.IsPost(HttpContext.Request.Method))
+        {
+            var options = new List<Guid?> { null };
+            if (profile.ProfilePicture?.Id is Guid currentId && !images.Any(image => image.Id == currentId))
+            {
+                options.Add(currentId);
+            }
+            options.AddRange(images.Select(image => (Guid?)image.Id));
+            profilePictureOptions = options.ToArray();
+            Input.ProfilePictureOptions = JsonSerializer.Serialize(profilePictureOptions);
+            Input.ProfilePictureIndex = Array.IndexOf(profilePictureOptions, Input.ProfilePictureId);
+        }
+        else
+        {
+            TryReadProfilePictureOptions(out profilePictureOptions);
+        }
+    }
+
+    private bool TryReadProfilePictureOptions(out Guid?[] options)
+    {
+        options = [];
+        try
+        {
+            var submitted = JsonSerializer.Deserialize<Guid?[]>(Input.ProfilePictureOptions ?? "null");
+            if (submitted == null || submitted.Length == 0 || submitted[0] != null)
+            {
+                return false;
+            }
+            options = submitted;
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private string? FormatProfilePicture(int index)
+    {
+        var pictureId = profilePictureOptions[index];
+        return pictureId == null
+            ? Gurux.DLMS.AMI.Properties.Resources.NoPicture
+            : images.FirstOrDefault(image => image.Id == pictureId)?.Name
+                ?? Gurux.DLMS.AMI.Properties.Resources.CurrentPicture;
     }
 
     private async Task OnValidSubmitAsync()
     {
+        // Resolve the posted index against the options rendered with this form, never a newly ordered image list.
+        if (!TryReadProfilePictureOptions(out var submittedOptions) ||
+            Input.ProfilePictureIndex < 0 || Input.ProfilePictureIndex >= submittedOptions.Length)
+        {
+            RedirectManager.RedirectToCurrentPageWithStatus("Error: Select an accessible image.", HttpContext);
+            return;
+        }
+        Input.ProfilePictureId = submittedOptions[Input.ProfilePictureIndex];
+        var pictureId = Input.ProfilePictureId;
+        if (pictureId != profile.ProfilePicture?.Id)
+        {
+            await using var connection = await DbFactory.GetConnectionAsync();
+            try
+            {
+                await GXProfilePictures.ValidateAsync(connection, Authorization, HttpContext.User, pictureId);
+            }
+            catch (Exception error) when (error is ArgumentException or UnauthorizedAccessException)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Error: Select an accessible image.", HttpContext);
+                return;
+            }
+            profile.ProfilePicture = pictureId == null ? null : new GXAppearance { Id = pictureId.Value };
+            await connection.UpdateAsync(GXUpdateArgs.Update(profile, item => item.ProfilePicture!));
+        }
         if (Input.PhoneNumber != phoneNumber)
         {
             var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
@@ -70,8 +210,11 @@
 
     private sealed class InputModel
     {
+        public Guid? ProfilePictureId { get; set; }
+        public int ProfilePictureIndex { get; set; }
+        public string? ProfilePictureOptions { get; set; }
         [Phone]
-        [Display(Name = "Phone number")]
+        [Display(Name = nameof(Gurux.DLMS.AMI.Properties.Resources.PhoneNumber), ResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources))]
         public string? PhoneNumber { get; set; }
     }
 }

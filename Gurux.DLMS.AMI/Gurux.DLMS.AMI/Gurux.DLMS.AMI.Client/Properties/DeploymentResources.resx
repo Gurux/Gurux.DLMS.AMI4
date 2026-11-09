@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Title"><value>AMI server and user interface</value></data>
+  <data name="Interface"><value>User interface</value></data>
+  <data name="WasmVersion"><value>Installed WASM version</value></data>
+  <data name="ApiVersion"><value>Running API version</value></data>
+  <data name="AvailableVersion"><value>Available version</value></data>
+  <data name="UpdateAll"><value>Update AMI and user interface</value></data>
+  <data name="UpdateAmi"><value>Update AMI</value></data>
+  <data name="UpdateId"><value>Update ID</value></data>
+  <data name="ExpectedOutage"><value>The AMI update causes a brief outage. Reconnection is monitored automatically.</value></data>
+  <data name="StateMaintenanceRequired"><value>This release requires a scheduled maintenance deployment. Contact the server administrator.</value></data>
+  <data name="UpdateInterface"><value>Update user interface</value></data>
+  <data name="Reconnecting"><value>Waiting for the AMI server to restart…</value></data>
+  <data name="Unavailable"><value>The deployment agent is unavailable.</value></data>
+  <data name="Reload"><value>Reload application</value></data>
+  <data name="StateIdle"><value>No update running</value></data>
+  <data name="StateQueued"><value>Update queued</value></data>
+  <data name="StateDownloading"><value>Downloading and preparing release</value></data>
+  <data name="StateActivating"><value>Activating release</value></data>
+  <data name="StateVerifying"><value>Checking the published version</value></data>
+  <data name="StateRollingBack"><value>Restoring the previous release</value></data>
+  <data name="StateRolledBack"><value>Update failed; previous release restored</value></data>
+  <data name="StateRollbackFailed"><value>Restoring the previous release failed; contact the server administrator</value></data>
+  <data name="StateFailed"><value>Update failed</value></data>
+  <data name="StateSucceeded"><value>Update completed</value></data>
+  <data name="RestorePrevious"><value>Restore previous version</value></data>
+</root>

@@ -1,35 +1,34 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Agent
@@ -46,33 +45,28 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = "Admin, AgentManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@inject ConfirmBase Confirm
-@inject IAccessTokenProvider AccessTokenProvider
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 @implements IGXConfigUpdate
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXHelpContext Topic="AgentInstallers" />
+
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXAgentPolicies.Delete" />
+    </ChildContent>
+</GXMenuControl>
 
 @if (_settings != null)
 {
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@GXEditContexts.For(_settings)">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    @if (_settings?.Checked != null)
-                    {
-                        <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings?.Checked))</label>
-                    }
+                    <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings.Checked))</label>
                     <button type="button" class="btn btn-link" @onclick="OnCheck">(@Properties.Resources.CheckManually)</button>
                 </div>
             </div>
@@ -80,36 +74,44 @@
     </EditForm>
 }
 
-<GXTable @ref="table"
+<GXViewTable ViewName="Config.AgentInstallers" ViewColumns="ViewColumnDefaults" TItem="GXAgentVersion" @ref="table"
          Context="version" ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          ShowAllUsers="false"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by version number..."
-                   @onchange="@((ChangeEventArgs __e) => filter.Versions[0].Number = Convert.ToString(__e.Value))" />
-        </th>
+        <GXFh Id="Version">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByVersionNumber"
+                   @onchange="@((ChangeEventArgs __e) => (filter.Versions ??= [new()])[0].Number = Convert.ToString(__e.Value))" />
+        </GXFh>
+        <GXFh Id="CreationTime"></GXFh>
     </FilterContent>
     <MenuContent>
-        <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <th>@Properties.Resources.Version</th>
-        <th>@Properties.Resources.CreationTime</th>
+        <GXTh Id="Version" TItem="GXAgentVersion">@Properties.Resources.Version</GXTh>
+        <GXTh Id="CreationTime" TItem="GXAgentVersion">@Properties.Resources.CreationTime</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>@version.Number</td>
-        <td>@version.CreationTime</td>
+        <GXTd Id="Version">@version.Number</GXTd>
+        <GXTd Id="CreationTime">@version.CreationTime</GXTd>
     </ItemContent>
-</GXTable>
-<Confirm @ref="DeleteConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         AllowDelete="false"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+</GXViewTable>
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Version") { Position = 0, Description = "Version", Visibility = (byte)Visibility.All },
+        new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+    private readonly GXConfigurationRefresh _configurationRefresh = new();
+
 
     /// <inheritdoc/>
     public void Update()
@@ -138,11 +140,8 @@
 
     private GXAgent filter = new GXAgent(null);
     //Verify that agant can be removed.
-    protected ConfirmBase? DeleteConfirmation;
     //Verify that agent can be updated.
-    protected ConfirmBase? UpdateConfirmation;
     //Verify that all agent can be updated.
-    protected ConfirmBase? UpdatesConfirmation;
 
     /// <summary>
     /// Table reference.
@@ -155,6 +154,7 @@
     private AgentSettings? _settings;
 
     private GXAgent? _active;
+    private bool _removing;
 
     /// <summary>
     /// Update table.
@@ -165,56 +165,56 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Config/AgentInstallers.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/AgentInstallers.Updated");
         }
     }
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null || filter?.Versions == null)
+            if (filter?.Versions == null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
-           {
-               try
-               {
-                   if (configurations != null)
-                   {
-                       foreach (var it in configurations)
-                       {
-                           if (it.Name == GXConfigurations.Agent && !string.IsNullOrEmpty(it.Settings))
-                           {
-                               _settings = JsonSerializer.Deserialize<AgentSettings>(it.Settings);
-                               InvokeAsync(StateHasChanged);
-                               break;
-                           }
-                       }
-                   }
-               }
-               catch (Exception ex)
-               {
-                   Notifier?.ProcessError(ex);
-               }
-           });
-            filter.Versions.Add(new GXAgentVersion() { Active = null });
-            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), async (agents) =>
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                await Updated();
+                _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Agent, configuration =>
+                {
+                    if (Parent?.Active?.Id != configuration.Id) {
+                        return;
+                    }
+                    Parent.Active.Settings = configuration.Settings;
+                    Update();
+                }, () => true, NotificationService));
             });
-            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentDelete), async (agents) =>
+            filter.Versions.Add(new GXAgentVersion() { Enabled = null });
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), async (items) =>
             {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXAgentPolicies.Add ||
+                        it.Type == GXAgentPolicies.Edit ||
+                        it.Type == GXAgentPolicies.Delete)
+                    {
+                        await GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
                 _settings = JsonSerializer.Deserialize<AgentSettings>(Parent.Active.Settings);
@@ -226,14 +226,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXAgentVersion>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAgentInstallers);
         try
         {
             if (filter.Versions != null && filter.Versions.Any())
@@ -248,20 +248,20 @@
                 }
             }
             ListAgents req = new ListAgents()
-                {
-                    Index = request.StartIndex,
-                    Count = request.Count,
-                    Filter = filter,
-                    OrderBy = request.OrderBy,
-                    Descending = request.Descending,
-                };
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+            };
             var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/Installers", req, request.CancellationToken);
-            if (ret.Agents == null || ret.Agents.Length != 1)
+            if (ret.Agents == null || ret.Agents.Count() != 1)
             {
                 _active = null;
                 return default;
             }
-            _active = ret.Agents[0];
+            _active = ret.Agents.First();
             if (_active.Versions == null)
             {
                 _active = null;
@@ -276,11 +276,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -288,40 +284,58 @@
     /// <summary>
     /// Delete selected agent.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => Properties.Resources.Version + " " + s.Number).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDelete, Properties.Resources.AreYouSureYouWantToDeleteSelectedItems,
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = "Delete",
+                    AllowDelete = false,
+                    Items = table?.SingleOrDefault()?.Select(s => Properties.Resources.Version + " " + s.Number).ToArray()
+                });
+            await OnDeleteConfirmation(confirmation);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Remove the agent.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
     {
+        if (_removing)
+        {
+            return;
+        }
         try
         {
             if (args.Confirm && table != null && _active != null && _active.Versions != null)
             {
-                foreach (var it in table.SingleOrDefault())
+                var selectedIds = table.SingleOrDefault().Select(version => version.Id).ToHashSet();
+                if (selectedIds.Count == 0)
                 {
-                    _active.Versions.Remove(it);
+                    return;
                 }
+                _removing = true;
+                // Keep the displayed state intact if saving fails.
+                var updated = ClientHelpers.Clone(_active);
+                updated.Versions!.RemoveAll(version => selectedIds.Contains(version.Id));
                 UpdateAgent req = new UpdateAgent()
-                    {
-                        Agents = new GXAgent[] { _active }
-                    };
-                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Update", req);
+                {
+                    Agents = new GXAgent[] { updated }
+                };
+                await Http.PostAsJson<UpdateAgentResponse>("api/Agent/Update", req);
+                // Reload the server's new concurrency stamp before another removal.
+                await Updated();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -330,34 +344,42 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
+        }
+        finally
+        {
+            _removing = false;
         }
     }
 
     /// <summary>
     /// Check agent versions manually.
     /// </summary>
-    public async void OnCheck()
+    public async Task OnCheck()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.CheckingNewVersions);
+        NotificationService?.RemoveByKey("Pages/Config/AgentInstallers.OnCheck");
         try
         {
-            CheckManufacturer req = new CheckManufacturer();
-            await Http.PostAsJson<CheckManufacturerResponse>("api/Agent/Check", req);
+            await Services.GetRequiredService<GXBackgroundTaskNotifications>()
+                .CheckAgentsAsync(progressScope2?.CancellationToken ?? CancellationToken.None);
         }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+        catch (OperationCanceledException) when (progressScope2?.CancellationToken.IsCancellationRequested == true) { }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/AgentInstallers.OnCheck");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _configurationRefresh.Dispose();
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

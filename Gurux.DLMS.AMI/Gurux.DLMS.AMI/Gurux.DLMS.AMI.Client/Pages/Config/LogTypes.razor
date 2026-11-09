@@ -1,0 +1,248 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/config/LogTypes"
+@page "/config/log"
+@page "/config/logs"
+@using Gurux.DLMS.AMI.Shared.DTOs.Log
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.Enums
+@inject IGXAmiConfirmation Confirmation
+@inject HttpClient Http
+@inject IGXNotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthorizationService AuthorizationService
+
+<GXHelpContext Topic="LogTypes" />
+
+<AuthorizeView Policy="@GXLogTypePolicies.View">
+    <Authorized>
+        <h1><GXLocalizedText Value="@Properties.Resources.LogTypes" /></h1>
+        <GXMenuControl RightCorner="true">
+            @if (_active == null)
+            {
+                <GXMenuEntry Text="@Properties.Resources.Refresh" Id="Refresh" OnClick="Load" />
+                <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="Add" Policy="@GXLogTypePolicies.Add" />
+                <GXMenuEntry Text="@Properties.Resources.Edit" Id="Edit" OnClick="EditSelected" Policy="@GXLogTypePolicies.Edit" />
+                <GXMenuEntry Text="@Properties.Resources.Remove" Id="Remove" OnClick="RemoveSelected" Policy="@GXLogTypePolicies.Delete" />
+            }
+            else
+            {
+                <GXMenuEntry Text="@Properties.Resources.Save" Id="Save" OnClick="Save" Policy="@(_active.Id == 0 ? GXLogTypePolicies.Add : GXLogTypePolicies.Edit)" />
+                <GXMenuEntry Text="@Properties.Resources.Cancel" Id="Cancel" OnClick="Cancel" />
+            }
+        </GXMenuControl>
+        @if (_active != null)
+        {
+            <AuthorizeView Policy="@(_active.Id == 0 ? GXLogTypePolicies.Add : GXLogTypePolicies.Edit)" Context="editContext">
+                <EditForm EditContext="@_editContext" Context="logTypeFormContext" @key="_active">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false" RouteGroup="log-type-editor" Active="GeneralInformation">
+                        <ChildContent>
+                            <TabHeader Name="@GXMenus.LogTypeDetailsTab">
+                                <ContentForLink Context="link">
+                                    @switch (link.Url)
+                                    {
+                                        case "GeneralInformation":
+                                            <label><GXLocalizedText Value="@Properties.Resources.Name" /></label>
+                                            <InputText class="form-control mb-2" @bind-Value="_active.Name" maxlength="64" />
+                                            <label><GXLocalizedText Value="@Properties.Resources.Description" /></label>
+                                            <InputTextArea class="form-control mb-2" @bind-Value="_active.Description" />
+                                            break;
+                                        case "Policies":
+                                            <Gurux.UI.Components.GXPolicyEditor @bind-Value="_active.Policies" Disabled="@_saving" />
+                                            break;
+                                    }
+                                </ContentForLink>
+                            </TabHeader>
+                        </ChildContent>
+                    </GXTabControl>
+                </EditForm>
+            </AuthorizeView>
+        }
+        <GXTable TItem="GXLogType" @ref="_table" Context="item" ItemsProvider="GetItems"
+                 Filter="true" SelectionMode="SelectionMode.Multiple" OnSearch="Update"
+                 ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+            <FilterContent>
+                <GXFh Id="Name"><GXSearch Id="log-types.name" Immediate="true" Placeholder="@Properties.Resources.Name" @bind-Value="_name" @bind-Value:after="Update" /></GXFh>
+                <GXFh Id="Description"><GXSearch Id="log-types.description" Immediate="true" Placeholder="@Properties.Resources.Description" @bind-Value="_description" @bind-Value:after="Update" /></GXFh>
+                <GXFh Id="Policies"><GXSearch Id="log-types.policy" Immediate="true" Placeholder="@Properties.Resources.Policies2" @bind-Value="_policy" @bind-Value:after="Update" /></GXFh>
+            </FilterContent>
+            <MenuContent>
+                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="EditSelected" Policy="@GXLogTypePolicies.Edit" />
+            </MenuContent>
+            <HeaderContent>
+                <GXTh Id="Name" TItem="GXLogType">@Properties.Resources.Name</GXTh>
+                <GXTh Id="Description" TItem="GXLogType">@Properties.Resources.Description</GXTh>
+                <GXTh Id="Policies" TItem="GXLogType">@Properties.Resources.Policies2</GXTh>
+            </HeaderContent>
+            <ItemContent>
+                <GXTd Id="Name">@item.Name</GXTd>
+                <GXTd Id="Description">@item.Description</GXTd>
+                <GXTd Id="Policies">@string.Join(", ", item.Policies ?? [])</GXTd>
+            </ItemContent>
+        </GXTable>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private GXLogType[] _items = Array.Empty<GXLogType>();
+    private GXLogType? _active;
+    private bool _saving;
+    private GXTable<GXLogType>? _table;
+    private EditContext? _editContext;
+    private string? _name, _description, _policy;
+
+    private ValueTask<ItemsProviderResult<GXLogType>> GetItems(GXItemsProviderRequest request)
+    {
+        var items = _items.Where(t => Matches(t.Name, _name) && Matches(t.Description, _description) &&
+            (string.IsNullOrWhiteSpace(_policy) || (t.Policies ?? []).Any(p => Matches(p, _policy)))).ToArray();
+        return new(new ItemsProviderResult<GXLogType>(items, items.Length));
+    }
+
+    private static bool Matches(string? value, string? filter) => string.IsNullOrWhiteSpace(filter) ||
+        value?.Contains(filter.Trim(), StringComparison.OrdinalIgnoreCase) == true;
+
+    private Task Update() => _table?.RefreshDataAsync(true) ?? Task.CompletedTask;
+
+    private async Task EditSelected()
+    {
+        var selected = _table?.SingleOrDefault().ToArray() ?? [];
+        if (_saving || selected.Length != 1) {
+            return;
+        }
+        try
+        {
+            var result = await Http.GetAsJsonAsync<GetLogTypeResponse>("api/LogType?id=" + selected[0].PublicId);
+            if (result?.Item == null) {
+                throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+            }
+            Open(result.Item);
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { NotificationService.ReportError(ex); }
+    }
+
+    private async Task RemoveSelected()
+    {
+        if (_saving) {
+            return;
+        }
+        var selected = _table?.SingleOrDefault().ToArray() ?? [];
+        if (selected.Length == 0) {
+            return;
+        }
+        _saving = true;
+        try
+        {
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.Remove, Properties.Resources.LogTypes,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.Remove, AllowDelete = false, Items = selected.Select(t => t.Name).ToArray() });
+            if (!confirmation.Confirm) {
+                return;
+            }
+            await Http.PostAsJson<RemoveLogTypeResponse>("api/LogType/Delete", new RemoveLogType { Ids = selected.Select(t => t.PublicId).ToArray(), Delete = false });
+            await Load();
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { NotificationService.ReportError(ex); }
+        finally { _saving = false; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { await Load(); StateHasChanged(); }
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+            if (!(await AuthorizationService.AuthorizeAsync(user, GXLogTypePolicies.View)).Succeeded)
+            {
+                return;
+            }
+        
+            var result = await Http.PostAsJson<ListLogTypesResponse>("api/LogType/List", new ListLogTypes { AllUsers = true });
+            _items = result.LogTypes?.Where(type => type.Removed == null).ToArray() ?? Array.Empty<GXLogType>();
+            await Update();
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            ex.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ReportError(ex);
+        }
+    }
+
+    private void Open(GXLogType item)
+    {
+        _active = item;
+        _editContext = GXEditContexts.For(item);
+    }
+    private void Add() { if (!_saving) {
+        Open(new GXLogType(null) { Level = 1 });
+    } }
+    private void Cancel() { if (!_saving) { _active = null; _editContext = null; } }
+
+    private async Task Save()
+    {
+        if (_active == null || _saving || _editContext?.Validate() != true)
+        {
+            return;
+        }
+        _saving = true;
+        try
+        {
+            await Http.PostAsJson<AddLogTypeResponse>(_active.Id == 0 ? "api/LogType/Add" : "api/LogType/Update", new AddLogType { LogTypes = new[] { _active } });
+            _active = null;
+            await Load();
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            ex.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ReportError(ex);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+}

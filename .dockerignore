@@ -8,3 +8,16 @@ artifacts/
 **/node_modules/
 Gurux.DLMS.AMI.Agent/settings.json
 Gurux.DLMS.AMI.Agent/appsettings.json
+
+# Runtime state and development secrets must not enter source-build images.
+**/Modules/
+**/Tests/
+**/Testing/
+**/Test/
+**/*.user
+**/.env
+**/.env.*
+**/appsettings.Development*.json
+**/*.db
+**/*.db-shm
+**/*.db-wal

@@ -1,0 +1,81 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+@using System.Net.Http.Json
+@inject HttpClient Http
+@implements IDisposable
+
+<section aria-labelledby="language-catalog-title" aria-busy="@_loading">
+    <h2 id="language-catalog-title">@Properties.Resources.AvailableLanguages</h2>
+    <button type="button" class="btn btn-link refresh-language-catalog" disabled="@_loading" @onclick="LoadAsync">@Properties.Resources.Refresh</button>
+    @if (_loading) { <p role="status">@Properties.Resources.Loading</p> }
+    @if (_error != null) { <p role="alert">@_error</p> }
+    @if (!_loading && _error == null)
+    {
+        @if (!_languages.Any(l => l.Version != null))
+        {
+            <p role="status">@Properties.Resources.NoAdditionalLanguagePackages</p>
+        }
+        <table class="table language-catalog">
+            <thead><tr><th>@Properties.Resources.Name</th><th>@Properties.Resources.Version</th><th>@Properties.Resources.Installed</th></tr></thead>
+            <tbody>
+                @foreach (var language in _languages)
+                {
+                    <tr class="language-catalog-row" @key="language.Id">
+                        <td>@language.NativeName (@language.EnglishName) — @language.Id</td>
+                        <td>@(language.Version ?? Properties.Resources.BuiltInLanguage)</td>
+                        <td>@(language.Installed ? Properties.Resources.Installed : Properties.Resources.UpdatesNotInstalled)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+    private GXAvailableLanguage[] _languages = [];
+    private bool _loading;
+    private string? _error;
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync()
+    {
+        if (_loading) {
+            return;
+        }
+        _loading = true;
+        _error = null;
+        try { _languages = await Http.GetFromJsonAsync<GXAvailableLanguage[]>("api/Localization/Available", _lifetime.Token) ?? []; }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception error) { _error = error.Message; }
+        finally { _loading = false; }
+    }
+    public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
+}

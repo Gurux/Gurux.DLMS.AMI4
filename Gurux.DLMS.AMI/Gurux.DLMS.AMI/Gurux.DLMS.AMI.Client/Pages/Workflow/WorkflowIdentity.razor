@@ -1,0 +1,115 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+
+@if (Active != null)
+{
+    <div class="form-group">
+        <label>Automatic execution identity</label>
+        <GXInputDropdown class="form-select" Disabled="@Disabled" @bind-Value="Identity" RememberValue="false" Items="@(new[] { GXWorkflowExecutionIdentity.EventActor, GXWorkflowExecutionIdentity.ServiceAccount })" Formatter="@(value => value == GXWorkflowExecutionIdentity.EventActor ? "Event actor" : "Service account")" />
+    </div>
+    @if (Active.ExecutionIdentity == GXWorkflowExecutionIdentity.ServiceAccount)
+    {
+        <div class="form-group">
+            <label>Execution service account</label>
+            <Gurux.DLMS.AMI.Client.Pages.User.UserSelector Value="@ServiceAccount" ValueChanged="@AccountChanged" Disabled="@Disabled" />
+            @if (!string.IsNullOrEmpty(Active.ExecutionUserId))
+            {
+                <button type="button" class="btn btn-link" disabled="@Disabled" @onclick="ClearAccount">Clear service account</button>
+            }
+            <small class="form-text text-muted">Select an explicit account. Automatic execution fails if the account is missing or unavailable.</small>
+        </div>
+    }
+    <small class="form-text text-muted">Manual executions use the caller's permissions.</small>
+}
+
+@code {
+    [Parameter, EditorRequired] public GXWorkflow? Active { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    private GXUser? _serviceAccount;
+    private GXUser? ServiceAccount
+    {
+        get
+        {
+            if (_serviceAccount?.Id != Active?.ExecutionUserId)
+                {
+                _serviceAccount = string.IsNullOrEmpty(Active?.ExecutionUserId) ? null
+                    : new GXUser { Id = Active.ExecutionUserId, UserName = Active.ExecutionUserId };
+            }
+            return _serviceAccount;
+        }
+    }
+
+    private GXWorkflowExecutionIdentity Identity
+    {
+        get => Active?.ExecutionIdentity ?? GXWorkflowExecutionIdentity.ServiceAccount;
+        set
+        {
+            if (Active == null || Disabled || Active.ExecutionIdentity == value) {
+                return;
+            }
+            Active.ExecutionIdentity = value;
+            if (value == GXWorkflowExecutionIdentity.EventActor && Active.ExecutionUserId != null)
+            {
+                Active.ExecutionUserId = null;
+                _serviceAccount = null;
+                GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXWorkflow.ExecutionUserId)));
+            }
+            GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXWorkflow.ExecutionIdentity)));
+        }
+    }
+
+    private void AccountChanged(GXUser? account)
+    {
+        // UserSelector can publish an empty search result while paging. Only explicit selections
+        // change the account; clearing is a deliberate separate action.
+        if (Active == null || Disabled || string.IsNullOrWhiteSpace(account?.Id)) {
+            return;
+        }
+        _serviceAccount = account;
+        var id = account.Id;
+        if (Active.ExecutionUserId == id) {
+            return;
+        }
+        Active.ExecutionUserId = id;
+        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXWorkflow.ExecutionUserId)));
+    }
+
+    private void ClearAccount()
+    {
+        if (Active == null || Disabled || Active.ExecutionUserId == null) {
+            return;
+        }
+        Active.ExecutionUserId = null;
+        _serviceAccount = null;
+        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXWorkflow.ExecutionUserId)));
+    }
+}

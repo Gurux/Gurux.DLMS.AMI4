@@ -1,35 +1,32 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -49,64 +46,53 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @implements IGXConfigUpdate
 
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="SystemConfig" />
 
 @if (_settings != null)
 {
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@_editContext">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <label>Size of the database connection pool</label>
-                    <InputNumber id="poolSize" class="form-control"
-                                 @bind-Value="_settings.PoolSize" />
-                </div>
-                <div class="form-group">
-                    <InputCheckbox id="useSwagger" @bind-Value="_settings.UseSwagger" />
-                    <label>@Properties.Resources.EnableSwagger</label>
+                    <label>@Properties.Resources.SizeOfTheDatabaseConnectionPool</label>
+                    <GXInputNumber RememberValue="false" id="poolSize" class="form-control"
+                                 @bind-Value="_settings.PoolSize" Min="@GXNumberBounds.Minimum(_settings.PoolSize)" Max="@GXNumberBounds.Maximum(_settings.PoolSize)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.SiteEmailAddress</label>
                     <InputText id="siteEmailAddress" class="form-control"
                                @bind-Value="_settings.SiteEmailAddress" />
                 </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.RowsPerPage</label>
-                    <select class="form-select" @bind="_settings.RowsPerPage">
-                        @foreach (var it in RowsPerPage)
-                        {
-                            <option value="@it">@it</option>
-                        }
-                    </select>
-                </div>
             </div>
         </div>
         <button type="button" style="float: right;" class="btn btn-danger"
                 @onclick="() => OnRestart()">
-            Restart
+            @Gurux.DLMS.AMI.Client.Properties.Resources.Restart
         </button>
     </EditForm>
 }
 
 @code {
-    int[] RowsPerPage = new int[] { 10, 20, 50, 100 };
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
     /// <inheritdoc/>
     public void Update()
     {
-        if (string.IsNullOrEmpty(Parent?.Active?.Settings))
-        {
-            _settings = new SystemSettings();
-        }
-        else
-        {
-            _settings = JsonSerializer.Deserialize<SystemSettings>(Parent.Active.Settings);
-        }
+        LoadSettings(Parent?.Active?.Settings);
         InvokeAsync(StateHasChanged);
     }
 
@@ -117,40 +103,50 @@
     public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     SystemSettings? _settings;
+    private EditContext? _editContext;
+
+    private void LoadSettings(string? settings)
+    {
+        _settings = string.IsNullOrEmpty(settings) ? new SystemSettings()
+            : JsonSerializer.Deserialize<SystemSettings>(settings) ?? new SystemSettings();
+        _editContext = new EditContext(_settings);
+        MenuService.EditContext = _editContext;
+    }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingSystemConfig);
+            NotificationService?.RemoveByKey("Pages/Config/SystemConfig.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                if (configurations != null)
+                _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.System, configuration =>
                 {
-                    foreach (var it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.System && !string.IsNullOrEmpty(it.Settings))
-                        {
-                            _settings = JsonSerializer.Deserialize<SystemSettings>(it.Settings);
-                            InvokeAsync(StateHasChanged);
-                            break;
-                        }
+                    if (Parent?.Active?.Id != configuration.Id) {
+                        return;
                     }
-                }
+                    Parent.Active.Settings = configuration.Settings;
+                    Update();
+                }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
             });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
-            if (string.IsNullOrEmpty(Parent?.Active?.Settings))
+            MenuService.Clear();
+            MenuService.AddMenuItems(new GXMenuItem
             {
-                _settings = new SystemSettings();
-            }
-            else
-            {
-                _settings = JsonSerializer.Deserialize<SystemSettings>(Parent.Active.Settings);
-            }
+                Text = Properties.Resources.Save, Icon = "Save",
+                Enabled = Gurux.UI.Components.Enums.EnableStyle.Modified,
+                OnClick = EventCallback.Factory.Create(this, OnSave)
+            });
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
+            LoadSettings(Parent?.Active?.Settings);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -158,23 +154,19 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/SystemConfig.OnInitialized");
         }
     }
 
     /// <summary>
     /// Save values.
     /// </summary>
-    private async void OnSave()
+    private async Task OnSave()
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingSystemConfig);
+            NotificationService?.RemoveByKey("Pages/Config/SystemConfig.OnSave");
             if (Parent?.Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
@@ -183,15 +175,12 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson<ConfigurationUpdateResponse>("api/Configuration/Update", arg);
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            _editContext?.MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/SystemConfig.OnSave");
         }
     }
 
@@ -200,21 +189,17 @@
     /// </summary>
     private async void OnRestart()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingSystemConfig);
+        NotificationService?.RemoveByKey("Pages/Config/SystemConfig.OnRestart");
         try
         {
             StopApplicationRequest req = new StopApplicationRequest();
             await Http.PostAsJson("api/Configuration/Restart", req);
-            Notifier?.ShowInformation("System restarted.");
+            NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.SystemRestarted, string.Empty, Closable: false));
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/SystemConfig.OnRestart");
         }
     }
 
@@ -223,11 +208,13 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _configurationRefresh.Dispose();
+        MenuService.Dispose();
+        Notifier?.RemoveListener(this);
     }
 }

@@ -1,432 +1,255 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Shared.DIs
 
+@page "/DeviceTemplate/{Id:guid?}"
+@page "/DeviceTemplate/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS
-@using Gurux.DLMS.ManufacturerSettings
-@using Gurux.DLMS.Objects
-@using System.Xml.Linq
-@using System.IO
-@using System.Xml
-@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
-@using System.Text.Json
-@using System.Web;
-@using System.Text.Json.Serialization;
-@using System.Text.Encodings.Web;
+@using Gurux.DLMS.AMI.Shared.DTOs;
 
-@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@using Gurux.DLMS.AMI.Shared.DTOs.Menu
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@inject ILogger<DeviceTemplate> Logger
+<GXHelpContext Topic="DeviceTemplate" />
 
-@if (Active != null)
+<h1>
+    @Title
+</h1>
+@if (_ready)
 {
-    @if (isLoading)
-    {
-        <p>Loading @fileName...</p>
-    }
-    else if (IsAdding)
-    {
-        @*FileSelector is disabled until user has selected device template.*@
-        <FileSelector Value="@_value"
-                      Style="width:100%"
-                      MaxFileSize="10000000"
-                      OnLoaded="@UpdateDeviceTemplates"
-                      Filter=".gxc" />
-    }
-
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <GXValidator @ref="_validator" OnValidate="OnValidate" />
-        <ValidationSummary />
-        <table>
-            @if (IsAdding && templates != null && templates.Any())
-            {
-                <tr>
-                    <th>Type:</th>
-                    <th>
-                        <InputSelect id="type" @bind-Value="TemplateType" placeholder="Device template type">
-                            @foreach (var it in templates)
-                            {
-                                <option value="@it.Type">@it.Type</option>
-                            }
-                        </InputSelect>
-                    </th>
-                </tr>
-            }
-            <tr>
-                <th>
-                    Name:
-                </th>
-                <th>
-                    <InputText id="name" disabled="@IsDeleting"
-                               @bind-Value="TemplateName"
-                               placeholder="Device template name" />
-                </th>
-            </tr>
-            <tr>
-                <th>
-                    Wait time
-                </th>
-                <th>
-                    <InputNumber id="waitTime" disabled="@IsDeleting"
-                                 @bind-Value="Active.WaitTime" />
-                </th>
-            </tr>
-            <tr>
-                <th>
-                    Resend count
-                </th>
-                <th>
-                    <InputNumber id="resendCount" disabled="@IsDeleting"
-                                 @bind-Value="Active.ResendCount" />
-                </th>
-            </tr>
-            <tr>
-                <th>
-                    @Properties.Resources.Authentication
-                </th>
-                <th>
-                    <InputSelect id="type" class="form-select"
-                                 @bind-Value="Authentication" readonly="true">
-                        @foreach (var it in GetAuthentications())
-                        {
-                            <option value="@Convert.ToInt32(@it)">@it</option>
-                        }
-                    </InputSelect>
-                </th>
-            </tr>
-            <tr>
-                <th>
-                    <InputHexAscii @ref="@_password"
-                                   Disabled="@(IsDeleting || IsPasswordTileDisabled())"
-                                   @bind-Value="DevicePassword"
-                                   Title="@Properties.Resources.Password">
-                    </InputHexAscii>
-                    <ValidationMessage For="@(() => _password)" />
-                </th>
-            </tr>
-        </table>
-        <TabControl>
-            <ChildContent>
-                <TabPage Text="Profiles" Icon="Profiles">
-                    <Profiles Parent="this" @ref="_profiles"></Profiles>
-                </TabPage>
-                <TabPage Text="Ciphering" Icon="Ciphering">
-                    <Ciphering Parent="this" @ref="_ciphering"></Ciphering>
-                </TabPage>
-                <TabPage Text="Advanced" Icon="Advanced">
-                    <Advanced Parent="this" @ref="_advanced"></Advanced>
-                </TabPage>
-            </ChildContent>
-        </TabControl>
-        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                              Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-    </EditForm>
+    <EditForm EditContext="@GXEditContexts.For(Active)"><ValidationSummary /></EditForm>
 }
-@code {
-    private InputHexAscii? _password;
-    private GXValidator? _validator;
-    private Ciphering? _ciphering;
-    private Advanced? _advanced;
-    private Profiles? _profiles;
-
-    private string? _value;
-
-    [CascadingParameter]
-    private DeviceTemplateTab? Parent { get; set; }
-    private GXDeviceTemplate? _active;
-
-    internal GXDeviceTemplate? Active
-    {
-        get
-        {
-            if (_active != null)
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
             {
-                return _active;
+                <TabHeader Name="@GXMenus.DeviceTemplateDetailsTab" Parameters="@TabParameters" ParametersForLink="@GetTabParameters" LinkFilter="@ShowTemplateTab" />
             }
-            return Parent?.Active;
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+@code {
+    private GXEditorMenu? _editorMenu;
+    private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
+    public bool DeleteTarget { get; set; }
+    public bool IsDeleting => _action == CrudAction.Delete;
+    internal GXDLMSSettings? Settings;
+    internal List<GXDeviceTemplate> ImportedTemplates = new();
+    internal string? ImportedFileName;
+    private GXDeviceTemplate? _settingsTarget;
+    private GXProfilePictureEdit? _profilePictureEdit;
+    private bool _savingProfilePicture;
+    internal void LoadSettings(GXDeviceTemplate template)
+    {
+        if (ReferenceEquals(_settingsTarget, template)) {
+            return;
         }
+        _settingsTarget = template;
+        Settings = string.IsNullOrWhiteSpace(template.Settings) ? new GXDLMSSettings() : JsonSerializer.Deserialize<GXDLMSSettings>(template.Settings) ?? new GXDLMSSettings();
     }
+    private void OnActiveChanged(GXDeviceTemplate template)
+    {
+        if (_savingProfilePicture) {
+            return;
+        }
+        // Imported protocol alternatives belong to the same new template editor.
+        // Keep its pending picture instead of inheriting an imported reference.
+        if (_action == CrudAction.Create && !ReferenceEquals(Active, template))
+        {
+            template.ProfilePicture = Active.ProfilePicture;
+        }
+        Active = template;
+        LoadSettings(template);
+        EditorMenu.Set(Active, _action, OnSave, OnCancel);
+    }
+    private bool ValidateContent()
+    {
+        if (string.IsNullOrEmpty(Active.Name)) {
+            EditorMenu.AddValidationError(nameof(Active.Name), Properties.Resources.InvalidName);
+        }
+        if (Active.Objects == null || Active.Objects.Count == 0) {
+            throw new Exception(Properties.Resources.DeviceTemplateFileIsNotSelected);
+        }
+        if (Settings != null && Settings.Security != (byte)Gurux.DLMS.Enums.Security.None)
+        {
+            if (Settings.ClientSystemTitle?.Length is > 0 and not 8) {
+                EditorMenu.AddValidationError(nameof(Settings.ClientSystemTitle), Properties.Resources.InvalidSystemTitle);
+            }
+            if (Settings.DeviceSystemTitle?.Length is > 0 and not 8) {
+                EditorMenu.AddValidationError(nameof(Settings.DeviceSystemTitle), Properties.Resources.InvalidSystemTitle);
+            }
+            int keyLength = Settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 ? 32 : 16;
+            if (Settings.BlockCipherKey?.Length > 0 && Settings.BlockCipherKey.Length != keyLength) {
+                EditorMenu.AddValidationError(nameof(Settings.BlockCipherKey), Properties.Resources.InvalidBlockCipherKey);
+            }
+            if (Settings.AuthenticationKey?.Length > 0 && Settings.AuthenticationKey.Length != keyLength) {
+                EditorMenu.AddValidationError(nameof(Settings.AuthenticationKey), Properties.Resources.InvalidAuthenticationKey);
+            }
+        }
+        return !GXEditContexts.For(Active).GetValidationMessages().Any();
+    }
+    public void Dispose() => _editorMenu?.Dispose();
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active,
+        ["Device"] = Active,
+        ["TopMenu"] = false
+    };
+
+    private IGXProgress? Progress;
+    private IDictionary<string, object>? GetTabParameters(GXMenuLink link)
+    {
+        var type = Type.GetType(link.TargetType ?? string.Empty);
+        if (type == typeof(ProfilePictureEditor))
+        {
+            return new Dictionary<string, object>
+            {
+                [nameof(ProfilePictureEditor.Value)] = Active.ProfilePicture!,
+                [nameof(ProfilePictureEditor.ValueChanged)] = EventCallback.Factory.Create<GXAppearance?>(this, ProfilePictureChanged),
+                [nameof(ProfilePictureEditor.Disabled)] = _savingProfilePicture || _action is not (CrudAction.Create or CrudAction.Update),
+                [nameof(ProfilePictureEditor.Id)] = "device-template-profile-picture-editor"
+            };
+        }
+        return type == typeof(DeviceTemplateGeneral)
+            ? new Dictionary<string, object>
+            {
+                ["Action"] = _action,
+                ["ActiveChanged"] = EventCallback.Factory.Create<GXDeviceTemplate>(this, OnActiveChanged)
+            } : null;
+    }
+
+    private bool ShowTemplateTab(GXMenuLink link)
+        => _action != CrudAction.Create || Type.GetType(link.TargetType ?? string.Empty) != typeof(ProfilePictureEditor);
+
+    private void ProfilePictureChanged(GXAppearance? image)
+    {
+        if (_savingProfilePicture || _action is not (CrudAction.Create or CrudAction.Update)) {
+            return;
+        }
+        Active.ProfilePicture = image;
+        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXDeviceTemplate.ProfilePicture)));
+    }
+
+    private IGXNotificationService? NotificationService;
 
     /// <summary>
-    /// User action.
+    /// Action.
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
     /// <summary>
-    /// Selected item.
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
     /// </summary>
     [Parameter]
     public Guid? Id { get; set; }
 
-    private bool DeleteTarget;
-    private bool isLoading;
-    List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
-    private string? fileName = null;
-
-    public bool IsDeleting
-    {
-        get
-        {
-            return action == CrudAction.Delete;
-        }
-    }
-
-    //User changes name of the Active.
-    string? TemplateName
-    {
-        get
-        {
-            if (Active == null)
-            {
-                return null;
-            }
-            return Active.Name;
-        }
-        set
-        {
-            if (Active != null)
-            {
-                Active.Name = value;
-            }
-        }
-    }
-
-    public bool IsAdding
-    {
-        get
-        {
-            return action == CrudAction.Create;
-        }
-    }
-
-    private string? TemplateType
-    {
-        get
-        {
-            return Active?.Type;
-        }
-        set
-        {
-            foreach (GXDeviceTemplate it in templates)
-            {
-                if (Parent != null && it.Type == value)
-                {
-                    _active = it;
-                    break;
-                }
-            }
-        }
-    }
-
-    private Guid SelectedSettings { get; set; }
-
-    private List<Gurux.DLMS.Enums.Authentication> GetAuthentications()
-    {
-        List<Gurux.DLMS.Enums.Authentication> list = new List<Gurux.DLMS.Enums.Authentication>();
-        list.Add(Gurux.DLMS.Enums.Authentication.None);
-        list.Add(Gurux.DLMS.Enums.Authentication.Low);
-        list.Add(Gurux.DLMS.Enums.Authentication.High);
-        list.Add(Gurux.DLMS.Enums.Authentication.HighMD5);
-        list.Add(Gurux.DLMS.Enums.Authentication.HighSHA1);
-        list.Add(Gurux.DLMS.Enums.Authentication.HighGMAC);
-        list.Add(Gurux.DLMS.Enums.Authentication.HighSHA256);
-        list.Add(Gurux.DLMS.Enums.Authentication.HighECDSA);
-        return list;
-    }
-
-    internal Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? Settings;
-    private byte Authentication
-    {
-        get
-        {
-            if (Settings == null)
-            {
-                return 0;
-            }
-            return Settings.Authentication;
-        }
-        set
-        {
-            if (Settings != null)
-            {
-                if (Settings.Authentication != value)
-                {
-                    Settings.Authentication = value;
-                }
-            }
-        }
-    }
-
-    private bool IsPasswordTileDisabled()
-    {
-        if (Settings != null)
-        {
-            return (Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighGMAC ||
-                Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.None);
-        }
-        return false;
-    }
-
-    private byte[]? DevicePassword
-    {
-        get;
-        set;
-    }
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
 
     /// <summary>
-    /// Get device templates from the XML.
+    /// Active item.
     /// </summary>
-    /// <param name="xml"></param>
-    private void UpdateDeviceTemplates(string? xml, string? fileName)
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            Notifier.ProgressStart();
-            isLoading = true;
-            InvokeAsync(StateHasChanged);
-            templates = ClientHelpers.ConvertToTemplates(Logger, xml);
-            if (Parent != null && templates.Any())
-            {
-                _active = templates[0];
-            }
-        }
-        catch (Exception ex)
-        {
-            fileName = null;
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
-            isLoading = false;
-            InvokeAsync(StateHasChanged);
-        }
-    }
-
-    /// <summary>
-    /// Device template tab asks to update the UI.
-    /// </summary>
-    public void Update()
-    {
-        if (Active?.Settings != null)
-        {
-            Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
-            if (Settings != null)
-            {
-                DevicePassword = GXDLMSTranslator.HexToBytes(Settings?.Password);
-                if (DevicePassword != null)
-                {
-                    DevicePassword = Settings?.HexPassword;
-                }
-                _profiles?.Update(Settings);
-                _ciphering?.Update(Settings);
-                _advanced?.Update(Settings);
-            }
-            InvokeAsync(StateHasChanged);
-        }
-    }
+    public GXDeviceTemplate Active = new GXDeviceTemplate(null);
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
+            switch (Action)
             {
-                Notifier.ProgressStart();
-                try
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.DeviceTemplate;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDeviceTemplate);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplate.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get device template data.
+                var tmp = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(string.Format("api/DeviceTemplate?id={0}", Id)));
+                if (tmp?.Item != null)
                 {
-                    //Get device template data.
-                    var tmp = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(string.Format("api/DeviceTemplate?id={0}", Id)));
-                    if (tmp?.Item != null)
-                    {
-                        _active = tmp.Item;
-                    }
-                    else
-                    {
-                        NavigationManager.NavigateTo("404");
-                    }
+                    Active = tmp.Item;
                 }
-                finally
+                else
                 {
-                    Notifier?.ProgressEnd();
-                }
-            }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action != CrudAction.Create)
-            {
-                templates.Add(Active);
-            }
-
-            if (action == CrudAction.Update && Active.Settings != null)
-            {
-                Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
-                if (Settings != null)
-                {
-                    DevicePassword = Settings.HexPassword;
-                    _ciphering?.Update(Settings);
-                    _advanced?.Update(Settings);
+                    NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            _profilePictureEdit = new GXProfilePictureEdit(Active.ProfilePicture?.Id, Active.Id == Guid.Empty ? null : Active.Creator?.Id);
+            LoadSettings(Active);
+            _ready = true;
+            EditorMenu.Set(Active, _action, OnSave, OnCancel);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -434,54 +257,26 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-    }
-
-    /// <summary>
-    /// Validate the device content.
-    /// </summary>
-    /// <param name="sender"></param>
-    private void OnValidate(GXValidator sender)
-    {
-        if (Active != null)
-        {
-            if (string.IsNullOrEmpty(Active.Name))
-            {
-                sender.AddError(() => Active.Name, "Invalid name.");
-            }
-            if (Active.Objects == null || Active.Objects.Count == 0)
-            {
-                throw new Exception("Device template file is not selected.");
-            }
-            if (Settings != null)
-            {
-                //Check security settings.
-                _ciphering?.Validate(sender, Settings);
-                _profiles?.Validate(sender, Settings);
-                _advanced?.Validate(sender, Settings);
-            }
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplate.OnInitializedAsync");
         }
     }
 
     private void UpdateSettings()
     {
         //Update settings
-        if (Active != null && _password != null && Settings != null)
+        if (Active != null && Settings != null)
         {
             var options = new JsonSerializerOptions
             {
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
             };
-            _ciphering?.UpdateSettings(Settings);
-            _profiles?.UpdateSettings(Settings);
-            _advanced?.UpdateSettings(Settings);
-            Settings.Password = null;
-            Settings.HexPassword = _password?.GetByteArray();
+
+
+
             //Set empty strings to null.
-            @foreach (var it in Settings.GetType().GetProperties())
+            foreach (var it in Settings.GetType().GetProperties())
             {
-                object value = it.GetValue(Settings);
+                object? value = it.GetValue(Settings);
                 if (value is string str)
                 {
                     if (str == string.Empty)
@@ -500,30 +295,28 @@
             Active.Settings = JsonSerializer.Serialize(Settings, options);
         }
     }
-
-    /// <summary>
-    /// Save device Active.
-    /// </summary>
-    public async void OnSave()
+    public async Task OnSave()
     {
+        if (_savingProfilePicture) {
+            return;
+        }
+        _savingProfilePicture = true;
         try
         {
+            StateHasChanged();
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            _validator?.ClearErrors();
-            if (Active == null)
-            {
-                throw new Exception(Properties.Resources.InvalidTarget);
-            }
-            if (_validator != null && !_validator.Validate())
+
+            if (_action != CrudAction.Delete && !ValidateContent())
             {
                 return;
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            UpdateSettings();
+            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingDeviceTemplate);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.OnSave");
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveDeviceTemplateResponse>("api/DeviceTemplate/Delete", new RemoveDeviceTemplate()
                 {
@@ -531,26 +324,19 @@
                     Delete = DeleteTarget
                 });
             }
-            else if (action == CrudAction.Create)
+            else if (_action == CrudAction.Create)
             {
-                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Add", new UpdateDeviceTemplate()
-                {
-                    Templates = new GXDeviceTemplate[] { Active }
-                });
+                await SaveTemplateWithPictureAsync("api/DeviceTemplate/Add");
             }
-            else if (action == CrudAction.Update)
+            else if (_action == CrudAction.Update)
             {
-                UpdateSettings();
-                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Update", new UpdateDeviceTemplate()
-                {
-                    Templates = new GXDeviceTemplate[] { Active }
-                });
+                await SaveTemplateWithPictureAsync("api/DeviceTemplate/Update");
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -558,19 +344,29 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.OnSave");
         }
         finally
         {
-            Notifier.ProgressEnd();
+            _savingProfilePicture = false;
+            StateHasChanged();
         }
     }
-
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
-    private void OnCancel()
+    private Task SaveTemplateWithPictureAsync(string address)
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        var template = Active;
+        return (_profilePictureEdit ??= new GXProfilePictureEdit(template.ProfilePicture?.Id, template.Id == Guid.Empty ? null : template.Creator?.Id)).SaveAsync(Http,
+            template.ProfilePicture, image => template.ProfilePicture = image,
+            async () => { await Http.PostAsJson<UpdateDeviceTemplateResponse>(address, new UpdateDeviceTemplate { Templates = [template] }); },
+            error => NotificationService?.ReportError(error, "DeviceTemplate.ProfilePicture.Cleanup"));
+    }
+
+    private Task OnCancel()
+    {
+        if (_savingProfilePicture) {
+            return Task.CompletedTask;
+        }
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
     }
 }

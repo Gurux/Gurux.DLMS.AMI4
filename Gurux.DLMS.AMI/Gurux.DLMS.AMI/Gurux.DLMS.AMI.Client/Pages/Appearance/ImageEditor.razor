@@ -1,38 +1,35 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Enums
+
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.UI.Components.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.Rest
@@ -43,115 +40,172 @@
 @using System.Text.Json
 @using System.Text
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
 @inject ILogger<ImageEditor> logger
 
-@if (Active != null)
+<GXHelpContext Topic="ImageEditor" />
+
+@if (Active != null && ProfilePictureMode)
 {
-    <EditForm Model="@Active">
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Id">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="description" readonly @bind-Value="Active.Id" class="form-control" />
-                </div>
-                <Image Id="@Active.Id" Value="@Active.Value" Color="@_color"></Image>
-                <GXInputDropdown class="form-select"
-                                 Id="image-imageType"
-                                 LastValue="true"
-                                 ItemsProvider="@GetTypes"
-                                 @bind-Value="ImageType">
-                </GXInputDropdown>
-                @if (ImageType == ImageType.Html)
-                {
-                    <DropdownSearch class="form-control"
-                                    Id="image-html"
-                                    LastValue="true"
-                                    @bind-Value="_htmlSymbol"
-                                    Formatter="@((HtmlSymbol e) => e.Description)"
-                                    ItemsProvider="@GetHtmlItems">
-                        <Template Context="it">
-                            <span>@((MarkupString)it.NumericCode)</span> @it.Description
-                        </Template>
-                    </DropdownSearch>
-                    <GXColorSelector @bind-Value="@_color"></GXColorSelector>
-                }
-                else
-                @if (ImageType == ImageType.IconLigature)
-                {
-                    <GXInputDropdown class="form-select"
-                                     TValue="GXAppearance"
-                                     Id="image-imageType"
-                                     LastValue="true"
-                                     Items="@IconPacks"
-                                     Formatter="@((e) => e?.Id)"
-                                     OnSelected="@UpdateIcons"
-                                     @bind-Value="_iconPack">
-                    </GXInputDropdown>
-                    <DropdownSearch @ref="_icons"
-                                    TValue="(string, string)"
-                                    class="form-control"
-                                    Id="image-icon"
-                                    LastValue="true"
-                                    @bind-Value="_icon"
-                                    Formatter="@((e) => e.Item2)"
-                                    ItemsProvider="@GetIcons">
-                        <Template Context="it">
-                            <Image Value="@it.Item1"></Image> @it.Item2
-                        </Template>
-                    </DropdownSearch>
-                    <GXColorSelector @bind-Value="@_color"></GXColorSelector>
-                }
-                else
-                {
-                    <FileSelector Value="@_value"
-                                  Style="width:100%"
-                                  MaxFileSize="1000000"
-                                  OnLoaded="@UpdateImage"
-                                  Filter="image/*,.png,.jpg,.jpeg,.gif,.bmp,.ico,.svg" />
-                }
-                <AuthoringInformationDateTimeOffset Action="Edit" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (Action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
+    @if (!string.IsNullOrEmpty(Active.Value))
+    {
+        <GXImage Value="@Active.Value" Width="160" Height="160" />
+    }
+    @if (!string.IsNullOrEmpty(Active.OriginalFileName))
+    {
+        <div class="form-text">@Active.OriginalFileName</div>
+    }
+    @if (Action != CrudAction.Delete)
+    {
+        <GXFileSelector TType="byte[]" MaxFileSize="1000000" OnLoaded="@UpdateImage"
+                      Filter=".png,.jpg,.jpeg,.gif,.webp,.bmp,.ico" />
+    }
+}
+else if (Active != null)
+{
+    <EditForm EditContext="@GXEditContexts.For(Active)">
+        <PolicyTabs>
+            <GeneralContent>
+                <div class="row">
+                    <div style="width:100%">
+                        <div class="form-group">
+                            <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                            <InputText id="description" disabled="@(Action == CrudAction.Delete)" @bind-Value="Active.Name" class="form-control" />
+                        </div>
+                        <GXImage Id="@Active.Name" Value="@Active.Value" Color="@_color"></GXImage>
+                        @if (!string.IsNullOrEmpty(Active.OriginalFileName))
+                        {
+                            <div class="form-text">@Active.OriginalFileName</div>
+                        }
+                        <GXInputDropdown class="form-select"
+                                         Id="image-imageType"
+                                         RememberValue="true"
+                                         ItemsProvider="@GetTypes"
+                                         @bind-Value="ImageType">
+                        </GXInputDropdown>
+                        @if (ImageType == ImageType.Html)
+                        {
+                            <GXDropdownSearch class="form-control"
+                                            Id="image-html"
+                                            RememberValue="true"
+                                            @bind-Value="_htmlSymbol"
+                                            Formatter="@((HtmlSymbol e) => e.Description)"
+                                            ItemsProvider="@GetHtmlItems">
+                                <Template Context="it">
+                                    <span>@((MarkupString)it.NumericCode)</span> @it.Description
+                                </Template>
+                            </GXDropdownSearch>
+                            <GXColorSelector @bind-Value="@_color"></GXColorSelector>
+                        }
+                        else
+                        @if (ImageType == ImageType.IconLigature)
+                        {
+                            <GXInputDropdown class="form-select"
+                                             TValue="GXAppearance"
+                                             Id="image-imageType"
+                                             RememberValue="true"
+                                             Items="@IconPacks"
+                                             Formatter="@((e) => e?.Name)"
+                                             OnSelected="@UpdateIcons"
+                                             @bind-Value="_iconPack">
+                            </GXInputDropdown>
+                            <GXDropdownSearch @ref="_icons"
+                                            TValue="(string, string)"
+                                            class="form-control"
+                                            Id="image-icon"
+                                            RememberValue="true"
+                                            @bind-Value="_icon"
+                                            Formatter="@((e) => e.Item2)"
+                                            ItemsProvider="@GetIcons">
+                                <Template Context="it">
+                                    <GXImage Value="@it.Item1"></GXImage> @it.Item2
+                                </Template>
+                            </GXDropdownSearch>
+                            <GXColorSelector @bind-Value="@_color"></GXColorSelector>
+                        }
+                        else
+                        {
+                            <GXFileSelector TType="byte[]" Value="@_value"
+                                          Style="width:100%"
+                                          MaxFileSize="1000000"
+                                          OnLoaded="@UpdateImage"
+                                          Filter="image/*,.png,.jpg,.jpeg,.gif,.bmp,.ico,.svg" />
+                        }
+                        <div class="form-group">
+                            <GXLocalizedText Value="@Properties.Resources.Priority" />
+                            <GXInputNumber RememberValue="false" class="form-control" @bind-Value="Active.Priority" Min="@GXNumberBounds.Minimum(Active.Priority)" Max="@GXNumberBounds.Maximum(Active.Priority)" />
+                            <div class="form-text"><GXLocalizedText Value="@Properties.Resources.PriorityControlsResourceOrdering" /></div>
+                        </div>
+                        <GXInputSwitch Text="@Properties.Resources.Preload" @bind-Value="Active.Preload" />
+                        <label for="image-accessVisibility">@Properties.Resources.AccessVisibility</label>
+                        <GXInputDropdown id="image-accessVisibility" class="form-select" @bind-Value="Active.AccessVisibility" RememberValue="false" Items="@(new ResourceVisibility?[] { ResourceVisibility.Inherit, ResourceVisibility.Private, ResourceVisibility.Internal, ResourceVisibility.Public })" Formatter="@(value => value switch { ResourceVisibility.Inherit => Properties.Resources.Inherit, ResourceVisibility.Private => Properties.Resources.Private, ResourceVisibility.Internal => Properties.Resources.Internal, _ => Properties.Resources.Public })" />
+
+                        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                            Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                        @if (Action == CrudAction.Delete)
+                        {
+                            <hr />
+                            <p>
+                            </p>
+                            <div class="form-group">
+                                <InputRadioGroup @bind-Value="DeleteTarget">
+                                    <InputRadio Value="false">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                                    <InputRadio Value="true">
+                                    </InputRadio>
+                                    <label>@Properties.Resources.TargetDeleteQuestion</label>
+                                </InputRadioGroup>
+                                <br />
+                            </div>
+                        }
                     </div>
-                }
-            </div>
-        </div>
+                </div>
+            </GeneralContent>
+            <PolicyContent>
+                <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+            </PolicyContent>
+        </PolicyTabs>
     </EditForm>
 }
 @code {
+    /// <summary>Shows only the file upload and preview for a profile picture.</summary>
+    [Parameter] public bool ProfilePictureMode { get; set; }
+    /// <summary>Notifies the host that image contents were edited.</summary>
+    [Parameter] public EventCallback ImageChanged { get; set; }
+    protected override void OnInitialized()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+    }
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     [Parameter]
     public GXAppearance? Active { get; set; }
 
-    GXInputDropdown<(string, string)>? _icons;
-    private ImageType ImageType
+    protected override void OnParametersSet()
     {
-        get;
-        set;
+        if (Active != null && Active.Id == Guid.Empty && Active.AccessVisibility == null)
+            {
+            Active.AccessVisibility = ResourceVisibility.Private;
+        }
     }
 
-    private GXAppearance? _iconPack
-    {
-        get;
-        set;
-    }
+    GXInputDropdown<(string, string)>? _icons;
+    private ImageType ImageType { get; set; }
+
+    private GXAppearance? _iconPack { get; set; }
 
     private async Task UpdateIcons(GXAppearance e)
     {
@@ -185,7 +239,7 @@
     [Parameter]
     public Guid? Id { get; set; }
     private bool DeleteTarget;
-    private byte[]? _value;
+    private byte[]? _value { get; set; }
 
     private HtmlSymbol _htmlSymbol
     {
@@ -207,6 +261,7 @@
             if (Active != null)
             {
                 Active.Value = value.NumericCode;
+                Active.OriginalFileName = null;
                 StateHasChanged();
             }
         }
@@ -233,6 +288,7 @@
             if (Active != null)
             {
                 Active.Value = value.Item1;
+                Active.OriginalFileName = null;
                 StateHasChanged();
             }
         }
@@ -327,10 +383,10 @@
     {
         try
         {
-            if (!string.IsNullOrEmpty(_iconPack?.Id))
+            if (!string.IsNullOrEmpty(_iconPack?.Name))
             {
                 Icons.Clear();
-                Icons.AddRange(ClientHelpers.GetIconPackIcons(_iconPack.Id));
+                Icons.AddRange(ClientHelpers.GetIconPackIcons(_iconPack.Name));
                 IEnumerable<(string, string)> icons = Icons;
                 int total = Icons.Count;
                 if (!string.IsNullOrEmpty(request.Filter))
@@ -365,11 +421,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -380,7 +432,7 @@
         if (firstRender && !string.IsNullOrEmpty(Active?.Value))
         {
             //Update image type.
-            ImageType = Image.DetectKind(Active?.Value);
+            ImageType = GXImage.DetectKind(Active?.Value);
         }
         base.OnAfterRender(firstRender);
     }
@@ -397,19 +449,21 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
     /// <summary>
     /// Get image from the file.
     /// </summary>
     /// <param name="value"></param>
-    private void UpdateImage(byte[]? value, string fileName)
+    private async Task UpdateImage((byte[]? Value, string FileName) loaded)
     {
+        var (value, fileName) = loaded;
         if (Active != null && value != null)
         {
+            Active.OriginalFileName = fileName;
             string ext = Path.GetExtension(fileName);
-            if (ext == ".svg")
+            if (string.Equals(ext, ".svg", StringComparison.OrdinalIgnoreCase))
             {
                 Active.Value = ASCIIEncoding.UTF8.GetString(value);
             }
@@ -417,6 +471,7 @@
             {
                 Active.Value = Convert.ToBase64String(value);
             }
+            await ImageChanged.InvokeAsync();
             StateHasChanged();
         }
     }
@@ -432,13 +487,13 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingImageEditor);
+            NotificationService?.RemoveByKey("Pages/Appearance/ImageEditor.OnSave");
             if (Action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAppearanceResponse>("api/Appearance/Delete", new RemoveAppearance()
                 {
-                    Ids = new string[] { Active.Id },
+                    Ids = new Guid[] { Active.Id },
                     Delete = DeleteTarget
                 });
             }
@@ -460,7 +515,7 @@
                 var ret = await Http.PostAsJson<UpdateAppearanceResponse>(address, new UpdateAppearance()
                 { Appearances = new List<GXAppearance>() { Active } });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -468,11 +523,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Appearance/ImageEditor.OnSave");
         }
     }
 
@@ -481,7 +532,7 @@
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 }
 

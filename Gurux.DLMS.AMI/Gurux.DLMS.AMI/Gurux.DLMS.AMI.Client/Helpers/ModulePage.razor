@@ -1,0 +1,125 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/addin/{ModuleId}/{PageName}"
+@page "/addin/{ModuleId}/{PageName}/{TargetId}"
+@using Gurux.DLMS.AMI.Module
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+@inject ModuleLoader Loader
+@inject IGXNotificationService Notifications
+@implements IDisposable
+
+@if (_component != null)
+{
+    <ModuleErrorBoundary @key="@(ModuleId + PageName + TargetId)" ModuleId="@ModuleId">
+        <DynamicComponent Type="_component" Parameters="_parameters" />
+    </ModuleErrorBoundary>
+}
+else if (_loaded)
+{
+    @if (_anonymous)
+    {
+        <p>@Properties.Resources.SignInToAccessThisPage</p><a href="@LoginUrl">@Properties.Resources.SignIn</a><span> · </span><a href="@RegisterUrl">@Properties.Resources.Register</a>
+    }
+    else
+    {
+        <p>@Properties.Resources.PageIsUnavailableOrAccessIsNotPermitted</p>
+    }
+}
+
+@code {
+    [Parameter] public string ModuleId { get; set; } = "";
+    [Parameter] public string PageName { get; set; } = "";
+    [Parameter] public string? TargetId { get; set; }
+    private Type? _component;
+    private bool _loaded;
+    private bool _interactive;
+    private bool _anonymous;
+    private string ReturnUrl => Uri.EscapeDataString(new Uri(Navigation.Uri).PathAndQuery);
+    private string LoginUrl => "Account/Login?returnUrl=" + ReturnUrl;
+    private string RegisterUrl => "Account/Register?returnUrl=" + ReturnUrl;
+    private IDictionary<string, object> _parameters = new Dictionary<string, object>();
+    private readonly CancellationTokenSource _lifetime = new();
+    protected override void OnInitialized() => Loader.Changed += Changed;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_interactive)
+        {
+            return;
+        }
+        try
+        {
+            if (!Loader.IsInitialized)
+            {
+                await Loader.RefreshAsync(_lifetime.Token);
+            }
+        
+            await ResolveAsync();
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            _component = null;
+            Notifications.ReportError(error);
+            _loaded = true;
+        }
+    }
+    private void Changed() => _ = InvokeAsync(async () => { await ResolveAsync(); StateHasChanged(); });
+    private async Task ResolveAsync()
+    {
+        _anonymous = (await Authentication.GetAuthenticationStateAsync()).User.Identity?.IsAuthenticated != true;
+        _component = await Loader.GetPageTypeAsync(ModuleId, PageName, _lifetime.Token);
+        _parameters = new Dictionary<string, object>();
+        if (_component?.GetProperty("TargetId") != null)
+        {
+            _parameters["TargetId"] = TargetId!;
+        }
+        if (_component?.GetProperty("PageName") != null)
+        {
+            _parameters["PageName"] = PageName;
+        }
+        _loaded = true;
+    }
+    public void Dispose() { Loader.Changed -= Changed; _lifetime.Cancel(); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        _interactive = true;
+        await OnParametersSetAsync();
+        StateHasChanged();
+    }
+}
+

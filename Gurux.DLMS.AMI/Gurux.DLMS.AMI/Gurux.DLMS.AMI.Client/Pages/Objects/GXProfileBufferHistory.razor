@@ -1,0 +1,209 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using System.Globalization
+@inject HttpClient Http
+@inject IServiceProvider Services
+
+<h3>@Properties.Resources.StoredHistory</h3>
+<div class="profile-range-controls">
+    <label>@Properties.Resources.ProfileRangeStart
+        <input type="datetime-local" class="profile-range-start" @bind="start" @bind:format="yyyy-MM-ddTHH:mm" />
+    </label>
+    <label>@Properties.Resources.ProfileRangeEnd
+        <input type="datetime-local" class="profile-range-end" @bind="end" @bind:format="yyyy-MM-ddTHH:mm" />
+    </label>
+    <button type="button" class="profile-range-apply" @onclick="ApplyAsync" disabled="@busy">@Properties.Resources.StoredHistory</button>
+    <button type="button" class="profile-read-missing" @onclick="ReadAsync" disabled="@(busy || !CanRead || AttributeId == Guid.Empty)">@Properties.Resources.ProfileReadMissing</button>
+</div>
+<p>@Properties.Resources.ProfileLocalTime</p>
+@if (error != null) { <p role="alert">@error</p> }
+@if (message != null) { <p role="status">@message</p> }
+@if (coverage != null)
+{
+    <details class="profile-history-coverage">
+        <summary>@Properties.Resources.ProfileCoverage</summary>
+        @foreach (var group in CoverageGroups())
+        {
+            <p>@group.Label: @group.Ranges.Length</p>
+            <ul>
+                @foreach (var range in group.Ranges)
+                {
+                    <li>@range.Start.ToLocalTime().ToString("g") – @range.End.ToLocalTime().ToString("g")</li>
+                }
+            </ul>
+        }
+    </details>
+}
+<GXTable TItem="GXProfileStoredRow" @ref="table" @key="AttributeId"
+         Context="value" ItemsProvider="GetItems"
+         SelectionMode="SelectionMode.None" CanEdit="false"
+         ShowAllUsers="false" ShowRemoved="false" Filter="false">
+    <HeaderContent>
+        <th>@Properties.Resources.Read</th>
+        <th>@Properties.Resources.Values</th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@value.CapturedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td>
+        <td class="gx-profile-history-value">@Decode(value.Value)</td>
+    </ItemContent>
+</GXTable>
+
+@code {
+    /// <summary>The persisted profile buffer attribute whose stored rows are displayed.</summary>
+    [Parameter]
+    public Guid AttributeId { get; set; }
+
+    [Parameter] public bool CanRead { get; set; } = true;
+    private GXTable<GXProfileStoredRow>? table;
+    private DateTime start = DateTime.Today;
+    private DateTime end = DateTime.Today.AddDays(1);
+    private GXProfileHistoryResponse? coverage;
+    private string? error, message;
+    private bool busy;
+
+    public async Task RefreshAsync()
+    {
+        if (table != null) {
+            await table.RefreshDataAsync(true);
+        }
+    }
+
+    private GXProfileHistoryRequest? CreateRequest(int index = 0, int count = 100)
+    {
+        error = null;
+        if (end <= start || TimeZoneInfo.Local.IsInvalidTime(start) || TimeZoneInfo.Local.IsInvalidTime(end))
+        {
+            error = Properties.Resources.ProfileInvalidRange;
+            return null;
+        }
+        return new GXProfileHistoryRequest { AttributeId = AttributeId,
+            Start = new DateTimeOffset(start).ToUniversalTime(), End = new DateTimeOffset(end).ToUniversalTime(),
+            Index = index, Count = count };
+    }
+
+    private async Task ApplyAsync()
+    {
+        message = null;
+        if (CreateRequest() != null) {
+            await RefreshAsync();
+        }
+    }
+
+    private async Task ReadAsync()
+    {
+        var request = CreateRequest();
+        if (request == null || !CanRead || AttributeId == Guid.Empty || busy) {
+            return;
+        }
+        busy = true;
+        message = null;
+        try
+        {
+            var response = await Http.PostAsJson<GXProfileHistoryResponse>("api/ProfileHistory/Read", request);
+            message = response.TaskIds.Length == 0 ? Properties.Resources.ProfileNoReadNeeded : null;
+            Services.GetService<Gurux.DLMS.AMI.Client.Helpers.GXReadTaskNotifications>()?.Track(response.TaskIds);
+            await RefreshAsync();
+        }
+        catch (Exception ex) { error = ex.Message; Services.GetService<IGXNotificationService>()?.ReportError(ex); }
+        finally { busy = false; }
+    }
+
+    private IEnumerable<(string Label, GXProfileRange[] Ranges)> CoverageGroups()
+    {
+        yield return (Properties.Resources.ProfileCovered, coverage!.Covered);
+        yield return (Properties.Resources.ProfileMissing, coverage.Missing);
+        yield return (Properties.Resources.ProfileRefresh, coverage.RefreshRanges);
+        yield return (Properties.Resources.ProfileEmpty, coverage.EmptyRanges);
+        yield return (Properties.Resources.ProfileUnavailable, coverage.Unavailable);
+    }
+
+    private async ValueTask<ItemsProviderResult<GXProfileStoredRow>> GetItems(GXItemsProviderRequest request)
+    {
+        var query = CreateRequest(request.StartIndex, request.Count);
+        if (AttributeId == Guid.Empty || query == null) {
+            return new([], 0);
+        }
+        try
+        {
+            var response = await Http.PostAsJson<GXProfileHistoryResponse>("api/ProfileHistory/List", query, request.CancellationToken);
+            request.CancellationToken.ThrowIfCancellationRequested();
+            coverage = response;
+            await InvokeAsync(StateHasChanged);
+            return new(response.Values ?? [], ClientHelpers.ToVirtualizedCount(response.Count));
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            Services.GetService<IGXNotificationService>()?.ReportError(ex);
+            await InvokeAsync(StateHasChanged);
+            return new([], 0);
+        }
+    }
+
+    private static string Decode(string? xml)
+    {
+        if (string.IsNullOrEmpty(xml)) {
+            return string.Empty;
+        }
+        try { return Format(GXDLMSTranslator.XmlToValue(xml)); }
+        catch { return xml; }
+    }
+
+    private static string Format(object? value)
+    {
+        if (value is null) {
+            return string.Empty;
+        }
+        if (value is byte[] bytes) {
+            return GXDLMSTranslator.ToHex(bytes);
+        }
+        if (value is GXStructure structure)
+            {
+            return string.Join(" | ", structure.Select(Format));
+        }
+        if (value is GXArray array)
+            {
+            return "[" + string.Join("; ", array.Select(Format)) + "]";
+        }
+        if (value is DateTimeOffset offset)
+            {
+            return offset.ToString("g", CultureInfo.CurrentCulture);
+        }
+        if (value is DateTime date)
+            {
+            return date.ToString("g", CultureInfo.CurrentCulture);
+        }
+        return Convert.ToString(value, CultureInfo.CurrentCulture) ?? string.Empty;
+    }
+}

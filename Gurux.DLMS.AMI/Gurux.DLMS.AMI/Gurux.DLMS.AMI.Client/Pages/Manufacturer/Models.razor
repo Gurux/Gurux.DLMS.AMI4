@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
@@ -44,15 +43,18 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Globalization
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @implements IDisposable
 
-<GXTable @ref="table"
-         TItem="GXDeviceModel"
+<GXHelpContext Topic="Models" />
+
+<GXViewTable ViewName="Manufacturer.Models" ViewColumns="ViewColumnDefaults" TItem="GXDeviceModel" @ref="table"
+         AllowColumnCustomization="false"
          Context="model"
          ItemsProvider="@GetItems"
+         OnChecked="@(items => Parent!.Owner.InstalledModels = items.ToArray())"
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
          ShowAllUsers="false"
@@ -63,22 +65,31 @@
          OnRowChanged="OnSelectionChanged"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-        </th>
+        </GXFh>
     </FilterContent>
     <HeaderContent>
-        <Th Name="Name" Target="@model">@Properties.Resources.Name</Th>
+        <GXTh Name="Name" Target="@model">@Properties.Resources.Name</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>@model.Name</td>
+        <GXTd Id="Name">@model.Name</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+
+    private IGXNotificationService? NotificationService;
+
     [CascadingParameter]
-    private Manufacturer? Parent { get; set; }
+    private ManufacturerGeneral? Parent { get; set; }
 
     private GXManufacturer? Manufacturer
     {
@@ -92,10 +103,8 @@
     /// User has selected a new model.
     /// </summary>
     /// <param name="value">Selected model.</param>
-    private void OnSelectionChanged(GXDeviceModel value)
-    {
-        Parent?.ModelChanged(value);
-    }
+    private Task OnSelectionChanged(GXDeviceModel value)
+        => Parent?.ModelChanged(value) ?? Task.CompletedTask;
 
     /// <summary>
     /// Manufacturer filter.
@@ -105,7 +114,7 @@
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXDeviceModel>? table;
+    protected GXViewTable<GXDeviceModel>? table;
 
     /// <summary>
     /// Update table.
@@ -116,13 +125,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Manufacturer/Models.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Manufacturer/Models.Updated");
         }
     }
 
@@ -143,7 +152,7 @@
                     {
                         if (it.Template == null)
                         {
-                            check = disabled = false;
+                            disabled = false; check = Parent?.Owner.InstalledModels.Any(item => item.Id == value.Id) == true;
                             return;
                         }
                     }
@@ -170,25 +179,34 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
         await Task.Delay(1);
         try
         {
             //Select first model.
-            GXDeviceModel? first = Manufacturer?.Models?.FirstOrDefault();
+            GXDeviceModel? first = Parent?.Model ?? Manufacturer?.Models?.FirstOrDefault();
             if (first != null)
             {
-                Parent?.ModelChanged(first);
+                if (Parent != null) {
+                    await Parent.ModelChanged(first);
+                }
                 if (table != null)
                 {
                     //Get last selected item.
-                    table.Active = first;
+                    table.RestoreSelection(first);
                 }
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -209,18 +227,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

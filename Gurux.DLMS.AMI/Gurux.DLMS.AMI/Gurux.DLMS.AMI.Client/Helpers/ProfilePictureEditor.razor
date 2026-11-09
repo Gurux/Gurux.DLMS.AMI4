@@ -1,0 +1,120 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Pages.Appearance
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@inject IServiceProvider Services
+@implements IDisposable
+
+<div class="form-group" id="@Id">
+    <label>@Properties.Resources.ProfilePicture</label>
+    @if (_image != null)
+    {
+        <ImageEditor @key="_revision" Active="@_image" ProfilePictureMode="true"
+                     Action="@(Disabled ? CrudAction.Delete : CrudAction.Update)" ImageChanged="@Uploaded" />
+    }
+    @if (!Disabled)
+    {
+        <button id="@(Id + "-reset")" type="button" class="btn btn-secondary mt-2"
+                disabled="@(Value == null)" @onclick="@Reset">@Properties.Resources.Reset</button>
+    }
+</div>
+
+@code {
+    [Parameter] public GXAppearance? Value { get; set; }
+    [Parameter] public EventCallback<GXAppearance?> ValueChanged { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Id { get; set; } = "profile-picture-editor";
+
+    private GXAppearance? _input, _image;
+    private long _revision;
+    private bool _initialized, _disposed;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized && ReferenceEquals(Value, _input)) {
+            return;
+        }
+        _initialized = true;
+        _input = Value;
+        var revision = ++_revision;
+        _image = new GXAppearance { ResourceType = (byte)ResourceType.Image, Value = Value?.Value };
+        if (Value == null || Value.Id == Guid.Empty || !string.IsNullOrEmpty(Value.Value)) {
+            return;
+        }
+        try
+        {
+            var response = await Http.GetAsJsonAsync<GetAppearanceResponse>($"api/Appearance?type={(int)ResourceType.Image}&id={Value.Id}");
+            if (!_disposed && revision == _revision && ReferenceEquals(Value, _input))
+                {
+                _image = response.Item ?? new GXAppearance();
+            }
+        }
+        catch (Exception error)
+        {
+            if (!_disposed && revision == _revision)
+            {
+                _initialized = false;
+                Services.GetService<IGXNotificationService>()?.ReportError(error, "ProfilePicture.Load");
+            }
+        }
+    }
+
+    private async Task Uploaded()
+    {
+        if (Disabled || _image == null) {
+            return;
+        }
+        var pending = new GXAppearance
+        {
+            ResourceType = (byte)ResourceType.Image, Value = _image.Value,
+            OriginalFileName = _image.OriginalFileName
+        };
+        ++_revision;
+        _image = pending;
+        _input = pending;
+        await ValueChanged.InvokeAsync(pending);
+    }
+
+    private async Task Reset()
+    {
+        if (Disabled) {
+            return;
+        }
+        ++_revision;
+        _input = null;
+        _image = new GXAppearance { ResourceType = (byte)ResourceType.Image };
+        await ValueChanged.InvokeAsync(null);
+    }
+
+    public void Dispose() { _disposed = true; ++_revision; }
+}

@@ -1,0 +1,39 @@
+/*
+--------------------------------------------------------------------------
+Gurux Ltd
+
+Copyright (c) Gurux Ltd.
+
+This file is part of Gurux Device Framework.
+
+Commit: $Format:%H$
+Date:   $Format:%cI$
+
+This software is available under either of the following licenses:
+
+1. GNU General Public License, version 2 only (GPL-2.0-only).
+   See the LICENSE file included with this distribution.
+
+2. A commercial license granted by Gurux Ltd under a separate written
+   agreement. Use under this option requires a valid commercial license
+   and is governed by the terms of that agreement.
+
+If you have not obtained a commercial license from Gurux Ltd,
+use of this software is governed by GPL-2.0-only.
+
+Commercial licensing: https://www.gurux.fi/
+
+SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+--------------------------------------------------------------------------
+*/
+
+.fundamentals { max-width: 58rem; margin: 1rem auto; padding: 0 1rem; }
+h1 { margin-top: 1rem; }
+details { margin-top: .75rem; border: 1px solid var(--bs-border-color, #767676); border-radius: .4rem; }
+summary { padding: 1rem; font-size: 1.05rem; font-weight: 600; cursor: pointer; }
+summary:hover { background: var(--bs-tertiary-bg, transparent); }
+summary:focus-visible { outline: 2px solid var(--bs-primary, #2787a8); outline-offset: 2px; }
+.step-content { padding: 0 1.25rem 1.25rem; }
+li { margin: .5rem 0; }
+.step-content a { display: inline-block; margin: .5rem 1rem 0 0; }
+.back-link { margin-top: 1.5rem; }

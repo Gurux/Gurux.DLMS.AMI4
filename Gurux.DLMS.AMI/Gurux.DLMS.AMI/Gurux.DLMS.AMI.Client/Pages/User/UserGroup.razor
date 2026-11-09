@@ -1,194 +1,93 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Shared.DIs
 
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Module
+@page "/UserGroup/{Id:guid?}"
+@page "/UserGroup/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs;
 
-@attribute [Authorize(Roles = "Admin, UserGroupManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
+<GXHelpContext Topic="UserGroup" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                                        <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Name" />
-                </div>
-                <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.DefaultGroup"
-                                         @bind-Value="Active.Default" />
-                    <br />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Description</label>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Description" />
-                </div>
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
-}
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXTabIcon Id="@context.Icon" Color="@context.IconColor" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
+            {
+                <TabHeader Name="@GXMenus.UserGroupTab" Parameters="@TabParameters" />
+            }
+            <ModuleViews Area="AmiViewArea.UserGroup" Target="@Active" Parameters="@TabParameters" />
+                <ModuleViews Area="AmiViewArea.UserGroupSettings" Target="@Active" Parameters="@TabParameters" />
+            </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+<ModuleViews Area="AmiViewArea.UserGroup" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
+<ModuleViews Area="AmiViewArea.UserGroupSettings" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 @code {
-    [CascadingParameter]
-    private UserGroupTab? Parent { get; set; }
-
-    private GXUserGroup? _active;
-
-    private GXUserGroup? Active
+    private GXEditorMenu? _editorMenu;
+    private CrudAction EditorAction => _action;
+    public bool DeleteTarget { get; set; }
+    public EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+    private void InitializeEditorMenu()
     {
-        get
-        {
-            if (Parent?.Active != null)
-            {
-                return Parent.Active;
-            }
-            return _active;
-        }
+        _editorMenu ??= new GXEditorMenu(SharedMenuService);
+        _editorMenu.Set(Active, EditorAction, OnSave, OnCancel);
     }
-
-    /// <summary>
-    /// User action.
-    /// </summary>
-    [Parameter]
-    public string? Action { get; set; }
-
-    private CrudAction action;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    [Parameter]
-    public Guid? Id { get; set; }
-
-    private bool DeleteTarget;
-    public string? IsDeleting
+    private Task OnCancel()
     {
-        get
-        {
-            if (Notifier.Action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
     }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
-            {
-                //Get user group data.
-                var tmp = (await Http.GetAsJsonAsync<GetUserGroupResponse>(string.Format("api/UserGroup?id={0}", Id)));
-                if (tmp?.Item != null)
-                {
-                    _active = tmp.Item;
-                }
-                else
-                {
-                    NavigationManager.NavigateTo("404");
-                }
-            }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
-        }
-    }
-
-    /// <summary>
-    /// Save user group.
-    /// </summary>
-    public async void OnSave()
+    public void Dispose() => _editorMenu?.Dispose();
+    private async Task OnSave()
     {
         try
         {
@@ -196,24 +95,24 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingUserGroup);
+            NotificationService?.RemoveByKey("Pages/User/UserGroupGeneral.OnSave");
+            if (EditorAction == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveUserGroupResponse>("api/UserGroup/Delete", new RemoveUserGroup()
-                    {
-                        Ids = new Guid[] { Active.Id },
-                        Delete = DeleteTarget
-                    });
+                {
+                    Ids = new Guid[] { Active.Id },
+                    Delete = DeleteTarget
+                });
             }
             else
             {
                 string address;
-                if (action == CrudAction.Create)
+                if (EditorAction == CrudAction.Create)
                 {
                     address = "api/UserGroup/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (EditorAction == CrudAction.Update)
                 {
                     address = "api/UserGroup/Update";
                 }
@@ -222,11 +121,12 @@
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
                 await Http.PostAsJson<AddUserGroupResponse>(address, new AddUserGroup()
-                    {
-                        UserGroups = new GXUserGroup[] { Active }
-                    });
+                {
+                    UserGroups = new GXUserGroup[] { Active }
+                });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            FormContext.MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -234,19 +134,101 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/User/UserGroupGeneral.OnSave");
         }
     }
 
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
-    private void OnCancel()
+    private bool _ready;
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ["Active"] = Active,
+        ["Action"] = _action
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXUserGroup Active = new GXUserGroup(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.UserGroup;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUserGroup);
+            NotificationService?.RemoveByKey("Pages/User/UserGroup.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get user group data.
+                var tmp = (await Http.GetAsJsonAsync<GetUserGroupResponse>(string.Format("api/UserGroup?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                    return;
+                }
+            }
+            InitializeEditorMenu();
+            _ready = true;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/User/UserGroup.OnInitializedAsync");
+        }
     }
 }

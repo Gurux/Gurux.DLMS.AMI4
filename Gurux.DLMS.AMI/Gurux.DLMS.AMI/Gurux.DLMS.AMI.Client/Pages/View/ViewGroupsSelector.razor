@@ -1,0 +1,284 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Helpers.Selection
+@using Gurux.DLMS.AMI.Client.Pages.User;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@inject NavigationManager NavigationManager
+@inject IServiceProvider Services
+@inject HttpClient Http
+<GXHelpContext Topic="ViewGroupsSelector" />
+
+<SelectionContainer TItem="GXViewGroup" @ref="@_selectionContainer">
+    <SelectionList TItem="GXViewGroup" Title="@Properties.Resources.Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
+        <FilterContent>
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList TItem="GXViewGroup" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
+        <FilterContent>
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByUser"
+                    ValueChanged="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
+</SelectionContainer>
+
+@code {
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [CascadingParameter]
+    private UserGroup? UserGroupParent { get; set; }
+
+    [CascadingParameter]
+    private View? ViewParent { get; set; }
+
+    SelectionList<GXViewGroup>? _selected;
+    SelectionList<GXViewGroup>? _available;
+    SelectionContainer<GXViewGroup>? _selectionContainer;
+
+    /// <summary>
+    /// View group filter.
+    /// </summary>
+    private GXViewGroup filter = new GXViewGroup(null);
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !(it.Name ?? string.Empty).ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                NotificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.SearchSelectedByName");
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroupsSelector.SearchSelectedByName");
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                NotificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.SearchByName");
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroupsSelector.SearchByName");
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = GXFilterHelpers.GetOrAddUser(filter.UserGroups ??= []);
+                    }
+                    user.UserName = userName;
+                }
+                NotificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.SearchByUser");
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroupsSelector.SearchByUser");
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXViewGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXViewGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXViewGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        using var progressScope1 = Progress?.ProgressStart(Properties.Resources.RetrievingBlockGroups);
+        try
+        {
+            ListViewGroups req = new ListViewGroups()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData,
+                Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+            };
+            var ret = await Http.PostAsJson<ListViewGroupsResponse>("api/ViewGroup/List", req, request.CancellationToken);
+            if (ret?.ViewGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXViewGroup>(ret.ViewGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
+        try
+        {
+            if (_selectionContainer == null || _selected == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            using var progressScope2 = Progress?.ProgressStart(Properties.Resources.RetrievingViewGroups);
+            NotificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.OnInitializedAsync");
+            CrudAction action;
+            if (UserGroupParent?.Active?.ViewGroups != null)
+            {
+                //Add selected view groups.
+                _selected.Items = UserGroupParent.Active.ViewGroups;
+                action = ClientHelpers.GetAction(NavigationManager, UserGroupParent.Action);
+            }
+            else if (ViewParent?.Active?.ViewGroups != null)
+            {
+                //Add selected view groups.
+                _selected.Items = ViewParent.Active.ViewGroups;
+                action = ClientHelpers.GetAction(NavigationManager, ViewParent.Action);
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            bool addDefaultViews = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultViews)
+            {
+                //Show default groups when new group is added.
+                ListViewGroups req = new ListViewGroups()
+                {
+                    Count = _selectionContainer.PageSize,
+                    Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                };
+                var ret = await Http.PostAsJson<ListViewGroupsResponse>("api/ViewGroup/List", req);
+                if (ret?.ViewGroups != null)
+                {
+                    _selected.Items.AddRange(ret.ViewGroups);
+                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroupsSelector.OnInitializedAsync");
+        }
+    }
+}
+

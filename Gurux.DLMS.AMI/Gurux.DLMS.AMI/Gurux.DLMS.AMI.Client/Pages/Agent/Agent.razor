@@ -1,370 +1,157 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Module
-@using Gurux.DLMS.AMI.Shared
+
+@page "/Agent/{Id:guid?}"
+@page "/Agent/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
+@using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS.AMI.Client.Pages.Agent
-@using System.Text.Json
-@using System.Text.Encodings.Web;
-@using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
-@attribute [Authorize(Roles = "Admin, AgentManager")]
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Text.Encodings.Web
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Agent" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <GXValidator @ref="_agentValidator" OnValidate="OnValidate" />
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Name" />
-                    <ValidationMessage For="@(() => Active.Name)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Description</label>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Description" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.TraceLevel</label>
-                    <GXInputDropdown class="form-select"
-                                         Id="Agent.TraceLevel"
-                                         LastValue="@(action == CrudAction.Create)"
-                                         @bind-Value="Active.TraceLevel">
-                    </GXInputDropdown>
-                    <ValidationMessage For="@(() => Active.TraceLevel)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Version</label>
-                    @if (string.IsNullOrEmpty(Active.Version))
-                    {
-                        <input class="form-control" type="text" readonly="readonly" value="@Properties.Resources.CustomBuild" />
-                    }
-                    else
-                    {
-                        <input class="form-control" type="text" readonly="readonly" value="@Active.Version" />
-                    }
-                </div>
-                @if (!string.IsNullOrEmpty(Active.SerialPorts))
-                {
-                    <div class="form-group">
-                        <label style="margin:auto">@Properties.Resources.SerialPort</label>
-                        <select class="form-select" @bind="@Active.SerialPort">
-                            @foreach (string it in GetSerialPorts())
-                            {
-                                <option value="@it">@it</option>
-                            }
-                        </select>
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
-    <TabControl>
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
+            <GXTabIcon Id="@context.Icon" Color="@context.IconColor" />
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            <TabPage Text="Reader" Icon="Reader">
-                <ReaderOptions Settings="@ReaderSettings"
-                               @ref="_readerOptions"
-                               @bind-SerialPort="@Active.SerialPort"></ReaderOptions>
-            </TabPage>
-            <TabPage Text="Push events" Icon="Notification">
-                <NotifyOptions Settings="@NotificationSettings"
-                               Scripts="@scripts"
-                               @ref="_notificationOptions"
-                               @bind-SerialPort="@Active.SerialPort"></NotifyOptions>
-            </TabPage>
-            <TabPage Text="Auto connect" Icon="AutoConnect">
-                <AutoConnectOptions Settings="@ListenerSettings"
-                                    Scripts="@scripts"
-                                    @ref="_autoConnectOptions"
-                                    @bind-SerialPort="@Active.SerialPort"></AutoConnectOptions>
-            </TabPage>
-            <TabPage Text="Gateway" Icon="Gateway">
-                <GatewayOptions Settings="@GatewaySettings"
-                                Scripts="@scripts"
-                                @ref="_gatewayOptions" />
-            </TabPage>
-        </ChildContent>
-    </TabControl>
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="row">
-            <div style="width:100%">
-                <ConnectionInformation Detected="@Active.Detected" ConnectionInfo="@Active.ConnectionInfo"></ConnectionInformation>
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
-}
-@code {
-    [CascadingParameter]
-    private AgentTab? Parent { get; set; }
-
-    private GXAgent? _active;
-
-    private GXAgent? Active
-    {
-        get
-        {
-            if (Parent?.Active != null)
+            @if (_ready)
             {
-                return Parent.Active;
+                <TabHeader Name="@GXMenus.AgentDetailsTab" Parameters="@TabParameters" />
             }
-            return _active;
-        }
-    }
+            <ModuleViews Area="AmiViewArea.Agent" Target="@Active" Parameters="@TabParameters" />
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+<ModuleViews Area="AmiViewArea.Agent" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
+@code {
+    private bool _ready;
 
-    private List<string> GetSerialPorts()
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        List<string> list = new();
-        if (!string.IsNullOrEmpty(Active?.SerialPorts))
-        {
-            list.Add("");
-            list.AddRange(Active.SerialPorts.Split(";"));
-        }
-        return list;
-    }
+        ["Active"] = Active,
+        ["Action"] = _action
+    };
+
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
 
     /// <summary>
-    /// User action.
+    /// Action.
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    private CrudAction _action;
+
     /// <summary>
-    /// Selected item.
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
     /// </summary>
     [Parameter]
     public Guid? Id { get; set; }
 
-    private bool DeleteTarget;
-    public string? IsDeleting
-    {
-        get
-        {
-            if (action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
-    private GXValidator? _agentValidator;
     /// <summary>
-    /// Validate the agent content.
+    /// Page title.
     /// </summary>
-    /// <param name="sender"></param>
-    private void OnValidate(GXValidator sender)
-    {
-        if (Active != null && string.IsNullOrEmpty(Active.Name))
-        {
-            sender.AddError(() => Active.Name, "Invalid name.");
-        }
-        _readerOptions?.Validate(sender);
-        _notificationOptions?.Validate(sender);
-        _autoConnectOptions?.Validate(sender);
-        _gatewayOptions?.Validate(sender);
-    }
-
-    ReaderSettings? ReaderSettings { get; set; }
-    NotifySettings? NotificationSettings { get; set; }
-    ListenerSettings? ListenerSettings { get; set; }
-    GatewaySettings? GatewaySettings { get; set; }
-
-    ReaderOptions? _readerOptions;
-    NotifyOptions? _notificationOptions;
-    AutoConnectOptions? _autoConnectOptions;
-    GatewayOptions? _gatewayOptions;
-
-    //Available scripts.
-    private GXScript[]? scripts;
-
-    private List<GXScript> Scripts = new();
+    private string? Title;
 
     /// <summary>
-    /// Update agent settings after they are read from the server.
+    /// Active item.
     /// </summary>
-    public void Update()
-    {
-        if (!string.IsNullOrEmpty(Active?.ReaderSettings))
-        {
-            ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
-                (Active.ReaderSettings);
-        }
-        if (!string.IsNullOrEmpty(Active?.NotifySettings))
-        {
-            NotificationSettings = JsonSerializer.Deserialize<NotifySettings>
-                (Active.NotifySettings);
-        }
-        if (!string.IsNullOrEmpty(Active?.ListenerSettings))
-        {
-            ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
-                (Active.ListenerSettings);
-        }
-        if (!string.IsNullOrEmpty(Active?.GatewaySettings))
-        {
-            GatewaySettings = JsonSerializer.Deserialize<GatewaySettings>
-                (Active.GatewaySettings);
-        }
-        InvokeAsync(StateHasChanged);
-    }
-
+    public GXAgent Active = new GXAgent(null);
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        _action = ClientHelpers.GetAction(NavigationManager, Action);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
+            switch (_action)
+            {
+                case CrudAction.Create:
+                    Title = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    Title = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.Agent;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAgent);
+            NotificationService?.RemoveByKey("Pages/Agent/AgentTab.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get agent data.
-                var tmp = (await Http.GetAsJsonAsync<GetAgentResponse>
-                    (string.Format("api/Agent?id={0}", Id)));
+                var tmp = (await Http.GetAsJsonAsync<GetAgentResponse>(string.Format("api/Agent?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
-                    _active = tmp.Item;
+                    Active = tmp.Item;
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem()
-                {
-                    Text = Properties.Resources.Remove,
-                    Icon = "Remove",
-                    OnClick = EventCallback.Factory.Create(this, OnSave)
-                });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem(
-                    Properties.Resources.Save,
-                    "Save",
-                    EventCallback.Factory.Create(this, OnSave)
-                ));
-            }
-            Notifier.AddMenuItem(new GXMenuItem(
-                Properties.Resources.Cancel,
-                "Cancel",
-                EventCallback.Factory.Create(this, OnCancel)
-            ));
-            Notifier.UpdateButtons();
-            ListScripts req = new ListScripts();
-            var ret = await Http.PostAsJson<ListScriptsResponse>
-                ("api/Script/List", req);
-            scripts = ret.Scripts;
-
-            if (!string.IsNullOrEmpty(Active?.ReaderSettings))
-            {
-                ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
-                    (Active.ReaderSettings);
-            }
-            else
-            {
-                ReaderSettings = new ReaderSettings();
-            }
-            if (!string.IsNullOrEmpty(Active?.NotifySettings))
-            {
-                NotificationSettings = JsonSerializer.Deserialize<NotifySettings>
-                    (Active.NotifySettings);
-            }
-            else
-            {
-                NotificationSettings = new NotifySettings();
-            }
-            if (!string.IsNullOrEmpty(Active?.ListenerSettings))
-            {
-                ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
-                    (Active.ListenerSettings);
-            }
-            else
-            {
-                ListenerSettings = new ListenerSettings();
-            }
-            if (!string.IsNullOrEmpty(Active?.GatewaySettings))
-            {
-                GatewaySettings = JsonSerializer.Deserialize<GatewaySettings>
-                    (Active.GatewaySettings);
-            }
-            else
-            {
-                GatewaySettings = new GatewaySettings();
-            }
+            SetEditorMenu();
+            _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -372,18 +159,130 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Agent/AgentTab.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Save agent.
-    ///</summary>
-    public async void OnSave()
+    private GXEditorMenu? _editorMenu;
+    public bool DeleteTarget { get; set; }
+    private void SetEditorMenu()
+    {
+        InitializeSettings();
+        _editorMenu = new GXEditorMenu(SharedMenuService);
+        _editorMenu.Set(Active, _action, OnSave, () => { OnCancel(); return Task.CompletedTask; });
+    }
+    public void Dispose() => _editorMenu?.Dispose();
+    private bool ValidateSettings()
+    {
+        bool valid = true;
+        void Error(string field, string message) { valid = false; _editorMenu?.AddValidationError(field, message); }
+        if (string.IsNullOrEmpty(Active.Name)) {
+            Error(nameof(Active.Name), Properties.Resources.InvalidName);
+        }
+        if (ReaderSettings?.Enabled == true)
+        {
+            if (ReaderSettings.Threads < 1 || ReaderSettings.Threads > 10000) {
+                Error(nameof(Active.ReaderSettings), Properties.Resources.InvalidThreadsAmount);
+            }
+            if (ReaderSettings.AliveTime < 1) {
+                Error(nameof(Active.ReaderSettings), Properties.Resources.InvalidAliveTime);
+            }
+        }
+        if (RawNotificationSettings?.Enabled == true)
+        {
+            if (RawNotificationSettings.Threads < 1) {
+                Error(nameof(Active.RawNotificationSettings), Properties.Resources.TheNumberOfRawNotificationWorkersMustBeGreaterThanZero);
+            }
+            if (RawNotificationSettings.ScriptMethod == null || RawNotificationSettings.ScriptMethod == Guid.Empty) {
+                Error(nameof(Active.RawNotificationSettings), Properties.Resources.SelectARawNotificationParserScript);
+            }
+        }
+        void Network(string? mediaType, string? settings, string field)
+        {
+            if (mediaType != typeof(Gurux.Net.GXNet).FullName) {
+                return;
+            }
+            using var net = new Gurux.Net.GXNet();
+            try { net.Settings = settings; } catch { }
+            if (net.Port == 0) {
+                Error(field, Properties.Resources.InvalidPort);
+            }
+        }
+        if (NotificationSettings?.Enabled == true)
+        {
+            if (NotificationSettings.ExpirationTime < 0) {
+                Error(nameof(Active.NotifySettings), Properties.Resources.InvalidExpirationTime);
+            }
+            Network(NotificationSettings.MediaType, NotificationSettings.MediaSettings, nameof(Active.NotifySettings));
+        }
+        if (ListenerSettings?.Enabled == true)
+        {
+            if (ListenerSettings.ExpirationTime < 0) {
+                Error(nameof(Active.ListenerSettings), Properties.Resources.InvalidExpirationTime);
+            }
+            Network(ListenerSettings.MediaType, ListenerSettings.MediaSettings, nameof(Active.ListenerSettings));
+        }
+        if (GatewaySettings?.Enabled == true)
+        {
+            if (GatewaySettings.ExpirationTime < 0) {
+                Error(nameof(Active.GatewaySettings), Properties.Resources.InvalidExpirationTime);
+            }
+            Network(typeof(Gurux.Net.GXNet).FullName, GatewaySettings.MediaSettings, nameof(Active.GatewaySettings));
+            if (GatewaySettings.Id == null && GatewaySettings.ScriptMethod == null) {
+                Error(nameof(Active.GatewaySettings), Properties.Resources.GatewayMustBeSelected);
+            }
+        }
+        return valid;
+    }
+    public ReaderSettings? ReaderSettings { get; set; }
+    public NotifySettings? NotificationSettings { get; set; }
+    public RawNotificationSettings? RawNotificationSettings { get; set; }
+    public ListenerSettings? ListenerSettings { get; set; }
+    public GatewaySettings? GatewaySettings { get; set; }
+
+    private void InitializeSettings()
+    {
+        if (!string.IsNullOrEmpty(Active?.ReaderSettings))
+        {
+            ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
+                (Active.ReaderSettings);
+        }
+        else
+        {
+            ReaderSettings = new ReaderSettings();
+        }
+        if (!string.IsNullOrEmpty(Active?.NotifySettings))
+        {
+            NotificationSettings = JsonSerializer.Deserialize<NotifySettings>
+                (Active.NotifySettings);
+        }
+        else
+        {
+            NotificationSettings = new NotifySettings();
+        }
+        RawNotificationSettings = string.IsNullOrEmpty(Active?.RawNotificationSettings)
+            ? new RawNotificationSettings()
+            : JsonSerializer.Deserialize<RawNotificationSettings>(Active.RawNotificationSettings) ?? new RawNotificationSettings();
+        if (!string.IsNullOrEmpty(Active?.ListenerSettings))
+        {
+            ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
+                (Active.ListenerSettings);
+        }
+        else
+        {
+            ListenerSettings = new ListenerSettings();
+        }
+        if (!string.IsNullOrEmpty(Active?.GatewaySettings))
+        {
+            GatewaySettings = JsonSerializer.Deserialize<GatewaySettings>
+                (Active.GatewaySettings);
+        }
+        else
+        {
+            GatewaySettings = new GatewaySettings();
+        }
+    }
+    public async Task OnSave()
     {
         try
         {
@@ -391,14 +290,13 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            _agentValidator?.ClearErrors();
-            if (_agentValidator?.Validate() == false)
+            if (_action != CrudAction.Delete && !ValidateSettings())
             {
                 return;
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAgent);
+            NotificationService?.RemoveByKey("Pages/Agent/Agent.OnSave");
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAgentResponse>
                     ("api/Agent/Delete", new RemoveAgent()
@@ -416,6 +314,7 @@
                 };
                 Active.ReaderSettings = JsonSerializer.Serialize(ReaderSettings, options);
                 Active.NotifySettings = JsonSerializer.Serialize(NotificationSettings, options);
+                Active.RawNotificationSettings = JsonSerializer.Serialize(RawNotificationSettings, options);
                 Active.ListenerSettings = JsonSerializer.Serialize(ListenerSettings, options);
                 if (GatewaySettings != null)
                 {
@@ -424,11 +323,11 @@
                 Active.GatewaySettings = JsonSerializer.Serialize(GatewaySettings, options);
 
                 string address;
-                if (action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
                     address = "api/Agent/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (_action == CrudAction.Update)
                 {
                     address = "api/Agent/Update";
                 }
@@ -443,7 +342,7 @@
                     }
                     );
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -451,19 +350,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Agent/Agent.OnSave");
         }
     }
-
-    /// <summary>
-    /// Cancel update.
-    ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 }

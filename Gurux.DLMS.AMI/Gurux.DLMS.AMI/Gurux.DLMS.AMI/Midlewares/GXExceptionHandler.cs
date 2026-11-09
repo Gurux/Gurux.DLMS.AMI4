@@ -1,84 +1,128 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
-    public sealed class GXExceptionHandler : IExceptionHandler
+    /// <summary>Provides exception handler.</summary>
+    /// <remarks>
+    /// Initializes a new instance of the GXExceptionHandler class.
+    /// </remarks>
+    /// <param name="logger">The logger used to record exception details.</param>
+    /// <param name="dbFactory">The factory for creating database connections.</param>
+    public sealed class GXExceptionHandler(ILogger<GXExceptionHandler> logger,
+        IDbConnectionFactory dbFactory) : IExceptionHandler
     {
-        private readonly ILogger<GXExceptionHandler> _logger;
+        private readonly ILogger<GXExceptionHandler> _logger = logger;
+        private readonly IDbConnectionFactory _dbFactory = dbFactory;
 
-        public GXExceptionHandler(ILogger<GXExceptionHandler> logger)
-        {
-            _logger = logger;
-        }
-
+        /// <inheritdoc/>
         public async ValueTask<bool> TryHandleAsync(
             HttpContext context,
             Exception exception,
             CancellationToken cancellationToken)
         {
-            _logger.LogError(exception, "User exception");
+            if (exception is GXAmiNotFoundException)
+            {
+                _logger.LogWarning("AMI resource was not found at {Path}", context.Request.Path);
+            }
+            else if (exception is Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)
+            {
+                _logger.LogWarning(exception, "AMI module is unavailable");
+            }
+            else if (exception is GXAmiForbiddenException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning(exception, "AMI authorization denied");
+            }
+            else
+            {
+                _logger.LogError(exception, "User exception");
+            }
             if (context.Response.HasStarted)
             {
                 return false;
             }
             var serviceProvider = context.RequestServices;
-            var problem = await CreateProblemDetails(_logger, exception, context, serviceProvider);
+            var problem = await CreateProblemDetailsAsync(_logger, exception, context, serviceProvider);
             context.Response.Clear();
             context.Response.StatusCode = problem.Status.GetValueOrDefault(StatusCodes.Status500InternalServerError);
             context.Response.ContentType = "application/problem+json";
-            await context.Response.WriteAsJsonAsync(problem, cancellationToken);
+            try
+            {
+                await context.Response.WriteAsJsonAsync(problem, options: (System.Text.Json.JsonSerializerOptions?)null,
+                    contentType: "application/problem+json", cancellationToken: cancellationToken);
+            }
+            catch (System.OperationCanceledException)
+            {
+                //The request was cancelled, do not attempt to write response.
+                return false;
+            }
             return true;
         }
 
         private static async Task AddUserErrorAsync(ILogger<GXExceptionHandler> logger,
             IServiceProvider serviceProvider,
-           ClaimsPrincipal user, Exception ex)
+            ClaimsPrincipal user, Exception ex)
         {
+            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                logger.LogError("{Message}", ex.ToString());
+            }
             try
             {
+                if (user.Identity == null || !user.Identity.IsAuthenticated)
+                {
+                    //User is not authenticated, do not log error to user errors.
+                    return;
+                }
+                var authorization = serviceProvider.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
+                if (!await authorization.CanAccessPolicyAsync(user, Gurux.DLMS.AMI.Client.Shared.GXUserErrorPolicies.Add))
+                {
+                    // The original error is already logged. Do not cause a second authorization error.
+                    return;
+                }
                 //Add error to user errors.
-                GXUserError error = new GXUserError(TraceLevel.Error)
+                GXLog error = new(TraceLevel.Error)
                 {
                     User = new GXUser()
                     {
@@ -87,7 +131,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     CreationTime = DateTime.Now,
                     Message = ex.Message,
                 };
-                IUserErrorRepository? _userRepository = serviceProvider.GetService<IUserErrorRepository>();
+                ILogRepository? _userRepository = serviceProvider.GetService<ILogRepository>()?.ForSource("user-error");
                 if (_userRepository != null)
                 {
                     await _userRepository.AddAsync(TargetType.System, [error]);
@@ -95,13 +139,58 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (Exception ex2)
             {
-                logger.LogError(ex2.ToString());
-                logger.LogError(ex.ToString());
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
+                {
+                    logger.LogError("{Message}", ex2.ToString());
+                }
             }
         }
 
-        private static async Task<ProblemDetails> CreateProblemDetails(ILogger<GXExceptionHandler> logger,
-            Exception? exception,
+        private async Task AddSystemErrorAsync(ILogger<GXExceptionHandler> logger,
+            IServiceProvider serviceProvider,
+            Exception ex)
+        {
+            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
+            {
+                logger.LogError("{Message}", ex.ToString());
+            }
+            try
+            {
+                //Add error to system log.
+                GXLog error = new(TraceLevel.Error)
+                {
+                    Message = ex.Message,
+                };
+                if (ex is Microsoft.Data.SqlClient.SqlException s)
+                {
+                    error.StackTrace = s.Data["SQL"]?.ToString();
+                }
+                await using var connection = await _dbFactory.GetConnectionAsync();
+                var admin = (await ServerSettings.GetDefaultAdminUserAsync(connection));
+                if (admin != null)
+                {
+                    await serviceProvider.RunAsUserAsync(admin, async services =>
+                    {
+                        ILogRepository? repository = services.GetService<ILogRepository>()?.ForSource("system");
+                        if (repository != null)
+                        {
+                            await repository.AddAsync("unauthorized", [error]);
+                        }
+                    });
+                }
+            }
+            catch (Exception ex2)
+            {
+                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
+                {
+                    logger.LogError("{Message}", ex2.ToString());
+                }
+            }
+        }
+
+        private async Task<ProblemDetails> CreateProblemDetailsAsync(
+            ILogger<GXExceptionHandler> logger,
+            Exception exception,
             HttpContext context, IServiceProvider serviceProvider)
         {
             var problem = new ProblemDetails
@@ -111,6 +200,16 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
 
             switch (exception)
             {
+                case Gurux.DLMS.AMI.Module.AmiModuleUnavailableException ex:
+                    problem.Title = "Module unavailable";
+                    problem.Detail = ex.Message;
+                    problem.Status = StatusCodes.Status503ServiceUnavailable;
+                    break;
+                case Gurux.DLMS.AMI.Module.AmiModuleDependencyException ex:
+                    problem.Title = "Module dependency conflict";
+                    problem.Detail = ex.Message;
+                    problem.Status = StatusCodes.Status409Conflict;
+                    break;
                 case ArgumentException ex:
                     problem.Title = "Invalid argument";
                     problem.Detail = ex.Message;
@@ -126,7 +225,25 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     problem.Detail = ex.Message;
                     problem.Status = StatusCodes.Status401Unauthorized;
                     break;
-
+                case GXAmiForbiddenException ex:
+                    problem.Title = "Forbidden";
+                    problem.Detail = "Insufficient permissions.";
+                    problem.Status = StatusCodes.Status403Forbidden;
+                    if (ex.RequiredPolicies.Count != 0)
+                    {
+                        problem.Extensions["requiredPolicies"] = ex.RequiredPolicies;
+                    }
+                    break;
+                case GXAmiNotFoundException:
+                    problem.Title = "Not found";
+                    problem.Detail = "The requested item was not found or is not accessible.";
+                    problem.Status = StatusCodes.Status404NotFound;
+                    break;
+                case HttpRequestException:
+                    problem.Title = "Upstream request failed";
+                    problem.Detail = "An upstream HTTP request failed.";
+                    problem.Status = StatusCodes.Status502BadGateway;
+                    break;
                 default:
                     problem.Title = "An unexpected error occurred";
                     problem.Detail = "Internal server error.";
@@ -134,9 +251,14 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     break;
             }
             problem.Extensions["traceId"] = context.TraceIdentifier;
-            if (exception != null)
+            if (exception is ArgumentException ||
+                exception is ValidationException)
             {
                 await AddUserErrorAsync(logger, serviceProvider, context.User, exception);
+            }
+            else if (exception is not GXAmiForbiddenException and not UnauthorizedAccessException and not GXAmiNotFoundException and not Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)
+            {
+                await AddSystemErrorAsync(logger, serviceProvider, exception);
             }
             return problem;
         }

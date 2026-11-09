@@ -1,0 +1,224 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Extension/{Id}"
+@page "/Extension/{Action}/{Id}"
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Module.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@inject IServiceProvider Services
+@inject HttpClient Http
+@inject IGXMenuService SharedMenuService
+@inject ILogger<Extension> Logger
+@inject NavigationManager NavigationManager
+@inject ModuleLoader Loader
+@implements IDisposable
+
+@if (_extensionUI != null && Active != null)
+{
+    <ModuleErrorBoundary @key="_extensionUI" ModuleId="@Active.Id">
+        <ModuleWrapper Target="@Active" ModuleId="@Active.Id" @ref="_module"
+                       ComponentType="_extensionUI"
+                       Settings="@Active.GetSettings()" SettingsChanged="@((string? value) => Active.SetSettings(value))" />
+    </ModuleErrorBoundary>
+}
+
+@code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    ModuleWrapper? _module;
+    Type? _extensionUI;
+    private GXModule? Active;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Show module settings.
+    /// </summary>
+    /// <returns></returns>
+    internal async Task ShowModuleSettings()
+    {
+        if (Active != null && _extensionUI == null)
+        {
+            if (!Loader.IsInitialized)
+            {
+                await Loader.RefreshAsync(_lifetime.Token);
+            }
+
+            var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == Active.Id)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Extension && v.Key == null);
+            if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await Authentication.GetAuthenticationStateAsync()).User, declaredView.Policy)).Succeeded)
+            {
+                return;
+            }
+
+            _extensionUI = await Loader.GetViewTypeAsync(Active.Id, AmiViewArea.Extension, cancellationToken: _lifetime.Token);
+        }
+        if (_module != null)
+        {
+            await _module.NotifyInitializedAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_module != null)
+        {
+            try
+            {
+                await ShowModuleSettings();
+            }
+            catch (Exception ex)
+            {
+                NotificationService?.ReportError(ex);
+            }
+        }
+        await base.OnParametersSetAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        Loader.Changed += OnLoaderChanged;
+        try
+        {
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingExtension);
+            NotificationService?.RemoveByKey("Layout/Extension.OnInitializedAsync");
+            MenuService.Clear();
+            CrudAction action = ClientHelpers.GetAction(NavigationManager, Action, CrudAction.Read);
+            if (Active?.Id == null && Id != null)
+            {
+                //Get module data.
+                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>("api/Module?id=" + Id));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                NavigationManager.NavigateTo("404");
+            }
+            await ShowModuleSettings();
+            action = ClientHelpers.GetAction(NavigationManager, Action);
+            /*TODO:
+            if (action == CrudAction.Delete)
+            {
+                MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "Remove", OnClick = EventCallback.Factory.Create(this, OnSave) });
+            }
+            else
+            {
+                MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+            }
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
+            */
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Layout/Extension.OnInitializedAsync");
+        }
+    }
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _disposed;
+
+    private void OnLoaderChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _extensionUI = null;
+            _module = null;
+            StateHasChanged();
+            try
+            {
+                if (Loader.RefreshError != null)
+                {
+                    NotificationService?.ReportError(Loader.RefreshError);
+                }
+
+                await ShowModuleSettings();
+            }
+            catch (OperationCanceledException) when (_disposed)
+            {
+            }
+            catch (Exception ex)
+            {
+                NotificationService?.ReportError(ex);
+            }
+            if (!_disposed)
+            {
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        MenuService.Dispose();
+        _disposed = true;
+        Loader.Changed -= OnLoaderChanged;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        _extensionUI = null;
+        _module = null;
+    }
+}
+
+

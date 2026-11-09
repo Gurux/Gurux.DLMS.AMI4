@@ -1,35 +1,32 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -49,103 +46,104 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @implements IGXConfigUpdate
 
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Security" />
 
 @if (_settings != null)
 {
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@_editContext">
         <p>
-            <h2>Password</h2>
+            <h2>@Properties.Resources.Password</h2>
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <label>Required length</label>
-                        <InputNumber id="resend" class="form-control"
-                                     @bind-Value="_settings.RequiredLength" />
+                        <label>@Properties.Resources.RequiredLength</label>
+                        <GXInputNumber RememberValue="false" id="resend" class="form-control"
+                                     @bind-Value="_settings.RequiredLength" Min="@GXNumberBounds.Minimum(_settings.RequiredLength)" Max="@GXNumberBounds.Maximum(_settings.RequiredLength)" />
                     </div>
                     <div class="form-group">
-                        <label>Required unique chars</label>
-                        <InputNumber id="requiredUniqueChars" class="form-control"
-                                     @bind-Value="_settings.RequiredUniqueChars" />
+                        <label>@Properties.Resources.RequiredUniqueChars</label>
+                        <GXInputNumber RememberValue="false" id="requiredUniqueChars" class="form-control"
+                                     @bind-Value="_settings.RequiredUniqueChars" Min="@GXNumberBounds.Minimum(_settings.RequiredUniqueChars)" Max="@GXNumberBounds.Maximum(_settings.RequiredUniqueChars)" />
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireNonAlphanumeric" @bind-Value="_settings.RequireNonAlphanumeric" />
-                        <label>Require non alphanumeric:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireNonAlphanumeric" @bind-Value="_settings.RequireNonAlphanumeric" />
+                        <label>@Properties.Resources.RequireNonAlphanumeric</label>
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireLowercase" @bind-Value="_settings.RequireLowercase" />
-                        <label>Require lowercase:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireLowercase" @bind-Value="_settings.RequireLowercase" />
+                        <label>@Properties.Resources.RequireLowercase</label>
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireUppercase" @bind-Value="_settings.RequireUppercase" />
-                        <label>Require uppercase:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireUppercase" @bind-Value="_settings.RequireUppercase" />
+                        <label>@Properties.Resources.RequireUppercase</label>
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireDigit" @bind-Value="_settings.RequireDigit" />
-                        <label>Require digit:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireDigit" @bind-Value="_settings.RequireDigit" />
+                        <label>@Properties.Resources.RequireDigit</label>
                     </div>
                 </div>
             </div>
         </p>
         <hr />
         <p>
-            <h2>User</h2>
+            <h2>@Properties.Resources.User</h2>
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <label>Allowed user name characters</label>
+                        <label>@Properties.Resources.AllowedUserNameCharacters</label>
                         <InputText id="allowedUserNameCharacters" class="form-control"
                                    @bind-Value="_settings.AllowedUserNameCharacters" />
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireUniqueEmail" @bind-Value="_settings.RequireUniqueEmail" />
-                        <label>Require unique email:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireUniqueEmail" @bind-Value="_settings.RequireUniqueEmail" />
+                        <label>@Properties.Resources.RequireUniqueEmail</label>
                     </div>
                 </div>
             </div>
         </p>
         <hr />
         <p>
-            <h2>SignIn</h2>
+            <h2>@Properties.Resources.SignIn2</h2>
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <InputCheckbox id="requireConfirmedEmail" @bind-Value="_settings.RequireConfirmedEmail" />
-                        <label>Require confirmed email:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireConfirmedEmail" @bind-Value="_settings.RequireConfirmedEmail" />
+                        <label>@Properties.Resources.RequireConfirmedEmail</label>
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireConfirmedPhoneNumber" @bind-Value="_settings.RequireConfirmedPhoneNumber" />
-                        <label>Require confirmed phone number:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireConfirmedPhoneNumber" @bind-Value="_settings.RequireConfirmedPhoneNumber" />
+                        <label>@Properties.Resources.RequireConfirmedPhoneNumber</label>
                     </div>
                     <div class="form-group">
-                        <InputCheckbox id="requireConfirmedAccount" @bind-Value="_settings.RequireConfirmedAccount" />
-                        <label>Require confirmed account:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="requireConfirmedAccount" @bind-Value="_settings.RequireConfirmedAccount" />
+                        <label>@Properties.Resources.RequireConfirmedAccount</label>
                     </div>
                 </div>
             </div>
         </p>
         <hr />
         <p>
-            <h2>Lockout</h2>
+            <h2>@Properties.Resources.Lockout</h2>
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <InputCheckbox id="allowedForNewUsers" @bind-Value="_settings.AllowedForNewUsers" />
-                        <label>Allowed for new users:</label>
+                        <Microsoft.AspNetCore.Components.Forms.InputCheckbox id="allowedForNewUsers" @bind-Value="_settings.AllowedForNewUsers" />
+                        <label>@Properties.Resources.AllowedForNewUsers</label>
                     </div>
                     <div class="form-group">
-                        <label>Maximum failed access attempts</label>
-                        <InputNumber id="maxFailedAccessAttempts" class="form-control"
-                                     @bind-Value="_settings.MaxFailedAccessAttempts" />
+                        <label>@Properties.Resources.MaximumFailedAccessAttempts</label>
+                        <GXInputNumber RememberValue="false" id="maxFailedAccessAttempts" class="form-control"
+                                     @bind-Value="_settings.MaxFailedAccessAttempts" Min="@GXNumberBounds.Minimum(_settings.MaxFailedAccessAttempts)" Max="@GXNumberBounds.Maximum(_settings.MaxFailedAccessAttempts)" />
                     </div>
                     <div class="form-group">
-                        <label>Default lockout timespan in minutes</label>
+                        <label>@Properties.Resources.DefaultLockoutTimespanInMinutes</label>
                         <InputDate Type="@InputDateType.Time" id="defaultLockoutTimeSpan" class="form-control"
                                    @bind-Value="DefaultLockoutTimeSpan" />
                     </div>
@@ -156,14 +154,20 @@
 }
 
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     /// <inheritdoc/>
     public void Update()
     {
-        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
-        {
-            _settings = JsonSerializer.Deserialize<SecuritySettings>(Parent.Active.Settings);
-        }
+        LoadSettings(Parent?.Active?.Settings);
         InvokeAsync(StateHasChanged);
     }
 
@@ -177,44 +181,58 @@
     {
         get
         {
-            return new DateTime(_settings.DefaultLockoutTimeSpan.Ticks);
+            return new DateTime((_settings ??= new SecuritySettings()).DefaultLockoutTimeSpan.Ticks);
         }
         set
         {
-            _settings.DefaultLockoutTimeSpan = value.TimeOfDay;
+            (_settings ??= new SecuritySettings()).DefaultLockoutTimeSpan = value.TimeOfDay;
         }
     }
     SecuritySettings? _settings;
+    private EditContext? _editContext;
+
+    private void LoadSettings(string? settings)
+    {
+        _settings = string.IsNullOrEmpty(settings) ? new SecuritySettings()
+            : JsonSerializer.Deserialize<SecuritySettings>(settings) ?? new SecuritySettings();
+        _editContext = new EditContext(_settings);
+        MenuService.EditContext = _editContext;
+    }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingSecurity);
+            NotificationService?.RemoveByKey("Pages/Config/Security.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                if (configurations != null)
+                _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Security, configuration =>
                 {
-                    foreach (var it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Security && !string.IsNullOrEmpty(it.Settings))
-                        {
-                            _settings = JsonSerializer.Deserialize<SecuritySettings>(it.Settings);
-                            InvokeAsync(StateHasChanged);
-                            break;
-                        }
+                    if (Parent?.Active?.Id != configuration.Id) {
+                        return;
                     }
-                }
-            });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
-            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+                    Parent.Active.Settings = configuration.Settings;
+                    Update();
+                }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
+            });           
+            MenuService.Clear();
+            MenuService.AddMenuItems(new GXMenuItem
             {
-                _settings = JsonSerializer.Deserialize<SecuritySettings>(Parent.Active.Settings);
-            }
+                Text = Properties.Resources.Save, Icon = "Save",
+                Enabled = Gurux.UI.Components.Enums.EnableStyle.Modified,
+                OnClick = EventCallback.Factory.Create(this, OnSave)
+            });
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
+            LoadSettings(Parent?.Active?.Settings);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -222,27 +240,19 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Security.OnInitialized");
         }
     }
 
     /// <summary>
     /// Save values.
     /// </summary>
-    private async void OnSave()
+    private async Task OnSave()
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingSecurity);
+            NotificationService?.RemoveByKey("Pages/Config/Security.OnSave");
             if (Parent?.Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -251,15 +261,12 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            _editContext?.MarkAsUnmodified();
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Security.OnSave");
         }
     }
 
@@ -268,11 +275,13 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _configurationRefresh.Dispose();
+        MenuService.Dispose();
+        Notifier?.RemoveListener(this);
     }
 }

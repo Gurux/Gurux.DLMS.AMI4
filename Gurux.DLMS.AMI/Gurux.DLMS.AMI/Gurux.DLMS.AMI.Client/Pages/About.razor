@@ -1,34 +1,30 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @page "/about/{Show}"
@@ -37,13 +33,14 @@
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared.Rest
 @inject HttpClient Http
+
 @if (Visible)
 {
     @*OK button is hidden.*@
-    <Dialog CancelButtonTitle="@Properties.Resources.Close"
-    OkButtonTitle=""
-    OnCancel="Close"    
-    Title="About">
+    <GXDialog CancelButtonTitle="@Properties.Resources.Close"
+            OkButtonTitle=""
+            OnCancel="Close"
+            Title="@Properties.Resources.About">
         <p>
             &emsp;&emsp;@Properties.Resources.Version&nbsp;@Version
         </p>
@@ -62,39 +59,29 @@
         <img src="footer.png" style="position: absolute; bottom: 0px; left: 0px; height: 3px; width: 100%" />
         <img src="leaf.png" style="position: absolute; bottom: 0px; left: 0px " />
         <img src="factory.png" style="position: absolute; bottom: 0px; right: 0px " />
-    </Dialog>
+    </GXDialog>
 }
 @code {
     [Parameter]
-    public string Show
+    public EventCallback OnClosed { get; set; }
+
+    [Parameter]
+    public string Show { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
     {
-        get
-        {
-            return Visible.ToString();
-        }
-        set
-        {
-            Visible = true;
-        }
+        Visible = string.Equals(Show, bool.TrueString, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
     /// Is about window shown.
     /// </summary>
-    bool Visible
-    {
-        get;
-        set;
-    }
+    bool Visible { get; set; }
 
     /// <summary>
     /// Version number
     /// </summary>
-    string? Version
-    {
-        get;
-        set;
-    }
+    string? Version { get; set; }
 
     /// <summary>
     /// .
@@ -107,16 +94,17 @@
         }
     }
 
-    public void Close()
+    public async Task Close()
     {
         Visible = false;
-        InvokeAsync(StateHasChanged);
+        await OnClosed.InvokeAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     protected override async Task OnInitializedAsync()
     {
         HttpResponseMessage response = await Http.GetAsync("api/Configuration/Version");
-        await AMI.Shared.Helpers.ValidateStatusCode(response, default);
+        await response.EnsureSuccessAsync(default);
         Version = await response.Content.ReadAsStringAsync();
     }
 }

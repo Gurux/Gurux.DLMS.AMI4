@@ -1,0 +1,12 @@
+Gurux Commercial License Notice
+
+Commercial licenses are granted under a separate written agreement between
+Gurux Ltd and the customer. This notice does not itself grant a commercial
+license. Commercial license terms are governed by that separate agreement.
+
+This notice does not restrict rights granted under the alternative
+GNU General Public License, version 2 only (GPL-2.0-only).
+
+Third-party components remain subject to their respective licenses.
+
+For commercial licensing inquiries, contact Gurux Ltd: https://www.gurux.fi/.

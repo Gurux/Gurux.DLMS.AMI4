@@ -1,22 +1,45 @@
-﻿@using System.Diagnostics
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using System.Diagnostics
+@using Gurux.DLMS.AMI.Client.Internal
 @using Gurux.DLMS.AMI.Shared.Rest
 @implements IDisposable
 @inject NavigationManager NavigationManager
-@inject HttpClient Http
 @inject ILogger<NavMenu> Logger
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject PersistentComponentState State
-@inject IGXNotifier2 Notifier
 
 @inject AuthenticationStateProvider AuthStateProvider
+@inject CachedHttpClient CachedHttp
+@inject IServiceProvider Services
+@using Gurux.DLMS.AMI.Shared.DIs
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Gurux.DLMS.AMI</a>
-    </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox" title="@Properties.Resources.NavigationMenu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
@@ -28,24 +51,26 @@
                     <NavLink class="nav-link" href="@link.Url" Match="@GetPrefix(link.Url)">
                         @if (!string.IsNullOrEmpty(link.Icon))
                         {
-                            <Image Id="@link.Icon"></Image>
+                            <GXImage Id="@link.Icon"></GXImage>
                         }
-                        <LocalizedText Value="@link.Name" />
+                        <GXLocalizedText Value="@link.Name" />
                         @if (!string.IsNullOrEmpty(link.Padges))
                         {
-                            <Badge Value="@ClientHelpers.GetBadgeCount(_updateStamps, link.Padges)"
+                            <GXBadge Value="@ClientHelpers.GetBadgeCount(_updateStamps, link.Padges)"
                                    Label="@link.PadgeTitle"
                                    TraceLevel="@ClientHelpers.GetBadgeTraceLevel(_updateStamps, link.Padges)">
-                            </Badge>
+                            </GXBadge>
                         }
                     </NavLink>
                 </div>
             }
         }
+        <UpdateNavigation />
     </nav>
 </div>
 
 @code {
+
 
     private NavLinkMatch GetPrefix(string? url)
     {
@@ -56,16 +81,19 @@
         return NavLinkMatch.Prefix;
     }
 
-
-
     private string? currentUrl;
     private GXMenu? _menu;
+    private IAmiMenuStorage? _menuStorage;
+    private bool _disposed;
+    private int _menuVersion;
 
     //Language has changed.
     public void LanguageUpdated()
     {
         InvokeAsync(StateHasChanged);
     }
+
+    private IGXNotifier2? Notifier;
 
     /// <summary>
     /// User stamps.
@@ -76,16 +104,25 @@
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
 
-        _menu = (await Http.GetAsJsonAsync<GetMenuResponse>(string.Format("api/Menu/name?name={0}", GXMenus.NavMenu)))?.Item;
+        Notifier = Services.GetService<IGXNotifier2>();
+        _menuStorage = Services.GetService<IAmiMenuStorage>();
         try
         {
-            _updateStamps.Clear();
-            _updateStamps.AddRange(Notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
-            ClientHelpers.GetUserStamps(_menu, _updateStamps);
-            if (authState.User.Identity?.IsAuthenticated == true)
+            if (_menuStorage != null)
             {
+                _menuStorage.MenuChanged += OnMenuChanged;
+                var version = _menuVersion;
+                var menu = await _menuStorage.GetMenuAsync(GXMenus.NavMenu);
+                if (!_disposed && version == _menuVersion)
+                {
+                    _menu = menu;
+                }
+            }
+            if (Notifier != null)
+            {
+                _updateStamps.Clear();
+                _updateStamps.AddRange(Notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
                 Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
                 {
                     bool updated = ClientHelpers.UpdateUserStamps(stamps, _updateStamps);
@@ -94,6 +131,7 @@
                         InvokeAsync(StateHasChanged);
                     }
                 });
+
             }
         }
         catch (Exception ex)
@@ -102,16 +140,55 @@
         }
     }
 
+    private void OnMenuChanged(object? sender, GXMenuChangedEventArgs args)
+    {
+        if (args.Name != GXMenus.NavMenu || _disposed)
+        {
+            return;
+        }
+        ++_menuVersion;
+        _ = InvokeAsync(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _menu = args.Menu;
+            _updateStamps.Clear();
+            if (Notifier != null)
+            {
+                _updateStamps.AddRange(Notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
+            }
+            StateHasChanged();
+        });
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-        InvokeAsync(StateHasChanged);
+        if (currentUrl.ToLower().Contains("/logout"))
+        {
+            try
+            {
+                _ = CachedHttp.ClearAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Cache clear failed.");
+            }
+        }
     }
 
     public void Dispose()
     {
+        _disposed = true;
         NavigationManager.LocationChanged -= OnLocationChanged;
-        Notifier.RemoveListener(this);
+
+        if (_menuStorage != null)
+        {
+            _menuStorage.MenuChanged -= OnMenuChanged;
+        }
+        Notifier?.RemoveListener(this);
+        Notifier = null;
     }
 }
-

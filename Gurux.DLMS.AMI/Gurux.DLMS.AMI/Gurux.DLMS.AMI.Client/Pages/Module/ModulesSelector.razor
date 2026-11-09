@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Module.Enums
+@inject ModuleLoader Loader
 
 @using Gurux.DLMS.AMI.Client.Pages.Schedule
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -45,46 +44,50 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="ModulesSelector" />
 
 <SelectionContainer TItem="GXModule" @ref="@_selectionContainer">
-    <SelectionList Title="Selected" @ref="_selected"
+    <SelectionList TItem="GXModule" Title="@Properties.Resources.Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems">
         <DataContent>
             @if (context != null)
             {
-                <LinkButton OnClick="@Show"
+                <GXLinkButton TItem="GXModule" OnClick="@Show"
                             Target="@context"
                             Text="@context.Id" />
             }
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchSelectedByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
-    <SelectionList Title="Available" @ref="_available"
+    <SelectionList TItem="GXModule" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
                    ItemsProvider="@GetItems">
         <DataContent>
             @context.Id
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchByName" />
-            <Search Placeholder="@Properties.Resources.FilterByUser"
-                    OnClickAsync="@SearchByUser" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByUser"
+                    ValueChanged="@SearchByUser" />
         </FilterContent>
     </SelectionList>
 </SelectionContainer>
 
 @code {
-    [CascadingParameter]
-    private ModuleGroupTab? Parent { get; set; }
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public GXModuleGroup? ModuleGroup { get; set; }
 
     [CascadingParameter]
-    private ScheduleTab? ScheduleParent { get; set; }
+    private Schedule? ScheduleParent { get; set; }
 
     internal GXModule? Active { get; set; }
 
@@ -99,7 +102,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -155,13 +158,13 @@
                         }
                     }
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchSelectedByName");
         }
     }
 
@@ -179,13 +182,13 @@
                 {
                     filter.Id = string.Empty;
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchByName");
         }
     }
 
@@ -214,17 +217,17 @@
                     }
                     else
                     {
-                        user = mg.UserGroups[0].Users[0];
+                        user = GXFilterHelpers.GetOrAddUser(mg.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchByUser");
         }
     }
 
@@ -246,13 +249,13 @@
     private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModules);
         try
         {
             ListModules req = new ListModules()
                 {
-                    Index = request.StartIndex,
-                    Count = request.Count,
+                    Index = ScheduleParent != null ? 0 : request.StartIndex,
+                    Count = ScheduleParent != null ? 0 : request.Count,
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
@@ -261,7 +264,19 @@
             var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
             if (ret?.Modules != null && _selected != null)
             {
-                return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+                if (ScheduleParent != null)
+                {
+                    if (!Loader.IsInitialized)
+                    {
+                        await Loader.RefreshAsync(request.CancellationToken);
+                    }
+            
+                    var available = Loader.AddIns.Where(m => m.Views.Any(v => v.Area == AmiViewArea.ScheduleSettings)).Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var modules = ret.Modules.Where(m => available.Contains(m.Id)).ToArray();
+                    return new ItemsProviderResult<GXModule>(modules.Skip(request.StartIndex).Take(request.Count), modules.Length);
+                }
+            
+                return new ItemsProviderResult<GXModule>(ret.Modules, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -271,28 +286,27 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     private List<GXModule> GetModules()
     {
-        if (Parent?.Active?.Modules != null)
+        if (ModuleGroup?.Modules != null)
         {
-            return Parent.Active.Modules;
+            return ModuleGroup.Modules;
         }
         //Get only scheduled modules.
-        filter.Type = ModuleType.Schedule;
-        return ScheduleParent.Active.Modules;
+
+        return ScheduleParent?.Active is { } parent ? parent.Modules ??= [] : [];
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
@@ -300,11 +314,11 @@
             //Show only the scheduled modules for schedule selector.
             if (ScheduleParent != null)
             {
-                filter.Type = ModuleType.Schedule;
+        
             }
             List<GXModule> modules = GetModules();
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingModules);
+            NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.OnInitializedAsync");
             if (_selected != null && modules != null)
             {
                 _selected.Items = modules;
@@ -321,11 +335,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.OnInitializedAsync");
         }
     }
 }

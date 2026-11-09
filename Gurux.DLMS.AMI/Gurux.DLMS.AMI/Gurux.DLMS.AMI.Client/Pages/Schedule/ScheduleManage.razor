@@ -1,36 +1,35 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/Schedule"
+@page "/Schedule/Groups"
+@page "/Schedule/Logs"
 @page "/ScheduleGroup"
 @page "/ScheduleLog/{Id:guid?}"
 @page "/ScheduleLog/{Action}/{Id:guid?}"
@@ -44,22 +43,23 @@
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleManager + "," + GXRoles.ScheduleGroupManager + "," + GXRoles.ScheduleLog + "," + GXRoles.ScheduleLogManager)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 @*If user adds a new item or modifies the existing one.*@
+<GXHelpContext Topic="ScheduleManage" />
+
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
     @if (string.Compare(Path, "ScheduleGroup", true) == 0)
     {
-        <ScheduleGroupTab Action="@Action" Id="@Id"></ScheduleGroupTab>
+        <ScheduleGroup Action="@Action" Id="@Id"></ScheduleGroup>
     }
     else if (string.Compare(Path, "Schedule", true) == 0)
     {
-        <ScheduleTab Action="@Action" Id="@Id"></ScheduleTab>
+        <Schedule Action="@Action" Id="@Id"></Schedule>
     }
     else if (string.Compare(Path, "ScheduleLog", true) == 0)
     {
@@ -68,42 +68,22 @@
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="Schedule" Active="@Path" SelectionChanged="@SelectionChanged" NavigateOnSelection="false">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
-            @context.Text
-            <Badge Value="@context.PadgeCount" Label="@context.Padge"
+            <GXImage Id="@context.Icon" />
+            <GXLocalizedText Value="@context.Text" />
+            <GXBadge Value="@context.PadgeCount" Label="@context.Padge"
                    TraceLevel="@context.PadgeType">
-            </Badge>
+            </GXBadge>
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
-                <TabPage Path="Schedule" Text=@Properties.Resources.SchedulesTitle
-                         Icon="Schedule">
-                    <Schedules Id="@Id"></Schedules>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleGroupManager)>
-                <TabPage Path="ScheduleGroup" Text=@Properties.Resources.ScheduleGroups
-                         Icon="ScheduleGroups">
-                    <ScheduleGroups Id="@Id"></ScheduleGroups>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLog, GXRoles.ScheduleLogManager)>
-                <TabPage Path="ScheduleLog"
-                         Text=@Properties.Resources.ScheduleLogs
-                         Padge="New schedule logs"
-                         PadgeCount="@_log.GetCount()"
-                         PadgeType="@_log.GetTraceLevel()"
-                         Icon="ScheduleLogs">
-                    <ScheduleLogs Id="@Id"></ScheduleLogs>
-                </TabPage>
-            </AuthorizeView>
+            <TabHeader Name="@GXMenus.ScheduleTab"></TabHeader>
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 <br />
 @code {
+    private IGXNotifier2? Notifier;
 
     /// <summary>
     /// User action.
@@ -127,17 +107,41 @@ else
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
+        if (!string.IsNullOrEmpty(page.Path))
+        {
+            NavigationManager.NavigateTo(GXTabRoutes.SelectionUrl(NavigationManager, "Schedule", 0, page.Path));
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        var path = NavigationManager.GetCurrentPagePath().Trim('/');
+        Path = path.ToLowerInvariant() switch
+        {
+            "schedule/groups" => "ScheduleGroup",
+            "schedule/logs" => "ScheduleLog",
+            _ => path.Split('/')[0].ToLowerInvariant() switch
+            {
+                "schedulegroup" => "ScheduleGroup",
+                "schedulelog" => "ScheduleLog",
+                _ => "Schedule"
+            }
+        };
     }
 
     protected override void OnInitialized()
     {
-        //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        _log = Notifier.GetUserStamps(TargetType.ScheduleLog);
-        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        Notifier = Services.GetService<IGXNotifier2>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        _log = Notifier?.GetUserStamps(TargetType.ScheduleLog) ?? new GXUserStamp { TargetType = TargetType.ScheduleLog };
+        Notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
         {
             bool updated = false;
             foreach (var it in stamps)
@@ -156,7 +160,9 @@ else
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }
+
+
 

@@ -1,34 +1,30 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -48,15 +44,17 @@
 @using System.Text;
 @using System.Reflection;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="AdvancedEdit" />
 
 @if (Active != null)
 {
-    <Dialog OnOk="OnSave" OnCancel="OnCancel">
-        <EditForm Model="@Active">
+    <GXDialog OnOk="OnSave" OnCancel="OnCancel">
+        <EditForm EditContext="@GXEditContexts.For(Active)">
             <DataAnnotationsValidator />
+            <ValidationSummary />
             <GXValidator @ref="_validator" OnValidate="OnValidate" />
             <div class="row">
                 <div style="width:100%">
@@ -67,44 +65,28 @@
                         <div class="col-auto">
                             @if (IsHexString)
                             {
-                                <InputHexAscii @bind-Value="HexByteArray"></InputHexAscii>
+                                <GXInputHexAscii @bind-Value="HexByteArray"></GXInputHexAscii>
                                 <ValidationMessage For="@(() => Active.Name)" />
                             }
                             else @if (Active.Name == "Authentication")
                             {
-                                <select class="form-select" @bind="ByteValue">
-                                    @foreach (var it in Enum.GetValues(typeof(Gurux.DLMS.Enums.Authentication)))
-                                    {
-                                        <option value="@Convert.ToInt32(it)">@it</option>
-                                    }
-                                </select>
+                                <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="ByteValue"
+                                                 Items="@(Enum.GetValues<Gurux.DLMS.Enums.Authentication>().Select(it => (int)it))" Formatter="@((int value) => ((Gurux.DLMS.Enums.Authentication)value).ToString())" />
                             }
                             else if (Active.Name == "Standard")
                             {
-                                <select class="form-select" @bind="ByteValue">
-                                    @foreach (var it in Enum.GetValues(typeof(Gurux.DLMS.Enums.Standard)))
-                                    {
-                                        <option value="@Convert.ToByte(it)">@it</option>
-                                    }
-                                </select>
+                                <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="ByteValue"
+                                                 Items="@(Enum.GetValues<Gurux.DLMS.Enums.Standard>().Select(it => (int)it))" Formatter="@((int value) => ((Gurux.DLMS.Enums.Standard)value).ToString())" />
                             }
                             else if (Active.Name == "Security")
                             {
-                                <select class="form-select" @bind="ByteValue">
-                                    @foreach (var it in Enum.GetValues(typeof(Gurux.DLMS.Enums.Security)))
-                                    {
-                                        <option value="@Convert.ToByte(it)">@it</option>
-                                    }
-                                </select>
+                                <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="ByteValue"
+                                                 Items="@(Enum.GetValues<Gurux.DLMS.Enums.Security>().Select(it => (int)it))" Formatter="@((int value) => ((Gurux.DLMS.Enums.Security)value).ToString())" />
                             }
                             else if (Active.Name == "SecuritySuite")
                             {
-                                <select class="form-select" @bind="ByteValue">
-                                    @foreach (var it in Enum.GetValues(typeof(SecuritySuite)))
-                                    {
-                                        <option value="@Convert.ToByte(it)">@it</option>
-                                    }
-                                </select>
+                                <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="ByteValue"
+                                                 Items="@(Enum.GetValues<SecuritySuite>().Select(it => (int)it))" Formatter="@((int value) => ((SecuritySuite)value).ToString())" />
                             }
                             else if (Active.PropertyType.FullName == typeof(string).FullName)
                             {
@@ -113,7 +95,7 @@
                             }
                             else if (Active.PropertyType.FullName == typeof(int).FullName)
                             {
-                                <InputNumber @bind-Value="IntValue" />
+                                <GXInputNumber RememberValue="false" @bind-Value="IntValue" Min="@GXNumberBounds.Minimum(IntValue)" Max="@GXNumberBounds.Maximum(IntValue)" />
                                 <ValidationMessage For="@(() => Active.Name)" />
                             }
                             else if (Active.PropertyType.FullName == typeof(byte).FullName)
@@ -123,11 +105,11 @@
                             }
                             else if (Active.PropertyType.FullName == typeof(bool).FullName)
                             {
-                                <InputSwitch @bind-Value="BoolValue" />
+                                <GXInputSwitch @bind-Value="BoolValue" />
                             }
                             else if (Active.PropertyType.FullName == typeof(byte[]).FullName)
                             {
-                                <InputHexAscii @bind-Value="ByteArray" Title="@Active.Name"></InputHexAscii>
+                                <GXInputHexAscii @bind-Value="ByteArray" Title="@Active.Name"></GXInputHexAscii>
                                 <ValidationMessage For="@(() => Active.Name)" />
                             }
                             else
@@ -139,9 +121,12 @@
                 </div>
             </div>
         </EditForm>
-    </Dialog>
+    </GXDialog>
 }
 @code {
+
+    private IGXNotificationService? NotificationService;
+
     private object? Value;
 
     private bool IsHexString
@@ -186,7 +171,7 @@
     {
         get
         {
-            return (int)Value;
+            return (int?)Value ?? 0;
         }
         set
         {
@@ -198,7 +183,7 @@
     {
         get
         {
-            return (byte)Value;
+            return (byte?)Value ?? 0;
         }
         set
         {
@@ -210,7 +195,7 @@
     {
         get
         {
-            return (bool)Value;
+            return (bool?)Value ?? false;
         }
         set
         {
@@ -222,7 +207,7 @@
     {
         get
         {
-            return (string)Value;
+            return (string?)Value ?? string.Empty;
         }
         set
         {
@@ -245,18 +230,20 @@
 
     protected override void OnInitialized()
     {
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AdvancedEdit.OnInitialized");
             if (Active == null || Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Value = Active.GetValue(Parent.Settings);
+            Value = Active.GetValue(Parent?.Settings ?? throw new InvalidOperationException(Properties.Resources.DeviceTemplateSettingsAreMissing));
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AdvancedEdit.OnInitialized");
         }
     }
 
@@ -272,7 +259,7 @@
     /// <summary>
     /// Save profile group.
     ///</summary>
-    public void OnSave()
+    public async System.Threading.Tasks.Task OnSave()
     {
         try
         {
@@ -281,11 +268,11 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_validator != null && !_validator.Validate())
+            if (_validator != null && !await _validator.ValidateAsync())
             {
                 return;
             }
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AdvancedEdit.OnSave");
             if (Parent?.Action == CrudAction.Update)
             {
                 Active.SetValue(Parent.Settings, Value);
@@ -294,11 +281,12 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
+            Parent?.Parent?.SettingsChanged();
             Parent?.Update();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AdvancedEdit.OnSave");
         }
     }
 

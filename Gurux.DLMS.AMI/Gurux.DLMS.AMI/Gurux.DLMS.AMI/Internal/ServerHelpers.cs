@@ -1,70 +1,56 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Data;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Properties;
-using Gurux.DLMS.AMI.Services;
-using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
-using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
-using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Shared.DTOs.Menu;
-using Gurux.DLMS.AMI.Shared.DTOs.Module;
-using Gurux.DLMS.AMI.Shared.DTOs.Notification;
-using Gurux.DLMS.AMI.Shared.DTOs.Report;
-using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
-using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using MySql.Data.MySqlClient;
+using Npgsql;
+using Oracle.ManagedDataAccess.Client;
 using System.Collections;
+using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq.Expressions;
@@ -92,11 +78,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// resource is found.</returns>
         public static string GetInvariantString(this string value)
         {
-            string? tmp = Resources.ResourceManager.GetString(value, CultureInfo.InvariantCulture);
-            if (tmp == null)
-            {
-                tmp = value;
-            }
+            string? tmp = Resources.ResourceManager.GetString(value, CultureInfo.InvariantCulture) ?? value;
             return tmp;
         }
 
@@ -123,13 +105,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="user"></param>
         /// <returns>User ID.</returns>
-        public static string GetUserId(ClaimsPrincipal user)
+        public static string GetUserId(ClaimsPrincipal? user)
         {
-            string? id = GetUserId(user, true);
-            if (id == null)
-            {
-                throw new UnauthorizedAccessException();
-            }
+            string? id = GetUserId(user, true) ?? throw new UnauthorizedAccessException();
             return id;
         }
 
@@ -139,7 +117,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="user"></param>
         /// <param name="throwException">Exception is thrown if user is unknown.</param>
         /// <returns>User ID.</returns>
-        public static string? GetUserId(ClaimsPrincipal user, bool throwException)
+        public static string? GetUserId(ClaimsPrincipal? user, bool throwException)
         {
             if (user == null)
             {
@@ -154,7 +132,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 }
             }
             return id?.Value;
-        }      
+        }
 
         /// <summary>
         /// Create ClaimsPrincipal from the user information.
@@ -167,11 +145,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 throw new UnauthorizedAccessException();
             }
-            List<Claim> claims = new List<Claim>
-            {
+            List<Claim> claims =
+            [
                 new Claim("sub", user.Id),
                 new Claim(ClaimTypes.NameIdentifier, user.Id)
-            };
+            ];
             if (user.Roles != null)
             {
                 foreach (var role in user.Roles)
@@ -180,94 +158,6 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 }
             }
             return new ClaimsPrincipal(new ClaimsIdentity(claims, "Basic"));
-        }
-
-        /// <summary>
-        /// Get component views from the assembly and add them to the database.
-        /// </summary>
-        /// <param name="host"></param>
-        /// <param name="assembly">Assebly where component views are searched for.</param>
-        public static async Task<List<GXTrigger>> UpdateTriggersAsync(IGXHost host, Assembly assembly, bool activities)
-        {
-            List<GXTrigger> newTriggers = new();
-            List<GXTrigger> updatedTriggers = new();
-            foreach (Type it in assembly.GetTypes())
-            {
-                if (!it.IsAbstract && typeof(ITriggerAction).IsAssignableFrom(it))
-                {
-                    GXSelectArgs args = GXSelectArgs.SelectAll<GXTrigger>(where => where.ClassName == it.FullName);
-                    if (activities)
-                    {
-                        args.Columns.Add<GXTriggerActivity>();
-                        args.Joins.AddLeftJoin<GXTrigger, GXTriggerActivity>(j => j.Id, j => j.Trigger);
-                    }
-                    GXTrigger? item = host.Connection.SingleOrDefault<GXTrigger>(args);
-                    ITriggerAction? tmp = (ITriggerAction?)Activator.CreateInstance(it);
-                    if (tmp == null)
-                    {
-                        throw new ArgumentException("Unknown component " + it.FullName);
-                    }
-                    string? configurationUI = null;
-                    if (tmp.ConfigurationUI != null)
-                    {
-                        configurationUI = tmp.ConfigurationUI.FullName;
-                    }
-                    if (item == null)
-                    {
-                        GXTrigger trigger = new GXTrigger()
-                        {
-                            ClassName = it.FullName,
-                            Name = tmp.Name,
-                            ConfigurationUI = configurationUI,
-                            Icon = tmp.Icon,
-                            Activities = new List<GXTriggerActivity>(),
-                            CreationTime = DateTime.Now
-                        };
-                        newTriggers.Add(trigger);
-                        //Get static activity names.
-                        FieldInfo[] fields = it.GetFields(BindingFlags.Static | BindingFlags.Public);
-                        foreach (FieldInfo fi in fields)
-                        {
-                            trigger.Activities.Add(new GXTriggerActivity() { Name = fi.Name });
-                        }
-                    }
-                    else if (activities)
-                    {
-                        if (tmp.Name != item.Name || item.ConfigurationUI != configurationUI || tmp.Icon != item.Icon)
-                        {
-                            item.Name = tmp.Name;
-                            item.ConfigurationUI = configurationUI;
-                            item.Icon = tmp.Icon;
-                            updatedTriggers.Add(item);
-                        }
-                        //Get static activity names.
-                        List<GXTriggerActivity> added = new();
-                        FieldInfo[] fields = it.GetFields(BindingFlags.Static | BindingFlags.Public);
-                        foreach (FieldInfo fi in fields)
-                        {
-                            bool found = false;
-                            foreach (var a in item.Activities)
-                            {
-                                if (a.Name == fi.Name)
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found)
-                            {
-                                added.Add(new GXTriggerActivity() { Name = fi.Name, Trigger = item });
-                            }
-                        }
-                        await host.Connection.InsertAsync(GXInsertArgs.InsertRange(added));
-                    }
-
-                }
-            }
-            await host.Connection.UpdateAsync(GXUpdateArgs.UpdateRange(updatedTriggers));
-            await host.Connection.InsertAsync(GXInsertArgs.InsertRange(newTriggers));
-            newTriggers.AddRange(updatedTriggers);
-            return newTriggers;
         }
 
         /// <summary>
@@ -289,25 +179,27 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <summary>
         /// Get component views from the assembly and add them to the database.
         /// </summary>
-        /// <param name="host"></param>
+        /// <param name="connection">Database connection.</param>
+        /// <param name="transaction">Database transaction.</param>
         /// <param name="assembly">Assebly where component views are searched for.</param>
-        public static void UpdateComponentViews(IGXHost host, Assembly assembly)
+        public static void UpdateComponentViews(GXDbConnection connection,
+            IDbTransaction transaction, Assembly assembly)
         {
             //All values are saved using invariant culture.
             CultureInfo? culture = CultureInfo.DefaultThreadCurrentUICulture;
             try
             {
                 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
-                List<GXComponentView> list = new List<GXComponentView>();
+                List<GXComponentView> list = [];
                 foreach (Type it in assembly.GetTypes())
                 {
-                    if (!it.IsAbstract && typeof(IAmiComponent).IsAssignableFrom(it))
+                    if (!it.IsAbstract && typeof(IGXAmiComponent).IsAssignableFrom(it))
                     {
                         GXSelectArgs args = GXSelectArgs.SelectAll<GXComponentView>(where => where.ClassName == it.FullName);
-                        GXComponentView? item = host.Connection.SingleOrDefault<GXComponentView>(args);
+                        GXComponentView? item = connection.SingleOrDefault<GXComponentView>(transaction, args);
                         if (item == null)
                         {
-                            IAmiComponent tmp = (IAmiComponent)Activator.CreateInstance(it);
+                            IGXAmiComponent tmp = Activator.CreateInstance(it) as IGXAmiComponent ?? throw new InvalidOperationException($"Could not create component {it.FullName}.");
                             string? configurationUI = null;
                             if (tmp.ConfigurationUI != null)
                             {
@@ -317,7 +209,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                         }
                     }
                 }
-                host.Connection.Insert(GXInsertArgs.InsertRange(list));
+                connection.Insert(transaction, GXInsertArgs.InsertRange(list));
             }
             finally
             {
@@ -328,51 +220,51 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <summary>
         /// Update localized strings.
         /// </summary>
-        /// <param name="host"></param>
+        /// <param name="connection">DB connection.</param>
         /// <param name="enumTypeRepository">Enum type repository</param>
         /// <param name="languages">Updated languages</param>
         /// <param name="creator">Creator</param>
         internal static async Task<List<GXLanguage>> UpdateLanguageResourcesAsync(
-            IGXHost host,
+            GXDbConnection connection,
             IEnumTypeRepository enumTypeRepository,
             IEnumerable<GXLanguage>? languages,
             GXUser creator)
         {
-            await UpdateLanguageResourcesAsync(host, enumTypeRepository, typeof(AccountSettings), languages, creator);
-            return await UpdateLanguageResourcesAsync(host, enumTypeRepository, typeof(Properties.Resources), languages, creator);
+            await UpdateLanguageResourcesAsync(connection, enumTypeRepository, typeof(AccountSettings), languages, creator);
+            return await UpdateLanguageResourcesAsync(connection, enumTypeRepository, typeof(Properties.Resources), languages, creator);
         }
 
         /// <summary>
         /// Update localized strings.
         /// </summary>
-        /// <param name="host"></param>
         /// <param name="enumTypeRepository">Enum type repository</param>
         /// <param name="type"></param>
         /// <param name="languages">Updated languages</param>
         /// <param name="creator">Creator</param>
+        /// <param name="connection">The database connection.</param>
         private static async Task<List<GXLanguage>> UpdateLanguageResourcesAsync(
-            IGXHost host,
+            GXDbConnection connection,
             IEnumTypeRepository enumTypeRepository,
             Type type,
             IEnumerable<GXLanguage>? languages,
             GXUser creator)
         {
-            List<GXLanguage> updated = new List<GXLanguage>();
-            List<GXLocalizedResource> strings = new List<GXLocalizedResource>();
-            List<GXAppearance> images = new List<GXAppearance>();
+            List<GXLanguage> updated = [];
+            List<GXLocalizedResource> strings = [];
+            List<GXAppearance> images = [];
             GXSelectArgs args;
             //Update activated languages.
-            args = GXSelectArgs.SelectAll<GXLanguage>(w => w.Active == true);
+            args = GXSelectArgs.SelectAll<GXLanguage>(w => w.Enabled == true);
             if (languages?.Any() == true)
             {
                 var ids = languages.Select(s => s.Id).ToList();
                 args.Where.And<GXLanguage>(w => ids.Contains(w.Id));
             }
-            languages = host.Connection.Select<GXLanguage>(args).ToArray();
+            languages = [.. connection.Select<GXLanguage>(args)];
             DateTime now = DateTime.Now;
             string name = type.Assembly.GetName().Name + ".Properties.Resources";
             //Update resources.
-            ResourceManager rm = new ResourceManager(name, type.Assembly);
+            ResourceManager rm = new(name, type.Assembly);
             try
             {
                 ResourceSet? invariantResourceSet = rm.GetResourceSet(CultureInfo.InvariantCulture, true, true);
@@ -398,7 +290,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                 if (it.Key is string id)
                                 {
                                     if (it.Value is string value)
-                                    {                                    
+                                    {
                                         string? localString = localResourceSet.GetString(id);
                                         string status = "Success";
                                         if (localString == null)
@@ -409,9 +301,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                         //Add new localized strings.
                                         string hash = ClientHelpers.GetHashCode(value);
                                         args = GXSelectArgs.SelectAll<GXLocalizedResource>(w => w.Hash == hash);
-                                        args.Joins.AddLeftJoin<GXLocalizedResource, GXLanguage>(j => j.Language, j => j.Id);
+                                        args.Joins.AddLeftJoin<GXLocalizedResource, GXLanguage>(j => j.Language!, j => j.Id);
                                         args.Where.And<GXLanguage>(w => w.Id == lang.Id);
-                                        GXLocalizedResource res = host.Connection.SingleOrDefault<GXLocalizedResource>(args);
+                                        GXLocalizedResource? res = connection.SingleOrDefault<GXLocalizedResource>(args);
                                         if (res == null)
                                         {
                                             res = new GXLocalizedResource()
@@ -425,7 +317,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                             };
                                             try
                                             {
-                                                await host.Connection.InsertAsync(GXInsertArgs.Insert(res));
+                                                await connection.InsertAsync(GXInsertArgs.Insert(res));
                                                 strings.Add(res);
                                             }
                                             catch (Exception)
@@ -440,7 +332,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                         //Update image.
                                         images.Add(new GXAppearance()
                                         {
-                                            Id = id,
+                                            Name = id,
                                             Creator = creator,
                                             CreationTime = now,
                                             ResourceType = (byte)ResourceType.Image,
@@ -464,23 +356,18 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
             return updated;
         }
-     
+
         public static void AddHostedService<TService, TImplementation>(this IServiceCollection services)
-   where TService : class
-   where TImplementation : class, IHostedService, TService
+ where TService : class
+ where TImplementation : class, IHostedService, TService
         {
             services.AddSingleton<TService, TImplementation>();
             services.AddHostedService<HostedServiceWrapper<TService>>();
         }
 
-        private class HostedServiceWrapper<TService> : IHostedService
+        private class HostedServiceWrapper<TService>(TService hostedService) : IHostedService
         {
-            private readonly IHostedService _hostedService;
-
-            public HostedServiceWrapper(TService hostedService)
-            {
-                _hostedService = (IHostedService)hostedService;
-            }
+            private readonly IHostedService _hostedService = hostedService as IHostedService ?? throw new ArgumentException("The service must implement IHostedService.", nameof(hostedService));
 
             public Task StartAsync(CancellationToken cancellationToken)
             {
@@ -494,1096 +381,6 @@ namespace Gurux.DLMS.AMI.Server.Internal
         }
 
         /// <summary>
-        /// Add events service.
-        /// </summary>
-        /// <param name="services"></param>
-        public static void AddEventService(this IServiceCollection services)
-        {
-            services.AddSingleton<IGXEventsListener, GXEventService>();
-            services.AddTransient<IGXEventsNotifier, EventServiceWrapper>();
-        }
-
-        private class EventServiceWrapper : IGXEventsNotifier
-        {
-            private readonly GXEventService _hostedService;
-
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            public EventServiceWrapper(IGXEventsListener hostedService)
-            {
-                _hostedService = (GXEventService)hostedService;
-            }
-
-
-            /// <inheritdoc/>
-            public Task AddAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
-            {
-                return _hostedService.AddAgentLogs(users, agents);
-            }
-
-            /// <inheritdoc/>
-            public Task AddDeviceErrors(IReadOnlyList<string> users, IEnumerable<GXDeviceError> errors)
-            {
-                return _hostedService.AddDeviceErrors(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task AddModuleLogs(IReadOnlyList<string> users, IEnumerable<GXModuleLog> errors)
-            {
-                return _hostedService.AddModuleLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task AddScheduleLog(IReadOnlyList<string> users, IEnumerable<GXScheduleLog> logs)
-            {
-                return _hostedService.AddScheduleLog(users, logs);
-            }
-
-            /// <inheritdoc/>
-            public Task AddScriptLogs(IReadOnlyList<string> users, IEnumerable<GXScriptLog> errors)
-            {
-                return _hostedService.AddScriptLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task AddSystemLogs(IReadOnlyList<string> users, IEnumerable<GXSystemLog> errors)
-            {
-                return _hostedService.AddSystemLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task AddUserErrors(IReadOnlyList<string> users, IEnumerable<GXUserError> item)
-            {
-                return _hostedService.AddUserErrors(users, item);
-            }
-
-            /// <inheritdoc/>
-            public Task AddWorkflowLogs(IReadOnlyList<string> users, IEnumerable<GXWorkflowLog> item)
-            {
-                return _hostedService.AddWorkflowLogs(users, item);
-            }
-
-            /// <inheritdoc/>
-            public Task AgentDelete(IReadOnlyList<string> users, IEnumerable<GXAgent> agents)
-            {
-                return _hostedService.AgentDelete(users, agents);
-            }
-
-            /// <inheritdoc/>
-            public Task AgentGroupDelete(IReadOnlyList<string> users, IEnumerable<GXAgentGroup> groups)
-            {
-                return _hostedService.AgentGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task AgentGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXAgentGroup> groups)
-            {
-                return _hostedService.AgentGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task AgentStatusChange(IReadOnlyList<string> users, IEnumerable<GXAgent> agents)
-            {
-                return _hostedService.AgentStatusChange(users, agents);
-            }
-
-            /// <inheritdoc/>
-            public Task AgentUpdate(IReadOnlyList<string> users, IEnumerable<GXAgent> agents)
-            {
-                return _hostedService.AgentUpdate(users, agents);
-            }
-
-            /// <inheritdoc/>
-            public Task AttributeDelete(IReadOnlyList<string> users, IEnumerable<GXAttribute> attributes)
-            {
-                return _hostedService.AttributeDelete(users, attributes);
-            }
-
-            /// <inheritdoc/>
-            public Task AttributeUpdate(IReadOnlyList<string> users, IEnumerable<GXAttribute> attributes)
-            {
-                return _hostedService.AttributeUpdate(users, attributes);
-            }
-
-            /// <inheritdoc/>
-            public Task ValueUpdate(IReadOnlyList<string> users, IEnumerable<GXAttribute> attributes)
-            {
-                return _hostedService.ValueUpdate(users, attributes);
-            }
-
-            /// <inheritdoc/>
-            public Task BlockClose(IReadOnlyList<string> users, IEnumerable<GXBlock> blocks)
-            {
-                return _hostedService.BlockClose(users, blocks);
-            }
-
-            /// <inheritdoc/>
-            public Task BlockDelete(IReadOnlyList<string> users, IEnumerable<GXBlock> blocks)
-            {
-                return _hostedService.BlockDelete(users, blocks);
-            }
-
-            /// <inheritdoc/>
-            public Task BlockGroupDelete(IReadOnlyList<string> users, IEnumerable<GXBlockGroup> groups)
-            {
-                return _hostedService.BlockGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task BlockGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXBlockGroup> groups)
-            {
-                return _hostedService.BlockGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task BlockUpdate(IReadOnlyList<string> users, IEnumerable<GXBlock> blocks)
-            {
-                return _hostedService.BlockUpdate(users, blocks);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentClose(IReadOnlyList<string> users, IEnumerable<GXContent> contents)
-            {
-                return _hostedService.ContentClose(users, contents);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentDelete(IReadOnlyList<string> users, IEnumerable<GXContent> contents)
-            {
-                return _hostedService.ContentDelete(users, contents);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentGroupDelete(IReadOnlyList<string> users, IEnumerable<GXContentGroup> groups)
-            {
-                return _hostedService.ContentGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXContentGroup> groups)
-            {
-                return _hostedService.ContentGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentUpdate(IReadOnlyList<string> users, IEnumerable<GXContent> contents)
-            {
-                return _hostedService.ContentUpdate(users, contents);
-            }
-            /// <inheritdoc/>
-            public Task ContentTypeDelete(IReadOnlyList<string> users, IEnumerable<GXContentType> contentTypes)
-            {
-                return _hostedService.ContentTypeDelete(users, contentTypes);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentTypeGroupDelete(IReadOnlyList<string> users, IEnumerable<GXContentTypeGroup> groups)
-            {
-                return _hostedService.ContentTypeGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentTypeGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXContentTypeGroup> groups)
-            {
-                return _hostedService.ContentTypeGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ContentTypeUpdate(IReadOnlyList<string> users, IEnumerable<GXContentType> contentTypes)
-            {
-                return _hostedService.ContentTypeUpdate(users, contentTypes);
-            }
-
-            /// <inheritdoc/>
-            public Task MenuDelete(IReadOnlyList<string> users, IEnumerable<GXMenu> menus)
-            {
-                return _hostedService.MenuDelete(users, menus);
-            }
-
-            /// <inheritdoc/>
-            public Task MenuGroupDelete(IReadOnlyList<string> users, IEnumerable<GXMenuGroup> groups)
-            {
-                return _hostedService.MenuGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task MenuGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXMenuGroup> groups)
-            {
-                return _hostedService.MenuGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task MenuUpdate(IReadOnlyList<string> users, IEnumerable<GXMenu> menus)
-            {
-                return _hostedService.MenuUpdate(users, menus);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgent>? agents)
-            {
-                return _hostedService.ClearAgentLogs(users, agents);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearDeviceErrors(IReadOnlyList<string> users, IEnumerable<GXDevice>? devices)
-            {
-                return _hostedService.ClearDeviceErrors(users, devices);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearModuleLogs(IReadOnlyList<string> users, IEnumerable<GXModule>? modules)
-            {
-                return _hostedService.ClearModuleLogs(users, modules);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearScheduleLog(IReadOnlyList<string> users, IEnumerable<GXSchedule>? schedules)
-            {
-                return _hostedService.ClearScheduleLog(users, schedules);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearScriptLogs(IReadOnlyList<string> users, IEnumerable<GXScript>? scripts)
-            {
-                return _hostedService.ClearScriptLogs(users, scripts);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearSystemLogs(IReadOnlyList<string> users)
-            {
-                return _hostedService.ClearSystemLogs(users);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearUserErrors(IReadOnlyList<string> users, IEnumerable<GXUser>? Users)
-            {
-                return _hostedService.ClearUserErrors(users, Users);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearWorkflowLogs(IReadOnlyList<string> users, IEnumerable<GXWorkflow>? workflows)
-            {
-                return _hostedService.ClearWorkflowLogs(users, workflows);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
-            {
-                return _hostedService.CloseAgentLogs(users, agents);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseDeviceErrors(IReadOnlyList<string> users, IEnumerable<GXDeviceError> errors)
-            {
-                return _hostedService.CloseDeviceErrors(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseModuleLogs(IReadOnlyList<string> users, IEnumerable<GXModuleLog> errors)
-            {
-                return _hostedService.CloseModuleLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseScheduleLog(IReadOnlyList<string> users, IEnumerable<GXScheduleLog> logs)
-            {
-                return _hostedService.CloseScheduleLog(users, logs);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseScriptLogs(IReadOnlyList<string> users, IEnumerable<GXScriptLog> errors)
-            {
-                return _hostedService.CloseScriptLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseSystemLogs(IReadOnlyList<string> users, IEnumerable<GXSystemLog> errors)
-            {
-                return _hostedService.CloseSystemLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseUserErrors(IReadOnlyList<string> users, IEnumerable<GXUserError> errors)
-            {
-                return _hostedService.CloseUserErrors(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseWorkflowLogs(IReadOnlyList<string> users, IEnumerable<GXWorkflowLog> item)
-            {
-                return _hostedService.CloseWorkflowLogs(users, item);
-            }
-
-            /// <inheritdoc/>
-            public Task ComponentViewDelete(IReadOnlyList<string> users, IEnumerable<GXComponentView> componentViews)
-            {
-                return _hostedService.ComponentViewDelete(users, componentViews);
-            }
-
-            /// <inheritdoc/>
-            public Task ComponentViewGroupDelete(IReadOnlyList<string> users, IEnumerable<GXComponentViewGroup> groups)
-            {
-                return _hostedService.ComponentViewGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ComponentViewGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXComponentViewGroup> groups)
-            {
-                return _hostedService.ComponentViewGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ComponentViewUpdate(IReadOnlyList<string> users, IEnumerable<GXComponentView> componentViews)
-            {
-                return _hostedService.ComponentViewUpdate(users, componentViews);
-            }
-
-            /// <inheritdoc/>
-            public Task ConfigurationSave(IReadOnlyList<string> users, IEnumerable<GXConfiguration> configurations)
-            {
-                return _hostedService.ConfigurationSave(users, configurations);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceActionAdd(IReadOnlyList<string> users, IEnumerable<GXDeviceAction> deviceActions)
-            {
-                return _hostedService.DeviceActionAdd(users, deviceActions);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceActionsClear(IReadOnlyList<string> users, IEnumerable<GXDevice>? devices)
-            {
-                return _hostedService.DeviceActionsClear(users, devices);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceDelete(IReadOnlyList<string> users, IEnumerable<GXDevice> devices)
-            {
-                return _hostedService.DeviceDelete(users, devices);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceGroupDelete(IReadOnlyList<string> users, IEnumerable<GXDeviceGroup> groups)
-            {
-                return _hostedService.DeviceGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXDeviceGroup> groups)
-            {
-                return _hostedService.DeviceGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceTemplateDelete(IReadOnlyList<string> users, IEnumerable<GXDeviceTemplate> templates)
-            {
-                return _hostedService.DeviceTemplateDelete(users, templates);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceTemplateGroupDelete(IReadOnlyList<string> users, IEnumerable<GXDeviceTemplateGroup> groups)
-            {
-                return _hostedService.DeviceTemplateGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceTemplateGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXDeviceTemplateGroup> groups)
-            {
-                return _hostedService.DeviceTemplateGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceTemplateUpdate(IReadOnlyList<string> users, IEnumerable<GXDeviceTemplate> templates)
-            {
-                return _hostedService.DeviceTemplateUpdate(users, templates);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceTraceAdd(IReadOnlyList<string> users, IEnumerable<GXDeviceTrace> deviceTraces)
-            {
-                return _hostedService.DeviceTraceAdd(users, deviceTraces);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceTraceClear(IReadOnlyList<string> users, IEnumerable<GXDevice>? devices)
-            {
-                return _hostedService.DeviceTraceClear(users, devices);
-            }
-
-            /// <inheritdoc/>
-            public Task DeviceUpdate(IReadOnlyList<string> users, IEnumerable<GXDevice> devices)
-            {
-                return _hostedService.DeviceUpdate(users, devices);
-            }
-
-            /// <inheritdoc/>
-            public Task LanguageUpdate(IReadOnlyList<string> users, IEnumerable<GXLanguage> language)
-            {
-                return _hostedService.LanguageUpdate(users, language);
-            }
-
-            /// <inheritdoc/>
-            public Task ModuleDelete(IReadOnlyList<string> users, IEnumerable<GXModule> modules)
-            {
-                return _hostedService.ModuleDelete(users, modules);
-            }
-
-            /// <inheritdoc/>
-            public Task ModuleGroupDelete(IReadOnlyList<string> users, IEnumerable<GXModuleGroup> groups)
-            {
-                return _hostedService.ModuleGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ModuleGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXModuleGroup> groups)
-            {
-                return _hostedService.ModuleGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ModuleSettingsSave(IReadOnlyList<string> users, GXModule module)
-            {
-                return _hostedService.ModuleSettingsSave(users, module);
-            }
-
-            /// <inheritdoc/>
-            public Task ModuleUpdate(IReadOnlyList<string> users, IEnumerable<GXModule> modules)
-            {
-                return _hostedService.ModuleUpdate(users, modules);
-            }
-
-            /// <inheritdoc/>
-            public Task ObjectDelete(IReadOnlyList<string> users, IEnumerable<GXObject> objects)
-            {
-                return _hostedService.ObjectDelete(users, objects);
-            }
-
-            /// <inheritdoc/>
-            public Task ObjectTemplateDelete(IReadOnlyList<string> users, IEnumerable<GXObjectTemplate> templates)
-            {
-                return _hostedService.ObjectTemplateDelete(users, templates);
-            }
-
-            /// <inheritdoc/>
-            public Task ObjectTemplateUpdate(IReadOnlyList<string> users, IEnumerable<GXObjectTemplate> templates)
-            {
-                return _hostedService.ObjectTemplateUpdate(users, templates);
-            }
-
-            /// <inheritdoc/>
-            public Task AttributeTemplateDelete(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> templates)
-            {
-                return _hostedService.AttributeTemplateDelete(users, templates);
-            }
-
-            /// <inheritdoc/>
-            public Task AttributeTemplateUpdate(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> templates)
-            {
-                return _hostedService.AttributeTemplateUpdate(users, templates);
-            }
-
-            /// <inheritdoc/>
-            public Task ObjectUpdate(IReadOnlyList<string> users, IEnumerable<GXObject> objects)
-            {
-                return _hostedService.ObjectUpdate(users, objects);
-            }
-
-            /// <inheritdoc/>
-            public Task RestStatisticAdd(IReadOnlyList<string> users, IEnumerable<GXRestStatistic> statistics)
-            {
-                return _hostedService.RestStatisticAdd(users, statistics);
-            }
-
-            /// <inheritdoc/>
-            public Task RestStatisticClear(IReadOnlyList<string> users, IEnumerable<GXUser>? Users)
-            {
-                return _hostedService.RestStatisticClear(users, Users);
-            }
-
-            /// <inheritdoc/>
-            public Task RoleDelete(IReadOnlyList<string> users, IEnumerable<string> roles)
-            {
-                return _hostedService.RoleDelete(users, roles);
-            }
-
-            /// <inheritdoc/>
-            public Task RoleUpdate(IReadOnlyList<string> users, IEnumerable<GXRole> roles)
-            {
-                return _hostedService.RoleUpdate(users, roles);
-            }
-
-            /// <inheritdoc/>
-            public Task ScheduleDelete(IReadOnlyList<string> users, IEnumerable<GXSchedule> schedules)
-            {
-                return _hostedService.ScheduleDelete(users, schedules);
-            }
-
-            /// <inheritdoc/>
-            public Task ScheduleStart(IReadOnlyList<string> users, IEnumerable<GXSchedule> schedules)
-            {
-                return _hostedService.ScheduleStart(users, schedules);
-            }
-
-            /// <inheritdoc/>
-            public Task ScheduleCompleate(IReadOnlyList<string> users, IEnumerable<GXSchedule> schedules)
-            {
-                return _hostedService.ScheduleCompleate(users, schedules);
-            }
-
-            /// <inheritdoc/>
-            public Task ScheduleGroupDelete(IReadOnlyList<string> users, IEnumerable<GXScheduleGroup> groups)
-            {
-                return _hostedService.ScheduleGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ScheduleGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXScheduleGroup> groups)
-            {
-                return _hostedService.ScheduleGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ScheduleUpdate(IReadOnlyList<string> users, IEnumerable<GXSchedule> schedules)
-            {
-                return _hostedService.ScheduleUpdate(users, schedules);
-            }
-
-            /// <inheritdoc/>
-            public Task ScriptDelete(IReadOnlyList<string> users, IEnumerable<GXScript> scripts)
-            {
-                return _hostedService.ScriptDelete(users, scripts);
-            }
-
-            /// <inheritdoc/>
-            public Task ScriptGroupDelete(IReadOnlyList<string> users, IEnumerable<GXScriptGroup> groups)
-            {
-                return _hostedService.ScriptGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ScriptGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXScriptGroup> groups)
-            {
-                return _hostedService.ScriptGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ScriptUpdate(IReadOnlyList<string> users, IEnumerable<GXScript> scripts)
-            {
-                return _hostedService.ScriptUpdate(users, scripts);
-            }
-
-            /// <inheritdoc/>
-            public Task TaskAdd(IReadOnlyList<string> users, IEnumerable<GXTask> tasks)
-            {
-                return _hostedService.TaskAdd(users, tasks);
-            }
-
-            /// <inheritdoc/>
-            public Task TaskDelete(IReadOnlyList<string> users, IEnumerable<GXTask> tasks)
-            {
-                return _hostedService.TaskDelete(users, tasks);
-            }
-
-            /// <inheritdoc/>
-            public Task TaskUpdate(IReadOnlyList<string> users, IEnumerable<GXTask> tasks)
-            {
-                return _hostedService.TaskUpdate(users, tasks);
-            }
-
-            /// <inheritdoc/>
-            public Task TaskClear(IReadOnlyList<string> users, IEnumerable<GXUser>? items)
-            {
-                return _hostedService.TaskClear(users, items);
-            }
-
-            /// <inheritdoc/>
-            public Task TriggerDelete(IReadOnlyList<string> users, IEnumerable<GXTrigger> triggers)
-            {
-                return _hostedService.TriggerDelete(users, triggers);
-            }
-
-            /// <inheritdoc/>
-            public Task TriggerGroupDelete(IReadOnlyList<string> users, IEnumerable<GXTriggerGroup> groups)
-            {
-                return _hostedService.TriggerGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task TriggerGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXTriggerGroup> groups)
-            {
-                return _hostedService.TriggerGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task TriggerUpdate(IReadOnlyList<string> users, IEnumerable<GXTrigger> triggers)
-            {
-                return _hostedService.TriggerUpdate(users, triggers);
-            }
-
-            /// <inheritdoc/>
-            public Task UserActionAdd(IReadOnlyList<string> users, IEnumerable<GXUserAction> userActions)
-            {
-                return _hostedService.UserActionAdd(users, userActions);
-            }
-
-            /// <inheritdoc/>
-            public Task UserActionDelete(IReadOnlyList<string> users, IEnumerable<GXUserAction> userActions)
-            {
-                return _hostedService.UserActionDelete(users, userActions);
-            }
-
-            /// <inheritdoc/>
-            public Task UserActionsClear(IReadOnlyList<string> users, IEnumerable<GXUser>? Users)
-            {
-                return _hostedService.UserActionsClear(users, Users);
-            }
-
-            /// <inheritdoc/>
-            public Task UserDelete(IReadOnlyList<string> users, IEnumerable<GXUser> Users)
-            {
-                return _hostedService.UserDelete(users, Users);
-            }
-
-            /// <inheritdoc/>
-            public Task UserGroupDelete(IReadOnlyList<string> users, IEnumerable<GXUserGroup> groups)
-            {
-                return _hostedService.UserGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task UserGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXUserGroup> groups)
-            {
-                return _hostedService.UserGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task UserUpdate(IReadOnlyList<string> users, IEnumerable<GXUser> Users)
-            {
-                return _hostedService.UserUpdate(users, Users);
-            }
-
-            /// <inheritdoc/>
-            public Task WorkflowDelete(IReadOnlyList<string> users, IEnumerable<GXWorkflow> workflows)
-            {
-                return _hostedService.WorkflowDelete(users, workflows);
-            }
-
-            /// <inheritdoc/>
-            public Task WorkflowGroupDelete(IReadOnlyList<string> users, IEnumerable<GXWorkflowGroup> groups)
-            {
-                return _hostedService.WorkflowGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task WorkflowGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXWorkflowGroup> groups)
-            {
-                return _hostedService.WorkflowGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task WorkflowUpdate(IReadOnlyList<string> users, IEnumerable<GXWorkflow> workflows)
-            {
-                return _hostedService.WorkflowUpdate(users, workflows);
-            }
-
-            /// <inheritdoc/>
-            public Task CronStart(IReadOnlyList<string> users)
-            {
-                return _hostedService.CronStart(users);
-            }
-
-            /// <inheritdoc/>
-            public Task CronCompleate(IReadOnlyList<string> users)
-            {
-                return _hostedService.CronCompleate(users);
-            }
-
-            /// <inheritdoc/>
-            public Task UserSettingUpdate(IReadOnlyList<string> users, IEnumerable<GXUserSetting> settings)
-            {
-                return _hostedService.UserSettingUpdate(users, settings);
-            }
-
-            /// <inheritdoc/>
-            public Task UserSettingDelete(IReadOnlyList<string> users, IEnumerable<GXUserSetting> settings)
-            {
-                return _hostedService.UserSettingDelete(users, settings);
-            }
-
-            /// <summary>
-            /// New manufacturer is added or modified.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="manufacturers">Updated manufacturers.</param>
-            public Task ManufacturerUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers)
-            {
-                return _hostedService.ManufacturerUpdate(users, manufacturers);
-            }
-
-            /// <summary>
-            /// Manufacturer is deleted.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="manufacturers">Deleted manufacturers.</param>
-            public Task ManufacturerDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers)
-            {
-                return _hostedService.ManufacturerDelete(users, manufacturers);
-            }
-
-            /// <summary>
-            /// New manufacturer group is added or modified.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="groups">Updated manufacturer groups.</param>
-            public Task ManufacturerGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups)
-            {
-                return _hostedService.ManufacturerGroupUpdate(users, groups);
-            }
-            /// <summary>
-            /// Manufacturer group is deleted.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="groups">Deleted manufacturer groups.</param>
-            public Task ManufacturerGroupDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups)
-            {
-                return _hostedService.ManufacturerGroupDelete(users, groups);
-            }
-
-            /// <summary>
-            /// New favorite is added or modified.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="favorites">Updated favorites.</param>
-            public Task FavoriteUpdate(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
-            {
-                return _hostedService.FavoriteUpdate(users, favorites);
-            }
-
-            /// <summary>
-            /// Favorite is deleted.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="favorites">Deleted favorites.</param>
-            public Task FavoriteDelete(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
-            {
-                return _hostedService.FavoriteDelete(users, favorites);
-            }
-
-            /// <summary>
-            /// New key management is added or modified.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="keys">Updated key managements.</param>
-            public Task KeyManagementUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys)
-            {
-                return _hostedService.KeyManagementUpdate(users, keys);
-            }
-
-            /// <summary>
-            /// KeyManagement is deleted.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="keys">Deleted key managements.</param>
-            public Task KeyManagementDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys)
-            {
-                return _hostedService.KeyManagementDelete(users, keys);
-            }
-            /// <summary>
-            /// New key management group is added or modified.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="groups">Updated key management groups.</param>
-            public Task KeyManagementGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups)
-            {
-                return _hostedService.KeyManagementGroupUpdate(users, groups);
-            }
-            /// <summary>
-            /// KeyManagement group is deleted.
-            /// </summary>
-            /// <param name="users">Notified users.</param>
-            /// <param name="groups">Deleted key management groups.</param>
-            public Task KeyManagementGroupDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups)
-            {
-                return _hostedService.KeyManagementGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task AddKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
-            {
-                return _hostedService.AddKeyManagementLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagement>? keys)
-            {
-                return _hostedService.ClearKeyManagementLogs(users, keys);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
-            {
-                return _hostedService.CloseKeyManagementLogs(users, errors);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearCache(IReadOnlyList<string> users, Guid id, string[] names)
-            {
-                //Only agent needs this.
-                return Task.CompletedTask;
-            }
-
-            public Task GatewayGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups)
-            {
-                return _hostedService.GatewayGroupUpdate(users, groups);
-            }
-
-            public Task GatewayGroupDelete(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups)
-            {
-                return _hostedService.GatewayGroupDelete(users, groups);
-            }
-
-            public Task ClearGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGateway>? gateways)
-            {
-                return _hostedService.ClearGatewayLogs(users, gateways);
-            }
-
-            public Task AddGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways)
-            {
-                return _hostedService.AddGatewayLogs(users, gateways);
-            }
-
-            public Task CloseGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways)
-            {
-                return _hostedService.CloseGatewayLogs(users, gateways);
-            }
-
-            public Task GatewayUpdate(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
-            {
-                return _hostedService.GatewayUpdate(users, gateways);
-            }
-
-            public Task GatewayDelete(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
-            {
-                return _hostedService.GatewayDelete(users, gateways);
-            }
-
-            public Task GatewayStatusChange(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
-            {
-                return _hostedService.GatewayStatusChange(users, gateways);
-            }
-
-            public Task DeviceStatusChange(IReadOnlyList<string> users, IEnumerable<GXDevice> devices)
-            {
-                return _hostedService.DeviceStatusChange(users, devices);
-            }
-
-            /// <inheritdoc/>
-            public Task PerformanceAdd(IReadOnlyList<string> users, IEnumerable<GXPerformance> performances)
-            {
-                return _hostedService.PerformanceAdd(users, performances);
-            }
-
-            /// <inheritdoc/>
-            public Task PerformanceClear(IReadOnlyList<string> users)
-            {
-                return _hostedService.PerformanceClear(users);
-            }
-
-            /// <inheritdoc/>
-            public Task PerformanceDelete(IReadOnlyList<string> users, IEnumerable<Guid> performances)
-            {
-                return _hostedService.PerformanceDelete(users, performances);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalCalculate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
-            {
-                return _hostedService.SubtotalCalculate(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalClear(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
-            {
-                return _hostedService.SubtotalClear(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
-            {
-                return _hostedService.SubtotalDelete(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalGroupDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups)
-            {
-                return _hostedService.SubtotalGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups)
-            {
-                return _hostedService.SubtotalGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
-            {
-                return _hostedService.SubtotalUpdate(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task SubtotalValueUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalValue> values)
-            {
-                return _hostedService.SubtotalValueUpdate(users, values);
-            }
-
-            /// <inheritdoc/>
-            public Task AddSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals)
-            {
-                return _hostedService.AddSubtotalLogs(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotal>? subtotals)
-            {
-                return _hostedService.ClearSubtotalLogs(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals)
-            {
-                return _hostedService.CloseSubtotalLogs(users, subtotals);
-            }
-
-            /// <inheritdoc/>
-            public Task ReportCalculate(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
-            {
-                return _hostedService.ReportCalculate(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task ReportClear(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
-            {
-                return _hostedService.ReportClear(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task ReportDelete(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
-            {
-                return _hostedService.ReportDelete(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task ReportGroupDelete(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups)
-            {
-                return _hostedService.ReportGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ReportGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups)
-            {
-                return _hostedService.ReportGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task ReportUpdate(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
-            {
-                return _hostedService.ReportUpdate(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task AddReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> reports)
-            {
-                return _hostedService.AddReportLogs(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearReportLogs(IReadOnlyList<string> users, IEnumerable<GXReport>? reports)
-            {
-                return _hostedService.ClearReportLogs(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task CloseReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> reports)
-            {
-                return _hostedService.CloseReportLogs(users, reports);
-            }
-
-            /// <inheritdoc/>
-            public Task UserStampUpdate(IReadOnlyList<string> users, IEnumerable<GXUserStamp> stamps)
-            {
-                return _hostedService.UserStampUpdate(users, stamps);
-            }
-
-            /// <inheritdoc/>
-            public Task NotificationClear(IReadOnlyList<string> users, IEnumerable<GXNotification> notifications)
-            {
-                return _hostedService.NotificationClear(users, notifications);
-            }
-
-            /// <inheritdoc/>
-            public Task NotificationDelete(IReadOnlyList<string> users, IEnumerable<GXNotification> notifications)
-            {
-                return _hostedService.NotificationDelete(users, notifications);
-            }
-
-            /// <inheritdoc/>
-            public Task NotificationGroupDelete(IReadOnlyList<string> users, IEnumerable<GXNotificationGroup> groups)
-            {
-                return _hostedService.NotificationGroupDelete(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task NotificationGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXNotificationGroup> groups)
-            {
-                return _hostedService.NotificationGroupUpdate(users, groups);
-            }
-
-            /// <inheritdoc/>
-            public Task NotificationUpdate(IReadOnlyList<string> users, IEnumerable<GXNotification> notifications)
-            {
-                return _hostedService.NotificationUpdate(users, notifications);
-            }
-
-            /// <inheritdoc/>
-            public Task AddNotificationLogs(IReadOnlyList<string> users, IEnumerable<GXNotificationLog> notifications)
-            {
-                return _hostedService.AddNotificationLogs(users, notifications);
-            }
-
-            /// <inheritdoc/>
-            public Task ClearNotificationLogs(IReadOnlyList<string> users, IEnumerable<GXNotification>? notifications)
-            {
-                return _hostedService.ClearNotificationLogs(users, notifications);
-            }
-
-            /// <inheritdoc/>
-            public Task AppearanceDelete(IReadOnlyList<string>? users, IEnumerable<GXAppearance>? appearances)
-            {
-                return _hostedService.AppearanceDelete(users, appearances);
-            }
-
-            /// <inheritdoc/>
-            public Task AppearanceUpdate(IReadOnlyList<string>? users, IEnumerable<GXAppearance> appearances)
-            {
-                return _hostedService.AppearanceUpdate(users, appearances);
-            }
-
-            /// <inheritdoc/>
-            public Task LocalizedResourceUpdate(IReadOnlyList<string> users, IEnumerable<GXLocalizedResource> resources)
-            {
-                return _hostedService.LocalizedResourceUpdate(users, resources);
-            }
-
-            /// <inheritdoc/>
-            public Task LocalizedResourceDelete(IReadOnlyList<string> users, IEnumerable<GXLocalizedResource> resources)
-            {
-                return _hostedService.LocalizedResourceDelete(users, resources);
-            }
-        }
-
-        /// <summary>
         /// Check if expression contains given parameter.
         /// </summary>
         /// <param name="expression"></param>
@@ -1591,29 +388,15 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns></returns>
         public static bool Contains(Expression? expression, string name)
         {
-            // if (expression is MemberExpression)
-            if (expression is LambdaExpression lambdaEx)
+            return expression switch
             {
-                if (lambdaEx.Body is MemberExpression me)
-                {
-                    return me.Member.Name == name;
-                }
-                if (lambdaEx.Body is UnaryExpression ue)
-                {
-                    return ((MemberExpression)ue.Operand).Member.Name == name;
-                }
-                if (lambdaEx.Body is NewExpression ne)
-                {
-                    foreach (var it in ne.Arguments)
-                    {
-                        if ((it is MemberExpression me2) && me2.Member.Name == name)
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
+                LambdaExpression lambda => Contains(lambda.Body, name),
+                UnaryExpression unary => Contains(unary.Operand, name),
+                MemberExpression member => member.Member.Name == name,
+                NewExpression creation => creation.Arguments.Any(argument => Contains(argument, name)),
+                NewArrayExpression array => array.Expressions.Any(argument => Contains(argument, name)),
+                _ => false
+            };
         }
 
         /// <summary>
@@ -1623,7 +406,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="filter">Filter.</param>
         public static void FilterBy<T>(List<T> target, T? filter)
         {
-            List<T> list = new List<T>();
+            List<T> list = [];
             foreach (var it in target)
             {
                 if (FilterBy(it, filter))
@@ -1634,8 +417,12 @@ namespace Gurux.DLMS.AMI.Server.Internal
             target.RemoveAll(w => list.Contains(w));
         }
 
-        public static bool Compare(object val1, object val2)
+        public static bool Compare(object? val1, object? val2)
         {
+            if (val1 == null || val2 == null)
+            {
+                return ReferenceEquals(val1, val2);
+            }
             if (val1.GetType() == typeof(string) || val1.GetType() == typeof(Guid))
             {
 
@@ -1720,7 +507,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         {
             if (target != null && filter != null)
             {
-                Dictionary<PropertyInfo, FilterAttribute> properties = new();
+                Dictionary<PropertyInfo, FilterAttribute> properties = [];
                 foreach (var it in filter.GetType().GetProperties())
                 {
                     var att = it.GetCustomAttribute<FilterAttribute>();
@@ -1765,7 +552,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                     }
                     if (actual != null)
                     {
-                        if (!(actual is string))
+                        if (actual is not string)
                         {
                             if (typeof(System.Collections.IEnumerable).IsAssignableFrom(actual.GetType()))
                             {
@@ -1840,19 +627,19 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                         //TODO: And<T>(q => GXSql.LessOrEqual(it.Value.Target, actual));
                                         break;
                                     case FilterType.StartsWith:
-                                        if (filterValue != null && !Convert.ToString(actual).ToLower().StartsWith(Convert.ToString(filterValue).ToLower()))
+                                        if (filterValue != null && !(Convert.ToString(actual) ?? string.Empty).StartsWith((Convert.ToString(filterValue) ?? string.Empty), StringComparison.CurrentCultureIgnoreCase))
                                         {
                                             return true;
                                         }
                                         break;
                                     case FilterType.EndsWith:
-                                        if (filterValue != null && !Convert.ToString(actual).ToLower().EndsWith(Convert.ToString(filterValue).ToLower()))
+                                        if (filterValue != null && !(Convert.ToString(actual) ?? string.Empty).ToLower().EndsWith((Convert.ToString(filterValue) ?? string.Empty).ToLower()))
                                         {
                                             return true;
                                         }
                                         break;
                                     case FilterType.Contains:
-                                        if (filterValue != null && !Convert.ToString(actual).ToLower().Contains(Convert.ToString(filterValue).ToLower()))
+                                        if (filterValue != null && !(Convert.ToString(actual) ?? string.Empty).Contains((Convert.ToString(filterValue) ?? string.Empty), StringComparison.CurrentCultureIgnoreCase))
                                         {
                                             return true;
                                         }
@@ -1870,7 +657,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                         }
                                         break;
                                     default:
-                                        throw new ArgumentOutOfRangeException(nameof(it.Value.FilterType));
+                                        throw new ArgumentOutOfRangeException(nameof(filter), "The filter type is not supported.");
                                 }
                             }
                         }
@@ -1896,17 +683,17 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 {
                     if (descending)
                     {
-                        list = list.OrderByDescending(o => prop.GetValue(o, null)).ToList();
+                        list = [.. list.OrderByDescending(o => prop.GetValue(o, null))];
                     }
                     else
                     {
                         if (index == 0)
                         {
-                            list = list.OrderBy(o => prop.GetValue(o, null)).ToList();
+                            list = [.. list.OrderBy(o => prop.GetValue(o, null))];
                         }
                         else
                         {
-                            list = list.OrderBy(o => prop.GetValue(o, null)).ToList();
+                            list = [.. list.OrderBy(o => prop.GetValue(o, null))];
                         }
                     }
                 }
@@ -1920,11 +707,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <summary>
         /// GXComparer is used to sort classes using class properties.
         /// </summary>
-        class GXComparer : IComparer<object>
+        class GXComparer : IComparer<object?>
         {
             private readonly bool _descending;
-            private List<PropertyInfo>? _props = new List<PropertyInfo>();
-            Dictionary<string, Type>? _enumTypes;
+            private readonly List<PropertyInfo>? _props = [];
+            readonly Dictionary<string, Type>? _enumTypes;
 
             /// <summary>
             /// Constructor.
@@ -1940,7 +727,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 string[] list = orderBy.Split('.');
                 foreach (var it in list)
                 {
-                    PropertyInfo? pi = type.GetProperty(it);
+                    PropertyInfo pi = type.GetProperty(it) ?? throw new ArgumentException($"Unknown sort property: {it}.", nameof(orderBy));
                     type = pi.PropertyType;
                     _props.Add(pi);
                 }
@@ -1951,7 +738,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 string? propName = null;
                 object? value1 = obj1, value2 = obj2;
-                Comparer comparer = new Comparer(Thread.CurrentThread.CurrentCulture);
+                Comparer comparer = new(Thread.CurrentThread.CurrentCulture);
                 if (_props != null)
                 {
                     foreach (var it in _props)
@@ -1989,17 +776,121 @@ namespace Gurux.DLMS.AMI.Server.Internal
         public static List<T> OrderBy<T>(List<T> objects, string orderBy, bool descending = false, Dictionary<string, Type>? enumTypes = null)
         {
             var comparer = new GXComparer(enumTypes, descending, orderBy);
-            return objects.OrderBy(o => o, comparer).ToList();
+            return [.. objects.OrderBy(o => o, comparer)];
         }
     }
-    static class ScopeHelpers
+
+    static partial class ScopeHelpers
     {
-        static public bool HasScope(this ClaimsPrincipal user, string requiredScope)
+        public static async Task EnsureAnyPolicyAsync(
+            this IAuthorizationService auth,
+            ClaimsPrincipal? user,
+            params string[] policies)
         {
-            return user.Claims
-                .Where(c => c.Type == "scope")
-                .SelectMany(c => c.Value.Split(' '))
-                .Contains(requiredScope);
+            if (user != null)
+            {
+                foreach (var policy in policies)
+                {
+                    if ((await auth.AuthorizeAsync(user, policy)).Succeeded)
+                    {
+                        return;
+                    }
+                }
+            }
+            if (user?.Identity?.IsAuthenticated != true)
+            {
+                throw new UnauthorizedAccessException("Authentication is required.");
+            }
+            throw new Gurux.DLMS.AMI.Shared.GXAmiForbiddenException(policies);
+        }
+
+        /// <summary>
+        /// Validate that ID is not null or empty.
+        /// This method is used to validate that ID is valid before using it in the database query.
+        /// </summary>
+        /// <param name="ids">List of IDs.</param>
+        public static void ValidateIds(this IEnumerable<Guid> ids)
+        {
+            if (ids != null)
+            {
+                foreach (var it in ids)
+                {
+                    if (it == Guid.Empty)
+                    {
+                        throw new ArgumentException("Identifier must not be empty.", nameof(ids));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validate that ID is not null or empty.
+        /// This method is used to validate that ID is valid before using it in the database query.
+        /// </summary>
+        /// <param name="ids">List of IDs.</param>
+        public static void ValidateIds(this IEnumerable<string?>? ids)
+        {
+            if (ids != null)
+            {
+                foreach (var it in ids)
+                {
+                    if (it == null || it == string.Empty)
+                    {
+                        throw new ArgumentException("Identifier must not be empty.", nameof(ids));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// This method is used to check can user access any of the given policies.
+        /// It is used in cases where user can have multiple policies and any of them is enough to access the resource.
+        /// </summary>
+        /// <param name="auth">IAuthorizationService</param>
+        /// <param name="user">User</param>
+        /// <param name="policies">Policies</param>
+        /// <returns>True if the user can access any of the given policies, otherwise false.</returns>
+        public static async Task<bool> CanAccessPolicyAsync(
+                    this IAuthorizationService auth,
+                    ClaimsPrincipal user,
+                    params string[] policies)
+        {
+            foreach (var policy in policies)
+            {
+                if ((await auth.AuthorizeAsync(user, policy)).Succeeded)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        internal static async Task UpdateUserRolesAsync(this UserManager<ApplicationUser> userManager,
+            ApplicationUser user,
+            IEnumerable<string> newRoles)
+        {
+            var currentRoles = await userManager.GetRolesAsync(user);
+
+            var rolesToAdd = newRoles.Except(currentRoles);
+            var rolesToRemove = currentRoles.Except(newRoles);
+
+            if (rolesToRemove.Any())
+            {
+                var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+                if (!removeResult.Succeeded)
+                {
+                    throw new Exception("Failed to remove roles");
+                }
+            }
+
+            if (rolesToAdd.Any())
+            {
+                var addResult = await userManager.AddToRolesAsync(user, rolesToAdd);
+                if (!addResult.Succeeded)
+                {
+                    throw new Exception("Failed to add roles");
+                }
+            }
         }
     }
 }

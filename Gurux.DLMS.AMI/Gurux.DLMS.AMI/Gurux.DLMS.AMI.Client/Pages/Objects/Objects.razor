@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/objects"
 @page "/objects/{Id:guid?}"
 @page "/Object/{Action}"
@@ -47,28 +44,26 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = "Admin, Device")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
+
+<GXHelpContext Topic="Objects" />
 
 @if (!string.IsNullOrEmpty(DeviceName))
 {
     <p>
         <div class="oi oi-tablet" style="display: inline;">
-            <AuthorizeView>
-                @if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0) ||
-                            (context.User.Identity?.IsAuthenticated != true ||
-                            !(context.User.IsInRole(GXRoles.Admin) || context.User.IsInRole(GXRoles.Device) || context.User.IsInRole(GXRoles.DeviceManager))))
-                {
-                    @*User can't edit the device.*@
+            <AuthorizeView Policy="@GXDevicePolicies.Edit">
+                <Authorized>
+                    <a href="@NavigationManager.GetCurrentPagePath("/device/Edit/" + Device?.Id)"><h2 style="display: inline;">@DeviceName</h2></a>
+                </Authorized>
+                <NotAuthorized>
                     <h2 style="display: inline;">@DeviceName</h2>
-                }
-                else
-                {
-                    <a href="/device/Edit/@Id"><h2 style="display: inline;">@DeviceName</h2></a>
-                }
+                </NotAuthorized>
             </AuthorizeView>
         </div>
     </p>
@@ -79,12 +74,12 @@
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
 {
     <CascadingValue Value="this">
-        <ObjectView Device="@Device" Action="@Action" Id="@Id"></ObjectView>
+        <ObjectView @key="(Id, Device?.Id ?? TargetDeviceId)" Device="@(Device ?? (TargetDeviceId.HasValue ? new GXDevice { Id = TargetDeviceId.Value } : null))" Action="@Action" Id="@Id"></ObjectView>
     </CascadingValue>
 }
 else
 {
-    <GXTable @ref="table"
+    <GXTable TItem="GXObject" @ref="table"
              Context="item"
              ItemsProvider="@GetItems"
              SelectionMode="SelectionMode.Multiple"
@@ -107,29 +102,29 @@ else
             <th>
                 <GXInputDropdown class="form-select"
                                  Id="Objects-ObjectType"
-                                 LastValue="true"
+                                 RememberValue="true"
                                  @bind-Value="filterByObjectType"
                                  OnSelected="@((Enums.ObjectType e) => Updated())">
                 </GXInputDropdown>
             </th>
         </FilterContent>
         <MenuContent>
-            <ContextMenuItem Text="@Properties.Resources.Read" Id="Read" OnClick="@OnRead"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Show" Id="Show" OnClick="@OnShow"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Clear" Id="Remove" OnClick="@OnClear"></ContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Read" Id="Read" OnClick="@OnRead"></GXContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Show" Id="show" OnClick="@OnShow"></GXContextMenuItem>
+            <GXContextMenuItem Text="@Properties.Resources.Clear" Id="remove" OnClick="@OnClear"></GXContextMenuItem>
         </MenuContent>
         <HeaderContent>
-            <Th Name="Template.Name" Target="@item">@Properties.Resources.Name</Th>
-            <Th Name="Template.LogicalName" Target="@item">@Properties.Resources.LogicalName</Th>
-            <Th Name="Template.ObjectType" Target="@item">@Properties.Resources.ObjectType</Th>
-            <Th Name="LastError" Target="@item">@Properties.Resources.LastError</Th>
-            <Th Name="LastErrorMessage" Target="@item">@Properties.Resources.Error</Th>
-            <Th Name="LastRead" Target="@item">@Properties.Resources.LastRead</Th>
-            <Th Name="LastWrite" Target="@item">@Properties.Resources.LastWrite</Th>
-            <Th Name="CreationTime" Target="@item">@Properties.Resources.CreationTime</Th>
+            <GXTh Name="Template.Name" Target="@item">@Properties.Resources.Name</GXTh>
+            <GXTh Name="Template.LogicalName" Target="@item">@Properties.Resources.LogicalName</GXTh>
+            <GXTh Name="Template.ObjectType" Target="@item">@Properties.Resources.ObjectType</GXTh>
+            <GXTh Name="LastError" Target="@item">@Properties.Resources.LastError</GXTh>
+            <GXTh Name="LastErrorMessage" Target="@item">@Properties.Resources.Error</GXTh>
+            <GXTh Name="LastRead" Target="@item">@Properties.Resources.LastRead</GXTh>
+            <GXTh Name="LastWrite" Target="@item">@Properties.Resources.LastWrite</GXTh>
+            <GXTh Name="CreationTime" Target="@item">@Properties.Resources.CreationTime</GXTh>
         </HeaderContent>
         <ItemContent>
-            <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
+            <GXTd Link="@ObjectUrl(item)">@item.Template?.Name</GXTd>
             <td>@item.Template?.LogicalName</td>
             <td>@GetObjectType(item.Template?.ObjectType)</td>
             <td>@item.LastError</td>
@@ -140,12 +135,17 @@ else
         </ItemContent>
     </GXTable>
     <br />
-    <Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
-             ConfirmationMessage="">
-    </Confirm>
+    
 }
 
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     /// <summary>
     /// Shown object types.
@@ -162,8 +162,7 @@ else
     [Parameter]
     public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
 
-    [CascadingParameter]
-    private DeviceTab? Parent { get; set; }
+    
 
     /// <summary>
     /// Action.
@@ -177,6 +176,16 @@ else
     [Parameter]
     public Guid? Id { get; set; }
 
+    [SupplyParameterFromQuery(Name = "deviceId")]
+    public Guid? TargetDeviceId { get; set; }
+
+    private string ObjectUrl(GXObject item)
+    {
+        var url = (Device?.Id ?? item.Device?.Id) is Guid deviceId
+            ? GXDeviceObjectRoutes.Object(deviceId, item.Id) : "/Object/Edit/" + item.Id;
+        return NavigationManager.GetCurrentPagePath(url);
+    }
+
     /// <summary>
     /// Active item.
     /// </summary>
@@ -188,21 +197,11 @@ else
         }
     }
 
-    private GXDevice? _device;
     /// <summary>
     /// Active device.
     /// </summary>
-    public GXDevice? Device
-    {
-        get
-        {
-            if (_device != null)
-            {
-                return _device;
-            }
-            return Parent?.Active;
-        }
-    }
+    [Parameter, EditorRequired]
+    public GXDevice? Device { get; set; }
 
     /// <summary>
     /// Table reference.
@@ -210,7 +209,6 @@ else
     protected GXTable<GXObject>? table;
 
     //Verify that history is clear.
-    protected ConfirmBase? ClearConfirmation;
 
 
     /// <inheritdoc />
@@ -218,7 +216,7 @@ else
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.Objects;
+            return Properties.Resources.Objects;
         }
     }
 
@@ -290,18 +288,9 @@ else
     private string? filterByLogicalName;
 
     /// <summary>
-    /// tasks to be performed;
-    /// </summary>
-    private List<Guid> PerformedTask = new();
-
-    /// <summary>
     /// Object filter.
     /// </summary>
     private GXObject filter = new GXObject();
-    /// <summary>
-    /// User is verified before schedule is removed.
-    /// </summary>
-    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
     /// Device name.
@@ -327,18 +316,26 @@ else
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Objects/Objects.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Objects/Objects.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
             if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("Object/"))
@@ -346,12 +343,8 @@ else
                 //If object template is shown.
                 return;
             }
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjects);
+            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnInitializedAsync");
             filter.Template = new GXObjectTemplate();
             if (Device == null && Id != null)
             {
@@ -359,7 +352,7 @@ else
                 var tmp = (await Http.GetAsJsonAsync<GetDeviceResponse>(string.Format("api/Device?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
-                    _device = tmp.Item;
+                    Device = tmp.Item;
                 }
             }
             if (Device == null)
@@ -367,82 +360,27 @@ else
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             DeviceName = Device.Name;
-            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
             {
-                //Update is not call when reading is on progress.
-                if (Device?.Objects != null)
+                var updates = items.Where(item => item.Type == GXObjectPolicies.Add ||
+                    item.Type == GXObjectPolicies.Edit || item.Type == GXObjectPolicies.Delete ||
+                    item.Type == GXAttributePolicies.Add || item.Type == GXAttributePolicies.Edit ||
+                    item.Type == GXValuePolicies.Add || item.Type == GXValuePolicies.Clear ||
+                    item.Type == GXTaskPolicies.Edit).ToArray();
+                if (updates.Length != 0)
                 {
-                    foreach (var it in objects)
-                    {
-                        if (Device.Objects.Select(s => s.Id).Contains(it.Id))
-                        {
-                            var obj = Device.Objects.Where(s => s.Id == it.Id).SingleOrDefault();
-                            if (obj != null)
-                            {
-                                //Update property.
-                                obj.LastRead = it.LastRead;
-                                obj.LastWrite = it.LastWrite;
-                                obj.LastError = it.LastError;
-                                obj.LastErrorMessage = it.LastErrorMessage;
-                                InvokeAsync(StateHasChanged);
-                            }
-                        }
-                    }
+                    _ = GXNotificationRefresh.RefreshAsync(table, updates, () => InvokeAsync(Updated));
                 }
             });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), (tasks) =>
-           {
-               //Notification user when read starts.
-               if (Device?.Objects != null)
-               {
-                   foreach (var it in tasks)
-                   {
-                       if (it.Object != null && Device.Objects.Select(s => s.Id).Contains(it.Object.Id))
-                       {
-                           //Show progress when the first task is added.
-                           if (!PerformedTask.Any())
-                           {
-                               Notifier.ShowInformation("Reading....", true);
-                               Notifier.ProgressStart();
-                               InvokeAsync(StateHasChanged);
-                           }
-                           PerformedTask.Add(it.Id);
-                       }
-                   }
-               }
-           });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
-           {
-               //Notification user when read ends.
-               if (Device?.Objects != null)
-               {
-                   foreach (var it in tasks)
-                   {
-                       if (it.Ready != null && PerformedTask.Contains(it.Id))
-                       {
-                           Console.WriteLine("Reading end " + it.Id);
-                           PerformedTask.Remove(it.Id);
-                           //Hide progress when the lask task is removed.
-                           if (!PerformedTask.Any())
-                           {
-                               Notifier.ClearStatus();
-                               Notifier.ProgressEnd();
-                               InvokeAsync(StateHasChanged);
-                           }
-                       }
-                   }
-               }
-           });
             if (Header)
             {
-                Notifier.Clear();
-                Notifier.AddMenuItem(new GXMenuItem()
+                MenuService.Clear();
+                MenuService.AddMenuItems(new GXMenuItem()
                 {
                     Text = Properties.Resources.Read,
                     Icon = "Read",
                     OnClick = EventCallback.Factory.Create(this, OnReadSelected)
                 });
-                Notifier.UpdateButtons();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -451,11 +389,7 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnInitializedAsync");
         }
     }
 
@@ -488,7 +422,7 @@ else
     private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope3 = Progress?.ProgressStart(GXProgress.RetrievingObjects);
         try
         {
             if (request.Removed)
@@ -533,8 +467,8 @@ else
             }
             ListObjects req = new ListObjects()
             {
-                Index = (UInt64)request.StartIndex,
-                Count = (UInt64)request.Count,
+                Index = request.StartIndex,
+                Count = request.Count,
                 Filter = filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
@@ -554,11 +488,11 @@ else
             //Update device for late binding.
             if (ret != null)
             {
-                foreach (var it in ret.Objects)
+                foreach (var it in (ret.Objects ?? []))
                 {
                     it.Device = filter.Device;
                 }
-                return new ItemsProviderResult<GXObject>(ret.Objects, ret.Count);
+                return new ItemsProviderResult<GXObject>((ret.Objects ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -568,11 +502,7 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -584,11 +514,11 @@ else
     {
         try
         {
-            Notifier?.ClearStatus();
-            Notifier?.ProgressStart();
+            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnRead");
+            using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingObject);
             if (Active?.Template == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             GXTask task = new GXTask();
             task.Object = new() { Id = Active.Id };
@@ -600,7 +530,8 @@ else
             task.TaskType = TaskType.Read;
             AddTask req = new AddTask();
             req.Tasks = new GXTask[] { task };
-            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            var response = await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            Services.GetService<GXReadTaskNotifications>()?.Track(response.Ids);
             //Read objects agein when late binding is used because object Id is set.
             if (Active.Latebind)
             {
@@ -613,11 +544,7 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnRead");
         }
     }
 
@@ -628,11 +555,11 @@ else
     {
         try
         {
-            Notifier?.ClearStatus();
-            Notifier?.ProgressStart();
+            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnReadSelected");
+            using var progressScope5 = Progress?.ProgressStart(GXProgress.SavingObject);
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             List<GXObject> selectedItems = new List<GXObject>();
             selectedItems.AddRange(table.SingleOrDefault());
@@ -662,13 +589,13 @@ else
             }
             AddTask req = new AddTask();
             req.Tasks = tasks.ToArray();
-            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            var response = await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            Services.GetService<GXReadTaskNotifications>()?.Track(response.Ids);
             //Read objects agein when late binding is used because object Id is set.
             if (lateBinding)
             {
                 await Updated();
             }
-            Notifier?.ShowInformation("Read tasks added.", true);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -676,11 +603,7 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnReadSelected");
         }
     }
 
@@ -691,12 +614,12 @@ else
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnShow");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Object/Edit/" + table.Active.Id.ToString());
+            ClientHelpers.NavigateTo(NavigationManager, ObjectUrl(table.Active));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -704,22 +627,28 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnShow");
         }
     }
 
     /// <summary>
     /// Clear history.
     /// </summary>
-    public void OnClear()
+    public async Task OnClear()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClearConfirmation?.Show(null, string.Format("Are you sure you want to clear object {0} history? This action cannot be undone.", Parent.Active?.Template?.Name));
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDelete, string.Format(Properties.Resources.AreYouSureYouWantToClearObject0HistoryThisActionCannotBeUndone, Device?.Template?.Name),
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Clear,
+                    AllowDelete = true
+                });
+            await OnClearConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -730,7 +659,7 @@ else
     /// <summary>
     /// Clear history.
     /// </summary>
-    public async Task OnClearConfirmation(ConfirmArgs args)
+    public async Task OnClearConfirmation(AmiConfirmationResult args)
     {
         try
         {
@@ -756,13 +685,19 @@ else
 
     public void Dispose()
     {
+        GXNotificationRefresh.Remove(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        MenuService.Dispose();
         if (Device?.Objects != null)
         {
             //Device objects are clear when page is changed.
             // This is done because value might change and it's not updated if page is not active.
             Device.Objects.Clear();
         }
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

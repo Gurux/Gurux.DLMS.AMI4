@@ -1,37 +1,33 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Server;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server.Repository;
@@ -49,7 +45,8 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Claims;
-using System.Text.Json;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Server.Services;
 
 namespace Gurux.DLMS.AMI.Scheduler
 {
@@ -61,112 +58,93 @@ namespace Gurux.DLMS.AMI.Scheduler
         /// <summary>
         /// Run selected schedule.
         /// </summary>
-        Task RunAsync(ClaimsPrincipal user, GXSchedule schedule);
+        Task RunAsync(ClaimsPrincipal user, GXSchedule schedule, CancellationToken cancellationToken);
     }
 
-    internal class GXSchedulerService : IGXScheduleService, IHostedService, IDisposable
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    internal class GXSchedulerService(ILogger<GXSchedulerService> logger,
+        IServiceProvider serviceProvider,
+        IDbConnectionFactory dbFactory) : IGXScheduleService, IHostedService, IDisposable
     {
-        private readonly ILogger _logger;
-        private Timer? _timer;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IConfigurationRepository _configurationRepository;
-        private readonly IGXEventsNotifier _eventsNotifier;
-        private StatisticSettings? statistic;
-        private readonly IGXHost _host;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXSchedulerService(ILogger<GXSchedulerService> logger,
-            IServiceProvider serviceProvider,
-            IGXHost host,
-            IConfigurationRepository configurationRepository,
-            IGXEventsNotifier eventsNotifier)
-        {
-            _logger = logger;
-            _serviceProvider = serviceProvider;
-            _configurationRepository = configurationRepository;
-            _eventsNotifier = eventsNotifier;
-            _host = host;
-        }
+        private readonly ILogger _logger = logger;
+        private GXAsyncTimer? _timer;
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
+        private readonly IDbConnectionFactory _dbFactory = dbFactory;
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (ServerSettings.GetDefaultAdminUser(_host) == null)
+            await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
+            var adminUser = await ServerSettings.GetDefaultAdminUserAsync(connection, cancellationToken: cancellationToken);
+            if (adminUser == null)
             {
                 await StopAsync(cancellationToken);
                 return;
             }
-            ListConfiguration req = new ListConfiguration()
+            if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
             {
-                Filter = new GXConfiguration() { Name = GXConfigurations.Statistic }
-            };
-            GXConfiguration[] confs = _configurationRepository.ListAsync(
-                req, null, CancellationToken.None).Result;
-            if (confs.Length == 1)
-            {
-                statistic = JsonSerializer.Deserialize<StatisticSettings>(confs[0].Settings);
+                _logger.LogInformation("{Message}", ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsStarting)));
             }
-            _configurationRepository.Updated += (configurations) =>
-            {
-                //If statistics configuration is updated.
-                foreach (GXConfiguration it in configurations)
-                {
-                    if (it.Name == GXConfigurations.Statistic && it.Settings != null)
-                    {
-                        statistic = JsonSerializer.Deserialize<StatisticSettings>(it.Settings);
-                        break;
-                    }
-                }
-            };
-
-            if (statistic != null && statistic.ScheduleActions)
-            {
-                GXSystemLog log = new GXSystemLog(TraceLevel.Verbose);
-                var scope = _serviceProvider.CreateScope();
-                var enumTypeRepository = scope.ServiceProvider.GetRequiredService<IEnumTypeRepository>();
-                log.Type = await enumTypeRepository.GetLogTypeAsync(TargetType.SystemLog, TargetType.Schedule);
-                log.Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsStarting));
-                var repository = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                await repository.AddAsync(TargetType.Schedule, [log]);
-            }
-            _logger.LogInformation(ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsStarting)));
             TimeSpan start = DateTime.Now.AddSeconds(60 - DateTime.Now.Second) - DateTime.Now;
-            _timer = new Timer(DoWork, null, start, TimeSpan.FromMinutes(1));
+            _timer = new GXAsyncTimer(DoWork, _logger);
+            _timer.Change(start, TimeSpan.FromMinutes(1));
         }
 
         /// <inheritdoc />
-        public async Task RunAsync(ClaimsPrincipal user, GXSchedule schedule)
-        {
-            using var scope = _serviceProvider.CreateScope();
-            List<GXTask> tasks = new List<GXTask>();
-            if (statistic != null && statistic.ScheduleActions)
-            {
-                GXScheduleLog log = new GXScheduleLog(TraceLevel.Verbose);
-                log.Schedule = schedule;
-                log.Message = Properties.Resources.SchedulerStarted;
-                var repository = scope.ServiceProvider.GetRequiredService<IScheduleLogRepository>();
-                await repository.AddAsync("Run", [log]);
-            }
+        public Task RunAsync(ClaimsPrincipal user, GXSchedule schedule, CancellationToken cancellationToken)
+            => _serviceProvider.RunAsUserAsync(user,
+                services => RunAsUserAsync(services, schedule, user, cancellationToken), cancellationToken);
 
-            await RunSchedule(schedule, tasks, DateTime.Now);
-            if (tasks.Count != 0)
+        private async Task RunAsUserAsync(IServiceProvider services, GXSchedule schedule, ClaimsPrincipal actor, CancellationToken cancellationToken)
+        {
+            List<GXTask> tasks = [];
+            var operationId = Guid.NewGuid();
+            var handler = services.GetRequiredService<IWorkflowHandler>();
+            var factory = services.GetRequiredService<IDbConnectionFactory>();
+            var operation = new GXWorkflowOperation { Id = operationId, Code = "schedule.run", TargetId = schedule.Id.ToString(),
+                ParentId = GXWorkflowService.CurrentOperationId,
+                ActorId = GXWorkflowService.CurrentOperationId != null ? GXWorkflowService.CurrentActorId :
+                    actor.Identity?.IsAuthenticated == true ? ServerHelpers.GetUserId(actor) : null };
+            bool dispatched = false;
+            await WorkflowOperationRepository.StartTrustedAsync(factory, handler, operation, cancellationToken);
+            try
             {
-                ITaskRepository taskRepository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-                await taskRepository.AddAsync(tasks);
+
+                await RunSchedule(schedule, tasks, DateTime.Now, cancellationToken);
+                if (tasks.Count != 0)
+                {
+                    ITaskRepository taskRepository = services.GetRequiredService<ITaskRepository>();
+                    foreach (var task in tasks)
+                    {
+                        task.WorkflowOperationId = operationId;
+                        task.WorkflowActorId = operation.ActorId;
+                    }
+                    dispatched = (await taskRepository.AddAsync(tasks, cancellationToken)).Any();
+                }
+                if (!dispatched) {
+                    await WorkflowOperationRepository.FinishTrustedAsync(factory, handler, operationId,
+                    WorkflowOperationState.Completed, null, null, cancellationToken);
+                }
             }
-            if (statistic != null && statistic.ScheduleActions)
+            catch (Exception error)
             {
-                GXScheduleLog log = new GXScheduleLog(TraceLevel.Verbose);
-                log.Schedule = schedule;
-                log.Message = Properties.Resources.SchedulerEnded;
-                var repository = scope.ServiceProvider.GetRequiredService<IScheduleLogRepository>();
-                await repository.AddAsync("Run", [log]);
+                if (!dispatched)
+                {
+                    await using var connection = await factory.GetConnectionAsync(CancellationToken.None);
+                    var current = await connection.SingleOrDefaultAsync<GXWorkflowOperation>(
+                        GXSelectArgs.SelectAll<GXWorkflowOperation>(o => o.Id == operationId), CancellationToken.None);
+                    if (current?.State == WorkflowOperationState.Running)
+                        {
+                        await WorkflowOperationRepository.FinishTrustedAsync(factory, handler, operationId, WorkflowOperationState.Failed,
+                            error.GetType().Name, error.Message[..Math.Min(error.Message.Length, 2048)], CancellationToken.None);
+                    }
+                }
+                throw;
             }
         }
-
-        private async Task AddDeviceObjects(
-            IDbTransaction transaction,
+        private async static Task AddDeviceObjects(
+            GXDbConnection connection, IDbTransaction transaction,
             GXUser? creator,
             GXSchedule schedule,
             GXDevice dev,
@@ -175,27 +153,30 @@ namespace Gurux.DLMS.AMI.Scheduler
         {
             //Get object.
             GXSelectArgs arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
-            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(s => s.Template, o => o.Id);
-            arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(s => s.Template!, o => o.Id);
+            arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device!, j => j.Id);
             arg.Where.And<GXObjectTemplate>(q => q.Id == ot.Id);
             arg.Where.And<GXDevice>(q => q.Id == dev.Id);
-            GXObject obj = (await _host.Connection.SingleOrDefaultAsync<GXObject>(transaction, arg));
+            GXObject? obj = (await connection.SingleOrDefaultAsync<GXObject>(transaction, arg));
             if (obj == null)
             {
-                arg = GXQuery.GetDevicesByUser(s => s.Id, creator.Id, dev.Id);
-                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
-                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
+                string creatorId = creator?.Id
+                    ?? throw new InvalidOperationException("A scheduled object requires a creator.");
+                arg = GXQuery.GetDevicesByUser(s => s.Id, creatorId, dev.Id);
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template!, j => j.Id);
+                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate!);
                 arg.Where.And<GXObjectTemplate>(q => q.Id == ot.Id);
-                dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, arg));
-                if (dev == null)
+                var selectedDevice = await connection.SingleOrDefaultAsync<GXDevice>(transaction, arg);
+                if (selectedDevice == null)
                 {
                     //If device template is not included for this device.
                     return;
                 }
-                obj = await ObjectRepository.CreateLateBindObject(_host, transaction, creator.Id, dev, ot.Id);
+                dev = selectedDevice;
+                obj = await ObjectRepository.CreateLateBindObject(connection, transaction, creatorId, dev, ot.Id);
             }
             //Add device objects to read.
-            GXTask t = new GXTask()
+            GXTask t = new()
             {
                 TriggerSchedule = schedule,
                 Object = obj,
@@ -206,8 +187,8 @@ namespace Gurux.DLMS.AMI.Scheduler
 
         }
 
-        private async Task AddDeviceAttributes(
-           IDbTransaction transaction,
+        private async static Task AddDeviceAttributes(
+           GXDbConnection connection, IDbTransaction transaction,
            GXUser? creator,
            GXSchedule schedule,
            GXDevice dev,
@@ -215,8 +196,12 @@ namespace Gurux.DLMS.AMI.Scheduler
            List<GXTask> tasks)
         {
             //Get attribute with device id, object logical name and attribute index.
-            GXAttribute? att2 = await ObjectRepository.GetDeviceAttributeUsingLogicalName(_host,
-                transaction, creator.Id, dev.Id, at.ObjectTemplate.LogicalName, at.Index);
+            string creatorId = creator?.Id
+                ?? throw new InvalidOperationException("A scheduled attribute requires a creator.");
+            string logicalName = at.ObjectTemplate?.LogicalName
+                ?? throw new InvalidOperationException("A scheduled attribute requires an object logical name.");
+            GXAttribute? att2 = await ObjectRepository.GetDeviceAttributeUsingLogicalName(connection,
+                transaction, creatorId, dev.Id, logicalName, at.Index);
             if (att2 != null)
             {
                 at.Id = att2.Id;
@@ -226,7 +211,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                 //If object is not created yet.
             }
             //Add attribute to read.
-            GXTask t = new GXTask()
+            GXTask t = new()
             {
                 TriggerSchedule = schedule,
                 Attribute = att2,
@@ -236,35 +221,36 @@ namespace Gurux.DLMS.AMI.Scheduler
             tasks.Add(t);
         }
 
-        private async Task RunSchedule(GXSchedule schedule, List<GXTask> tasks, DateTime now)
+        private async Task RunSchedule(GXSchedule schedule, List<GXTask> tasks, DateTime now, CancellationToken cancellationToken)
         {
             using var scope = _serviceProvider.CreateScope();
-            var repository = scope.ServiceProvider.GetRequiredService<IScheduleLogRepository>();
+            var repository = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("schedule");
             var scheduleRepository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
-            ClaimsPrincipal user = ServerHelpers.CreateClaimsPrincipalFromUser(schedule.Creator);
-            List<string> users = await scheduleRepository.GetUsersAsync(schedule.Id);
-            if (schedule.TraceLevel == TraceLevel.Verbose)
-            {
-                GXScheduleLog log = new GXScheduleLog(TraceLevel.Verbose);
-                log.Schedule = schedule;
-                log.Message = Properties.Resources.SchedulerStarted;
-                await repository.AddAsync("Cron", [log]);
-            }
-            await _eventsNotifier.ScheduleStart(users, [schedule]);
+            // RunAsUserAsync publishes schedule lifecycle events through the durable operation.
             //Save schedule invoker.
             GXUser? creator = schedule.Creator;
             //Read all data for the schedule.
-            schedule = await scheduleRepository.ReadAsync(schedule.Id);
+            schedule = await scheduleRepository.ReadAsync(schedule.Id, null, cancellationToken);
             schedule.Creator = creator;
+            if (schedule.TraceLevel == TraceLevel.Verbose)
+            {
+                GXLog log = new(TraceLevel.Verbose)
+                {
+                    Creator = schedule.Id,
+                    Message = Properties.Resources.SchedulerStarted
+                };
+                await repository.AddAsync("Cron", [log], cancellationToken);
+            }
             var deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
+            await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
             if (schedule.DeviceGroups != null)
             {
                 bool handled = false;
-                if ((schedule.DeviceGroupObjectTemplates != null && schedule.DeviceGroupObjectTemplates.Any()) ||
-                    (schedule.DeviceGroupAttributeTemplates != null && schedule.DeviceGroupAttributeTemplates.Any()))
+                if ((schedule.DeviceGroupObjectTemplates != null && schedule.DeviceGroupObjectTemplates.Count != 0) ||
+                    (schedule.DeviceGroupAttributeTemplates != null && schedule.DeviceGroupAttributeTemplates.Count != 0))
                 {
                     handled = true;
-                    using IDbTransaction transaction = _host.Connection.BeginTransaction();
+                    await using var transaction = await connection.BeginTransactionAsync();
                     try
                     {
                         foreach (GXDeviceGroup dg in schedule.DeviceGroups)
@@ -277,7 +263,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                                 {
                                     foreach (GXObjectTemplate ot in schedule.DeviceGroupObjectTemplates)
                                     {
-                                        await AddDeviceObjects(transaction, creator, schedule, it, ot, tasks);
+                                        await AddDeviceObjects(connection, transaction, creator, schedule, it, ot, tasks);
                                     }
                                 }
                             }
@@ -287,20 +273,20 @@ namespace Gurux.DLMS.AMI.Scheduler
                                 {
                                     foreach (GXAttributeTemplate at in schedule.DeviceGroupAttributeTemplates)
                                     {
-                                        await AddDeviceAttributes(transaction, creator, schedule, it, at, tasks);
+                                        await AddDeviceAttributes(connection, transaction, creator, schedule, it, at, tasks);
                                     }
                                 }
                             }
                         }
-                        _host.Connection.CommitTransaction(transaction);
+                        await transaction.CommitAsync();
                     }
                     catch (Exception)
                     {
-                        _host.Connection.RollbackTransaction(transaction);
+                        transaction.Rollback();
                         throw;
                     }
                 }
-                if (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Any())
+                if (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Count != 0)
                 {
                     handled = true;
                 }
@@ -308,112 +294,9 @@ namespace Gurux.DLMS.AMI.Scheduler
                 {
                     foreach (GXDeviceGroup dg in schedule.DeviceGroups)
                     {
-                        if (schedule.Objects != null && schedule.Objects.Any())
-                        {
-                            handled = true;
-                            GXDeviceGroup g = await deviceGroupRepository.ReadAsync(dg.Id);
-                            if (g.Devices != null)
-                            {
-                                var objectRepository = _serviceProvider.GetRequiredService<IObjectRepository>();
-                                foreach (GXDevice dev in g.Devices)
-                                {
-                                    ListObjects req = new ListObjects()
-                                    {
-                                        Filter = new GXObject() { Device = dev },
-                                    };
-                                    var objects = await objectRepository.ListAsync(req, null, default);
-                                    //Device objects are read in one batch.
-                                    Guid batch = Guid.NewGuid();
-                                    foreach (GXObject o in schedule.Objects)
-                                    {
-                                        GXObject? ot = objects.Where(w => w.Template?.LogicalName == o.Template?.LogicalName).SingleOrDefault();
-                                        if (ot != null)
-                                        {
-                                            if (ot.Latebind)
-                                            {
-                                                //If late binding.
-                                                ot.Id = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, dev, ot.Id)).Id;
-                                                ot.Device = dev;
-                                            }
-                                            GXTask t = new GXTask()
-                                            {
-                                                TriggerSchedule = schedule,
-                                                Object = ot,
-                                                TaskType = TaskType.Read,
-                                                Batch = batch,
-                                            };
-                                            tasks.Add(t);
-                                        }
-                                    }
-                                }
-                            }
-                            //Reset objects.
-                            schedule.Objects = null;
-                        }
-                        if (schedule.Attributes != null && schedule.Attributes.Any())
-                        {
-                            handled = true;
-                            GXDeviceGroup g = await deviceGroupRepository.ReadAsync(dg.Id);
-                            //List of create objects.
-                            if (g.Devices != null)
-                            {
-                                var attributeRepository = _serviceProvider.GetRequiredService<IAttributeRepository>();
-                                foreach (GXDevice device in g.Devices)
-                                {
-                                    Dictionary<Guid, GXObject> objects = new Dictionary<Guid, GXObject>();
-                                    ListAttributes req = new ListAttributes()
-                                    {
-                                        Filter = new GXAttribute()
-                                        {
-                                            Object = new GXObject() { Device = device },
-                                        }
-                                    };
-                                    var attributes = await attributeRepository.ListAsync(req, null, default);
-                                    //Device attrbutes are read in one batch.
-                                    Guid batch = Guid.NewGuid();
-                                    foreach (GXAttribute a in schedule.Attributes)
-                                    {
-                                        GXAttribute? at = attributes.Where(w => w.Template.Id == a.Template.Id).SingleOrDefault();
-                                        if (at != null)
-                                        {
-                                            if (at.CreationTime == null)
-                                            {
-                                                //If late binding is used and object is not created yet.
-                                                if (objects.TryGetValue(at.Object.Id, out GXObject? obj))
-                                                {
-                                                    at.Object = obj;
-                                                }
-                                                else
-                                                {
-                                                    at.Object = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, device, at.Object.Id));
-                                                }
-                                                objects[at.Object.Template.Id] = at.Object;
-                                                //Find attribute template and update it.
-                                                var tmp = at.Object.Attributes.Where(w => w.Template.Index == a.Template.Index).SingleOrDefault();
-                                                if (tmp != null)
-                                                {
-                                                    //Update attribute ID.
-                                                    at.Id = tmp.Id;
-                                                }
-                                            }
-                                            GXTask t = new GXTask()
-                                            {
-                                                TriggerSchedule = schedule,
-                                                Attribute = at,
-                                                TaskType = TaskType.Read,
-                                                Batch = batch,
-                                            };
-                                            tasks.Add(t);
-                                        }
-                                    }
-                                }
-                            }
-                            //Reset attributes.
-                            schedule.Attributes = null;
-                        }
                         if (!handled)
                         {
-                            GXTask t = new GXTask()
+                            GXTask t = new()
                             {
                                 TriggerSchedule = schedule,
                                 DeviceGroup = dg,
@@ -427,39 +310,40 @@ namespace Gurux.DLMS.AMI.Scheduler
             if (schedule.Devices != null)
             {
                 bool handled = false;
-                if ((schedule.DeviceObjectTemplates != null && schedule.DeviceObjectTemplates.Any()) ||
-                    (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Any()))
+                if ((schedule.DeviceObjectTemplates != null && schedule.DeviceObjectTemplates.Count != 0) ||
+                    (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Count != 0))
                 {
                     handled = true;
-                    using IDbTransaction transaction = _host.Connection.BeginTransaction();
+                    await using var transaction = await connection.BeginTransactionAsync();
                     try
                     {
                         foreach (GXDevice it in schedule.Devices)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (schedule.DeviceObjectTemplates != null)
                             {
                                 foreach (GXObjectTemplate ot in schedule.DeviceObjectTemplates)
                                 {
-                                    await AddDeviceObjects(transaction, creator, schedule, it, ot, tasks);
+                                    await AddDeviceObjects(connection, transaction, creator, schedule, it, ot, tasks);
                                 }
                             }
                             if (schedule.DeviceAttributeTemplates != null)
                             {
                                 foreach (GXAttributeTemplate at in schedule.DeviceAttributeTemplates)
                                 {
-                                    await AddDeviceAttributes(transaction, creator, schedule, it, at, tasks);
+                                    await AddDeviceAttributes(connection, transaction, creator, schedule, it, at, tasks);
                                 }
                             }
                         }
-                        _host.Connection.CommitTransaction(transaction);
+                        await transaction.CommitAsync();
                     }
                     catch (Exception)
                     {
-                        _host.Connection.RollbackTransaction(transaction);
+                        transaction.Rollback();
                         throw;
                     }
                 }
-                if (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Any())
+                if (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Count != 0)
                 {
                     handled = true;
                 }
@@ -467,8 +351,9 @@ namespace Gurux.DLMS.AMI.Scheduler
                 {
                     foreach (GXDevice it in schedule.Devices)
                     {
+                            cancellationToken.ThrowIfCancellationRequested();
                         //Add device read.
-                        GXTask t = new GXTask()
+                        GXTask t = new()
                         {
                             TriggerSchedule = schedule,
                             Device = it,
@@ -478,38 +363,11 @@ namespace Gurux.DLMS.AMI.Scheduler
                     }
                 }
             }
-            if (schedule.Objects != null)
-            {
-                foreach (GXObject it in schedule.Objects)
-                {
-                    GXTask t = new GXTask()
-                    {
-                        TriggerSchedule = schedule,
-                        Object = it,
-                        TaskType = TaskType.Read,
-                    };
-                    tasks.Add(t);
-                }
-            }
-            if (schedule.Attributes != null)
-            {
-                foreach (GXAttribute it in schedule.Attributes)
-                {
-                    GXTask t = new GXTask()
-                    {
-                        TriggerSchedule = schedule,
-                        Attribute = it,
-                        TaskType = TaskType.Read,
-                        Index = it.Template.Index
-                    };
-                    tasks.Add(t);
-                }
-            }
             if (schedule.ScriptMethods != null)
             {
                 foreach (GXScriptMethod it in schedule.ScriptMethods)
                 {
-                    GXTask t = new GXTask()
+                    GXTask t = new()
                     {
                         TriggerSchedule = schedule,
                         ScriptMethod = it,
@@ -522,7 +380,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             {
                 foreach (GXModule it in schedule.Modules)
                 {
-                    GXTask t = new GXTask()
+                    GXTask t = new()
                     {
                         TriggerSchedule = schedule,
                         Module = it,
@@ -532,121 +390,110 @@ namespace Gurux.DLMS.AMI.Scheduler
                 }
             }
             schedule.ExecutionTime = now;
-            scheduleRepository.UpdateExecutionTime(schedule);
-            await _eventsNotifier.ScheduleCompleate(users, [new GXSchedule() { Id = schedule.Id,
-            Name = schedule.Name}]);
+            await scheduleRepository.UpdateExecutionTimeAsync(schedule);
             if (schedule.TraceLevel == TraceLevel.Verbose)
             {
-                GXScheduleLog log = new GXScheduleLog(TraceLevel.Verbose);
-                log.Schedule = schedule;
-                log.Message = Properties.Resources.SchedulerEnded;
-                await repository.AddAsync("Cron", [log]);
+                GXLog log = new(TraceLevel.Verbose)
+                {
+                    Creator = schedule.Id,
+                    Message = Properties.Resources.SchedulerEnded
+                };
+                await repository.AddAsync("Cron", [log], cancellationToken);
             }
         }
 
-        private async void DoWork(object? state)
+        private async Task DoWork(CancellationToken cancellationToken)
         {
-            //If admin is not created yet.
-            if (ServerSettings.GetDefaultAdminUser(_host) == null)
+            ClaimsPrincipal? admin;
+            await using (var connection = await _dbFactory.GetConnectionAsync(cancellationToken))
             {
+                admin = await ServerSettings.GetDefaultAdminUserAsync(connection, cancellationToken: cancellationToken);
+            }
+            if (admin == null) {
                 return;
             }
-            if (statistic != null && statistic.ScheduleActions)
-            {
-                GXSystemLog log = new GXSystemLog(TraceLevel.Verbose);
-                var scope = _serviceProvider.CreateScope();
-                var enumTypeRepository = scope.ServiceProvider.GetRequiredService<IEnumTypeRepository>();
-                log.Type = await enumTypeRepository.GetLogTypeAsync(TargetType.SystemLog, TargetType.Schedule);
-                log.Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsWorking));
-                var repository = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                await repository.AddAsync(TargetType.Schedule, [log]);
-            }
-            _logger.LogInformation(ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsWorking)));
+            await _serviceProvider.RunAsUserAsync(admin,
+                services => DoWorkAsAdminAsync(services, cancellationToken), cancellationToken);
+        }
+        private async Task DoWorkAsAdminAsync(IServiceProvider services, CancellationToken cancellationToken)
+        {
             try
             {
+                if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+                {
+                    _logger.LogInformation("{Message}", ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsWorking)));
+                }
                 //Don't retrieve removed items.
-                ListSchedules req = new ListSchedules()
+                ListSchedules req = new()
                 {
                     Filter = new GXSchedule()
                     {
                         Removed = null,
-                        Active = true
+                        Enabled = true
                     },
-                    //Select user and roles information.
-                    Select = ["User", "Role"]
+                    // Select the creator; current roles are loaded before execution.
+                    Select = ["User"]
                 };
-                List<GXTask> tasks = new List<GXTask>();
-                using var scope = _serviceProvider.CreateScope();
-                var scheduleRepository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
-                GXSchedule[] schedules = await scheduleRepository.ListAsync(req, null, CancellationToken.None);
+                var scheduleRepository = services.GetRequiredService<IScheduleRepository>();
+                var userRepository = services.GetRequiredService<IUserRepository>();
+                IEnumerable<GXSchedule> schedules = await scheduleRepository.ListAsync(req, null, cancellationToken);
                 DateTime now = DateTime.Now;
                 foreach (GXSchedule schedule2 in schedules)
                 {
-                    GXDateTime dt = new GXDateTime(schedule2.Start, CultureInfo.InvariantCulture);
-                    if (Equals(dt, now))
+                    if (IsScheduledNow(schedule2.Start, now))
                     {
-                        await RunSchedule(schedule2, tasks, now);
+                        // Load the creator's current roles before entering the schedule's user scope.
+                        string creatorId = schedule2.Creator?.Id
+                            ?? throw new InvalidOperationException("A scheduled run requires a creator.");
+                        schedule2.Creator = await userRepository.ReadAsync(creatorId);
+                        var user = ServerHelpers.CreateClaimsPrincipalFromUser(schedule2.Creator);
+                        await _serviceProvider.RunAsUserAsync(user,
+                            scoped => RunAsUserAsync(scoped, schedule2, new ClaimsPrincipal(), cancellationToken), cancellationToken);
                     }
                 }
-                if (tasks.Any())
-                {
-                    ITaskRepository taskRepository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-                    await taskRepository.AddAsync(tasks);
-                }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
-                using (IServiceScope scope = _serviceProvider.CreateScope())
-                {
-                    ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                    GXSystemLog error = new GXSystemLog();
-                    error.Message = ex.Message;
-                    await errors.AddAsync(TargetType.Schedule, [error]);
-                }
+                _logger.LogError(ex, "Scheduler service failed while processing schedules.");
             }
         }
-        bool Equals(GXDateTime t, DateTime t2)
+        // Schedules are evaluated once per minute, as before the Scheduling migration.
+        private static bool IsScheduledNow(string? expression, DateTime now)
         {
-            if ((t.Skip & Enums.DateTimeSkips.Minute) == 0 &&
-                t.Value.Minute != t2.Minute)
+            if (string.IsNullOrWhiteSpace(expression))
             {
                 return false;
             }
-            if ((t.Skip & Enums.DateTimeSkips.Hour) == 0 &&
-                t.Value.Hour != t2.Hour)
+            var schedule = new Gurux.Scheduling.GXDateTime(expression, CultureInfo.InvariantCulture);
+            schedule.Skip |= Gurux.Scheduling.Enums.DateTimeSkips.Second | Gurux.Scheduling.Enums.DateTimeSkips.Ms;
+            if (schedule.Compare(now) != 0)
             {
                 return false;
             }
-            if ((t.Skip & Enums.DateTimeSkips.Day) == 0 &&
-                t.Value.Day != t2.Day)
+            var minute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, now.Kind);
+            try
             {
+                var next = Gurux.Scheduling.GXDateTime.GetNextScheduledDates(minute, schedule, 1)[0];
+                return next == minute;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // A finite schedule can have no remaining occurrences.
                 return false;
             }
-            if ((t.Skip & Enums.DateTimeSkips.Month) == 0 &&
-                t.Value.Month != t2.Month)
-            {
-                return false;
-            }
-            if ((t.Skip & Enums.DateTimeSkips.Year) == 0 &&
-                t.Value.Year != t2.Year)
-            {
-                return false;
-            }
-            return true;
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            if (statistic != null && statistic.ScheduleActions)
-            {
-                GXSystemLog log = new GXSystemLog(TraceLevel.Verbose);
-                log.Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsStopping));
-                var repository = _serviceProvider.GetRequiredService<ISystemLogRepository>();
-                await repository.AddAsync(TargetType.Schedule, [log]);
+            if (_timer != null) {
+                await _timer.StopAsync(cancellationToken);
             }
-            _logger.LogWarning(ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsStopping)));
-            _timer?.Change(Timeout.Infinite, 0);
+            if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Warning))
+            {
+                _logger.LogWarning("{Message}", ServerHelpers.GetInvariantString(nameof(Properties.Resources.SchedulerServiceIsStopping)));
+            }
+
         }
 
         public void Dispose()

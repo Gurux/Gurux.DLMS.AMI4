@@ -1,61 +1,78 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
+
+<GXHelpContext Topic="PruneAction" />
 
 @if (Action != null)
 {
-    <div class="form-group">
-        <label>@Title</label>
-        <InputIntegerTimeSpan id="purge-interval" class="form-control"
-                              Days="true"
-                              TimeSpanUnit="TimeSpanUnit.Minute"
-                              @bind-Value="Action.Interval" />
-        <ValidationMessage For="@(() => Action.Interval)" />
-        @ChildContent
-        <label>@Properties.Resources.LastExecutionTime</label>&nbsp;
-        @if (Action.Run != null)
-        {
-            <input class="form-control" type="text" readonly="readonly" value="@Action.Run.ToString()" />
-        }
-        else
-        {
-            <label>@Properties.Resources.Never</label>
-        }
+    <div class="prune-row">
+        <div class="prune-target">
+            <label class="prune-title" for="@_intervalId">@Title</label>
+            @if (ChildContent != null)
+            {
+                <div class="prune-options">@ChildContent</div>
+            }
+        </div>
+        <div class="prune-retention">
+            <label class="prune-mobile-label" for="@_intervalId">@Properties.Resources.PruneRetentionPeriod</label>
+            <GXInputTimeSpan RememberValue="false" id="@_intervalId" class="form-control"
+                             TimeSpanUnit="TimeSpanUnit.Minute"
+                             @bind-Value="Action.Interval" />
+            <ValidationMessage For="@(() => Action.Interval)" />
+        </div>
+        <div class="prune-maximum">
+            <label class="prune-mobile-label" for="@_maximumId">@Properties.Resources.PruneMaxItemsPerRun</label>
+            <InputNumber id="@_maximumId" class="form-control" min="0" step="1"
+                         @bind-Value="Action.Maximum" />
+            <ValidationMessage For="@(() => Action.Maximum)" />
+        </div>
+        <div class="prune-execution">
+            <span class="prune-mobile-label">@Properties.Resources.LastExecutionTime</span>
+            @if (Action.Run is DateTimeOffset run)
+            {
+                <time datetime="@run.ToString("O")">@run.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)</time>
+            }
+            else
+            {
+                <span class="text-muted">@Properties.Resources.Never</span>
+            }
+        </div>
     </div>
 }
 
 @code {
+    private readonly string _intervalId = $"prune-interval-{Guid.NewGuid():N}";
+    private readonly string _maximumId = $"prune-maximum-{Guid.NewGuid():N}";
+
     /// <summary>
     /// Custom child content.
     /// </summary>

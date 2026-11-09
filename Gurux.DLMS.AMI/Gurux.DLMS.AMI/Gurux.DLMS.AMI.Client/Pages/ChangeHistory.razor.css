@@ -1,0 +1,59 @@
+/*
+--------------------------------------------------------------------------
+Gurux Ltd
+
+Copyright (c) Gurux Ltd.
+
+This file is part of Gurux Device Framework.
+
+Commit: $Format:%H$
+Date:   $Format:%cI$
+
+This software is available under either of the following licenses:
+
+1. GNU General Public License, version 2 only (GPL-2.0-only).
+   See the LICENSE file included with this distribution.
+
+2. A commercial license granted by Gurux Ltd under a separate written
+   agreement. Use under this option requires a valid commercial license
+   and is governed by the terms of that agreement.
+
+If you have not obtained a commercial license from Gurux Ltd,
+use of this software is governed by GPL-2.0-only.
+
+Commercial licensing: https://www.gurux.fi/
+
+SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+--------------------------------------------------------------------------
+*/
+
+.history-content {
+    padding-top: 1rem;
+}
+
+.history-changes ::deep table {
+    width: 100%;
+}
+
+.history-changes ::deep th {
+    color: var(--bs-secondary-color, #687783);
+    font-size: .75rem;
+    font-weight: 400;
+}
+
+.history-changes ::deep th,
+.history-changes ::deep td {
+    padding: .65rem .9rem;
+}
+
+.history-changes ::deep th:first-child {
+    width: 52%;
+}
+
+.history-changes ::deep th:nth-child(2) {
+    width: 26%;
+}
+
+.history-changes time {
+    white-space: nowrap;
+}

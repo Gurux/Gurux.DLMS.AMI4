@@ -1,0 +1,118 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/404"
+@using Gurux.DLMS.AMI.Client.Internal
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@inject NavigationManager Navigation
+@inject IServiceProvider Services
+@inject ILogger<NotFoundPage> Logger
+@implements IDisposable
+
+@{
+    var visibleBlocks = _blocks.Where(b => GXBlockPageSelection.Matches(b, Navigation.ToBaseRelativePath(Navigation.Uri))).ToArray();
+}
+<div class="not-found-page">
+    @if (visibleBlocks.Length != 0)
+    {
+        <BlockModule Location="BlockLocation.Component" Blocks="@visibleBlocks" />
+    }
+    else
+    {
+        <div class="not-found-fallback">
+            <h1>Page not found</h1>
+
+            <p>The page you are looking for does not exist.</p>
+
+            <a href="/">Back to homepage</a>
+        </div>
+    }
+</div>
+
+@code {
+    private IAmiBlockStorage? _storage;
+    private IReadOnlyList<GXBlock> _blocks = [];
+    private long _generation;
+    private bool _disposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += LocationChanged;
+        _storage = Services.GetService<IAmiBlockStorage>();
+        if (_storage == null)
+        {
+            return;
+        }
+        _storage.BlocksChanged += BlocksChanged;
+        var generation = _generation;
+        try
+        {
+            var blocks = await _storage.GetBlocksAsync();
+            if (!_disposed && generation == _generation)
+            {
+                SetBlocks(blocks);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Unable to load the Not found block.");
+        }
+    }
+
+    private void SetBlocks(IEnumerable<GXBlock> blocks) => _blocks = blocks
+        .Where(b => b.Name == "Not found" && b.Location == BlockLocation.Component && b.Enabled == true && b.Removed == null)
+        .OrderBy(b => b.LocationOrder ?? 0).ThenBy(b => b.Id).ToArray();
+
+    private void BlocksChanged(object? sender, GXBlocksChangedEventArgs args)
+    {
+        var generation = Interlocked.Increment(ref _generation);
+        _ = InvokeAsync(() =>
+        {
+            if (!_disposed && generation == _generation)
+            {
+                SetBlocks(args.Blocks);
+                StateHasChanged();
+            }
+        });
+    }
+
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+        => _ = InvokeAsync(() => { if (!_disposed) {
+            StateHasChanged();
+        } });
+    public void Dispose()
+    {
+        _disposed = true;
+        Navigation.LocationChanged -= LocationChanged;
+        if (_storage != null)
+        {
+            _storage.BlocksChanged -= BlocksChanged;
+        }
+    }
+}

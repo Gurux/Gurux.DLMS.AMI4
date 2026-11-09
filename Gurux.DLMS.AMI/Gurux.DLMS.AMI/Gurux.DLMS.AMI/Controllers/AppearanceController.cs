@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -40,19 +36,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the appearances.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class AppearanceController : ControllerBase
+    public class AppearanceController(IAppearanceRepository appearanceRepository) : ControllerBase
     {
-        private readonly IAppearanceRepository _appearanceRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public AppearanceController(IAppearanceRepository appearanceRepository)
-        {
-            _appearanceRepository = appearanceRepository;
-        }
+        private readonly IAppearanceRepository _appearanceRepository = appearanceRepository;
 
         /// <summary>
         /// Get appearance information.
@@ -60,13 +51,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="type">Appearance type.</param>
         /// <param name="id">Appearance id.</param>
         /// <returns>Appearance information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<GetAppearanceResponse>> Get(int type, string id)
+        public async Task<ActionResult<GetAppearanceResponse>> Get(int type, Guid id, CancellationToken cancellationToken = default)
         {
             return new GetAppearanceResponse()
             {
-                Item = await _appearanceRepository.ReadAsync(type, id)
+                Item = await _appearanceRepository.ReadAsync(type, id, null, cancellationToken)
+            };
+        }
+
+        /// <summary>Get an appearance by its symbolic resource name.</summary>
+        /// <param name="type">Appearance type.</param>
+        /// <param name="name">Unique resource name.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [HttpGet("ByName")]
+        [AllowAnonymous]
+        public async Task<ActionResult<GetAppearanceResponse>> GetByName(int type, string name, CancellationToken cancellationToken = default)
+        {
+            return new GetAppearanceResponse
+            {
+                Item = await _appearanceRepository.ReadByNameAsync(type, name, null, cancellationToken)
             };
         }
 
@@ -79,7 +85,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListAppearances request,
             CancellationToken cancellationToken)
         {
-            ListAppearancesResponse ret = new ListAppearancesResponse();
+            ListAppearancesResponse ret = new();
             await _appearanceRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -87,51 +93,39 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Update appearance.
         /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Update appearance response.</returns>
         [HttpPost("Add")]
         [HttpPost("Update")]
-        [Authorize(Policy = GXAppearancePolicies.Add)]
-        public async Task<ActionResult<UpdateAppearanceResponse>> Post(UpdateAppearance request)
+        [Authorize]
+        public async Task<ActionResult<UpdateAppearanceResponse>> Post(UpdateAppearance request,
+            CancellationToken cancellationToken)
         {
             if (request.Appearances == null || request.Appearances.Count == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            UpdateAppearanceResponse ret = new UpdateAppearanceResponse();
-            ret.Ids = await _appearanceRepository.UpdateAsync(request.Appearances);
+            UpdateAppearanceResponse ret = new()
+            {
+                Ids = await _appearanceRepository.UpsertAsync(request.Appearances, null, cancellationToken)
+            };
             return ret;
         }
 
         /// <summary>
         /// Delete appearance.
         /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Remove appearance response.</returns>
         [HttpPost("Delete")]
-        [Authorize(Policy = GXAppearancePolicies.Delete)]
-        public async Task<ActionResult<RemoveAppearanceResponse>> Post(RemoveAppearance request)
+        [Authorize]
+        public async Task<ActionResult<RemoveAppearanceResponse>> Post(RemoveAppearance request,
+            CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _appearanceRepository.DeleteAsync(request.Ids, request.Delete);
+            await _appearanceRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveAppearanceResponse();
-        }
-
-
-        /// <summary>
-        /// Refresh appearances.
-        /// </summary>
-        [HttpPost("Refresh")]
-        [Authorize(Policy = GXAppearancePolicies.Edit)]
-        public async Task<ActionResult<RefreshAppearanceResponse>> Post(RefreshAppearance request)
-        {
-            return new RefreshAppearanceResponse()
-            {
-                NewItems = await _appearanceRepository.RefreshAsync(request.Force, request.Filter)
-            };
         }
 
         /// <summary>
@@ -140,14 +134,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns></returns>
         [HttpPost("LastChanged")]
         [AllowAnonymous]
-        public async Task<ActionResult<DateTimeOffset?>> Post(byte type)
+        public async Task<ActionResult<DateTimeOffset?>> Post([FromBody] byte type,
+            CancellationToken cancellationToken = default)
         {
-            var ret = await _appearanceRepository.LastChanged(type);
-            if (ret == null)
-            {
-                ret = DateTimeOffset.MinValue;
-            }
+            _ = cancellationToken;
+            var ret = await _appearanceRepository.LastChanged(type, cancellationToken) ?? DateTimeOffset.MinValue;
             return Ok(ret);
+        }
+
+        /// <summary>
+        /// Regenerate appearances.
+        /// </summary>
+        [HttpPost("Regenerate")]
+        [Authorize(Policy = GXAppearancePolicies.Regenerate)]
+        public async Task<ActionResult<RegenerateAppearanceResponse>> Post(RegenerateAppearance request,
+            CancellationToken cancellationToken = default)
+        {
+            if (request.Ids?.Any() == true)
+            {
+                await _appearanceRepository.ResetToDefaultsAsync(request.Type, request.Ids, cancellationToken);
+            }
+            else
+            {
+                await _appearanceRepository.EnsureDefaultsAsync(request.Type, cancellationToken);
+            }
+            return new RegenerateAppearanceResponse();
         }
     }
 }

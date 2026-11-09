@@ -1,81 +1,134 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Server.Internal;
 
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Server.Services;
+using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.Service.Orm;
 using Microsoft.AspNetCore.SignalR;
-using System.Diagnostics;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Gurux.DLMS.AMI.Server.Repository;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Hubs
 {
     /// <summary>
     /// GuruxAMI Hub sends notification events.
     /// </summary>
-    public class GuruxAMiHub : Hub<IGXHubEvents>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
+    [Authorize]
+    public class GuruxAMiHub(IDbConnectionFactory dbFactory,
+        IGXConnectionManager connectionManager, IServiceProvider services, IAuthorizationService authorization) : Hub<IGXHubEvents>
     {
-        private readonly IGXHost _host;
-        private readonly IGXConnectionManager _connectionManager;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GuruxAMiHub(IGXHost host,
-            IGXConnectionManager connectionManager)
-        {
-            _host = host;
-            _connectionManager = connectionManager;
-        }
+        internal static readonly GXAgentConnectionRegistry AgentConnections = new();
+        /// <summary>Returns the private notification group for a registered agent.</summary>
+        public static string AgentGroup(Guid agentId) => "agent:" + agentId.ToString("D");
+        private readonly IDbConnectionFactory _dbFactory = dbFactory;
+        private readonly IGXConnectionManager _connectionManager = connectionManager;
 
         /// <summary>
         /// Save occurred exception to the database.
         /// </summary>
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            if (exception != null)
+            try
             {
-                GXSystemLog log = new GXSystemLog();
-                log.Message = exception.Message;
-                await _host.Connection.InsertAsync(GXInsertArgs.Insert(log));
+                await AgentConnections.DisconnectAsync(Context.ConnectionId, UpdateAgentPresenceAsync);
+                if (exception != null)
+                {
+                    await using var connection = await _dbFactory.GetConnectionAsync();
+                    GXLog log = new() { Message = exception.Message };
+                    await GXLogStore.InsertAsync(connection, "system", [log]);
+                }
             }
-            _connectionManager.RemoveConnection(Context.ConnectionId);
-            await base.OnDisconnectedAsync(exception);
+            finally
+            {
+                _connectionManager.RemoveConnection(Context.ConnectionId);
+                await base.OnDisconnectedAsync(exception);
+            }
+        }
+        /// <summary>Associates this authenticated connection with an agent the caller can edit and view.</summary>
+        [Authorize]
+        public async Task RegisterAgent(Guid agentId)
+        {
+            var user = Context.User;
+            if (user?.Identity?.IsAuthenticated != true || agentId == Guid.Empty || user.HasClaim("banned", "true"))
+                {
+                throw new HubException("Agent registration is not authorized.");
+            }
+            if (!(await authorization.AuthorizeAsync(user, null, GXAgentPolicies.View)).Succeeded ||
+                !(await authorization.AuthorizeAsync(user, null, GXAgentPolicies.Edit)).Succeeded)
+                {
+                throw new HubException("Agent registration is not authorized.");
+            }
+            await using var connection = await _dbFactory.GetConnectionAsync(Context.ConnectionAborted);
+            var userId = ServerHelpers.GetUserId(user);
+            var membership = GXRepositoryUsers.Query(typeof(GXAgent), agentId);
+            membership.Where.And<GXUser>(u => u.Id == userId);
+            if (await connection.SingleOrDefaultAsync<GXUser>(membership, Context.ConnectionAborted) == null)
+                {
+                throw new HubException("Agent registration is not authorized.");
+            }
+            var agent = GXSelectArgs.Select<GXAgent>(a => a.Id,
+                a => a.Id == agentId && a.Removed == null && a.Enabled == true);
+            if (await connection.SingleOrDefaultAsync<GXAgent>(agent, Context.ConnectionAborted) == null)
+                {
+                throw new HubException("Agent registration is not authorized.");
+            }
+            Context.ConnectionAborted.ThrowIfCancellationRequested();
+            try
+            {
+                await AgentConnections.RegisterAsync(agentId, Context.ConnectionId, UpdateAgentPresenceAsync,
+                    user.FindFirst("jti")?.Value);
+            }
+            catch (GXAgentConnectionInUseException error)
+            {
+                throw new HubException(error.Message);
+            }
+            await Groups.AddToGroupAsync(Context.ConnectionId, AgentGroup(agentId), Context.ConnectionAborted);
         }
 
+        private Task UpdateAgentPresenceAsync(Guid agentId, bool connected)
+            => services.RunAsUserAsync(Context.User ?? new ClaimsPrincipal(), async scoped =>
+            {
+                var repository = (AgentRepository)scoped.GetRequiredService<IAgentRepository>();
+                await repository.UpdateConnectionStatusAsync(agentId, Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString(), connected);
+            });
         /// <summary>
         /// Client has establish a connection to the hub.
         /// </summary>
@@ -95,26 +148,9 @@ namespace Gurux.DLMS.AMI.Hubs
 
             var email =
                 Context.User?.FindFirst(ClaimTypes.Name)?.Value;
-            if (userId == null)
-            {
-                //Get user id from authorization header.
-                //This is used with JWT.
-                var httpContext = Context.GetHttpContext();
-                var authHeader = httpContext?.Request.Headers["Authorization"].ToString();
-                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
-                {
-                    var token = authHeader.Substring("Bearer ".Length);
-                    var handler = new JwtSecurityTokenHandler();
-                    var jwt = handler.ReadJwtToken(token);
-                    userId = jwt.Claims
-                        .FirstOrDefault(c => c.Type == "sub"
-                                          || c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    //Email address is not included to JWT token.
-                }
-            }
 
             var ip = http?.Connection.RemoteIpAddress?.ToString();
-            var userAgent = http?.Request.Headers["User-Agent"].ToString();
+            var userAgent = http?.Request.Headers.UserAgent.ToString();
 
             var info = new GXConnectionInfo
             {

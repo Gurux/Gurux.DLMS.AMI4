@@ -1,48 +1,48 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -50,41 +50,47 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ObjectTemplateRepository : IObjectTemplateRepository
     {
         private readonly ClaimsPrincipal User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IUserRepository _userRepository;
-        private GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public ObjectTemplateRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+        public ObjectTemplateRepository(IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
             IUserRepository userRepository,
-            IGXEventsNotifier eventsNotifier,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache,
+            IAuthorizationService authorizationService)
         {
-            var user = contextAccessor?.User;
-            if (user == null ||
-                (!user.IsInRole(GXRoles.Admin) &&
-                !user.IsInRole(GXRoles.DeviceTemplate) &&
-                !user.IsInRole(GXRoles.DeviceTemplateManager)))
+            if (httpContextAccessor.HttpContext?.User == null)
             {
                 throw new UnauthorizedAccessException();
             }
-            User = user;
-            _host = host;
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
             _userRepository = userRepository;
-            _eventsNotifier = eventsNotifier;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
         }
 
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXObjectTemplate), id, action, GXDeviceTemplatePolicies.View, connection, transaction);
+
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? objectId)
+        public async Task<List<string>> GetUsersAsync(Guid? objectId, CancellationToken cancellationToken = default)
         {
             GXSelectArgs args = GXQuery.GetUsersByObjectTemplate(ServerHelpers.GetUserId(User), objectId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (objectId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXObjectTemplate), objectId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User != null && User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -93,70 +99,100 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds, CancellationToken cancellationToken = default)
         {
             GXSelectArgs args = GXQuery.GetUsersByObjectTemplates(ServerHelpers.GetUserId(User), objectIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User != null && User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
             return ret;
         }
-
 
         /// <inheritdoc />
         public async Task DeleteAsync(
             IEnumerable<Guid> objects,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if ((!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceTemplateManager)))
+            objects = objects.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXObjectTemplate, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, objects,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.Delete);
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs arg = GXSelectArgs.Select<GXObjectTemplate>(a => a.Id, q => objects.Contains(q.Id));
-            List<GXObjectTemplate> list = _host.Connection.Select<GXObjectTemplate>(arg);
-            DateTime now = DateTime.Now;
-            foreach (GXObjectTemplate it in list)
-            {
-                it.Removed = now;
-                List<string> users2 = await GetUsersAsync(it.Id);
-                if (!users2.Any())
+                GXSelectArgs arg = GXSelectArgs.Select<GXObjectTemplate>(a => a.Id, q => objects.Contains(q.Id));
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                List<GXObjectTemplate> list = connection.Select<GXObjectTemplate>(arg);
+                DateTime now = DateTime.Now;
+                var removedRecipients = new HashSet<string>();
+                foreach (GXObjectTemplate it in list)
                 {
-                    //User doesn't have access rights for this object.
-                    throw new UnauthorizedAccessException();
+                    removedRecipients.UnionWith(await GetNotifiedUsers(it.Id, NotificationAction.Remove, connection));
+                    it.Removed = now;
+                    List<string> users2 = await GetUsersAsync(it.Id, cancellationToken);
+                    if (users2.Count == 0)
+                    {
+                        //User doesn't have access rights for this object.
+                        throw new UnauthorizedAccessException();
+                    }
+                    if (delete)
+                    {
+                        await connection.DeleteAsync(GXDeleteArgs.DeleteById<GXObjectTemplate>(it.Id), cancellationToken);
+                    }
+                    else
+                    {
+                        connection.Update(GXUpdateArgs.Update(it, q => q.Removed!));
+                    }
                 }
-                if (delete)
+                List<string>? users = [.. removedRecipients];
+                List<GXObjectTemplate> list2 = [];
+                foreach (var it in list)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXObjectTemplate>(it.Id));
+                    list2.Add(new GXObjectTemplate() { Id = it.Id });
+                }
+                users = [.. removedRecipients];
+                if (users != null && users.Count != 0)
+                {
+                    _notificationCache.Add(users, new GXTarget(GXObjectTemplatePolicies.Delete));
+                }
+            }
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(objects, delete, notify, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                    throw;
                 }
             }
-            List<string>? users = await GetUsersAsync(objects);
-            List<GXObjectTemplate> list2 = new List<GXObjectTemplate>();
-            foreach (var it in list)
-            {
-                list2.Add(new GXObjectTemplate() { Id = it.Id });
-            }
-            users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                users, TargetType.ObjectTemplate, NotificationAction.Remove);
-            if (users != null && users.Any())
-            {
-                await _eventsNotifier.ObjectTemplateDelete(users, list2);
-            }
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXObjectTemplate[]> ListAsync(
+        public async Task<IEnumerable<GXObjectTemplate>> ListAsync(
             ListObjectTemplates? request,
             ListObjectTemplatesResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.View);
             string userId = ServerHelpers.GetUserId(User);
             GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, null);
             arg.Distinct = true;
@@ -164,7 +200,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXObjectTemplate>(w => !request.Exclude.Contains(w.Id));
                 }
@@ -178,27 +214,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (request.ObjectTypes != null && request.ObjectTypes.Any())
                 {
-                    int?[] tmp = request.ObjectTypes.Cast<int?>().ToArray();
+                    int?[] tmp = [.. request.ObjectTypes.Cast<int?>()];
                     arg.Where.And<GXObjectTemplate>(w => tmp.Contains(w.ObjectType));
                 }
                 if (request.IgnoredObjectTypes != null && request.IgnoredObjectTypes.Any())
                 {
-                    int?[] tmp = request.IgnoredObjectTypes.Cast<int?>().ToArray();
+                    int?[] tmp = [.. request.IgnoredObjectTypes.Cast<int?>()];
                     arg.Where.And<GXObjectTemplate>(w => !tmp.Contains(w.ObjectType));
                 }
             }
+            GXDateTimeFilters.Apply<GXObjectTemplate>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXObjectTemplate>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXObjectTemplate>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -210,7 +253,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Descending = true;
                 arg.OrderBy.Add<GXObjectTemplate>(q => q.Id);
             }
-            GXObjectTemplate[] objects = (await _host.Connection.SelectAsync<GXObjectTemplate>(arg)).ToArray();
+            GXObjectTemplate[] objects = [.. (await connection.SelectAsync<GXObjectTemplate>(arg))];
             if (response != null)
             {
                 response.ObjectTemplates = objects;
@@ -223,81 +266,138 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXObjectTemplate> ReadAsync(Guid id)
+        public async Task<GXObjectTemplate> ReadAsync(Guid id, Expression<Func<GXObjectTemplate, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            string userId = ServerHelpers.GetUserId(User);
-            GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, id);
-            //Device ID and name are added.
-            arg.Columns.Add<GXDeviceTemplate>(c => new { c.Id, c.Name });
-            arg.Columns.Exclude<GXDeviceTemplate>(e => e.Objects);
-            arg.Distinct = true;
-            GXObjectTemplate obj = await _host.Connection.SingleOrDefaultAsync<GXObjectTemplate>(arg);
-            if (obj == null)
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.View);
+            try
             {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            //Get attribute templates .
-            arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(w => w.ObjectTemplate == obj && w.Removed == null);
-            arg.Columns.Add<GXAttributeListItem>();
-            arg.Joins.AddLeftJoin<GXAttributeTemplate, GXAttributeListItem>(x => x.Id, y => y.Template);
-            arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate);
-            arg.Columns.Exclude<GXAttributeListItem>(e => e.Template); obj.Attributes = await _host.Connection.SelectAsync<GXAttributeTemplate>(arg);
-            return obj;
-        }
+                string userId = ServerHelpers.GetUserId(User);
+                GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, id);
+                //Device ID and name are added.
+                arg.Columns.Add<GXDeviceTemplate>(c => new { c.Id, c.Name });
+                arg.Columns.Exclude<GXDeviceTemplate>(e => e.Objects!);
+                arg.Distinct = true;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXObjectTemplate? obj = await connection.SingleOrDefaultAsync<GXObjectTemplate>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+                //Get attribute templates .
+                arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(w => w.ObjectTemplate == obj && w.Removed == null);
+                arg.Columns.Add<GXAttributeListItem>();
+                arg.Joins.AddLeftJoin<GXAttributeTemplate, GXAttributeListItem>(x => x.Id, y => y.Template!);
+                arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate!);
+                arg.Columns.Exclude<GXAttributeListItem>(e => e.Template!);
+                obj.Attributes = await connection.SelectAsync<GXAttributeTemplate>(arg);
+                return obj;
 
-        /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
-            IEnumerable<GXObjectTemplate> objects,
-            Expression<Func<GXObjectTemplate, object?>>? columns)
-        {
-            DateTime now = DateTime.Now;
-            foreach (var obj in objects)
+            }
+            catch (GXDatabaseException ex)
             {
-                if (obj.Id == Guid.Empty)
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
                 {
-                    obj.CreationTime = now;
-                    await _host.Connection.InsertAsync(GXInsertArgs.Insert(obj));
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
                 }
                 else
                 {
-                    if (columns != null)
+                    throw;
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task<IEnumerable<Guid>> UpsertAsync(
+            IEnumerable<GXObjectTemplate> objects,
+            Expression<Func<GXObjectTemplate, object>>? columns, CancellationToken cancellationToken = default)
+        {
+            objects = objects.ToArray();
+            return await GXHistoryMutation.RunAsync<GXObjectTemplate, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, objects,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.Edit);
+            try
+            {
+                DateTime now = DateTime.Now;
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                foreach (var obj in objects)
+                {
+                    if (obj.Id == Guid.Empty)
                     {
-                        await _host.Connection.UpdateAsync(GXUpdateArgs.Update(obj, columns));
+                        obj.CreationTime = now;
+                        await connection.InsertAsync(GXInsertArgs.Insert(obj), cancellationToken);
                     }
-                    //Update attribute data type, UI data type, scaler, access rights and expiration times.
-                    if (obj.Attributes != null)
+                    else
                     {
-                        foreach (var att in obj.Attributes)
+                        if (columns != null)
                         {
-                            await _host.Connection.UpdateAsync(GXUpdateArgs.Update(att, u => new
+                            await connection.UpdateAsync(GXUpdateArgs.Update(obj, columns), cancellationToken);
+                        }
+                        //Update attribute data type, UI data type, scaler, access rights and expiration times.
+                        if (obj.Attributes != null)
+                        {
+                            foreach (var att in obj.Attributes)
                             {
-                                u.DefaultValue,
-                                u.DataType,
-                                u.UIDataType,
-                                u.Scaler,
-                                u.Unit,
-                                u.AccessLevel,
-                                u.ExpirationTime
-                            }));
+                                await connection.UpdateAsync(GXUpdateArgs.Update(att, u => new
+                                {
+                                    u.DefaultValue,
+                                    u.DataType,
+                                    u.UIDataType,
+                                    u.Scaler,
+                                    u.Unit,
+                                    u.AccessLevel,
+                                    u.ExpirationTime
+                                }), cancellationToken);
+                            }
                         }
                     }
                 }
-            }
-            var ret = objects.Select(s => s.Id).ToArray();
-            if (_performanceSettings.Notification(TargetType.ObjectTemplate))
-            {
-                List<string> users = await GetUsersAsync(ret);
-                List<GXObjectTemplate> list = new List<GXObjectTemplate>();
+                var ret = objects.Select(s => s.Id).ToArray();
+                List<string> users = await GetNotifiedUsers(ret, NotificationAction.Edit, connection);
+                List<GXObjectTemplate> list = [];
                 foreach (var it in objects)
                 {
                     list.Add(new GXObjectTemplate()
                     {
                         Id = it.Id,
                     });
+                    _notificationCache.Add(users, new GXTarget(GXObjectTemplatePolicies.Edit));
                 }
-                await _eventsNotifier.ObjectTemplateUpdate(users, list);
+                return [.. ret];
+
             }
-            return ret.ToArray();
+            catch (GXDatabaseException ex)
+            {
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(objects, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }, cancellationToken);
         }
     }
 }

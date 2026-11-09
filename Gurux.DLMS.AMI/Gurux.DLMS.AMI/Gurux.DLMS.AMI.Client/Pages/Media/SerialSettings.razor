@@ -1,36 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Accordion
+
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -43,10 +39,12 @@
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using System.IO.Ports;
 
-<Accordion Id="content-type-authoring">
+<GXHelpContext Topic="SerialSettings" />
+
+<GXAccordion Id="content-type-authoring">
     <HeaderTemplate>
         <div>
-            <h6><b>Serial port</b></h6>
+            <h6><b>@Properties.Resources.SerialPort</b></h6>
             @if (!Disabled)
             {
                 <label>@(string.Format("Settings: {0}", _serial.ToString()))</label>
@@ -56,42 +54,26 @@
     <ChildContent>
         <div class="form-group">
             <label>@Properties.Resources.Baudrate</label>
-            <select class="form-select" @bind="BaudRate">
-                @foreach (var it in BaudRateList)
-                {
-                    <option value="@it">@it</option>
-                }
-            </select>
+            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="BaudRate"
+                             Items="@(BaudRateList)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.DataBits</label>
-            <select class="form-select" @bind="DataBits">
-                @foreach (var it in DataBitsList)
-                {
-                    <option value="@it">@it</option>
-                }
-            </select>
+            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="DataBits"
+                             Items="@(DataBitsList)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.Parity</label>
-            <select class="form-select" @bind="Parity">
-                @foreach (var it in ParityList)
-                {
-                    <option value="@it">@it</option>
-                }
-            </select>
+            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="Parity"
+                             Items="@(ParityList)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.StopBits</label>
-            <select class="form-select" @bind="StopBits">
-                @foreach (var it in StopBitList)
-                {
-                    <option value="@it">@it</option>
-                }
-            </select>
+            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="StopBits"
+                             Items="@(StopBitList)" />
         </div>
     </ChildContent>
-</Accordion>
+</GXAccordion>
 @code {
     private string? _settings;
 
@@ -102,16 +84,14 @@
     public bool Disabled { get; set; }
 
     [Parameter]
-    public string? Settings
+    public string? Settings { get; set; }
+
+    private void UpdateSettings(string? value)
     {
-        get => _settings;
-        set
+        if (Settings != value)
         {
-            if (_settings != value)
-            {
-                _settings = value;
-                SettingsChanged.InvokeAsync(value);
-            }
+            Settings = _settings = value;
+            _ = SettingsChanged.InvokeAsync(value);
         }
     }
 
@@ -156,7 +136,7 @@
         set
         {
             _serial.BaudRate = value;
-            Settings = _serial.Settings;
+            UpdateSettings(_serial.Settings);
         }
     }
 
@@ -173,7 +153,7 @@
         set
         {
             _serial.DataBits = value;
-            Settings = _serial.Settings;
+            UpdateSettings(_serial.Settings);
         }
     }
 
@@ -190,7 +170,7 @@
         set
         {
             _serial.Parity = (int)value;
-            Settings = _serial.Settings;
+            UpdateSettings(_serial.Settings);
         }
     }
 
@@ -207,12 +187,17 @@
         set
         {
             _serial.StopBits = (int)value;
-            Settings = _serial.Settings;
+            UpdateSettings(_serial.Settings);
         }
     }
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
+        if (_settings == Settings)
+        {
+            return;
+        }
+        _settings = Settings;
         try
         {
             _serial.Settings = _settings;

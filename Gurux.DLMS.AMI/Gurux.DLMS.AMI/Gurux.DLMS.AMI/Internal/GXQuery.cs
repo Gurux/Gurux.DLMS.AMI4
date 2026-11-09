@@ -1,59 +1,53 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Menu;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
-using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
-using Gurux.DLMS.AMI.Shared.DTOs.Block;
-using Gurux.DLMS.AMI.Shared.DTOs.Menu;
-using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
-using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared.DTOs.View;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
@@ -65,6 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="id">User group id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">User group Ids to exclude.</param>
         /// <param name="include">User group Ids to include.</param>
         /// <returns>List of user groups where user belongs.</returns>
@@ -72,10 +67,19 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXUserGroup, object>> columns,
             string userId,
             Guid? id = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXUserGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXUserGroup>(q => q.Removed >= removed);
+            }
             GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => q.UserId == userId);
             //Distinct is not needed because values are indexed;
             args.Where.And<GXUserGroupUser>(q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, sub));
@@ -116,18 +120,20 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 sub.Where.And<GXUserGroupUser>(q => q.UserGroupId == groupId);
             }
-            args.Where.And<GXUserGroupUser>(q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, sub));
+            args.Where.And<GXUserGroupUser>(q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, sub));
             return args;
         }
 
         /// <summary>
         /// Returns a collection of users who belong user groups.
         /// </summary>
+        /// <param name="columns">Selected columns from the user table.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="groupIds">User group IDs.</param>
-        public static GXSelectArgs GetUsersByUserGroups(string? userId, IEnumerable<Guid>? groupIds)
+        public static GXSelectArgs GetUsersByUserGroups(Expression<Func<GXUser, object>> columns,
+            string? userId, IEnumerable<Guid>? groupIds)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => GXSql.One, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Id == userId && q.Removed == null);
             if (!string.IsNullOrEmpty(userId))
             {
                 args.Where.And<GXUser>(q => q.Id == userId);
@@ -138,7 +144,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 sub.Where.And<GXUserGroupUser>(q => groupIds.Contains(q.UserGroupId));
             }
             args.Distinct = true;
-            args.Where.And<GXUserGroupUser>(q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, sub));
+            args.Where.And<GXUserGroupUser>(q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, sub));
             return args;
         }
 
@@ -147,17 +153,40 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="columns">Selected columns from the user table.</param>
         /// <param name="userId">User Id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">User Ids to exclude.</param>
+        /// <param name="include">User Ids to include.</param>
         /// <returns>List of users that user can access.</returns>
         public static GXSelectArgs GetUsersByUser(
             Expression<Func<GXUser, object>> columns,
-            string userId)
+            string userId,
+            DateTimeOffset? removed = null,
+            IEnumerable<string>? exclude = null,
+            IEnumerable<string>? include = null)
         {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Id == userId && q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Id == userId);
+            if (removed == null)
+            {
+                args.Where.And<GXUser>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXUser>(q => q.Removed >= removed);
+            }
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => s.Id, userId);
             GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One);
             sub.Where.And<GXUserGroupUser>(q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
             args.Where.And<GXUserGroupUser>(q => GXSql.Exists(sub));
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXUser>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXUser>(q => include.Contains(q.Id));
+            }
+
             return args;
         }
 
@@ -168,10 +197,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>User errors by the user.</returns>
         public static GXSelectArgs GetUserErrorsByUser(string userId)
         {
-            GXSelectArgs args = GXSelectArgs.SelectAll<GXUserError>();
+            var types = GXSelectArgs.Select<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(t => GXSql.One, t => t.NormalizedName == "BUILTIN:USER-ERROR");
+            GXSelectArgs args = GXSelectArgs.SelectAll<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(l => l.LogType!, t => t.Id, types));
             args.Distinct = true;
-            args.Where.And<GXUser>(q => q.Removed == null && q.Id == userId);
-            args.Joins.AddInnerJoin<GXUserError, GXUser>(j => j.User, j => j.Id);
+            var owners = GXSelectArgs.Select<GXUser>(u => GXSql.One, u => u.Removed == null && u.Id == userId);
+            args.Where.And<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, GXUser>(l => l.User!, u => u.Id!, owners));
             return args;
         }
 
@@ -182,10 +212,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>User actions by the user.</returns>
         public static GXSelectArgs GetUserActionsByUser(string userId)
         {
-            GXSelectArgs args = GXSelectArgs.SelectAll<GXUserAction>();
+            var types = GXSelectArgs.Select<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(t => GXSql.One, t => t.NormalizedName == "BUILTIN:USER-ACTION");
+            GXSelectArgs args = GXSelectArgs.SelectAll<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(l => l.LogType!, t => t.Id, types));
             args.Distinct = true;
             args.Where.And<GXUser>(q => q.Id == userId && q.Removed == null);
-            args.Joins.AddInnerJoin<GXUserAction, GXUser>(j => j.User, j => j.Id);
+            args.Joins.AddInnerJoin<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, GXUser>(j => j.User!, j => j.Id!);
             return args;
         }
 
@@ -194,18 +225,44 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
-        /// <param name="id">Device group id.</param>
+        /// <param name="groupId">Device group id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Agent group Ids to exclude.</param>
+        /// <param name="include">Agent group Ids to include.</param>
         /// <returns>List of device groups that user can access.</returns>
         public static GXSelectArgs GetDeviceGroupsByUser(
             Expression<Func<GXDeviceGroup, object>> columns,
             string userId,
-            Guid? id = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, id);
+            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupDeviceGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXDeviceGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXDeviceGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXDeviceGroup>(q => GXSql.Exists<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId, map2));
+            if (groupId != null && groupId != Guid.Empty)
+            {
+                args.Where.And<GXDeviceGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXDeviceGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXDeviceGroup>(q => include.Contains(q.Id));
+            }
             return args;
         }
 
@@ -273,6 +330,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="userId">User Id.</param>
         /// <param name="id">Device Id.</param>
         /// <returns>List of devices that user can access.</returns>
+        /// <param name="args">The args.</param>
         public static void GetDevicesByUser(
             GXSelectArgs args,
             string userId,
@@ -324,6 +382,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid deviceId)
         {
+            _ = userId;
             GXSelectArgs deviceGroups = GXSelectArgs.Select<GXDeviceGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXDeviceGroupDevice>(s => GXSql.One, w => w.DeviceId == deviceId);
@@ -332,7 +391,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -349,6 +408,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? deviceIds)
         {
+            _ = userId;
             GXSelectArgs deviceGroups = GXSelectArgs.Select<GXDeviceGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXDeviceGroupDevice>(s => GXSql.One);
@@ -361,7 +421,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -401,6 +461,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string userId,
             Guid agentId)
         {
+            _ = userId;
             GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs agentGroups = GetAgentGroupsByAgent(s => GXSql.One, agentId);
@@ -438,6 +499,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="deviceIds">Device ID.</param>
         public static GXSelectArgs GetDeviceGroupsByDevices(string userId, IEnumerable<Guid> deviceIds)
         {
+            _ = userId;
             GXSelectArgs args = GXSelectArgs.Select<GXDeviceGroup>(s => s.Id, w => w.Removed == null);
             args.Distinct = true;
             args.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
@@ -453,9 +515,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="deviceId">Device ID.</param>
         public static GXSelectArgs GetUsersByDevice(string userId, Guid? deviceId)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
@@ -476,9 +539,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="deviceIds">Device IDs.</param>
         public static GXSelectArgs GetUsersByDevices(string userId, IEnumerable<Guid>? deviceIds)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
@@ -507,6 +571,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? deviceId)
         {
+            _ = userId;
             GXSelectArgs deviceGroups = GXSelectArgs.Select<GXDeviceGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXDeviceGroupDevice>(s => GXSql.One, w => w.DeviceId == deviceId);
@@ -515,7 +580,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -529,7 +594,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => s.Id, w => w.Removed == null);
             args.Where.And<GXObject>(w => w.Id == objectId && w.Removed == null);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device!);
             return args;
         }
 
@@ -553,15 +618,16 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="objectId">Object ID.</param>
         public static GXSelectArgs GetUsersByObjectTemplate(string userId, Guid? objectId)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateId);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(j => j.DeviceTemplateId, j => j.Id);
-            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(q => q.Removed == null);
             if (objectId != null && objectId != Guid.Empty)
@@ -582,15 +648,16 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="objectIds">Object IDs.</param>
         public static GXSelectArgs GetUsersByObjectTemplates(string userId, IEnumerable<Guid>? objectIds)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateId);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
-            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(q => q.Removed == null);
             args.Where.And<GXDeviceTemplateGroup>(q => q.Removed == null);
@@ -613,15 +680,16 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="objectId">Object ID.</param>
         public static GXSelectArgs GetUsersByObject(string userId, Guid? objectId)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceId);
             args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
-            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device);
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(q => q.Removed == null);
             if (objectId != null && objectId != Guid.Empty)
@@ -642,15 +710,16 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="objectIds">Object IDs.</param>
         public static GXSelectArgs GetUsersByObjects(string userId, IEnumerable<Guid>? objectIds)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceGroupId);
             args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(a => a.DeviceId, b => b.Id);
-            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device);
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(q => q.Removed == null);
             args.Where.And<GXDeviceGroup>(q => q.Removed == null);
@@ -673,16 +742,17 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="attributeIds">Attribute IDs.</param>
         public static GXSelectArgs GetUsersByAttributeTemplates(string userId, IEnumerable<Guid>? attributeIds)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateGroupId);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
-            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
-            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(a => a.Id, b => b.ObjectTemplate);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate!);
+            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(a => a.Id, b => b.ObjectTemplate!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(where => where.Removed == null);
             args.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null);
@@ -705,16 +775,17 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="id">Attribute ID.</param>
         public static GXSelectArgs GetUsersByAttributeTemplate(string userId, Guid? id)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateGroupId);
             args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
-            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
-            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(a => a.Id, b => b.ObjectTemplate);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate!);
+            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(a => a.Id, b => b.ObjectTemplate!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(where => where.Removed == null);
             args.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null);
@@ -738,16 +809,17 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="attributeIds">Attribute IDs.</param>
         public static GXSelectArgs GetUsersByAttributes(string userId, IEnumerable<Guid>? attributeIds)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            _ = userId;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceGroupId);
             args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(a => a.DeviceId, b => b.Id);
-            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device);
-            args.Joins.AddInnerJoin<GXObject, GXAttribute>(a => a.Id, b => b.Object);
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device!);
+            args.Joins.AddInnerJoin<GXObject, GXAttribute>(a => a.Id, b => b.Object!);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(where => where.Removed == null);
             args.Where.And<GXDeviceGroup>(where => where.Removed == null);
@@ -775,8 +847,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Where.And<GXAttribute>(w => w.Id == attributeId && w.Removed == null);
             args.Where.And<GXObject>(w => w.Removed == null);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXAttribute, GXObject>(j => j.Object, j => j.Id);
-            args.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+            args.Joins.AddInnerJoin<GXAttribute, GXObject>(j => j.Object!, j => j.Id);
+            args.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device!, j => j.Id);
             return args;
         }
 
@@ -805,10 +877,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs args = GXSelectArgs.Select<GXUserGroupDeviceGroup>(s => s.UserGroupId, q => q.Removed == null);
             args.Distinct = true;
             args.Columns.Clear();
-            args.Columns.Add<GXUser>(s => s.Id);
+            args.Columns.Add<GXUser>(s => s.Id!);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
-            args.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(j => j.UserId!, j => j.Id!);
             args.Where.And<GXUserGroupDeviceGroup>(q => GXSql.Exists<GXUserGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id, deviceGrops));
             args.Where.And<GXUserGroupDeviceGroup>(q => q.Removed == null);
             args.Where.And<GXUser>(q => q.Removed == null);
@@ -824,17 +896,19 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="deviceId">Device Id.</param>
         /// <returns>List of device errors that user can access.</returns>
         public static GXSelectArgs GetDeviceErrorsByUser(
-            Expression<Func<GXDeviceError, object>> columns,
+            Expression<Func<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, object>> columns,
             string userId,
             Guid? deviceId = null)
         {
-            GXSelectArgs devs = GetDevicesByUser(s => s.Id, userId, deviceId);
-            GXSelectArgs args = GXSelectArgs.Select(columns);
-            args.Joins.AddInnerJoin<GXDeviceError, GXDevice>(j => j.Device, j => j.Id);
-            args.Where.And<GXDeviceError>(q => GXSql.Exists<GXDeviceError, GXDevice>(j => j.Device, j => j.Id, devs));
+            var devices = GetDevicesByUser(d => GXSql.One, userId, deviceId);
+            var types = GXSelectArgs.Select<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(t => GXSql.One,
+                t => t.NormalizedName == "BUILTIN:DEVICE-ERROR");
+            var args = GXSelectArgs.Select(columns);
+            args.Distinct = true;
+            args.Where.And<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(l => l.LogType!, t => t.Id, types));
+            args.Where.And<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, GXDevice>(l => l.Creator!, d => d.Id, devices));
             return args;
         }
-
         /// <summary>
         /// Get devices traces that user can access.
         /// </summary>
@@ -849,8 +923,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
         {
             GXSelectArgs devs = GetDevicesByUser(s => s.Id, userId, deviceId);
             GXSelectArgs args = GXSelectArgs.Select(columns);
-            args.Joins.AddInnerJoin<GXDeviceTrace, GXDevice>(j => j.Device, j => j.Id);
-            args.Where.And<GXDeviceTrace>(q => GXSql.Exists<GXDeviceTrace, GXDevice>(j => j.Device, j => j.Id, devs));
+            args.Joins.AddInnerJoin<GXDeviceTrace, GXDevice>(j => j.Device!, j => j.Id);
+            args.Where.And<GXDeviceTrace>(q => GXSql.Exists<GXDeviceTrace, GXDevice>(j => j.Device!, j => j.Id, devs));
             return args;
         }
 
@@ -862,19 +936,19 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="deviceId">Device Id.</param>
         /// <returns>List of devices that user can access.</returns>
         public static GXSelectArgs GetDeviceActionsByUser(
-            Expression<Func<GXDevice, object>> columns,
+            Expression<Func<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, object>> columns,
             string userId,
             Guid? deviceId = null)
         {
-            GXSelectArgs args = GetDevicesByUser(s => s.Id, userId, deviceId);
-            //Get only device action columns.
-            args.Columns.Clear();
-            args.Columns.Add<GXDeviceAction>();
+            var devices = GetDevicesByUser(d => GXSql.One, userId, deviceId);
+            var types = GXSelectArgs.Select<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(t => GXSql.One,
+                t => t.NormalizedName == "BUILTIN:DEVICE-ACTION");
+            var args = GXSelectArgs.Select(columns);
             args.Distinct = true;
-            args.Joins.AddInnerJoin<GXDevice, GXDeviceAction>(j => j.Id, j => j.Device);
+            args.Where.And<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, Gurux.DLMS.AMI.Shared.DTOs.Log.GXLogType>(l => l.LogType!, t => t.Id, types));
+            args.Where.And<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog>(l => GXSql.Exists<Gurux.DLMS.AMI.Shared.DTOs.Log.GXLog, GXDevice>(l => l.Creator!, d => d.Id, devices));
             return args;
         }
-
         /// <summary>
         /// Get objects that user can access.
         /// </summary>
@@ -888,13 +962,13 @@ namespace Gurux.DLMS.AMI.Server.Internal
         {
             GXSelectArgs devs = GetDevicesByUser(s => s.Id, userId);
             GXSelectArgs args = GXSelectArgs.Select(columns);
-            args.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+            args.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device!, j => j.Id);
             if (objectId != null)
             {
                 args.Where.And<GXObject>(q => q.Id == objectId);
             }
             args.Where.And<GXObject>(q => q.Removed == null);
-            args.Where.And<GXObject>(q => GXSql.Exists<GXObject, GXDevice>(j => j.Device, j => j.Id, devs));
+            args.Where.And<GXObject>(q => GXSql.Exists<GXObject, GXDevice>(j => j.Device!, j => j.Id, devs));
             return args;
             /*
             GXSelectArgs args = GetDevicesByUser(s => s.Id, userId);
@@ -922,7 +996,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs args = GetDeviceTemplatesByUser(s => s.Id, userId);
             args.Columns.Clear();
             args.Columns.Add<GXObjectTemplate>();
-            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate!);
             if (objectId != null)
             {
                 args.Where.And<GXObjectTemplate>(q => q.Id == objectId);
@@ -943,11 +1017,12 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string userId,
             Guid? objectId = null)
         {
+            _ = columns;
             GXSelectArgs args = GetDeviceTemplatesByUser(s => s.Id, userId);
             args.Columns.Clear();
             args.Columns.Add<GXAttributeTemplate>();
-            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
-            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate!);
+            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate!);
             if (objectId != null)
             {
                 args.Where.And<GXAttributeTemplate>(q => q.Id == objectId);
@@ -972,14 +1047,14 @@ namespace Gurux.DLMS.AMI.Server.Internal
         {
             GXSelectArgs devs = GetDevicesByUser(s => s.Id, userId);
             GXSelectArgs args = GXSelectArgs.Select(columns);
-            args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
-            args.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device!);
+            args.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object!);
             if (attributeId != null)
             {
                 args.Where.And<GXAttribute>(q => q.Id == attributeId);
             }
             args.Where.And<GXAttribute>(q => q.Removed == null);
-            args.Where.And<GXAttribute>(q => GXSql.Exists<GXObject, GXDevice>(j => j.Device, j => j.Id, devs));
+            args.Where.And<GXAttribute>(q => GXSql.Exists<GXObject, GXDevice>(j => j.Device!, j => j.Id, devs));
             return args;
         }
 
@@ -989,20 +1064,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Trigger group id.</param>
-        /// <returns>List of trigger groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Trigger group Ids to exclude.</param>
+        /// <param name="include">Trigger group Ids to include.</param>
+        /// <returns>List of Trigger groups that user can access.</returns>
         public static GXSelectArgs GetTriggerGroupsByUser(
             Expression<Func<GXTriggerGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupTriggerGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupTriggerGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXTriggerGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXTriggerGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXTriggerGroup>(q => GXSql.Exists<GXTriggerGroup, GXUserGroupTriggerGroup>(j => j.Id, j => j.TriggerGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXTriggerGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXTriggerGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXTriggerGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -1101,6 +1198,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs triggerGroups = GXSelectArgs.Select<GXTriggerGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXTriggerGroupTrigger>(s => GXSql.One);
@@ -1113,7 +1211,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupTriggerGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -1123,26 +1221,27 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
-        /// <param name="triggerIds">Trigger ids.</param>
+        /// <param name="Ids">Trigger ids.</param>
         /// <returns>List of users who can access the trigger.</returns>
         public static GXSelectArgs GetUsersByTriggers(
             Expression<Func<GXUser, object>> columns,
             string? userId,
-            IEnumerable<Guid>? triggerIds)
+            IEnumerable<Guid>? Ids)
         {
+            _ = userId;
             GXSelectArgs triggerGroups = GXSelectArgs.Select<GXTriggerGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXTriggerGroupTrigger>(s => GXSql.One);
-            if (triggerIds != null && triggerIds.Any())
+            if (Ids != null && Ids.Any())
             {
-                map1.Where.And<GXTriggerGroupTrigger>(w => triggerIds.Contains(w.TriggerId));
+                map1.Where.And<GXTriggerGroupTrigger>(w => Ids.Contains(w.TriggerId));
             }
             triggerGroups.Where.And<GXTriggerGroupTrigger>(q => GXSql.Exists<GXTriggerGroup, GXTriggerGroupTrigger>(j => j.Id, j => j.TriggerGroupId, map1));
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupTriggerGroup>(s => GXSql.One, q => GXSql.Exists<GXTriggerGroup, GXUserGroupTriggerGroup>(j => j.Id, j => j.TriggerGroupId, triggerGroups));
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupTriggerGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -1153,20 +1252,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Workflow group id.</param>
-        /// <returns>List of workflow groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Workflow group Ids to exclude.</param>
+        /// <param name="include">Workflow group Ids to include.</param>
+        /// <returns>List of Workflow groups that user can access.</returns>
         public static GXSelectArgs GetWorkflowGroupsByUser(
             Expression<Func<GXWorkflowGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupWorkflowGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupWorkflowGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXWorkflowGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXWorkflowGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXWorkflowGroup>(q => GXSql.Exists<GXWorkflowGroup, GXUserGroupWorkflowGroup>(j => j.Id, j => j.WorkflowGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXWorkflowGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXWorkflowGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXWorkflowGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -1265,6 +1386,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs workflowGroups = GXSelectArgs.Select<GXWorkflowGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXWorkflowGroupWorkflow>(s => GXSql.One);
@@ -1277,7 +1399,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupWorkflowGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -1287,51 +1409,29 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
-        /// <param name="workflowIds">Workflow ids.</param>
+        /// <param name="Ids">Workflow ids.</param>
         /// <returns>List of users who can access the workflow.</returns>
         public static GXSelectArgs GetUsersByWorkflows(
             Expression<Func<GXUser, object>> columns,
             string? userId,
-            IEnumerable<Guid>? workflowIds)
+            IEnumerable<Guid>? Ids)
         {
+            _ = userId;
             GXSelectArgs workflowGroups = GXSelectArgs.Select<GXWorkflowGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXWorkflowGroupWorkflow>(s => GXSql.One);
-            if (workflowIds != null && workflowIds.Any())
+            if (Ids != null && Ids.Any())
             {
-                map1.Where.And<GXWorkflowGroupWorkflow>(w => workflowIds.Contains(w.WorkflowId));
+                map1.Where.And<GXWorkflowGroupWorkflow>(w => Ids.Contains(w.WorkflowId));
             }
             workflowGroups.Where.And<GXWorkflowGroupWorkflow>(q => GXSql.Exists<GXWorkflowGroup, GXWorkflowGroupWorkflow>(j => j.Id, j => j.WorkflowGroupId, map1));
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupWorkflowGroup>(s => GXSql.One, q => GXSql.Exists<GXWorkflowGroup, GXUserGroupWorkflowGroup>(j => j.Id, j => j.WorkflowGroupId, workflowGroups));
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupWorkflowGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
-        }
-
-        /// <summary>
-        /// Get workflow logs that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="id">Workflow Id.</param>
-        /// <returns>List of workflows that user can access.</returns>
-        public static GXSelectArgs GetWorkflowLogsByUser(
-            Expression<Func<GXWorkflow, object>> columns,
-            string userId,
-            Guid? id = null)
-        {
-            GXSelectArgs args = GetWorkflowsByUser(s => s.Id, userId);
-            args.Columns.Clear();
-            args.Columns.Add<GXWorkflowLog>();
-            args.Joins.AddInnerJoin<GXWorkflow, GXWorkflowLog>(j => j.Id, j => j.Workflow);
-            if (id != null)
-            {
-                args.Where.And<GXWorkflowLog>(q => q.Id == id);
-            }
-            return args;
         }
 
         /// <summary>
@@ -1363,20 +1463,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Agent group id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Agent group Ids to exclude.</param>
+        /// <param name="include">Agent group Ids to include.</param>
         /// <returns>List of agent groups that user can access.</returns>
         public static GXSelectArgs GetAgentGroupsByUser(
             Expression<Func<GXAgentGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupAgentGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupAgentGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXAgentGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXAgentGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXAgentGroup>(q => GXSql.Exists<GXAgentGroup, GXUserGroupAgentGroup>(j => j.Id, j => j.AgentGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXAgentGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXAgentGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXAgentGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -1445,20 +1567,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="agentId">Agent Id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Module group Ids to exclude.</param>
+        /// <param name="include">Module group Ids to include.</param>
         /// <returns>List of agents that user can access.</returns>
         public static GXSelectArgs GetAgentsByUser(
             Expression<Func<GXAgent, object>> columns,
             string userId,
-            Guid? agentId = null)
+            Guid? agentId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs groups = GetAgentGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXAgentGroupAgent>(s => GXSql.One, q => GXSql.Exists<GXAgentGroup, GXAgentGroupAgent>(j => j.Id, j => j.AgentGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXAgent>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXAgent>(q => q.Removed >= removed);
+            }
             args.Where.And<GXAgent>(q => GXSql.Exists<GXAgent, GXAgentGroupAgent>(j => j.Id, j => j.AgentId, map2));
             if (agentId != null && agentId != Guid.Empty)
             {
                 args.Where.And<GXAgent>(q => q.Id == agentId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXAgent>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXAgent>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -1475,6 +1619,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? agentId)
         {
+            _ = userId;
             GXSelectArgs agentGroups = GXSelectArgs.Select<GXAgentGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXAgentGroupAgent>(s => GXSql.One, w => w.AgentId == agentId);
@@ -1483,7 +1628,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupAgentGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -1500,6 +1645,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? agentIds)
         {
+            _ = userId;
             GXSelectArgs agentGroups = GXSelectArgs.Select<GXAgentGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXAgentGroupAgent>(s => GXSql.One);
@@ -1512,81 +1658,12 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupAgentGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
 
-        /// <summary>
-        /// Get agent errors that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="agentId">Agent Id.</param>
-        /// <returns>List of agents that user can access.</returns>
-        public static GXSelectArgs GetAgentErrorsByUser(
-            Expression<Func<GXUserGroup, object>> columns,
-            string userId,
-            Guid? agentId = null)
-        {
-            GXSelectArgs args = GetAgentsByUser(s => GXSql.One, userId, agentId);
-            args.Columns.Clear();
-            args.Columns.Add<GXAgentLog>();
-            args.Joins.AddInnerJoin<GXAgent, GXAgentLog>(j => j.Id, j => j.Agent);
-            return args;
-        }
-        /// <summary>
-        /// Get subtotal errors that user can access.
-        /// </summary>
-        /// <param name="userId">User Id.</param>
-        /// <param name="subtotalId">Subtotal Id.</param>
-        /// <returns>List of subtotals that user can access.</returns>
-        public static GXSelectArgs GetSubtotalErrorsByUser(
-            string userId,
-            Guid? subtotalId = null)
-        {
-            GXSelectArgs args = GetSubtotalsByUser(s => s.Id, userId, subtotalId);
-            args.Columns.Clear();
-            args.Columns.Add<GXSubtotalLog>();
-            args.Joins.AddInnerJoin<GXSubtotal, GXSubtotalLog>(j => j.Id, j => j.Subtotal);
-            return args;
-        }
 
-
-        /// <summary>
-        /// Get report logs that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="reportId">Report Id.</param>
-        /// <returns>List of reports that user can access.</returns>
-        public static GXSelectArgs GetReportErrorsByUser(
-            Expression<Func<GXDevice, object>> columns,
-            string userId,
-            Guid? reportId = null)
-        {
-            GXSelectArgs args = GetReportsByUser(s => s.Id, userId, reportId);
-            args.Columns.Clear();
-            args.Columns.Add<GXReportLog>();
-            args.Joins.AddInnerJoin<GXReport, GXReportLog>(j => j.Id, j => j.Report);
-            return args;
-        }
-
-        /// <summary>
-        /// Get notification logs that user can access.
-        /// </summary>
-        /// <param name="userId">User Id.</param>
-        /// <param name="notificationId">Notification Id.</param>
-        /// <returns>List of notifications that user can access.</returns>
-        public static GXSelectArgs GetNotificationErrorsByUser(string userId,
-            Guid? notificationId = null)
-        {
-            GXSelectArgs args = GetNotificationsByUser(s => s.Id, userId, notificationId);
-            args.Columns.Clear();
-            args.Columns.Add<GXNotificationLog>();
-            args.Joins.AddInnerJoin<GXNotification, GXNotificationLog>(j => j.Id, j => j.Notification);
-            return args;
-        }
 
         /// <summary>
         /// Get module groups that user can access.
@@ -1594,20 +1671,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Module group id.</param>
-        /// <returns>List of module groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Module group Ids to exclude.</param>
+        /// <param name="include">Module group Ids to include.</param>
+        /// <returns>List of Module groups that user can access.</returns>
         public static GXSelectArgs GetModuleGroupsByUser(
             Expression<Func<GXModuleGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupModuleGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupModuleGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXModuleGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXModuleGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXModuleGroup>(q => GXSql.Exists<GXModuleGroup, GXUserGroupModuleGroup>(j => j.Id, j => j.ModuleGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXModuleGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXModuleGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXModuleGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -1706,6 +1805,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             string? id)
         {
+            _ = userId;
             GXSelectArgs moduleGroups = GXSelectArgs.Select<GXModuleGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXModuleGroupModule>(s => GXSql.One);
@@ -1718,7 +1818,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupModuleGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -1735,6 +1835,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<string>? moduleIds)
         {
+            _ = userId;
             GXSelectArgs moduleGroups = GXSelectArgs.Select<GXModuleGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXModuleGroupModule>(s => GXSql.One);
@@ -1747,370 +1848,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupModuleGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Get module logs that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="id">Module Id.</param>
-        /// <returns>List of module logs that user can access.</returns>
-        public static GXSelectArgs GetModuleLogsByUser(
-            Expression<Func<GXWorkflow, object>> columns,
-            string userId,
-            string? id = null)
-        {
-            GXSelectArgs args = GetModulesByUser(s => s.Id, userId, id);
-            args.Columns.Clear();
-            args.Columns.Add<GXModuleLog>();
-            args.Joins.AddInnerJoin<GXModule, GXModuleLog>(j => j.Id, j => j.Module);
-            return args;
-        }
-
-        /// <summary>
-        /// Get content groups that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">UserId.</param>
-        /// <param name="groupId">Content group id.</param>
-        /// <returns>List of content groups that user can access.</returns>
-        public static GXSelectArgs GetContentGroupsByUser(
-            Expression<Func<GXContentGroup, object>> columns,
-            string userId,
-            Guid? groupId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupContentGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupContentGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXContentGroup>(q => GXSql.Exists<GXContentGroup, GXUserGroupContentGroup>(j => j.Id, j => j.ContentGroupId, map2));
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                args.Where.And<GXContentGroup>(q => q.Id == groupId);
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupId">Content group id.</param>
-        /// <returns>List of users who can access the content group.</returns>
-        public static GXSelectArgs GetUsersByContentGroup(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? groupId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXContentGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                ag.Where.And<GXContentGroup>(q => q.Id == groupId);
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupContentGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupContentGroup>(q => GXSql.Exists<GXContentGroup, GXUserGroupContentGroup>(j => j.Id, j => j.ContentGroupId, ag));
-            args.Where.And<GXUserGroupContentGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupIds">Content group ids.</param>
-        /// <returns>List of users who can access the content group.</returns>
-        public static GXSelectArgs GetUsersByContentGroups(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? groupIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Distinct = true;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXContentGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupIds != null && groupIds.Any())
-            {
-                ag.Where.And<GXContentGroup>(q => groupIds.Contains(q.Id));
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupContentGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupContentGroup>(q => GXSql.Exists<GXContentGroup, GXUserGroupContentGroup>(j => j.Id, j => j.ContentGroupId, ag));
-            args.Where.And<GXUserGroupContentGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Get contents that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="contentId">Content Id.</param>
-        /// <param name="exclude">Content Ids to exclude.</param>
-        /// <param name="include">Content Ids to include.</param>
-        /// <returns>List of contents that user can access.</returns>
-        public static GXSelectArgs GetContentsByUser(
-            Expression<Func<GXContent, object>> columns,
-            string userId,
-            Guid? contentId = null,
-            IEnumerable<Guid>? exclude = null,
-            IEnumerable<Guid>? include = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs groups = GetContentGroupsByUser(s => GXSql.One, userId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXContentGroupContent>(s => GXSql.One, q => GXSql.Exists<GXContentGroup, GXContentGroupContent>(j => j.Id, j => j.ContentGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXContent>(q => GXSql.Exists<GXContent, GXContentGroupContent>(j => j.Id, j => j.ContentId, map2));
-            if (contentId != null && contentId != Guid.Empty)
-            {
-                args.Where.And<GXContent>(q => q.Id == contentId);
-            }
-            if (exclude?.Any() == true)
-            {
-                args.Where.And<GXContent>(q => !exclude.Contains(q.Id));
-            }
-            if (include?.Any() == true)
-            {
-                args.Where.And<GXContent>(q => include.Contains(q.Id));
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="contentId">Content id.</param>
-        /// <returns>List of users who can access the content.</returns>
-        public static GXSelectArgs GetUsersByContent(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? contentId)
-        {
-            GXSelectArgs contentGroups = GXSelectArgs.Select<GXContentGroup>(s => GXSql.One, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXContentGroupContent>(s => GXSql.One, w => w.ContentId == contentId);
-            contentGroups.Where.And<GXContentGroupContent>(q => GXSql.Exists<GXContentGroup, GXContentGroupContent>(j => j.Id, j => j.ContentGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupContentGroup>(s => GXSql.One, q => GXSql.Exists<GXContentGroup, GXUserGroupContentGroup>(j => j.Id, j => j.ContentGroupId, contentGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupContentGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the contents.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="contentIds">Content ids.</param>
-        /// <returns>List of users who can access the content.</returns>
-        public static GXSelectArgs GetUsersByContents(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? contentIds)
-        {
-            GXSelectArgs contentGroups = GXSelectArgs.Select<GXContentGroup>(s => GXSql.One, w => w.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXContentGroupContent>(s => GXSql.One);
-            if (contentIds?.Any() == true)
-            {
-                map1.Where.And<GXContentGroupContent>(w => contentIds.Contains(w.ContentId));
-            }
-            contentGroups.Where.And<GXContentGroupContent>(q => GXSql.Exists<GXContentGroup, GXContentGroupContent>(j => j.Id, j => j.ContentGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupContentGroup>(s => GXSql.One, q => GXSql.Exists<GXContentGroup, GXUserGroupContentGroup>(j => j.Id, j => j.ContentGroupId, contentGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupContentGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Get content type groups that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">UserId.</param>
-        /// <param name="groupId">ContentType group id.</param>
-        /// <returns>List of content type groups that user can access.</returns>
-        public static GXSelectArgs GetContentTypeGroupsByUser(
-            Expression<Func<GXContentTypeGroup, object>> columns,
-            string userId,
-            Guid? groupId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupContentTypeGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXContentTypeGroup>(q => GXSql.Exists<GXContentTypeGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.ContentTypeGroupId, map2));
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                args.Where.And<GXContentTypeGroup>(q => q.Id == groupId);
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content type group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupId">ContentType group id.</param>
-        /// <returns>List of users who can access the content type group.</returns>
-        public static GXSelectArgs GetUsersByContentTypeGroup(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? groupId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXContentTypeGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                ag.Where.And<GXContentTypeGroup>(q => q.Id == groupId);
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupContentTypeGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupContentTypeGroup>(q => GXSql.Exists<GXContentTypeGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.ContentTypeGroupId, ag));
-            args.Where.And<GXUserGroupContentTypeGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content type group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupIds">ContentType group ids.</param>
-        /// <returns>List of users who can access the content type group.</returns>
-        public static GXSelectArgs GetUsersByContentTypeGroups(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? groupIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Distinct = true;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXContentTypeGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupIds != null && groupIds.Any())
-            {
-                ag.Where.And<GXContentTypeGroup>(q => groupIds.Contains(q.Id));
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupContentTypeGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupContentTypeGroup>(q => GXSql.Exists<GXContentTypeGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.ContentTypeGroupId, ag));
-            args.Where.And<GXUserGroupContentTypeGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Get content types that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="id">ContentType Id.</param>
-        /// <param name="exclude">Content Ids to exclude.</param>
-        /// <param name="include">Content Ids to include.</param>
-        /// <returns>List of content types that user can access.</returns>
-        public static GXSelectArgs GetContentTypesByUser(
-            Expression<Func<GXContentType, object>> columns,
-            string userId,
-            Guid? id = null,
-            IEnumerable<Guid>? exclude = null,
-            IEnumerable<Guid>? include = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs groups = GetContentTypeGroupsByUser(s => GXSql.One, userId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXContentTypeGroupContentType>(s => GXSql.One, q => GXSql.Exists<GXContentTypeGroup, GXContentTypeGroupContentType>(j => j.Id, j => j.ContentTypeGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXContentType>(q => GXSql.Exists<GXContentType, GXContentTypeGroupContentType>(j => j.Id, j => j.ContentTypeId, map2));
-            if (id != null && id != Guid.Empty)
-            {
-                args.Where.And<GXContentType>(q => q.Id == id);
-            }
-            if (exclude?.Any() == true)
-            {
-                args.Where.And<GXContentType>(q => !exclude.Contains(q.Id));
-            }
-            if (include?.Any() == true)
-            {
-                args.Where.And<GXContentType>(q => include.Contains(q.Id));
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content type.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="contentTypeId">ContentType id.</param>
-        /// <returns>List of users who can access the content type.</returns>
-        public static GXSelectArgs GetUsersByContentType(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? contentTypeId)
-        {
-            GXSelectArgs groups = GXSelectArgs.Select<GXContentTypeGroup>(s => GXSql.One, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXContentTypeGroupContentType>(s => GXSql.One, w => w.ContentTypeId == contentTypeId);
-            groups.Where.And<GXContentTypeGroupContentType>(q => GXSql.Exists<GXContentTypeGroup, GXContentTypeGroupContentType>(j => j.Id, j => j.ContentTypeGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupContentTypeGroup>(s => GXSql.One, q => GXSql.Exists<GXContentTypeGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.ContentTypeGroupId, groups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the content types.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="ids">ContentType ids.</param>
-        /// <returns>List of users who can access the content type.</returns>
-        public static GXSelectArgs GetUsersByContentTypes(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? ids)
-        {
-            GXSelectArgs groups = GXSelectArgs.Select<GXContentTypeGroup>(s => GXSql.One, w => w.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXContentTypeGroupContentType>(s => GXSql.One);
-            if (ids != null && ids.Any())
-            {
-                map1.Where.And<GXContentTypeGroupContentType>(w => ids.Contains(w.ContentTypeId));
-            }
-            groups.Where.And<GXContentTypeGroupContentType>(q => GXSql.Exists<GXContentTypeGroup, GXContentTypeGroupContentType>(j => j.Id, j => j.ContentTypeGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupContentTypeGroup>(s => GXSql.One, q => GXSql.Exists<GXContentTypeGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.ContentTypeGroupId, groups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupContentTypeGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2121,20 +1859,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Menu group id.</param>
-        /// <returns>List of menu groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Menu group Ids to exclude.</param>
+        /// <param name="include">Menu group Ids to include.</param>
+        /// <returns>List of Menu groups that user can access.</returns>
         public static GXSelectArgs GetMenuGroupsByUser(
             Expression<Func<GXMenuGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupMenuGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupMenuGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXMenuGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXMenuGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXMenuGroup>(q => GXSql.Exists<GXMenuGroup, GXUserGroupMenuGroup>(j => j.Id, j => j.MenuGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXMenuGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXMenuGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXMenuGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -2203,6 +1963,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="menuId">Menu Id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">Content Ids to exclude.</param>
         /// <param name="include">Content Ids to include.</param>
         /// <returns>List of menus that user can access.</returns>
@@ -2210,13 +1971,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXMenu, object>> columns,
             string userId,
             Guid? menuId = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs groups = GetMenuGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXMenuGroupMenu>(s => GXSql.One, q => GXSql.Exists<GXMenuGroup, GXMenuGroupMenu>(j => j.Id, j => j.MenuGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXMenu>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXMenu>(q => q.Removed >= removed);
+            }
             args.Where.And<GXMenu>(q => GXSql.Exists<GXMenu, GXMenuGroupMenu>(j => j.Id, j => j.MenuId, map2));
             if (menuId != null && menuId != Guid.Empty)
             {
@@ -2245,6 +2015,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs menuGroups = GXSelectArgs.Select<GXMenuGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXMenuGroupMenu>(s => GXSql.One);
@@ -2257,7 +2028,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupMenuGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2274,6 +2045,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs menuGroups = GXSelectArgs.Select<GXMenuGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXMenuGroupMenu>(s => GXSql.One);
@@ -2286,7 +2058,217 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupMenuGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
+            users.Where.And<GXUser>(q => q.Removed == null);
+            return users;
+        }
+
+        /// <summary>
+        /// Get view groups that user can access.
+        /// </summary>
+        /// <param name="columns">Selected columns.</param>
+        /// <param name="userId">UserId.</param>
+        /// <param name="groupId">View group id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">View group Ids to exclude.</param>
+        /// <param name="include">View group Ids to include.</param>
+        /// <returns>List of View groups that user can access.</returns>
+        public static GXSelectArgs GetViewGroupsByUser(
+            Expression<Func<GXViewGroup, object>> columns,
+            string userId,
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
+        {
+            //Distinct is not needed because values are indexed;
+            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
+            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupViewGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupViewGroup>(j => j.Id, j => j.UserGroupId, usergroups));
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXViewGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXViewGroup>(q => q.Removed >= removed);
+            }
+            args.Where.And<GXViewGroup>(q => GXSql.Exists<GXViewGroup, GXUserGroupViewGroup>(j => j.Id, j => j.ViewGroupId, map2));
+            if (groupId != null && groupId != Guid.Empty)
+            {
+                args.Where.And<GXViewGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXViewGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXViewGroup>(q => include.Contains(q.Id));
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the view group.
+        /// </summary>
+        /// <param name="columns">Selected columns.</param>
+        /// <param name="userId">User Id.</param>
+        /// <param name="groupId">View group id.</param>
+        /// <returns>List of users who can access the view group.</returns>
+        public static GXSelectArgs GetUsersByViewGroup(
+            Expression<Func<GXUser, object>> columns,
+            string? userId,
+            Guid? groupId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            //Distinct is not needed because values are indexed;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                args.Where.And<GXUser>(q => q.Id == userId);
+            }
+            GXSelectArgs ag = GXSelectArgs.Select<GXViewGroup>(s => GXSql.One, w => w.Removed == null);
+            if (groupId != null && groupId != Guid.Empty)
+            {
+                ag.Where.And<GXViewGroup>(q => q.Id == groupId);
+            }
+            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupViewGroup>(s => GXSql.One);
+            sub.Where.And<GXUserGroupViewGroup>(q => GXSql.Exists<GXViewGroup, GXUserGroupViewGroup>(j => j.Id, j => j.ViewGroupId, ag));
+            args.Where.And<GXUserGroupViewGroup>(q => GXSql.Exists(sub));
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the view group.
+        /// </summary>
+        /// <param name="columns">Selected columns.</param>
+        /// <param name="userId">User Id.</param>
+        /// <param name="groupIds">View group ids.</param>
+        /// <returns>List of users who can access the view group.</returns>
+        public static GXSelectArgs GetUsersByViewGroups(
+            Expression<Func<GXUser, object>> columns,
+            string? userId,
+            IEnumerable<Guid>? groupIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            args.Distinct = true;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                args.Where.And<GXUser>(q => q.Id == userId);
+            }
+            GXSelectArgs ag = GXSelectArgs.Select<GXViewGroup>(s => GXSql.One, w => w.Removed == null);
+            if (groupIds != null && groupIds.Any())
+            {
+                ag.Where.And<GXViewGroup>(q => groupIds.Contains(q.Id));
+            }
+            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupViewGroup>(s => GXSql.One);
+            sub.Where.And<GXUserGroupViewGroup>(q => GXSql.Exists<GXViewGroup, GXUserGroupViewGroup>(j => j.Id, j => j.ViewGroupId, ag));
+            args.Where.And<GXUserGroupViewGroup>(q => GXSql.Exists(sub));
+            return args;
+        }
+
+        /// <summary>
+        /// Get views that user can access.
+        /// </summary>
+        /// <param name="columns">Selected columns.</param>
+        /// <param name="userId">User Id.</param>
+        /// <param name="viewId">View Id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Content Ids to exclude.</param>
+        /// <param name="include">Content Ids to include.</param>
+        /// <returns>List of views that user can access.</returns>
+        public static GXSelectArgs GetViewsByUser(
+            Expression<Func<GXView, object>> columns,
+            string userId,
+            Guid? viewId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
+        {
+            //Distinct is not needed because values are indexed;
+            GXSelectArgs groups = GetViewGroupsByUser(s => GXSql.One, userId);
+            GXSelectArgs map2 = GXSelectArgs.Select<GXViewGroupView>(s => GXSql.One, q => GXSql.Exists<GXViewGroup, GXViewGroupView>(j => j.Id, j => j.ViewGroupId, groups));
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXView>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXView>(q => q.Removed >= removed);
+            }
+            args.Where.And<GXView>(q => GXSql.Exists<GXView, GXViewGroupView>(j => j.Id, j => j.ViewId, map2));
+            if (viewId != null && viewId != Guid.Empty)
+            {
+                args.Where.And<GXView>(q => q.Id == viewId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXView>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXView>(q => include.Contains(q.Id));
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the view.
+        /// </summary>
+        /// <param name="columns">Selected columns.</param>
+        /// <param name="userId">User Id.</param>
+        /// <param name="id">View id.</param>
+        /// <returns>List of users who can access the view.</returns>
+        public static GXSelectArgs GetUsersByView(
+            Expression<Func<GXUser, object>> columns,
+            string? userId,
+            Guid? id)
+        {
+            _ = userId;
+            GXSelectArgs viewGroups = GXSelectArgs.Select<GXViewGroup>(s => GXSql.One, q => q.Removed == null);
+            //Distinct is not needed because values are indexed;
+            GXSelectArgs map1 = GXSelectArgs.Select<GXViewGroupView>(s => GXSql.One);
+            if (id != null && id != Guid.Empty)
+            {
+                map1.Where.And<GXViewGroupView>(w => w.ViewId == id);
+            }
+            viewGroups.Where.And<GXViewGroupView>(q => GXSql.Exists<GXViewGroup, GXViewGroupView>(j => j.Id, j => j.ViewGroupId, map1));
+            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupViewGroup>(s => GXSql.One, q => GXSql.Exists<GXViewGroup, GXUserGroupViewGroup>(j => j.Id, j => j.ViewGroupId, viewGroups));
+            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupViewGroup>(j => j.Id, j => j.UserGroupId, map2));
+            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
+            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
+            users.Where.And<GXUser>(q => q.Removed == null);
+            return users;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the views.
+        /// </summary>
+        /// <param name="columns">Selected columns.</param>
+        /// <param name="userId">User Id.</param>
+        /// <param name="ids">View ids.</param>
+        /// <returns>List of users who can access the view.</returns>
+        public static GXSelectArgs GetUsersByViews(
+            Expression<Func<GXUser, object>> columns,
+            string? userId,
+            IEnumerable<Guid>? ids)
+        {
+            _ = userId;
+            GXSelectArgs viewGroups = GXSelectArgs.Select<GXViewGroup>(s => GXSql.One, w => w.Removed == null);
+            //Distinct is not needed because values are indexed;
+            GXSelectArgs map1 = GXSelectArgs.Select<GXViewGroupView>(s => GXSql.One);
+            if (ids != null && ids.Any())
+            {
+                map1.Where.And<GXViewGroupView>(w => ids.Contains(w.ViewId));
+            }
+            viewGroups.Where.And<GXViewGroupView>(q => GXSql.Exists<GXViewGroup, GXViewGroupView>(j => j.Id, j => j.ViewGroupId, map1));
+            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupViewGroup>(s => GXSql.One, q => GXSql.Exists<GXViewGroup, GXUserGroupViewGroup>(j => j.Id, j => j.ViewGroupId, viewGroups));
+            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupViewGroup>(j => j.Id, j => j.UserGroupId, map2));
+            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
+            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2297,20 +2279,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Block group id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Block group Ids to exclude.</param>
+        /// <param name="include">Block group Ids to include.</param>
         /// <returns>List of block groups that user can access.</returns>
         public static GXSelectArgs GetBlockGroupsByUser(
             Expression<Func<GXBlockGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupBlockGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupBlockGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXBlockGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXBlockGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXBlockGroup>(q => GXSql.Exists<GXBlockGroup, GXUserGroupBlockGroup>(j => j.Id, j => j.BlockGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXBlockGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXBlockGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXBlockGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -2379,6 +2383,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="blockId">Block Id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">Block Ids to exclude.</param>
         /// <param name="include">Block Ids to include.</param>
         /// <returns>List of blocks that user can access.</returns>
@@ -2386,13 +2391,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXBlock, object>> columns,
             string userId,
             Guid? blockId = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs groups = GetBlockGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXBlockGroupBlock>(s => GXSql.One, q => GXSql.Exists<GXBlockGroup, GXBlockGroupBlock>(j => j.Id, j => j.BlockGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXBlock>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXBlock>(q => q.Removed >= removed);
+            }
             args.Where.And<GXBlock>(q => GXSql.Exists<GXBlock, GXBlockGroupBlock>(j => j.Id, j => j.BlockId, map2));
             if (blockId != null && blockId != Guid.Empty)
             {
@@ -2421,6 +2435,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? blockId)
         {
+            _ = userId;
             GXSelectArgs blockGroups = GXSelectArgs.Select<GXBlockGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXBlockGroupBlock>(s => GXSql.One, w => w.BlockId == blockId);
@@ -2429,7 +2444,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupBlockGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2446,6 +2461,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs blockGroups = GXSelectArgs.Select<GXBlockGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXBlockGroupBlock>(s => GXSql.One);
@@ -2458,7 +2474,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupBlockGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2469,20 +2485,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Manufacturer group id.</param>
-        /// <returns>List of manufacturer groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Manufacturer group Ids to exclude.</param>
+        /// <param name="include">Manufacturer group Ids to include.</param>
+        /// <returns>List of Manufacturer groups that user can access.</returns>
         public static GXSelectArgs GetManufacturerGroupsByUser(
             Expression<Func<GXManufacturerGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupManufacturerGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupManufacturerGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXManufacturerGroup>(q => GXSql.Exists<GXManufacturerGroup, GXUserGroupManufacturerGroup>(j => j.Id, j => j.ManufacturerGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXManufacturerGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXManufacturerGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXManufacturerGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -2581,6 +2619,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs manufacturerGroups = GXSelectArgs.Select<GXManufacturerGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXManufacturerGroupManufacturer>(s => GXSql.One);
@@ -2593,7 +2632,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupManufacturerGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2610,6 +2649,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs manufacturerGroups = GXSelectArgs.Select<GXManufacturerGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXManufacturerGroupManufacturer>(s => GXSql.One);
@@ -2622,7 +2662,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupManufacturerGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2633,20 +2673,42 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">KeyManagement group id.</param>
-        /// <returns>List of key management groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">KeyManagement group Ids to exclude.</param>
+        /// <param name="include">KeyManagement group Ids to include.</param>
+        /// <returns>List of KeyManagement groups that user can access.</returns>
         public static GXSelectArgs GetKeyManagementGroupsByUser(
             Expression<Func<GXKeyManagementGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupKeyManagementGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupKeyManagementGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXKeyManagementGroup>(q => GXSql.Exists<GXKeyManagementGroup, GXUserGroupKeyManagementGroup>(j => j.Id, j => j.KeyManagementGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXKeyManagementGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -2763,6 +2825,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs groups = GXSelectArgs.Select<GXKeyManagementGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXKeyManagementGroupKeyManagement>(s => GXSql.One);
@@ -2775,9 +2838,118 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupKeyManagementGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
+        }
+
+        /// <summary>
+        /// Returns active users that satisfy the named authorization policy.
+        /// </summary>
+        /// <param name="action">Notification action. Access is determined by the policy, independently of the action.</param>
+        /// <param name="permissions">Authorization policy name.</param>
+        /// <returns>A query selecting the identifiers of users who satisfy the policy.</returns>
+        public static GXSelectArgs GetUsersByPermission(
+            NotificationAction action, string permissions)
+        {
+            _ = action;
+            ArgumentException.ThrowIfNullOrWhiteSpace(permissions);
+            string normalizedName = permissions.ToUpperInvariant();
+            string permissionType = PolicyRequirementType.Permission.ToString();
+            string roleType = System.Security.Claims.ClaimTypes.Role;
+
+            // Reserved claims are rebuilt from current membership tables by the principal factory.
+            // Persisted copies must not keep revoked grants alive in notification queries.
+            GXSelectArgs userClaims = GXSelectArgs.Select<GXUserClaim>(s => GXSql.One);
+            // A join keeps outer column references qualified in the ORM SQL translator.
+            userClaims.Joins.AddLeftJoin<GXUserClaim, GXUserRole>(c => c.UserId!, m => m.UserId!);
+            userClaims.Where.And(CorrelatedPredicate<GXUserClaim, GXUser>((c, u) => c.UserId == u.Id));
+            userClaims.Where.And(CorrelatedPredicate<GXUserClaim, GXPolicyRequirement>((c, r) =>
+                (r.Type == PolicyRequirementType.Claim && c.ClaimType != permissionType && c.ClaimType != roleType
+                    && c.ClaimType == r.ClaimType
+                    && (string.IsNullOrWhiteSpace(r.Value) || c.ClaimValue == r.Value))));
+
+            GXSelectArgs roleClaims = GXSelectArgs.Select<GXRoleClaim>(s => GXSql.One);
+            roleClaims.Joins.AddInnerJoin<GXRoleClaim, GXUserRole>(c => c.RoleId, u => u.RoleId!);
+            roleClaims.Joins.AddInnerJoin<GXUserRole, GXRole>(u => u.RoleId!, r => r.Id);
+            roleClaims.Where.And<GXRole>(r => r.Removed == null);
+            roleClaims.Where.And(CorrelatedPredicate<GXUserRole, GXUser>((m, u) => m.UserId == u.Id));
+            roleClaims.Where.And(CorrelatedPredicate<GXRoleClaim, GXPolicyRequirement>((c, r) =>
+                (r.Type == PolicyRequirementType.Claim && c.ClaimType != permissionType && c.ClaimType != roleType
+                    && c.ClaimType == r.ClaimType
+                    && (string.IsNullOrWhiteSpace(r.Value) || c.ClaimValue == r.Value))));
+
+            GXSelectArgs roles = GXSelectArgs.Select<GXRole>(s => GXSql.One, r => r.Removed == null);
+            roles.Joins.AddInnerJoin<GXRole, GXUserRole>(r => r.Id, u => u.RoleId!);
+            roles.Where.And(CorrelatedPredicate<GXUserRole, GXUser>((m, u) => m.UserId == u.Id));
+            roles.Where.And(CorrelatedPredicate<GXRole, GXPolicyRequirement>((role, r) =>
+                (r.Type == PolicyRequirementType.Role && role.Name == r.Value)
+                || (r.Type == PolicyRequirementType.Claim && r.ClaimType == roleType
+                    && (string.IsNullOrWhiteSpace(r.Value) || role.Name == r.Value))));
+
+            GXSelectArgs directPermissions = GXSelectArgs.Select<GXPermission>(p => GXSql.One);
+            directPermissions.Joins.AddInnerJoin<GXPermission, GXUserPermission>(p => p.Id, m => m.PermissionId!);
+            directPermissions.Where.And(CorrelatedPredicate<GXUserPermission, GXUser>((m, u) => m.UserId == u.Id));
+            directPermissions.Where.And(CorrelatedPredicate<GXPermission, GXPolicyRequirement>((p, r) =>
+                (r.Type == PolicyRequirementType.Permission && p.Name == r.Value)
+                || (r.Type == PolicyRequirementType.Claim && r.ClaimType == permissionType
+                    && (string.IsNullOrWhiteSpace(r.Value) || p.Name == r.Value))));
+
+            GXSelectArgs inheritedPermissions = GXSelectArgs.Select<GXPermission>(p => GXSql.One);
+            inheritedPermissions.Joins.AddInnerJoin<GXPermission, GXRolePermission>(p => p.Id, m => m.PermissionId!);
+            inheritedPermissions.Joins.AddInnerJoin<GXRolePermission, GXUserRole>(m => m.RoleId!, u => u.RoleId!);
+            inheritedPermissions.Joins.AddInnerJoin<GXUserRole, GXRole>(m => m.RoleId!, role => role.Id);
+            inheritedPermissions.Where.And<GXRole>(role => role.Removed == null);
+            inheritedPermissions.Where.And(CorrelatedPredicate<GXUserRole, GXUser>((m, u) => m.UserId == u.Id));
+            inheritedPermissions.Where.And(CorrelatedPredicate<GXPermission, GXPolicyRequirement>((p, r) =>
+                (r.Type == PolicyRequirementType.Permission && p.Name == r.Value)
+                || (r.Type == PolicyRequirementType.Claim && r.ClaimType == permissionType
+                    && (string.IsNullOrWhiteSpace(r.Value) || p.Name == r.Value))));
+
+            Expression<Func<GXPolicyRequirement, bool>> satisfied = r =>
+                r.Type == PolicyRequirementType.AnyUser ||
+                (((r.Type == PolicyRequirementType.Permission && !string.IsNullOrWhiteSpace(r.Value))
+                    || (r.Type == PolicyRequirementType.Role && !string.IsNullOrWhiteSpace(r.Value))
+                    || (r.Type == PolicyRequirementType.Claim && !string.IsNullOrWhiteSpace(r.ClaimType)))
+                    && (GXSql.Exists(userClaims) || GXSql.Exists(roleClaims) || GXSql.Exists(roles) || GXSql.Exists(directPermissions) || GXSql.Exists(inheritedPermissions)));
+
+            GXSelectArgs matching = GXSelectArgs.Select<GXPolicyRequirement>(s => GXSql.DistinctCount(s.Id));
+            // Keep correlation columns qualified; count distinct requirements despite join duplicates.
+            matching.Joins.AddLeftJoin<GXPolicyRequirement, GXUserClaim>(r => r.Value!, c => c.ClaimValue!);
+            matching.Where.And(CorrelatedPredicate<GXPolicyRequirement, GXPolicy>((r, p) => r.Policy == p));
+            matching.Where.And(satisfied);
+            GXSelectArgs requirements = GXSelectArgs.Select<GXPolicyRequirement>(s => GXSql.DistinctCount(s.Id));
+            requirements.Joins.AddLeftJoin<GXPolicyRequirement, GXUserClaim>(r => r.Value!, c => c.ClaimValue!);
+            requirements.Where.And(CorrelatedPredicate<GXPolicyRequirement, GXPolicy>((r, p) => r.Policy == p));
+            requirements.Where.And<GXPolicyRequirement>(r => r.Type != PolicyRequirementType.AuthenticatedUser);
+            GXSelectArgs authentication = GXSelectArgs.Select<GXPolicyRequirement>(s => GXSql.DistinctCount(s.Id));
+            authentication.Joins.AddLeftJoin<GXPolicyRequirement, GXUserClaim>(r => r.Value!, c => c.ClaimValue!);
+            authentication.Where.And(CorrelatedPredicate<GXPolicyRequirement, GXPolicy>((r, p) => r.Policy == p));
+            authentication.Where.And<GXPolicyRequirement>(r => r.Type == PolicyRequirementType.AuthenticatedUser);
+
+            GXSelectArgs policies = GXSelectArgs.Select<GXPolicy>(s => GXSql.One,
+                p => p.NormalizedName == normalizedName && p.Removed == null);
+            policies.Where.And<GXPolicy>(p => p.RequirementOperator == PolicyRequirementOperator.Or);
+            policies.Where.And<GXPolicy>(p => GXSql.Scalar<int>(matching) > 0
+                || (GXSql.Scalar<int>(requirements) == 0 && GXSql.Scalar<int>(authentication) > 0));
+            GXSelectArgs andPolicies = GXSelectArgs.Select<GXPolicy>(s => GXSql.One,
+                p => p.NormalizedName == normalizedName && p.Removed == null);
+            andPolicies.Where.And<GXPolicy>(p => p.RequirementOperator == PolicyRequirementOperator.And);
+            andPolicies.Where.And<GXPolicy>(p => GXSql.Scalar<int>(requirements) > 0 || GXSql.Scalar<int>(authentication) > 0);
+            andPolicies.Where.And<GXPolicy>(p => GXSql.Scalar<int>(matching) == GXSql.Scalar<int>(requirements));
+
+            GXSelectArgs users = GXSelectArgs.Select<GXUser>(u => u.Id!, u => u.Removed == null);
+            users.Where.And<GXUser>(u => GXSql.Exists(policies) || GXSql.Exists(andPolicies));
+            return users;
+        }
+
+        /// <summary>
+        /// Keeps the outer table parameter in a predicate for a correlated subquery.
+        /// </summary>
+        private static Expression<Func<T, bool>> CorrelatedPredicate<T, TOuter>(
+            Expression<Func<T, TOuter, bool>> predicate)
+        {
+            return Expression.Lambda<Func<T, bool>>(predicate.Body, predicate.Parameters[0]);
         }
 
         /// <summary>
@@ -2786,6 +2958,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Schedule group id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">Schedule group Ids to exclude.</param>
         /// <param name="include">Schedule group Ids to include.</param>
         /// <returns>List of schedule groups that user can access.</returns>
@@ -2793,13 +2966,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXScheduleGroup, object>> columns,
             string userId,
             Guid? groupId = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupScheduleGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXScheduleGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXScheduleGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXScheduleGroup>(q => GXSql.Exists<GXScheduleGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.ScheduleGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
@@ -2880,6 +3062,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="scheduleId">Schedule Id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">Schedule Ids to exclude.</param>
         /// <param name="include">Schedule Ids to include.</param>
         /// <returns>List of schedules that user can access.</returns>
@@ -2887,13 +3070,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXSchedule, object>> columns,
             string userId,
             Guid? scheduleId = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs groups = GetScheduleGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXScheduleGroupSchedule>(s => GXSql.One, q => GXSql.Exists<GXScheduleGroup, GXScheduleGroupSchedule>(j => j.Id, j => j.ScheduleGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXSchedule>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXSchedule>(q => q.Removed >= removed);
+            }
             args.Where.And<GXSchedule>(q => GXSql.Exists<GXSchedule, GXScheduleGroupSchedule>(j => j.Id, j => j.ScheduleId, map2));
             if (scheduleId != null && scheduleId != Guid.Empty)
             {
@@ -2907,7 +3099,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 args.Where.And<GXSchedule>(q => !exclude.Contains(q.Id));
             }
-            args.Columns.Exclude<GXUser>(e => e.Schedules);
+            args.Columns.Exclude<GXUser>(e => e.Schedules!);
             return args;
         }
 
@@ -2923,6 +3115,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs scheduleGroups = GXSelectArgs.Select<GXScheduleGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXScheduleGroupSchedule>(s => GXSql.One);
@@ -2935,7 +3128,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -2952,6 +3145,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs scheduleGroups = GXSelectArgs.Select<GXScheduleGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXScheduleGroupSchedule>(s => GXSql.One);
@@ -2964,32 +3158,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
-        }
-
-        /// <summary>
-        /// Get schedules logs that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="scheduleId">Device Id.</param>
-        /// <returns>List of schedules that user can access.</returns>
-        public static GXSelectArgs GetScheduleLogsByUser(
-            Expression<Func<GXDevice, object>> columns,
-            string userId,
-            Guid? scheduleId = null)
-        {
-            GXSelectArgs args = GetSchedulesByUser(s => s.Id, userId);
-            args.Columns.Clear();
-            args.Columns.Add<GXScheduleLog>();
-            args.Joins.AddInnerJoin<GXSchedule, GXScheduleLog>(j => j.Id, j => j.Schedule);
-            if (scheduleId != null && scheduleId != Guid.Empty)
-            {
-                args.Where.And<GXSchedule>(q => q.Id == scheduleId);
-            }
-            return args;
         }
 
         /// <summary>
@@ -2998,20 +3169,43 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Script group id.</param>
-        /// <returns>List of script groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Script group Ids to exclude.</param>
+        /// <param name="include">Script group Ids to include.</param>
+        /// <returns>List of Script groups that user can access.</returns>
         public static GXSelectArgs GetScriptGroupsByUser(
             Expression<Func<GXScriptGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupScriptGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupScriptGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXScriptGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXScriptGroup>(q => q.Removed >= removed);
+            }
+
             args.Where.And<GXScriptGroup>(q => GXSql.Exists<GXScriptGroup, GXUserGroupScriptGroup>(j => j.Id, j => j.ScriptGroupId, map2));
             if (groupId != null && groupId != Guid.Empty)
             {
                 args.Where.And<GXScriptGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXScriptGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXScriptGroup>(q => include.Contains(q.Id));
             }
             return args;
         }
@@ -3080,6 +3274,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="scriptId">Script Id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">Script Ids to exclude.</param>
         /// <param name="include">Script Ids to include.</param>
         /// <returns>List of scripts that user can access.</returns>
@@ -3087,13 +3282,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXScript, object>> columns,
             string userId,
             Guid? scriptId = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
             GXSelectArgs groups = GetScriptGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXScriptGroupScript>(s => GXSql.One, q => GXSql.Exists<GXScriptGroup, GXScriptGroupScript>(j => j.Id, j => j.ScriptGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXScript>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXScript>(q => q.Removed >= removed);
+            }
             args.Where.And<GXScript>(q => GXSql.Exists<GXScript, GXScriptGroupScript>(j => j.Id, j => j.ScriptId, map2));
             if (scriptId != null && scriptId != Guid.Empty)
             {
@@ -3122,6 +3326,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid scriptId)
         {
+            _ = userId;
             GXSelectArgs scriptGroups = GXSelectArgs.Select<GXScriptGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXScriptGroupScript>(s => GXSql.One, w => w.ScriptId == scriptId);
@@ -3130,7 +3335,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupScriptGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -3147,6 +3352,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs scriptGroups = GXSelectArgs.Select<GXScriptGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXScriptGroupScript>(s => GXSql.One);
@@ -3159,47 +3365,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupScriptGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
-        }
-
-        /// <summary>
-        /// Get scripts logs by user.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="scriptId">Device Id.</param>
-        /// <returns>List of scripts user that user can access.</returns>
-        public static GXSelectArgs GetScriptLogsByUser(
-            Expression<Func<GXDevice, object>> columns,
-            string userId,
-            Guid? scriptId = null)
-        {
-            GXSelectArgs args = GetScriptsByUser(s => s.Id, userId, scriptId);
-            args.Columns.Clear();
-            args.Columns.Add<GXScriptLog>();
-            args.Joins.AddInnerJoin<GXScript, GXScriptLog>(j => j.Id, j => j.Script);
-            return args;
-        }
-
-        /// <summary>
-        /// Get key managements errors by user.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="keyId">Key management Id.</param>
-        /// <returns>List of key managements user that user can access.</returns>
-        public static GXSelectArgs GetKeyManagementLogsByUser(
-            Expression<Func<GXDevice, object>> columns,
-            string userId,
-            Guid? keyId = null)
-        {
-            GXSelectArgs args = GetKeyManagementsByUser(s => s.Id, userId, keyId);
-            args.Columns.Clear();
-            args.Columns.Add<GXKeyManagementLog>();
-            args.Joins.AddInnerJoin<GXKeyManagement, GXKeyManagementLog>(j => j.Id, j => j.KeyManagement);
-            return args;
         }
 
         /// <summary>
@@ -3208,17 +3376,43 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">ComponentView group id.</param>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">List of component view group ids to exclude.</param>
+        /// <param name="include">List of component view group ids to include.</param>
         /// <returns>List of component view groups that user can access.</returns>
         public static GXSelectArgs GetComponentViewGroupsByUser(
             Expression<Func<GXComponentViewGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, groupId);
+            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupComponentViewGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupComponentViewGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXComponentViewGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXComponentViewGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXComponentViewGroup>(q => GXSql.Exists<GXComponentViewGroup, GXUserGroupComponentViewGroup>(j => j.Id, j => j.ComponentViewGroupId, map2));
+            if (groupId != null && groupId != Guid.Empty)
+            {
+                args.Where.And<GXComponentViewGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXComponentViewGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXComponentViewGroup>(q => include.Contains(q.Id));
+            }
             return args;
         }
 
@@ -3312,6 +3506,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs groups = GXSelectArgs.Select<GXComponentViewGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXComponentViewGroupComponentView>(s => GXSql.One, w => w.ComponentViewId == id);
@@ -3320,7 +3515,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupComponentViewGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -3337,6 +3532,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs groups = GXSelectArgs.Select<GXComponentViewGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXComponentViewGroupComponentView>(s => GXSql.One);
@@ -3349,7 +3545,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupComponentViewGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -3360,6 +3556,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">DeviceTemplate group id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">Device template group Ids to exclude.</param>
         /// <param name="include">Device template group Ids to include.</param>
         /// <returns>List of device template groups that user can access.</returns>
@@ -3367,14 +3564,27 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXDeviceTemplateGroup, object>> columns,
             string userId,
             Guid? groupId = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, groupId);
+            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupDeviceTemplateGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceTemplateGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXDeviceTemplateGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXDeviceTemplateGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXDeviceTemplateGroup>(q => GXSql.Exists<GXDeviceTemplateGroup, GXUserGroupDeviceTemplateGroup>(j => j.Id, j => j.DeviceTemplateGroupId, map2));
+            if (groupId != null && groupId != Guid.Empty)
+            {
+                args.Where.And<GXDeviceTemplateGroup>(q => q.Id == groupId);
+            }
             if (exclude?.Any() == true)
             {
                 args.Where.And<GXDeviceTemplateGroup>(q => !exclude.Contains(q.Id));
@@ -3450,6 +3660,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="id">Device template Id.</param>
+        /// <param name="removed">Remove time.</param>
         /// <param name="exclude">User group Ids to exclude.</param>
         /// <param name="include">User group Ids to include.</param>
         /// <returns>List of device templates that user can access.</returns>
@@ -3457,14 +3668,27 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Expression<Func<GXDeviceTemplate, object>> columns,
             string userId,
             Guid? id = null,
+            DateTimeOffset? removed = null,
             IEnumerable<Guid>? exclude = null,
             IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
-            GXSelectArgs groups = GetDeviceTemplateGroupsByUser(s => GXSql.One, userId, id);
+            GXSelectArgs groups = GetDeviceTemplateGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXDeviceTemplateGroupDeviceTemplate>(s => GXSql.One, q => GXSql.Exists<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(j => j.Id, j => j.DeviceTemplateGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXDeviceTemplate>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXDeviceTemplate>(q => q.Removed >= removed);
+            }
             args.Where.And<GXDeviceTemplate>(q => GXSql.Exists<GXDeviceTemplate, GXDeviceTemplateGroupDeviceTemplate>(j => j.Id, j => j.DeviceTemplateId, map2));
+            if (id != null && id != Guid.Empty)
+            {
+                args.Where.And<GXDeviceTemplate>(q => q.Id == id);
+            }
             if (exclude?.Any() == true)
             {
                 args.Where.And<GXDeviceTemplate>(q => !exclude.Contains(q.Id));
@@ -3488,6 +3712,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs groups = GXSelectArgs.Select<GXDeviceTemplateGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXDeviceTemplateGroupDeviceTemplate>(s => GXSql.One);
@@ -3500,7 +3725,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceTemplateGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -3517,6 +3742,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs groups = GXSelectArgs.Select<GXDeviceTemplateGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXDeviceTemplateGroupDeviceTemplate>(s => GXSql.One);
@@ -3529,7 +3755,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupDeviceTemplateGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -3540,17 +3766,43 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">UserId.</param>
         /// <param name="groupId">Gateway group id.</param>
-        /// <returns>List of gateway groups that user can access.</returns>
+        /// <param name="removed">Remove time.</param>
+        /// <param name="exclude">Gateway group Ids to exclude.</param>
+        /// <param name="include">Gateway group Ids to include.</param>
+        /// <returns>List of Gateway groups that user can access.</returns>
         public static GXSelectArgs GetGatewayGroupsByUser(
             Expression<Func<GXGatewayGroup, object>> columns,
             string userId,
-            Guid? groupId = null)
+            Guid? groupId = null,
+            DateTimeOffset? removed = null,
+            IEnumerable<Guid>? exclude = null,
+            IEnumerable<Guid>? include = null)
         {
             //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, groupId);
+            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId);
             GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupGatewayGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupGatewayGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select(columns);
+            if (removed == null)
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Removed == null);
+            }
+            else if (removed != DateTimeOffset.MinValue)
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Removed >= removed);
+            }
             args.Where.And<GXGatewayGroup>(q => GXSql.Exists<GXGatewayGroup, GXUserGroupGatewayGroup>(j => j.Id, j => j.GatewayGroupId, map2));
+            if (groupId != null && groupId != Guid.Empty)
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Id == groupId);
+            }
+            if (exclude?.Any() == true)
+            {
+                args.Where.And<GXGatewayGroup>(q => !exclude.Contains(q.Id));
+            }
+            if (include?.Any() == true)
+            {
+                args.Where.And<GXGatewayGroup>(q => include.Contains(q.Id));
+            }
             return args;
         }
 
@@ -3644,6 +3896,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             Guid? id)
         {
+            _ = userId;
             GXSelectArgs gatewayGroups = GXSelectArgs.Select<GXGatewayGroup>(s => GXSql.One, q => q.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXGatewayGroupGateway>(s => GXSql.One);
@@ -3656,7 +3909,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupGatewayGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
@@ -3673,6 +3926,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             string? userId,
             IEnumerable<Guid>? ids)
         {
+            _ = userId;
             GXSelectArgs gatewayGroups = GXSelectArgs.Select<GXGatewayGroup>(s => GXSql.One, w => w.Removed == null);
             //Distinct is not needed because values are indexed;
             GXSelectArgs map1 = GXSelectArgs.Select<GXGatewayGroupGateway>(s => GXSql.One);
@@ -3685,397 +3939,12 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupGatewayGroup>(j => j.Id, j => j.UserGroupId, map2));
             usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
             GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
+            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id!, j => j.UserId!, map3));
             users.Where.And<GXUser>(q => q.Removed == null);
             return users;
         }
 
-        /// <summary>
-        /// Get gateway logs that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param> 
-        /// <param name="userId">User Id.</param>
-        /// <param name="gatewayId">Device Id.</param>
-        /// <returns>List of gateways that user can access.</returns>
-        public static GXSelectArgs GetGatewayErrorsByUser(
-            Expression<Func<GXDevice, object>> columns,
-            string userId,
-            Guid? gatewayId = null)
-        {
-            GXSelectArgs args = GetGatewaysByUser(s => s.Id, userId, gatewayId);
-            args.Columns.Clear();
-            args.Columns.Add<GXGatewayLog>();
-            args.Joins.AddInnerJoin<GXGateway, GXGatewayLog>(j => j.Id, j => j.Gateway);
-            return args;
-        }
 
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal group.
-        /// </summary>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupId">Subtotal group id.</param>
-        /// <returns>List of users who can access the subtotal group.</returns>
-        public static GXSelectArgs GetUsersBySubtotalGroup(string userId, Guid? groupId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
-            args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
-            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
-            args.Where.And<GXUser>(where => where.Removed == null);
-            args.Where.And<GXUserGroup>(q => q.Removed == null);
-            if (groupId != null)
-            {
-                args.Where.And<GXSubtotalGroup>(q => q.Removed == null && q.Id == groupId);
-            }
-            else
-            {
-                args.Where.And<GXSubtotalGroup>(q => q.Removed == null);
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal group.
-        /// </summary>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupIds">Subtotal group ids.</param>
-        /// <returns>List of users who can access the subtotal group.</returns>
-        public static GXSelectArgs GetUsersBySubtotalGroups(string userId, IEnumerable<Guid>? groupIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
-            args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
-            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
-            args.Where.And<GXUser>(where => where.Removed == null);
-            args.Where.And<GXUserGroup>(q => q.Removed == null);
-            if (groupIds != null)
-            {
-                args.Where.And<GXSubtotalGroup>(q => q.Removed == null && groupIds.Contains(q.Id));
-            }
-            else
-            {
-                args.Where.And<GXSubtotalGroup>(q => q.Removed == null);
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Get subtotals that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="subtotalId">Device Id.</param>
-        /// <returns>List of subtotals that user can access.</returns>
-        public static GXSelectArgs GetSubtotalsByUser(
-            Expression<Func<GXSubtotal, object>> columns,
-            string userId,
-            Guid? subtotalId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs groups = GetSubtotalGroupsByUser(s => GXSql.One, userId, subtotalId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXSubtotalGroupSubtotal>(s => GXSql.One, q => GXSql.Exists<GXSubtotalGroup, GXSubtotalGroupSubtotal>(j => j.Id, j => j.SubtotalGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXSubtotal>(q => GXSql.Exists<GXSubtotal, GXSubtotalGroupSubtotal>(j => j.Id, j => j.SubtotalId, map2));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal.
-        /// </summary>
-        /// <param name="userId">UserId.</param>
-        /// <param name="subtotalId">Subtotal id.</param>
-        /// <returns>List of users who can access the subtotal group.</returns>
-        public static GXSelectArgs GetUsersBySubtotal(string userId, Guid? subtotalId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
-            args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
-            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXSubtotalGroup, GXSubtotalGroupSubtotal>(a => a.Id, b => b.SubtotalGroupId);
-            args.Joins.AddInnerJoin<GXSubtotalGroupSubtotal, GXSubtotal>(a => a.SubtotalId, b => b.Id);
-            args.Where.And<GXUser>(where => where.Removed == null);
-            args.Where.And<GXUserGroup>(where => where.Removed == null);
-            args.Where.And<GXSubtotalGroup>(where => where.Removed == null);
-            if (subtotalId != null && subtotalId != Guid.Empty)
-            {
-                args.Where.And<GXSubtotal>(where => where.Removed == null && where.Id == subtotalId);
-            }
-            else
-            {
-                args.Where.And<GXSubtotal>(where => where.Removed == null);
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal.
-        /// </summary>
-        /// <param name="userId">UserId.</param>
-        /// <param name="subtotalIds">Subtotal ids.</param>
-        /// <returns>List of users who can access the subtotal group.</returns>
-        public static GXSelectArgs GetUsersBySubtotals(string userId, IEnumerable<Guid>? subtotalIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
-            args.Distinct = true;
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
-            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXSubtotalGroup, GXSubtotalGroupSubtotal>(a => a.Id, b => b.SubtotalGroupId);
-            args.Joins.AddInnerJoin<GXSubtotalGroupSubtotal, GXSubtotal>(a => a.SubtotalId, b => b.Id);
-            args.Where.And<GXUser>(where => where.Removed == null);
-            args.Where.And<GXUserGroup>(where => where.Removed == null);
-            args.Where.And<GXSubtotalGroup>(where => where.Removed == null);
-            if (subtotalIds != null && subtotalIds.Any())
-            {
-                args.Where.And<GXSubtotal>(where => where.Removed == null && subtotalIds.Contains(where.Id));
-            }
-            else
-            {
-                args.Where.And<GXSubtotal>(where => where.Removed == null);
-            }
-            return args;
-        }
-
-        /// <summary>
-        /// Get report groups that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">UserId.</param>
-        /// <param name="groupId">Report group id.</param>
-        /// <returns>List of report groups that user can access.</returns>
-        public static GXSelectArgs GetReportGroupsByUser(
-            Expression<Func<GXReportGroup, object>> columns,
-            string userId,
-            Guid? groupId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, groupId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupReportGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupReportGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXReportGroup>(q => GXSql.Exists<GXReportGroup, GXUserGroupReportGroup>(j => j.Id, j => j.ReportGroupId, map2));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the report group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupId">Report group id.</param>
-        /// <returns>List of users who can access the report group.</returns>
-        public static GXSelectArgs GetUsersByReportGroup(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? groupId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXReportGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                ag.Where.And<GXReportGroup>(q => q.Id == groupId);
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupReportGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupReportGroup>(q => GXSql.Exists<GXReportGroup, GXUserGroupReportGroup>(j => j.Id, j => j.ReportGroupId, ag));
-            args.Where.And<GXUserGroupReportGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the report group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupIds">Report group ids.</param>
-        /// <returns>List of users who can access the report group.</returns>
-        public static GXSelectArgs GetUsersByReportGroups(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? groupIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Distinct = true;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXReportGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupIds != null && groupIds.Any())
-            {
-                ag.Where.And<GXReportGroup>(q => groupIds.Contains(q.Id));
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupReportGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupReportGroup>(q => GXSql.Exists<GXReportGroup, GXUserGroupReportGroup>(j => j.Id, j => j.ReportGroupId, ag));
-            args.Where.And<GXUserGroupReportGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Get reports that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="reportId">Report Id.</param>
-        /// <returns>List of reports that user can access.</returns>
-        public static GXSelectArgs GetReportsByUser(
-            Expression<Func<GXReport, object>> columns,
-            string userId,
-            Guid? reportId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs groups = GetReportGroupsByUser(s => GXSql.One, userId, reportId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXReportGroupReport>(s => GXSql.One, q => GXSql.Exists<GXReportGroup, GXReportGroupReport>(j => j.Id, j => j.ReportGroupId, groups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXReport>(q => GXSql.Exists<GXReport, GXReportGroupReport>(j => j.Id, j => j.ReportId, map2));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the report.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="id">Report id.</param>
-        /// <returns>List of users who can access the report.</returns>
-        public static GXSelectArgs GetUsersByReport(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? id)
-        {
-            GXSelectArgs reportGroups = GXSelectArgs.Select<GXReportGroup>(s => GXSql.One, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXReportGroupReport>(s => GXSql.One);
-            if (id != null && id != Guid.Empty)
-            {
-                map1.Where.And<GXReportGroupReport>(w => w.ReportId == id);
-            }
-            reportGroups.Where.And<GXReportGroupReport>(q => GXSql.Exists<GXReportGroup, GXReportGroupReport>(j => j.Id, j => j.ReportGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupReportGroup>(s => GXSql.One, q => GXSql.Exists<GXReportGroup, GXUserGroupReportGroup>(j => j.Id, j => j.ReportGroupId, reportGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupReportGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the reports.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="reportIds">Report ids.</param>
-        /// <returns>List of users who can access the report.</returns>
-        public static GXSelectArgs GetUsersByReports(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? reportIds)
-        {
-            GXSelectArgs reportGroups = GXSelectArgs.Select<GXReportGroup>(s => GXSql.One, w => w.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXReportGroupReport>(s => GXSql.One);
-            if (reportIds != null && reportIds.Any())
-            {
-                map1.Where.And<GXReportGroupReport>(w => reportIds.Contains(w.ReportId));
-            }
-            reportGroups.Where.And<GXReportGroupReport>(q => GXSql.Exists<GXReportGroup, GXReportGroupReport>(j => j.Id, j => j.ReportGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupReportGroup>(s => GXSql.One, q => GXSql.Exists<GXReportGroup, GXUserGroupReportGroup>(j => j.Id, j => j.ReportGroupId, reportGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupReportGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Get notification groups that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">UserId.</param>
-        /// <param name="groupId">Notification group id.</param>
-        /// <returns>List of notification groups that user can access.</returns>
-        public static GXSelectArgs GetNotificationGroupsByUser(
-            Expression<Func<GXNotificationGroup, object>> columns,
-            string userId,
-            Guid? groupId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, groupId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupNotificationGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXNotificationGroup>(q => GXSql.Exists<GXNotificationGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.NotificationGroupId, map2));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the notification group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupId">Notification group id.</param>
-        /// <returns>List of users who can access the notification group.</returns>
-        public static GXSelectArgs GetUsersByNotificationGroup(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? groupId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXNotificationGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                ag.Where.And<GXNotificationGroup>(q => q.Id == groupId);
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupNotificationGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupNotificationGroup>(q => GXSql.Exists<GXNotificationGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.NotificationGroupId, ag));
-            args.Where.And<GXUserGroupNotificationGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the notification group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupIds">Notification group ids.</param>
-        /// <returns>List of users who can access the notification group.</returns>
-        public static GXSelectArgs GetUsersByNotificationGroups(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? groupIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Distinct = true;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXNotificationGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupIds != null && groupIds.Any())
-            {
-                ag.Where.And<GXNotificationGroup>(q => groupIds.Contains(q.Id));
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupNotificationGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupNotificationGroup>(q => GXSql.Exists<GXNotificationGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.NotificationGroupId, ag));
-            args.Where.And<GXUserGroupNotificationGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
 
         /// <summary>
         /// Get notifications that user can access.
@@ -4086,209 +3955,21 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>List of notifications that user can access.</returns>
         public static GXSelectArgs GetNotificationsByUser(
             Expression<Func<GXNotification, object>> columns,
-            string userId,
+            string? userId,
             Guid? notificationId = null)
         {
             //Distinct is not needed because values are indexed;
-            GXSelectArgs groups = GetNotificationGroupsByUser(s => GXSql.One, userId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXNotificationGroupNotification>(s => GXSql.One, q => GXSql.Exists<GXNotificationGroup, GXNotificationGroupNotification>(j => j.Id, j => j.NotificationGroupId, groups));
             GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXNotification>(q => GXSql.Exists<GXNotification, GXNotificationGroupNotification>(j => j.Id, j => j.NotificationId, map2));
+            args.Joins.AddInnerJoin<GXNotification, GXUser>(j => j.Creator!, j => j.Id!);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                args.Where.And<GXUser>(w => w.Id == userId);
+            }
             if (notificationId != null && notificationId != Guid.Empty)
             {
                 args.Where.And<GXNotification>(w => w.Id == notificationId);
             }
             return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the notification.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="id">Notification id.</param>
-        /// <returns>List of users who can access the notification.</returns>
-        public static GXSelectArgs GetUsersByNotification(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? id)
-        {
-            GXSelectArgs notificationGroups = GXSelectArgs.Select<GXNotificationGroup>(s => GXSql.One, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXNotificationGroupNotification>(s => GXSql.One);
-            if (id != null && id != Guid.Empty)
-            {
-                map1.Where.And<GXNotificationGroupNotification>(w => w.NotificationId == id);
-            }
-            notificationGroups.Where.And<GXNotificationGroupNotification>(q => GXSql.Exists<GXNotificationGroup, GXNotificationGroupNotification>(j => j.Id, j => j.NotificationGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupNotificationGroup>(s => GXSql.One, q => GXSql.Exists<GXNotificationGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.NotificationGroupId, notificationGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the notifications.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="notificationIds">Notification ids.</param>
-        /// <returns>List of users who can access the notification.</returns>
-        public static GXSelectArgs GetUsersByNotifications(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? notificationIds)
-        {
-            GXSelectArgs notificationGroups = GXSelectArgs.Select<GXNotificationGroup>(s => GXSql.One, w => w.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXNotificationGroupNotification>(s => GXSql.One);
-            if (notificationIds != null && notificationIds.Any())
-            {
-                map1.Where.And<GXNotificationGroupNotification>(w => notificationIds.Contains(w.NotificationId));
-            }
-            notificationGroups.Where.And<GXNotificationGroupNotification>(q => GXSql.Exists<GXNotificationGroup, GXNotificationGroupNotification>(j => j.Id, j => j.NotificationGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupNotificationGroup>(s => GXSql.One, q => GXSql.Exists<GXNotificationGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.NotificationGroupId, notificationGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupNotificationGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Get subtotal groups that user can access.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">UserId.</param>
-        /// <param name="groupId">Subtotal group id.</param>
-        /// <returns>List of subtotal groups that user can access.</returns>
-        public static GXSelectArgs GetSubtotalGroupsByUser(
-            Expression<Func<GXSubtotalGroup, object>> columns,
-            string userId,
-            Guid? groupId = null)
-        {
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs usergroups = GetUserGroupsByUser(s => GXSql.One, userId, groupId);
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupSubtotalGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Where.And<GXSubtotalGroup>(q => GXSql.Exists<GXSubtotalGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.SubtotalGroupId, map2));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupId">Subtotal group id.</param>
-        /// <returns>List of users who can access the subtotal group.</returns>
-        public static GXSelectArgs GetUsersBySubtotalGroup(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid? groupId)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXSubtotalGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupId != null && groupId != Guid.Empty)
-            {
-                ag.Where.And<GXSubtotalGroup>(q => q.Id == groupId);
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupSubtotalGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupSubtotalGroup>(q => GXSql.Exists<GXSubtotalGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.SubtotalGroupId, ag));
-            args.Where.And<GXUserGroupSubtotalGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal group.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="groupIds">Subtotal group ids.</param>
-        /// <returns>List of users who can access the subtotal group.</returns>
-        public static GXSelectArgs GetUsersBySubtotalGroups(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? groupIds)
-        {
-            GXSelectArgs args = GXSelectArgs.Select(columns, q => q.Removed == null);
-            args.Distinct = true;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                args.Where.And<GXUser>(q => q.Id == userId);
-            }
-            GXSelectArgs ag = GXSelectArgs.Select<GXSubtotalGroup>(s => GXSql.One, w => w.Removed == null);
-            if (groupIds != null && groupIds.Any())
-            {
-                ag.Where.And<GXSubtotalGroup>(q => groupIds.Contains(q.Id));
-            }
-            GXSelectArgs sub = GXSelectArgs.Select<GXUserGroupSubtotalGroup>(s => GXSql.One);
-            sub.Where.And<GXUserGroupSubtotalGroup>(q => GXSql.Exists<GXSubtotalGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.SubtotalGroupId, ag));
-            args.Where.And<GXUserGroupSubtotalGroup>(q => GXSql.Exists(sub));
-            return args;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotal.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="subtotalId">Subtotal id.</param>
-        /// <returns>List of users who can access the subtotal.</returns>
-        public static GXSelectArgs GetUsersBySubtotal(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            Guid subtotalId)
-        {
-            GXSelectArgs subtotalGroups = GXSelectArgs.Select<GXSubtotalGroup>(s => GXSql.One, q => q.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXSubtotalGroupSubtotal>(s => GXSql.One, w => w.SubtotalId == subtotalId);
-            subtotalGroups.Where.And<GXSubtotalGroupSubtotal>(q => GXSql.Exists<GXSubtotalGroup, GXSubtotalGroupSubtotal>(j => j.Id, j => j.SubtotalGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupSubtotalGroup>(s => GXSql.One, q => GXSql.Exists<GXSubtotalGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.SubtotalGroupId, subtotalGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
-        }
-
-        /// <summary>
-        /// Returns a collection of users that can access the subtotals.
-        /// </summary>
-        /// <param name="columns">Selected columns.</param>
-        /// <param name="userId">User Id.</param>
-        /// <param name="subtotalIds">Subtotal ids.</param>
-        /// <returns>List of users who can access the subtotal.</returns>
-        public static GXSelectArgs GetUsersBySubtotals(
-            Expression<Func<GXUser, object>> columns,
-            string? userId,
-            IEnumerable<Guid>? subtotalIds)
-        {
-            GXSelectArgs subtotalGroups = GXSelectArgs.Select<GXSubtotalGroup>(s => GXSql.One, w => w.Removed == null);
-            //Distinct is not needed because values are indexed;
-            GXSelectArgs map1 = GXSelectArgs.Select<GXSubtotalGroupSubtotal>(s => GXSql.One);
-            if (subtotalIds != null && subtotalIds.Any())
-            {
-                map1.Where.And<GXSubtotalGroupSubtotal>(w => subtotalIds.Contains(w.SubtotalId));
-            }
-            subtotalGroups.Where.And<GXSubtotalGroupSubtotal>(q => GXSql.Exists<GXSubtotalGroup, GXSubtotalGroupSubtotal>(j => j.Id, j => j.SubtotalGroupId, map1));
-            GXSelectArgs map2 = GXSelectArgs.Select<GXUserGroupSubtotalGroup>(s => GXSql.One, q => GXSql.Exists<GXSubtotalGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.SubtotalGroupId, subtotalGroups));
-            GXSelectArgs usergroups = GXSelectArgs.Select<GXUserGroup>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupSubtotalGroup>(j => j.Id, j => j.UserGroupId, map2));
-            usergroups.Where.And<GXUserGroup>(q => q.Removed == null);
-            GXSelectArgs map3 = GXSelectArgs.Select<GXUserGroupUser>(s => GXSql.One, q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId, usergroups));
-            GXSelectArgs users = GXSelectArgs.Select(columns, q => GXSql.Exists<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId, map3));
-            users.Where.And<GXUser>(q => q.Removed == null);
-            return users;
         }
 
         /// <summary>
@@ -4298,31 +3979,35 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="userId">User Id.</param>
         /// <param name="agentIds">Agent Ids.</param>
         /// <param name="deviceIds">Agent Ids.</param>
-        /// <param name="gatewayIds">Gateway Ids.</param>
+        /// <param name="Ids">Gateway Ids.</param>
         /// <returns>List of tasks that user can access.</returns>
         public static GXSelectArgs GetTasksByUser(
             Expression<Func<GXTask, object>> columns,
             string userId,
             IEnumerable<Guid>? agentIds = null,
             IEnumerable<Guid>? deviceIds = null,
-            IEnumerable<Guid>? gatewayIds = null)
+            IEnumerable<Guid>? Ids = null)
         {
+            _ = deviceIds;
+            _ = Ids;
+            _ = agentIds;
             var user = new GXUser() { Id = userId };
             GXSelectArgs args = GXSelectArgs.Select(columns, w => w.Creator == user);
-            args.Joins.AddInnerJoin<GXTask, GXUser>(j => j.Creator, j => j.Id);
-            args.OrderBy.Add<GXTask>(q => q.Start);
+            args.OrderBy.Add<GXTask>(q => q.Start!);
             return args;
         }
 
         /// <summary>
-        /// Get next device tasks that are not read yet.
+        /// Get all pending tasks for the oldest eligible device that has no running tasks.
         /// </summary>
         /// <param name="columns">Selected columns.</param>
         /// <param name="userId">User Id.</param>
         /// <param name="agentId">Agent Id.</param>
-        /// <param name="deviceId">Agent Id.</param>
+        /// <param name="deviceId">Restrict the batch to this device.</param>
         /// <param name="gatewayId">Gateway Id.</param>
-        /// <returns>List of tasks that can be executed.</returns>
+        /// <param name="all">Select accessible devices without agent or gateway mappings instead of mapped devices.</param>
+        /// <param name="listener">Restrict generic listener polls to dynamic devices.</param>
+        /// <returns>A query selecting one device's pending task batch in creation order.</returns>
         public static GXSelectArgs GetNextTasks(
             Expression<Func<GXTask, object>> columns,
             string userId,
@@ -4332,45 +4017,94 @@ namespace Gurux.DLMS.AMI.Server.Internal
             bool all = false,
             bool listener = false)
         {
-            GXSelectArgs args = GXSelectArgs.Select(columns, w => w.Start == null);
-            //Distinct is not needed.
-            args.Joins.AddInnerJoin<GXTask, GXDevice>(j => j.Device, j => j.Id);
-            //Selected tasks that are mapped to the device.
-            if (deviceId is Guid id)
+            // Choose the oldest eligible meter, then return its entire pending batch.
+            GXSelectArgs nextDevice = GXSelectArgs.Select<GXTask>(t => t.TargetDevice!,
+                t => t.Start == null && t.Ready == null);
+            nextDevice.Joins.AddInnerJoin<GXTask, GXDevice>(t => t.TargetDevice!, d => d.Id);
+            nextDevice.Where.And<GXDevice>(d => d.Removed == null);
+            var currentAgent = new GXAgent { Id = agentId };
+            nextDevice.Where.And<GXTask>(t => t.OperatingAgent == null || t.OperatingAgent == currentAgent);
+            var running = GXSelectArgs.Select<GXTask>(t => GXSql.One, t => t.Start != null && t.Ready == null);
+            nextDevice.Where.And<GXDevice>(d => !GXSql.Exists<GXDevice, GXTask>(d => d.Id, t => t.TargetDevice!, running));
+            if (deviceId != null && deviceId != Guid.Empty)
             {
-                GXDevice dev = new GXDevice() { Id = id };
-                args.Where.And<GXTask>(q => q.Device == dev);
+                nextDevice.Where.And<GXTask>(t => t.TargetDevice == deviceId.Value);
             }
-            //Selected tasks that are mapped to the gateway.
-            else if (gatewayId is Guid gateway)
+            if (listener && (deviceId == null || deviceId == Guid.Empty) && (gatewayId == null || gatewayId == Guid.Empty))
             {
-                args.Where.And<GXTask>(q => q.TargetGateway == gateway);
+                nextDevice.Where.And<GXDevice>(d => d.Dynamic == true);
             }
-            //Selected tasks that are mapped to the called agent.
-            else if (agentId is Guid agent)
+
+            // TargetAgent and TargetGateway are notification-only properties. Use persisted mappings.
+            GXSelectArgs agentGroups = all
+                ? GXSelectArgs.Select<GXAgentGroup>(g => GXSql.One, g => g.Removed == null)
+                : GetAgentGroupsByAgent(g => GXSql.One, agentId);
+            var agentMap = GXSelectArgs.Select<GXAgentGroupDeviceGroup>(m => GXSql.One,
+                m => GXSql.Exists<GXAgentGroup, GXAgentGroupDeviceGroup>(g => g.Id, m => m.AgentGroupId, agentGroups));
+            var agentDeviceGroups = GXSelectArgs.Select<GXDeviceGroup>(g => GXSql.One, g => g.Removed == null);
+            agentDeviceGroups.Where.And<GXDeviceGroup>(g => GXSql.Exists<GXDeviceGroup, GXAgentGroupDeviceGroup>(g => g.Id, m => m.DeviceGroupId, agentMap));
+            var agentDevices = GXSelectArgs.Select<GXDeviceGroupDevice>(m => GXSql.One,
+                m => GXSql.Exists<GXDeviceGroup, GXDeviceGroupDevice>(g => g.Id, m => m.DeviceGroupId, agentDeviceGroups));
+
+            var gateways = GXSelectArgs.Select<GXGateway>(g => GXSql.One, g => g.Removed == null && g.Enabled == true);
+            if (!all)
             {
-                if (all)
-                {
-                    //Distinct is not needed because values are indexed;
-                    GXSelectArgs map4 = GXSelectArgs.Select<GXAgentGroupDeviceGroup>(s => GXSql.One);
-                    GXSelectArgs deviceGroups = GetDeviceGroupsByUser(s => GXSql.One, userId);
-                    deviceGroups.Where.And<GXAgentGroupDeviceGroup>(q => !GXSql.Exists<GXDeviceGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId, map4));
-                    GXSelectArgs map3 = GXSelectArgs.Select<GXDeviceGroupDevice>(s => GXSql.One, q => GXSql.Exists<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId, deviceGroups));
-                    args.Where.And<GXDevice>(q => GXSql.Exists<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId, map3));
-                }
-                else
-                {
-                    //Distinct is not needed because values are indexed;
-                    GXSelectArgs deviceGroups = GetDeviceGroupsByAgent(s => GXSql.One, userId, agent);
-                    GXSelectArgs map3 = GXSelectArgs.Select<GXDeviceGroupDevice>(s => GXSql.One, q => GXSql.Exists<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId, deviceGroups));
-                    args.Where.And<GXDevice>(q => GXSql.Exists<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId, map3));
-                }
+                gateways.Where.And<GXGateway>(g => g.Agent == currentAgent);
+            }
+            if (!all && gatewayId != null && gatewayId != Guid.Empty)
+            {
+                gateways.Where.And<GXGateway>(g => g.Id == gatewayId.Value);
+            }
+            var gatewayDevices = GXSelectArgs.Select<GXGatewayDevice>(m => GXSql.One,
+                m => GXSql.Exists<GXGateway, GXGatewayDevice>(g => g.Id, m => m.GatewayId, gateways));
+            var gatewayGroups = GXSelectArgs.Select<GXGatewayDeviceGroup>(m => GXSql.One,
+                m => GXSql.Exists<GXGateway, GXGatewayDeviceGroup>(g => g.Id, m => m.GatewayId, gateways));
+            var gatewayDeviceGroups = GXSelectArgs.Select<GXDeviceGroup>(g => GXSql.One, g => g.Removed == null);
+            gatewayDeviceGroups.Where.And<GXDeviceGroup>(g => GXSql.Exists<GXDeviceGroup, GXGatewayDeviceGroup>(g => g.Id, m => m.DeviceGroupId, gatewayGroups));
+            var gatewayGroupDevices = GXSelectArgs.Select<GXDeviceGroupDevice>(m => GXSql.One,
+                m => GXSql.Exists<GXDeviceGroup, GXDeviceGroupDevice>(g => g.Id, m => m.DeviceGroupId, gatewayDeviceGroups));
+
+            if (all)
+            {
+                var accessibleGroups = GetDeviceGroupsByUser(g => GXSql.One, userId);
+                var accessibleDevices = GXSelectArgs.Select<GXDeviceGroupDevice>(m => GXSql.One,
+                    m => GXSql.Exists<GXDeviceGroup, GXDeviceGroupDevice>(g => g.Id, m => m.DeviceGroupId, accessibleGroups));
+                nextDevice.Where.And<GXDevice>(d => GXSql.Exists<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId, accessibleDevices));
+                nextDevice.Where.And<GXDevice>(d =>
+                    !GXSql.Exists<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId, agentDevices)
+                    && !GXSql.Exists<GXDevice, GXGatewayDevice>(d => d.Id, m => m.DeviceId, gatewayDevices)
+                    && !GXSql.Exists<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId, gatewayGroupDevices));
+            }
+            else if (gatewayId != null && gatewayId != Guid.Empty)
+            {
+                nextDevice.Where.And<GXDevice>(d =>
+                    GXSql.Exists<GXDevice, GXGatewayDevice>(d => d.Id, m => m.DeviceId, gatewayDevices)
+                    || GXSql.Exists<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId, gatewayGroupDevices));
             }
             else
             {
-                throw new NotImplementedException();
+                nextDevice.Where.And<GXDevice>(d =>
+                    GXSql.Exists<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId, agentDevices)
+                    || GXSql.Exists<GXDevice, GXGatewayDevice>(d => d.Id, m => m.DeviceId, gatewayDevices)
+                    || GXSql.Exists<GXDevice, GXDeviceGroupDevice>(d => d.Id, m => m.DeviceId, gatewayGroupDevices));
             }
+            nextDevice.OrderBy.Add<GXTask>(t => t.CreationTime!);
+            nextDevice.OrderBy.Add<GXTask>(t => t.Id);
+            nextDevice.Count = 1;
+
+            var args = GXSelectArgs.Select(columns);
+            args.Joins.Append(nextDevice.Joins);
+            args.Where.Append(nextDevice.Where);
+            args.Where.And<GXTask>(t => t.TargetDevice == GXSql.Scalar<Guid?>(nextDevice));
+            args.OrderBy.Add<GXTask>(t => t.CreationTime!);
+            args.OrderBy.Add<GXTask>(t => t.Id);
             return args;
+        }
+        public static GXSelectArgs GetDefaultRoles(Expression<Func<GXRole, object>> columns)
+        {
+            return GXSelectArgs.Select(columns, w => w.Removed == null && w.Default == true);
         }
     }
 }
+
+

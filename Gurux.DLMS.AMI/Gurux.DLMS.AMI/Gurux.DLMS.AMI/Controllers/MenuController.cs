@@ -1,72 +1,62 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Server.Internal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <summary>
     /// This controller is used to handle the menus.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class MenuController : ControllerBase
+    public class MenuController(IMenuRepository menuRepository) : ControllerBase
     {
-        private readonly IMenuRepository _menuRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public MenuController(IMenuRepository menuRepository)
-        {
-            _menuRepository = menuRepository;
-        }
+        private readonly IMenuRepository _menuRepository = menuRepository;
 
         /// <summary>
         /// Get menu information.
         /// </summary>
         /// <param name="id">Menu id.</param>
         /// <returns>Menu information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<GetMenuResponse>> Get(Guid id)
+        public async Task<ActionResult<GetMenuResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
-            return new GetMenuResponse()
-            {
-                Item = await _menuRepository.ReadAsync(id)
-            };
+            return GXMenuHttpCache.Response(this, await _menuRepository.ReadAsync(id, null, cancellationToken));
         }
 
         /// <summary>
@@ -74,14 +64,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="name">Menu name.</param>
         /// <returns>Menu information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet("name")]
         [AllowAnonymous]
-        public async Task<ActionResult<GetMenuResponse>> Get(string name)
+        public async Task<ActionResult<GetMenuResponse>> Get(string name, CancellationToken cancellationToken = default)
         {
-            return new GetMenuResponse()
-            {
-                Item = await _menuRepository.ReadAsync(name)
-            };
+            return GXMenuHttpCache.Response(this, await _menuRepository.ReadAsync(name, null, cancellationToken));
         }
 
         /// <summary>
@@ -93,7 +81,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListMenus request,
             CancellationToken cancellationToken)
         {
-            ListMenusResponse ret = new ListMenusResponse();
+            ListMenusResponse ret = new();
             await _menuRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -103,30 +91,57 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXMenuPolicies.Add)]
-        public async Task<ActionResult<UpdateMenuResponse>> Post(UpdateMenu request)
+        public async Task<ActionResult<UpdateMenuResponse>> Post(UpdateMenu request, CancellationToken cancellationToken = default)
         {
             if (request.Menus == null || request.Menus.Count == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            UpdateMenuResponse ret = new UpdateMenuResponse();
-            ret.Ids = await _menuRepository.UpdateAsync(request.Menus);
+            UpdateMenuResponse ret = new()
+            {
+                Ids = await _menuRepository.UpsertAsync(request.Menus, null, cancellationToken)
+            };
             return ret;
         }
 
+        /// <summary>
+        /// Deletes menu items specified in the request.
+        /// </summary>
+        /// <param name="request">The request containing menu item IDs and a flag indicating whether to perform a soft delete.</param>
+        /// <returns>A response indicating the outcome of the delete operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXMenuPolicies.Delete)]
-        public async Task<ActionResult<RemoveMenuResponse>> Post(RemoveMenu request)
+        public async Task<ActionResult<RemoveMenuResponse>> Post(RemoveMenu request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _menuRepository.DeleteAsync(request.Ids, request.Delete);
+            await _menuRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveMenuResponse();
+        }
+
+        /// <summary>
+        /// Regenerates menu items based on the specified identifiers.
+        /// </summary>
+        /// <param name="request">The request containing the identifiers of the menu items to regenerate.</param>
+        /// <returns>A response indicating the result of the regeneration operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [HttpPost("Regenerate")]
+        [Authorize(Policy = GXMenuPolicies.Edit)]
+        public async Task<ActionResult<RegenerateMenuResponse>> Post(RegenerateMenu request, CancellationToken cancellationToken = default)
+        {
+            if (request.Ids?.Any() == true)
+            {
+                await _menuRepository.ResetToDefaultsAsync(request.Kind, request.Ids, cancellationToken);
+            }
+            else
+            {
+                await _menuRepository.EnsureDefaultsAsync(request.Kind, cancellationToken);
+            }
+
+            return new RegenerateMenuResponse();
         }
     }
 }

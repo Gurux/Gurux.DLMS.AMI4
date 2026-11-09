@@ -1,34 +1,29 @@
-﻿//
+﻿// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
-//  Gurux Ltd
-//
-//
-//
-// Filename:        $HeadURL$
-//
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
-//
-// Copyright (c) Gurux Ltd
-//
-//---------------------------------------------------------------------------
-//
-//  DESCRIPTION
-//
-// This file is a part of Gurux Device Framework.
-//
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -40,105 +35,61 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <summary>
         /// Prune settings for the system log.
         /// </summary>
-        public PruneSystemLog SystemLog
-        {
-            get;
-            set;
-        } = new PruneSystemLog();
+        public PruneSystemLog SystemLog { get; set; } = new PruneSystemLog();
 
 
         /// <summary>
         /// Prune settings for the user.
         /// </summary>
-        public PruneUser User
-        {
-            get;
-            set;
-        } = new PruneUser();
+        public PruneUser User { get; set; } = new PruneUser();
 
         /// <summary>
         /// Prune settings for the user log.
         /// </summary>
-        public PruneUserAction UserActions
-        {
-            get;
-            set;
-        } = new PruneUserAction();
+        public PruneUserAction UserActions { get; set; } = new PruneUserAction();
 
         /// <summary>
         /// Prune settings for the user errors log.
         /// </summary>
-        public PruneUserError UserErrors
-        {
-            get;
-            set;
-        } = new PruneUserError();
+        public PruneUserError UserErrors { get; set; } = new PruneUserError();
 
         /// <summary>
         /// Prune settings for the device log.
         /// </summary>
-        public PruneDeviceLog DeviceLogs
-        {
-            get;
-            set;
-        } = new PruneDeviceLog();
+        public PruneDeviceLog DeviceLogs { get; set; } = new PruneDeviceLog();
 
         /// <summary>
         /// Prune settings for the device action log.
         /// </summary>
-        public PruneDeviceAction DeviceActions
-        {
-            get;
-            set;
-        } = new PruneDeviceAction();
+        public PruneDeviceAction DeviceActions { get; set; } = new PruneDeviceAction();
 
         /// <summary>
         /// Prune settings for the agent log.
         /// </summary>
-        public PruneAgentLog AgentLog
-        {
-            get;
-            set;
-        } = new PruneAgentLog();
+        public PruneAgentLog AgentLog { get; set; } = new PruneAgentLog();
 
 
         /// <summary>
         /// Prune settings for the gateway log.
         /// </summary>
-        public PruneGatewayLog GatewayLog
-        {
-            get;
-            set;
-        } = new PruneGatewayLog();
+        public PruneGatewayLog GatewayLog { get; set; } = new PruneGatewayLog();
 
 
         /// <summary>
         /// Prune settings for the schedule log.
         /// </summary>
-        public PruneScheduleLog ScheduleLog
-        {
-            get;
-            set;
-        } = new PruneScheduleLog();
+        public PruneScheduleLog ScheduleLog { get; set; } = new PruneScheduleLog();
 
 
         /// <summary>
         /// Prune settings for the tasks.
         /// </summary>
-        public PruneTask Task
-        {
-            get;
-            set;
-        } = new PruneTask();
+        public PruneTask Task { get; set; } = new PruneTask();
 
         /// <summary>
         /// Prune settings for the performance log.
         /// </summary>
-        public PrunePerformanceLog PerformanceLog
-        {
-            get;
-            set;
-        } = new PrunePerformanceLog();
+        public PrunePerformanceLog PerformanceLog { get; set; } = new PrunePerformanceLog();
 
 
         public bool Enabled

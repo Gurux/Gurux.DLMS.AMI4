@@ -1,38 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @page "/triggergroups"
 
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.DLMS.AMI.Shared.DTOs.Trigger
@@ -46,74 +44,79 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.TriggerGroup)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
-            <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXHelpContext Topic="TriggerGroups" />
 
-<GXTable @ref="table"
-         Active="Active"
-         Context="group"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         Filter="@Filter"
-         ShowAllUsers="@Header"
-         ShowRemoved="@Header"
-         Columns="@Columns"
-         CanEdit="@CanEdit"
-         OnSearch="@Updated">
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="add" OnClick="@OnAdd" Policy="@GXTriggerGroupPolicies.Add" />
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXTriggerGroupPolicies.Delete" />
+    </ChildContent>
+</GXMenuControl>
+
+<GXViewTable ViewName="Trigger.TriggerGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXTriggerGroupPolicies.View })"
+             TItem="GXTriggerGroup" @ref="table"
+             @bind-Active="Active"
+             Context="group"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             ShowRemoved="@Header"
+             Columns="@Columns"
+             CanEdit="@CanEdit"
+             OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <GXFh Id="Name">
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-        </th>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="TriggerGroups-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <th>
-            <input class="form-control" placeholder="Filter by update time..."
+        </GXFh>
+        <GXFh Id="Updated">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
+        </GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="OnRemove"></ContextMenuItem>
-        </AuthorizeView>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="OnEdit" Policy="@GXTriggerGroupPolicies.Edit"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="OnRemove" Policy="@GXTriggerGroupPolicies.Delete"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <Th Name="Name" Target="@group">@Properties.Resources.Name</Th>
-        <Th Name="CreationTime" Target="@group" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Updated" Target="@group">@Properties.Resources.Updated</Th>
+        <GXTh Id="Name" Name="Name" Target="@group">@Properties.Resources.Name</GXTh>
+        <GXTh Id="CreationTime" Name="CreationTime" Target="@group" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Id="Updated" Name="Updated" Target="@group">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
     <ItemContent>
-        <Td Link="@("Config/TriggerGroup/Edit/" + group.Id)">@group.Name</Td>
-        <td>@group.CreationTime</td>
-        <td>@group.Updated</td>
+        <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath("/Config/TriggerGroup/Edit/" + group.Id)">@group.Name</GXTd>
+        <GXTd Id="CreationTime">@group.CreationTime</GXTd>
+        <GXTd Id="Updated">@group.Updated</GXTd>
     </ItemContent>
-</GXTable>
-<Confirm @ref="DeleteConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+</GXViewTable>
+
 <br />
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected trigger group ID.
     /// </summary>
@@ -127,7 +130,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.TriggerGroups;
+            return Properties.Resources.TriggerGroups;
         }
     }
 
@@ -145,7 +148,7 @@
     {
         get
         {
-            return "oi oi-tablet";
+            return "trigger-group";
         }
     }
 
@@ -190,10 +193,6 @@
     /// </summary>
     private GXTriggerGroup filter = new GXTriggerGroup();
     /// <summary>
-    /// User is verified before trigger is removed.
-    /// </summary>
-    protected ConfirmBase? DeleteConfirmation;
-    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXTriggerGroup>? table;
@@ -207,36 +206,43 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Trigger/TriggerGroups.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Trigger/TriggerGroups.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTriggerGroups);
+            NotificationService?.RemoveByKey("Pages/Trigger/TriggerGroups.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXTriggerGroup>>(this, nameof(IGXHubEvents.TriggerGroupUpdate), async (groups) =>
-            {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXTriggerGroupPolicies.Add ||
+                        it.Type == GXTriggerGroupPolicies.Edit ||
+                        it.Type == GXTriggerGroupPolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXTriggerGroup>>(this, nameof(IGXHubEvents.TriggerGroupDelete), async (groups) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (Id != null)
             {
                 //Get last selected item.
@@ -249,18 +255,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Trigger/TriggerGroups.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXTriggerGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingTriggerGroups);
         try
         {
             if (request.Removed)
@@ -290,7 +292,7 @@
             {
                 ret.Count = Count;
             }
-            return new ItemsProviderResult<GXTriggerGroup>(ret.TriggerGroups, ret.Count);
+            return new ItemsProviderResult<GXTriggerGroup>((ret.TriggerGroups ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
         catch (TaskCanceledException)
         {
@@ -299,11 +301,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -315,8 +313,8 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/TriggerGroup/Add");
+            NotificationService?.RemoveByKey("Pages/Trigger/TriggerGroups.OnAdd");
+            ClientHelpers.NavigateTo(NavigationManager, "/Config/TriggerGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -324,7 +322,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Trigger/TriggerGroups.OnAdd");
         }
     }
 
@@ -335,12 +333,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Trigger/TriggerGroups.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/TriggerGroup/Edit/" + table.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "/Config/TriggerGroup/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -348,7 +346,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Trigger/TriggerGroups.OnEdit");
         }
     }
 
@@ -356,15 +354,22 @@
     /// <summary>
     /// Remove selected trigger group.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = true,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Name).ToArray()
+                });
+            await OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -372,14 +377,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected trigger groups.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
@@ -399,13 +404,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

@@ -1,36 +1,33 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Enums
+
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -49,22 +46,24 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
 @implements IGXConfigUpdate
+
+<GXHelpContext Topic="Account" />
 
 @if (_settings != null)
 {
-    <EditForm EditContext="@Notifier.EditContext">
+    <EditForm EditContext="@MenuService.EditContext">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <label>Who can register accounts</label><br>
+                    <label>@Properties.Resources.WhoCanRegisterAccounts</label><br>
                     <InputRadioGroup @bind-Value="_settings.UserCreationType">
                         <label class="clickable-option">
                             <InputRadio Value="UserCreationType.Anyone" />Anyone
@@ -84,6 +83,15 @@
 }
 
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Parent component.
     /// </summary>
@@ -95,9 +103,9 @@
     {
         if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
         {
-            _settings = JsonSerializer.Deserialize<AccountSettings>(Parent.Active.Settings);
-            Notifier.EditContext = new EditContext(_settings);
-            Notifier.EditContext.MarkAsUnmodified();
+            _settings = JsonSerializer.Deserialize<AccountSettings>(Parent.Active.Settings) ?? new AccountSettings();
+            MenuService.EditContext = new EditContext(_settings);
+            MenuService.EditContext.MarkAsUnmodified();
         }
         InvokeAsync(StateHasChanged);
     }
@@ -106,59 +114,31 @@
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAccount);
+            NotificationService?.RemoveByKey("Pages/Config/Account.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
-            {
-                try
+                _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Account, configuration =>
                 {
-                    if (configurations != null)
-                    {
-                        foreach (var it in configurations)
-                        {
-                            if (it.Name == GXConfigurations.Account && !string.IsNullOrEmpty(it.Settings))
-                            {
-                                _settings = JsonSerializer.Deserialize<AccountSettings>(it.Settings);
-                                Notifier.EditContext = new EditContext(_settings);
-                                Notifier.EditContext.MarkAsUnmodified();
-                                InvokeAsync(StateHasChanged);
-                                break;
-                            }
-                        }
+                    if (Parent?.Active?.Id != configuration.Id) {
+                        return;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Notifier?.ProcessError(ex);
-                }
+                    Parent.Active.Settings = configuration.Settings;
+                    Update();
+                }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
             });
-            Notifier.On(this, nameof(IGXHubEvents.CronCompleate), async () =>
-            {
-                try
-                {
-                    //Get configuration data.
-                    GXConfiguration? tmp = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", Parent?.Active.Id))).Item;
-                    if (!string.IsNullOrEmpty(tmp?.Settings))
-                    {
-                        _settings = JsonSerializer.Deserialize<AccountSettings>(tmp.Settings);
-                        Notifier.EditContext = new EditContext(_settings);
-                        Notifier.EditContext.MarkAsUnmodified();
-                        StateHasChanged();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Notifier?.ProcessError(ex);
-                }
-            });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem()
+            MenuService.Clear();
+            MenuService.AddMenuItems(new GXMenuItem()
             {
                 Text = Properties.Resources.Save,
                 Icon = "Save",
@@ -166,18 +146,17 @@
                 OnClick = EventCallback.Factory.Create(this, OnSave)
             });
 
-            Notifier.AddMenuItem(new GXMenuItem()
+            MenuService.AddMenuItems(new GXMenuItem()
             {
                 Text = Properties.Resources.Cancel,
                 Icon = "Cancel",
                 OnClick = EventCallback.Factory.Create(this, OnCancel)
             });
-            Notifier.UpdateButtons();
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<AccountSettings>(Parent.Active.Settings);
-                Notifier.EditContext = new EditContext(_settings);
-                Notifier.EditContext.MarkAsUnmodified();
+                _settings = JsonSerializer.Deserialize<AccountSettings>(Parent.Active.Settings) ?? new AccountSettings();
+                MenuService.EditContext = new EditContext(_settings);
+                MenuService.EditContext.MarkAsUnmodified();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -186,11 +165,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Account.OnInitialized");
         }
     }
 
@@ -199,8 +174,8 @@
     /// </summary>
     private async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAccount);
+        NotificationService?.RemoveByKey("Pages/Config/Account.OnSave");
         try
         {
             if (Parent?.Active == null)
@@ -211,15 +186,11 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Account.OnSave");
         }
     }
 
@@ -228,11 +199,13 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _configurationRefresh.Dispose();
+        MenuService.Dispose();
+        Notifier?.RemoveListener(this);
     }
 }

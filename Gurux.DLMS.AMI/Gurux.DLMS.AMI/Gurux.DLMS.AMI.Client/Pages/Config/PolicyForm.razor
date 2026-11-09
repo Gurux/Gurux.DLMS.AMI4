@@ -1,0 +1,179 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Module
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject HttpClient Http
+@inject IGXNotificationService NotificationService
+@inject IGXAmiConfirmation Confirmation
+
+<NavigationLock ConfirmExternalNavigation="@Modified" OnBeforeInternalNavigation="BeforeNavigation" />
+@if (_active != null && _context != null)
+{
+    <AuthorizeView Policy="@(_active.Id == Guid.Empty ? GXPolicyPolicies.Add : GXPolicyPolicies.Edit)" Context="policyAuthorization">
+        <EditForm EditContext="_context" OnValidSubmit="Save" Context="policyForm">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <fieldset disabled="@Busy">
+                <label for="policy-name">@Properties.Resources.Name</label>
+                <Microsoft.AspNetCore.Components.Forms.InputText id="policy-name" class="form-control mb-2" @bind-Value="_active.Name" readonly="@(_active.Id != Guid.Empty)" />
+                <label for="policy-display-name">Display name</label>
+                <Microsoft.AspNetCore.Components.Forms.InputText id="policy-display-name" class="form-control mb-2" @bind-Value="_active.DisplayName" />
+                <label for="policy-description">@Properties.Resources.Description</label>
+                <Microsoft.AspNetCore.Components.Forms.InputTextArea id="policy-description" class="form-control mb-2" @bind-Value="_active.Description" />
+                <label><Microsoft.AspNetCore.Components.Forms.InputCheckbox @bind-Value="_active.RequireAuthenticatedUser" /> @Properties.Resources.RequireAuthenticatedUser</label>
+                <label for="policy-operator">@Properties.Resources.RequirementOperator</label>
+                <GXInputDropdown id="policy-operator" class="form-select mb-2" RememberValue="false"
+                                 Items="@(new[] { PolicyRequirementOperator.And, PolicyRequirementOperator.Or })"
+                                 Formatter="@(value => value == PolicyRequirementOperator.And ? Properties.Resources.AllRequirements : Properties.Resources.AnyRequirement)"
+                                 @bind-Value="_active.RequirementOperator" />
+                <h2>@Properties.Resources.PolicyRequirements</h2>
+                @foreach (var requirement in _active.Requirements ?? [])
+                {
+                    <div class="border rounded p-2 mb-2" @key="requirement">
+                        <label>@Properties.Resources.Type
+                            <GXInputDropdown class="form-select" RememberValue="false"
+                                             Items="@(Enum.GetValues<PolicyRequirementType>())" @bind-Value="requirement.Type" />
+                        </label>
+                        <label>@Properties.Resources.Name <Microsoft.AspNetCore.Components.Forms.InputText class="form-control" @bind-Value="requirement.Name" /></label>
+                        <label>@Properties.Resources.Value <Microsoft.AspNetCore.Components.Forms.InputText class="form-control" @bind-Value="requirement.Value" /></label>
+                        <label>Claim type <Microsoft.AspNetCore.Components.Forms.InputText class="form-control" @bind-Value="requirement.ClaimType" /></label>
+                        <label>@Properties.Resources.Description <Microsoft.AspNetCore.Components.Forms.InputText class="form-control" @bind-Value="requirement.Description" /></label>
+                        <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveRequirement(requirement)">@Properties.Resources.Remove</button>
+                    </div>
+                }
+                <button type="button" class="btn btn-outline-primary" @onclick="AddRequirement">@Properties.Resources.Add @Properties.Resources.PolicyRequirements</button>
+                <button type="submit" class="btn btn-primary" disabled="@(!Modified)">@Properties.Resources.Save</button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">@Properties.Resources.Cancel</button>
+            </fieldset>
+        </EditForm>
+    </AuthorizeView>
+}
+
+@code {
+    [Parameter] public EventCallback OnSaved { get; set; }
+    private GXPolicy? _active;
+    private EditContext? _context;
+    public bool Busy { get; private set; }
+    private bool Modified => _context?.IsModified() == true;
+
+    public async Task<bool> CanDiscard() => !Modified || (await Confirmation.ConfirmAsync(
+        Properties.Resources.UnsavedChanges, Properties.Resources.DiscardChangesQuestion,
+        new AmiConfirmationOptions { ConfirmText = Properties.Resources.DiscardChanges, AllowDelete = false })).Confirm;
+
+    public async Task Open(GXPolicy policy)
+    {
+        if (Busy || policy.SystemDefined || !await CanDiscard())
+        {
+            return;
+        }
+        _active = System.Text.Json.JsonSerializer.Deserialize<GXPolicy>(System.Text.Json.JsonSerializer.Serialize(policy))!;
+        _context = new EditContext(_active);
+        StateHasChanged();
+    }
+
+    public void Clear()
+    {
+        _context?.MarkAsUnmodified();
+        _active = null;
+        _context = null;
+        StateHasChanged();
+    }
+
+    private async Task BeforeNavigation(LocationChangingContext context)
+    {
+        if (Busy || !await CanDiscard())
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    private async Task Cancel()
+    {
+        if (!Busy && await CanDiscard())
+        {
+            Clear();
+        }
+    }
+
+    private void AddRequirement()
+    {
+        if (Busy || _active == null)
+        {
+            return;
+        }
+        (_active.Requirements ??= []).Add(new GXPolicyRequirement());
+        RequirementsChanged();
+    }
+
+    private void RemoveRequirement(GXPolicyRequirement requirement)
+    {
+        if (Busy || _active == null)
+        {
+            return;
+        }
+        _active.Requirements?.Remove(requirement);
+        RequirementsChanged();
+    }
+
+    private void RequirementsChanged() => _context?.NotifyFieldChanged(new FieldIdentifier(_active!, nameof(GXPolicy.Requirements)));
+
+    private async Task Save()
+    {
+        if (Busy || !Modified || _active == null || _active.SystemDefined)
+        {
+            return;
+        }
+        Busy = true;
+        try
+        {
+            await Http.PostAsJson<UpdatePolicyResponse>(_active.Id == Guid.Empty ? "api/Policy/Add" : "api/Policy/Update", new UpdatePolicy { Policys = [_active] });
+            Clear();
+            await OnSaved.InvokeAsync();
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            ex.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ReportError(ex, "Pages/Config/PolicyForm.Save");
+        }
+        finally
+        {
+            Busy = false;
+        }
+    }
+}
+
+

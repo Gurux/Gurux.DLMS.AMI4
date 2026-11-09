@@ -1,308 +1,261 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Data;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
+using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Server.Midlewares;
+using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
+using Gurux.Service.Orm.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Server.Internal;
-using System.Linq.Expressions;
-using System.Text.Json;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Immutable;
 using System.Data;
-using Gurux.DLMS.AMI.Data;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <inheritdoc />
-    public class UserRepository : IUserRepository
+    public partial class UserRepository : IUserRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserGroupRepository _userGroupRepository;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly NotificationCache _notificationCache;
         private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public UserRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+        public UserRepository(IDbConnectionFactory dbFactory,
+            IServiceProvider serviceProvider,
+            IAuthorizationService authorizationService,
+            IHttpContextAccessor httpContextAccessor,
             IUserGroupRepository userGroupRepository,
             UserManager<ApplicationUser> userManager,
-            IGXEventsNotifier eventsNotifier,
-            IServiceProvider serviceProvider)
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
+            if (httpContextAccessor.HttpContext?.User == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            else
+            {
+                User = httpContextAccessor.HttpContext.User;
+            }
+            _dbFactory = dbFactory;
             _userManager = userManager;
-            _eventsNotifier = eventsNotifier;
             _userGroupRepository = userGroupRepository;
+            _authorizationService = authorizationService;
+            _notificationCache = notificationCache;
             _serviceProvider = serviceProvider;
         }
 
 
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXUser), id, action, GXUserPolicies.View, connection, transaction, notifications: _notificationCache);
+
         /// <inheritdoc />
         public async Task<List<string>> GetUserIdsInRoleAsync(IEnumerable<string> roles)
         {
-            List<string> list = new List<string>();
+            ArgumentNullException.ThrowIfNull(roles);
             //Check that user can access this role.
-            if (User != null)
+            bool isAdmin = User.IsInRole(GXRoles.Admin);
+            var list = roles.Where(role => !string.IsNullOrWhiteSpace(role) &&
+                    (isAdmin || User.Identities.Any(identity => identity.FindAll(identity.RoleClaimType)
+                        .Any(claim => string.Equals(claim.Value, role, StringComparison.OrdinalIgnoreCase)))))
+                .Select(role => role.ToUpperInvariant()).Distinct(StringComparer.Ordinal).ToArray();
+            if (list.Length == 0)
             {
-                bool isAdmin = User.IsInRole(GXRoles.Admin);
-                foreach (var role in roles)
-                {
-                    if (isAdmin || User.IsInRole(role))
-                    {
-                        list.Add(role);
-                    }
-                }
-                GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id, where => where.Removed == null);
-                args.Joins.AddInnerJoin<GXUser, GXUserRole>(j => j.Id, j => j.UserId);
-                args.Joins.AddInnerJoin<GXUserRole, GXRole>(j => j.RoleId, j => j.Id);
-                args.Where.And<GXRole>(where => list.Contains(where.Name));
-                return (await _host.Connection.SelectAsync<GXUser>(args)).Select(s => s.Id).ToList();
+                //If user is not any of the roles, return empty list.
+                return [];
             }
-            return list;
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id!, where => where.Removed == null);
+            args.Joins.AddInnerJoin<GXUser, GXUserRole>(j => j.Id!, j => j.UserId!);
+            args.Joins.AddInnerJoin<GXUserRole, GXRole>(j => j.RoleId!, j => j.Id);
+            args.Where.And<GXRole>(where => where.Removed == null && list.Contains(where.NormalizedName!));
+            args.Distinct = true;
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            return [.. (await connection.SelectAsync<GXUser>(args)).Select(s => s.Id!)];
         }
 
         /// <summary>
         /// Return user roles.
         /// </summary>
+        /// <param name="connection">Database connection.</param>
         /// <param name="userId">User ID.</param>
-        /// <param name="admin">Is user admin.</param>
         /// <returns>Available user roles.</returns>
-        private async Task<List<string>> GetUserRoleNamesAsync(string userId, bool admin)
+        private static async Task<List<string>> GetUserRoleNamesAsync(GXDbConnection connection, string userId)
         {
-            GXSelectArgs arg = GXSelectArgs.Select<GXRole>(s => s.Name);
-            if (!admin)
-            {
-                arg.Joins.AddInnerJoin<GXRole, GXUserRole>(j => j.Id, j => j.RoleId);
-                arg.Where.And<GXUserRole>(w => w.UserId == userId);
-            }
-            return await _host.Connection.SelectAsync<string>(arg);
+            var arg = GXSelectArgs.Select<GXRole>(s => s.Name!, r => r.Removed == null);
+            arg.Joins.AddInnerJoin<GXRole, GXUserRole>(j => j.Id, j => j.RoleId!);
+            arg.Where.And<GXUserRole>(w => w.UserId == userId);
+            return await connection.SelectAsync<string>(arg);
         }
-
-        /// <summary>
-        /// Return user scopes.
-        /// </summary>
-        /// <param name="userId">User ID.</param>
-        /// <param name="admin">Is user admin.</param>
-        /// <returns>Available user scopes.</returns>
-        private async Task<List<string>> GetUserScopeNamesAsync(string userId, bool admin)
-        {
-            GXSelectArgs arg = GXSelectArgs.Select<GXRole>(s => new { s.Id, s.Name });
-            arg.Joins.AddInnerJoin<GXRole, GXScope>(j => j.Id, j => j.Role);
-            arg.Columns.Add<GXScope>(s => new { s.Id, s.Name, s.Role });
-            if (!admin)
-            {
-                arg.Joins.AddInnerJoin<GXScope, GXUserScope>(j => j.Id, j => j.ScopeId);
-                arg.Where.Or<GXUserScope>(w => w.UserId == userId);
-            }
-            var roles = await _host.Connection.SelectAsync<GXRole>(arg);
-            List<string> scopes = new List<string>();
-            foreach (var role in roles)
-            {
-                scopes.AddRange(role.GetScopes());
-            }
-            return scopes;
-        }
-
-        /// <summary>
-        /// Return roles and scopes that user can access.
-        /// </summary>
-        /// <param name="userId">User ID.</param>
-        /// <param name="isAdmin">Is user admin.</param>
-        /// <returns>Available user roles and scopes.</returns>
-        private async Task<List<GXRole>> GetUserRolesAndScopesAsync(string userId, bool isAdmin)
-        {
-            GXSelectArgs arg;
-            if (!isAdmin)
-            {
-                //Get scopes.
-                arg = GXSelectArgs.Select<GXRole>(s => new { s.Id, s.Name });
-                arg.Columns.Add<GXScope>(s => new { s.Id, s.Name, s.Role });
-                arg.Joins.AddLeftJoin<GXRole, GXScope>(j => j.Id, j => j.Role);
-                arg.Joins.AddInnerJoin<GXScope, GXUserScope>(j => j.Id, j => j.ScopeId);
-                arg.Where.Or<GXUserScope>(w => w.UserId == userId);
-                List<GXRole> list = await _host.Connection.SelectAsync<GXRole>(arg);
-                //Get roles.
-                arg = GXSelectArgs.Select<GXRole>(s => new { s.Id, s.Name });
-                if (!isAdmin)
-                {
-                    arg.Joins.AddInnerJoin<GXRole, GXUserRole>(j => j.Id, j => j.RoleId);
-                    arg.Where.And<GXUserRole>(w => w.UserId == userId);
-                }
-                list.AddRange(await _host.Connection.SelectAsync<GXRole>(arg));
-                return list;
-            }
-            arg = GXSelectArgs.Select<GXRole>(s => new { s.Id, s.Name });
-            arg.Columns.Add<GXScope>(s => new { s.Id, s.Name, s.Role });
-            arg.Joins.AddLeftJoin<GXRole, GXScope>(j => j.Id, j => j.Role);
-            return await _host.Connection.SelectAsync<GXRole>(arg);
-        }
-
-        /// <summary>
-        /// Return users who can access the user.
-        /// </summary>
-        /// <param name="userId"></param>
-        /// <returns></returns>
-        /// <remarks>
-        /// Manager and user must be on the same user group to allow access.
-        /// </remarks>
-        List<string> GetUsersAsync(string userId)
-        {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.User) &&
-                !User.IsInRole(GXRoles.UserManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
-            string creatorId = ServerHelpers.GetUserId(User);
-            GXSelectArgs args;
-            //Check that user belongs for the same group as the manager
-            string[] roles = [GXRoles.Admin, GXRoles.UserManager];
-            if (!isAdmin)
-            {
-                //Get all user groups where user belongs.
-                args = GXSelectArgs.Select<GXUserGroupUser>(s => s.UserGroupId, where => where.UserId == creatorId);
-                List<Guid> groups = _host.Connection.Select<GXUserGroupUser>(args).Select(s => s.UserGroupId).ToList();
-                args = GXSelectArgs.Select<GXUser>(s => s.Id, s => s.Id == userId);
-                args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-                args.Where.And<GXUserGroupUser>(where => groups.Contains(where.UserGroupId));
-                List<GXUser> users = _host.Connection.Select<GXUser>(args);
-                if (!users.Any())
-                {
-                    return new List<string>();
-                }
-            }
-            //Return all manager or admin users that belong to the same group to notification them.
-            args = GXSelectArgs.Select<GXUser>(s => s.Id);
-            args.Joins.AddInnerJoin<GXUser, GXUserRole>(a => a.Id, b => b.UserId);
-            args.Joins.AddInnerJoin<GXUserRole, GXRole>(a => a.RoleId, b => b.Id);
-            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-            if (!isAdmin)
-            {
-                args.Where.And<GXRole>(where => roles.Contains(where.Name));
-            }
-            args.Where.And<GXUserGroupUser>(where => where.UserId == userId);
-            List<string> list = _host.Connection.Select<GXUser>(args).Select(s => s.Id).ToList();
-            //Notification admin also even not in the user group.
-            if (isAdmin)
-            {
-                list.Add(creatorId);
-            }
-            return list;
-        }
-
         /// <inheritdoc />
         public async Task DeleteAsync(
             IEnumerable<string> users,
-            bool delete)
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.UserManager)))
+            users = users.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXUser, string>(_dbFactory, User, _serviceProvider, users,
+        async () =>
+        {
+            var userIds = users.Distinct(StringComparer.Ordinal).ToArray();
+            userIds.ValidateIds();
+            Dictionary<GXUser, List<string>> updates;
+            List<string> imageKeys;
+            for (int attempt = 0; ; ++attempt)
             {
-                throw new UnauthorizedAccessException();
+                try
+                {
+                    (updates, imageKeys) = await DeleteUsersAttemptAsync(userIds, delete, notify, cancellationToken);
+                    break;
+                }
+                catch (GXDatabaseException error) when (attempt < 2 && error.ErrorType == Gurux.Service.Orm.Enums.DatabaseErrorType.Deadlock)
+                {
+                    // The attempt has rolled back and disposed its connection.
+                    // Retry authorization, ownership reads and cleanup together.
+                    await Task.Delay(TimeSpan.FromMilliseconds(25 * (attempt + 1)), cancellationToken);
+                }
             }
-            if (!users.Any())
+            if (imageKeys.Count != 0)
             {
-                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                var imageStorage = _serviceProvider.GetRequiredService<Gurux.DLMS.AMI.Server.Services.GXImageStorage>();
+                foreach (var key in imageKeys)
+                {
+                    imageStorage.Delete(key);
+                }
             }
-            Dictionary<string, List<string>> updates = new Dictionary<string, List<string>>();
-            foreach (string it in users)
+            foreach (var update in updates)
             {
-                if (it == ServerHelpers.GetUserId(User))
+                _notificationCache.Add(update.Value,
+                    new GXTarget(GXUserPolicies.Delete, update.Key.Id, update.Key.UserName));
+            }
+        }, cancellationToken);
+        }
+
+        private async Task<(Dictionary<GXUser, List<string>> Updates, List<string> ImageKeys)> DeleteUsersAttemptAsync(
+            string[] userIds, bool delete, bool notify, CancellationToken cancellationToken)
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.Delete);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            var updates = new Dictionary<GXUser, List<string>>();
+            var imageKeys = new List<string>();
+            try
+            {
+                GXSelectArgs query;
+                if (User.IsInRole(GXRoles.Admin))
+                {
+                    query = GXSelectArgs.Select<GXUser>(u => new { u.Id, u.UserName, u.Email }, u => userIds.Contains(u.Id!));
+                }
+                else
+                {
+                    query = GXQuery.GetUsersByUser(u => new { u.Id, u.UserName, u.Email },
+                        ServerHelpers.GetUserId(User), DateTimeOffset.MinValue, null, userIds);
+                }
+                var exists = await connection.SelectAsync<GXUser>(transaction, query, cancellationToken);
+                if (exists.Count != userIds.Length)
+                {
+                    throw new GXAmiForbiddenException(string.Join(", ", userIds));
+                }
+                if (exists.Any(u => u.Id == ServerHelpers.GetUserId(User)))
                 {
                     throw new ArgumentException(Properties.Resources.YouCanRemoveYourself);
                 }
-                List<string> list = GetUsersAsync(it);
-                if (list == null || list.Count == 0)
+                foreach (var user in exists)
                 {
-                    throw new UnauthorizedAccessException("Invalid user ID.");
-                }
-                updates[it] = list;
-            }
-            if (delete)
-            {
-                GXDeleteArgs del = GXDeleteArgs.Delete<GXUser>(w => users.Contains(w.Id));
-                await _host.Connection.DeleteAsync(del);
-            }
-            else
-            {
-                //Set removed time for all the removed users.
-                GXUser u = new GXUser() { Removed = DateTime.Now };
-                GXUpdateArgs update = GXUpdateArgs.Update(u, q => q.Removed);
-                update.Where.And<GXUser>(q => users.Contains(q.Id));
-                _host.Connection.Update(update);
-            }
-            GXPerformanceSettings? performanceSettings = _serviceProvider.GetService<GXPerformanceSettings>();
-            if (performanceSettings != null)
-            {
-                foreach (var it in updates)
-                {
-                    var users2 = NotificationRepository.GetNotifiedUsers(_host.Connection, performanceSettings,
-                        it.Value, TargetType.User, NotificationAction.Remove);
-                    if (users2 == null)
+                    if (notify)
                     {
-                        break;
+                        updates[user] = await GetNotifiedUsers(user.Id!, NotificationAction.Remove, connection, transaction);
                     }
-                    await _eventsNotifier.UserDelete(users2, [new GXUser() { Id = it.Key }]);
                 }
+                if (delete)
+                {
+                    await LockUsersForDeletionAsync(connection, transaction, userIds, cancellationToken);
+                    var deletedUsers = GXSelectArgs.Select<GXUser>(u => u.Id!, u => userIds.Contains(u.Id!));
+                    var images = await connection.SelectAsync<GXAppearance>(transaction,
+                        GXSelectArgs.Select<GXAppearance>(a => a.StorageKey!,
+                            a => GXSql.Exists<GXAppearance, GXUser>(a => a.Creator!, u => u.Id!, deletedUsers)), cancellationToken);
+                    imageKeys.AddRange(images.Select(a => a.StorageKey).OfType<string>().Where(k => k.Length != 0).Distinct(StringComparer.Ordinal));
+                    await DeleteNonCascadingUserDataAsync(connection, transaction, userIds, cancellationToken);
+                    await connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(exists), cancellationToken);
+                }
+                else
+                {
+                    var removed = DateTimeOffset.UtcNow;
+                    foreach (var user in exists)
+                    {
+                        user.Removed = removed;
+                        await connection.UpdateAsync(transaction, GXUpdateArgs.Update(user, u => u.Removed!), cancellationToken);
+                    }
+                }
+                await transaction.CommitAsync(cancellationToken);
             }
+            catch
+            {
+                if (transaction.Connection != null)
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                throw;
+            }
+            return (updates, imageKeys);
         }
 
         /// <inheritdoc />
-        public async Task<GXUser[]> ListAsync(
+        public async Task<IEnumerable<GXUser>> ListAsync(
             ListUsers? request,
             ListUsersResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.User) &&
-                !User.IsInRole(GXRoles.UserManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
             string userId = ServerHelpers.GetUserId(User);
             bool isAdmin = User.IsInRole(GXRoles.Admin);
             GXSelectArgs arg;
@@ -312,13 +265,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Admin can see all the users.
                 arg = GXSelectArgs.SelectAll<GXUser>();
                 //Get user groups where user belongs.
-                arg.Joins.AddLeftJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+                arg.Joins.AddLeftJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
                 arg.Joins.AddLeftJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
                 arg.Where.And<GXUserGroup>(q => q.Removed == null);
             }
             else
             {
-                arg = GXQuery.GetUsersByUser(s => "*", userId);
+                arg = GXQuery.GetUsersByUser(s => "*", userId,
+                    request?.Filter?.Removed, request?.Exclude, request?.Included);
             }
             arg.Columns.Exclude<GXUser>(e => new
             {
@@ -347,40 +301,46 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXUser>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXUser>(w => request.Included.Contains(w.Id));
                 }
             }
             if (request != null && request.Filter != null && request.Filter.Roles != null && request.Filter.Roles.Count != 0)
             {
-                arg.Where.And<GXRole>(q => request.Filter.Roles.Contains(q.Name));
+                arg.Where.And<GXRole>(q => request.Filter.Roles.Contains(q.Name!));
             }
+            GXDateTimeFilters.Apply<GXUser>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXUser>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXUser>(q => GXSql.Count(1));
                 total.Distinct = true;
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
-            GXUser[] users = (await _host.Connection.SelectAsync<GXUser>(arg)).ToArray();
+            GXUser[] users = [.. (await connection.SelectAsync<GXUser>(arg))];
             //Roles must retrieve separetly because only role and scope names are shown for security reasons.
             foreach (GXUser it in users)
             {
-                bool admin = it.Roles?.Contains(GXRoles.Admin) == true;
-                it.Roles = await GetUserRoleNamesAsync(it.Id, admin);
-                it.Scopes = await GetUserScopeNamesAsync(it.Id, admin);
+                it.Roles = await GetUserRoleNamesAsync(connection, it.Id!);
+                it.Permissions = await UserPermissions.ReadDirectAsync(connection, it.Id!);
             }
             if (response != null)
             {
@@ -394,83 +354,94 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXUser> ReadAsync(string? id)
+        public async Task<GXUser> ReadAsync(string? id, Expression<Func<GXUser, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.User) &&
-                !User.IsInRole(GXRoles.UserManager)))
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
-            if (string.IsNullOrEmpty(id))
-            {
-                //Returns information for the current user.
-                id = ServerHelpers.GetUserId(User);
-            }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXUser>(q => q.Id == id);
-            //Get user groups where user belongs.
-            arg.Columns.Add<GXUserGroup>();
-            arg.Distinct = true;
-            //Users are ignored from the user group
-            //so there is no reference relation that is causing problems with JSON parser.
-            arg.Columns.Exclude<GXUserGroup>(e => new { e.Users, e.Creator });
-            //Get user groups where user belongs.
-            arg.Joins.AddLeftJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
-            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-            arg.Where.And<GXUserGroup>(q => q.Removed == null);
-            if (!isAdmin)
-            {
-                //Get only users that are in the same user groups than the user.
-                arg.Where.And<GXUserGroupUser>(q => q.UserId == id);
-            }
-            arg.OrderBy.Add<GXUser>(q => q.CreationTime);
-            arg.Columns.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp });
-            if (!isAdmin)
-            {
-                //Only admin can see removed users.
-                arg.Where.And<GXUser>(q => q.Removed == null);
-            }
 
-            GXUser ret = (await _host.Connection.SingleOrDefaultAsync<GXUser>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
+                bool isAdmin = User.IsInRole(GXRoles.Admin);
+                if (string.IsNullOrEmpty(id))
+                {
+                    //Returns information for the current user.
+                    id = ServerHelpers.GetUserId(User);
+                }
+                GXSelectArgs arg = GXSelectArgs.SelectAll<GXUser>(q => q.Id == id);
+                arg.Joins.AddLeftJoin<GXUser, GXAppearance>(u => u.ProfilePicture!, a => a.Id);
+                arg.Columns.Add<GXAppearance>(a => a.Id);
+                arg.Distinct = true;
+                if (!isAdmin)
+                {
+                    //Get only users that are in the same user groups than the user.
+                    string callerId = ServerHelpers.GetUserId(User);
+                    arg.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id!, b => b.UserId!);
+                    arg.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+                    arg.Where.And<GXUserGroup>(q => q.Removed == null);
+                    var memberships = GXSelectArgs.Select<GXUserGroupUser>(q => GXSql.One,
+                        q => q.UserId == callerId && q.Removed == null);
+                    arg.Where.And<GXUserGroupUser>(q => q.Removed == null);
+                    arg.Where.And<GXUserGroup>(q => GXSql.Exists<GXUserGroup, GXUserGroupUser>(
+                        group => group.Id, membership => membership.UserGroupId, memberships));
+                }
+                arg.OrderBy.Add<GXUser>(q => q.CreationTime);
+                arg.Columns.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp });
+                if (!isAdmin)
+                {
+                    //Only admin can see removed users.
+                    arg.Where.And<GXUser>(q => q.Removed == null);
+                }
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                GXUser? ret = (await connection.SingleOrDefaultAsync<GXUser>(arg)) ?? throw new GXAmiForbiddenException(id.ToString());
+                // Collection joins do not hydrate GXUser.UserGroups. Read active memberships
+                // explicitly, with the same shared-group restriction as the user lookup.
+                var groups = GXSelectArgs.SelectAll<GXUserGroup>(g => g.Removed == null);
+                groups.Distinct = true;
+                groups.Columns.Exclude<GXUserGroup>(g => new { g.Users, g.Creator });
+                groups.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(g => g.Id, membership => membership.UserGroupId);
+                groups.Where.And<GXUserGroupUser>(membership => membership.UserId == id && membership.Removed == null);
+                if (!isAdmin)
+                {
+                    string callerId = ServerHelpers.GetUserId(User);
+                    var memberships = GXSelectArgs.Select<GXUserGroupUser>(m => GXSql.One,
+                        m => m.UserId == callerId && m.Removed == null);
+                    groups.Where.And<GXUserGroup>(g => GXSql.Exists<GXUserGroup, GXUserGroupUser>(
+                        group => group.Id, membership => membership.UserGroupId, memberships));
+                }
+                ret.UserGroups = await connection.SelectAsync<GXUserGroup>(groups);
+                //Roles must retrieve separetly because only role and scope names are shown for security reasons.
+                ret.Roles = await GetUserRoleNamesAsync(connection, id);
+                ret.Permissions = await UserPermissions.ReadDirectAsync(connection, id);
+                //Read user settings.
+                arg = GXSelectArgs.SelectAll<GXUserProperty>(q => q.User == ret && q.Module == null);
+                arg.Distinct = true;
+                ret.Properties = await connection.SelectAsync<GXUserProperty>(arg);
+                ret.Properties ??= [];
+                return ret;
+
             }
-            //Roles must retrieve separetly because only role and scope names are shown for security reasons.
-            bool admin = ret.Roles?.Contains(GXRoles.Admin) == true;
-            ret.Roles = await GetUserRoleNamesAsync(id, admin);
-            ret.Scopes = await GetUserScopeNamesAsync(id, admin);
-            //Read user settings.
-            arg = GXSelectArgs.SelectAll<GXUserSetting>(q => q.User == ret);
-            arg.Distinct = true;
-            ret.Settings = await _host.Connection.SelectAsync<GXUserSetting>(arg);
-            if (ret.Settings == null)
+            catch (GXDatabaseException ex)
             {
-                ret.Settings = new List<GXUserSetting>();
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await ReadAsync(id, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
-            //Read rows per page from the system settings.
-            GXConfiguration conf = _host.Connection.SingleOrDefault<GXConfiguration>(GXSelectArgs.SelectAll<GXConfiguration>(w => w.Name == GXConfigurations.System));
-            SystemSettings? settings = null;
-            if (conf != null && !string.IsNullOrEmpty(conf.Settings))
-            {
-                settings = JsonSerializer.Deserialize<SystemSettings>(conf.Settings);
-            }
-            if (settings == null)
-            {
-                settings = new SystemSettings();
-            }
-            SystemSettings s = new SystemSettings()
-            {
-                RowsPerPage = settings.RowsPerPage
-            };
-            ret.Settings.Add(new GXUserSetting()
-            {
-                Name = GXConfigurations.System,
-                Value = JsonSerializer.Serialize(s)
-            });
-            return ret;
         }
 
         /// <summary>
@@ -481,14 +452,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="email">User email address.</param>
         /// <param name="password">User password.</param>
         /// <param name="roles">User roles.</param>
-        /// <param name="scopes">User scopes.</param>
+        /// <param name="permissions">Direct user permissions.</param>
         private async Task<string> AddUser(
             string? givenName,
             string? surname,
             string email,
             string? password,
             List<string>? roles,
-            List<string>? scopes)
+            List<string>? permissions)
         {
             ApplicationUser? user = await _userManager.FindByNameAsync(email);
             if (user == default)
@@ -503,43 +474,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = DateTime.Now,
                     EmailConfirmed = false
                 };
-                IdentityResult ret;
-                if (string.IsNullOrEmpty(password))
-                {
-                    ret = await _userManager.CreateAsync(newAppUser);
-                }
-                else
-                {
-                    ret = await _userManager.CreateAsync(newAppUser, password);
-                }
+                IdentityResult ret = await ((GXApplicationUserManager)_userManager)
+                    .CreateAsync(newAppUser, password, roles, permissions);
                 if (!ret.Succeeded)
                 {
-                    throw new Exception("Failed to create a new user." + Environment.NewLine +
-                        string.Join(Environment.NewLine, ret.Errors.Select(q => q.Description)));
-                }
-                if (roles?.Any() == true)
-                {
-                    ret = await _userManager.AddToRolesAsync(newAppUser, roles);
-                    if (!ret.Succeeded)
+                    if (ret.Errors != null && ret.Errors.Any())
                     {
-                        throw new Exception("Failed to add role for the new user." + Environment.NewLine +
-                            string.Join(Environment.NewLine, ret.Errors.Select(q => q.Description)));
+                        throw new ArgumentException(ret.Errors.First().Description);
                     }
-                }
-                if (scopes?.Any() == true)
-                {
-                    List<Claim> claims = new List<Claim>();
-                    foreach (var it in scopes)
-                    {
-                        claims.Add(new Claim("scope", it));
-                    }
-                    await _userManager.AddClaimsAsync(user, claims);
-                }
-
-                List<string> list = GetUsersAsync(newAppUser.Id);
-                if (list == null || list.Count == 0)
-                {
-                    throw new UnauthorizedAccessException("Invalid user ID.");
+                    throw new ArgumentException("Failed to create a new user.");
                 }
                 return newAppUser.Id;
             }
@@ -547,202 +490,253 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<string[]> UpdateAsync(
+        public async Task<IEnumerable<string>> UpsertAsync(
             IEnumerable<GXUser> users,
-            Expression<Func<GXUser, object?>>? columns)
+            Expression<Func<GXUser, object>>? columns, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.User) &&
-                !User.IsInRole(GXRoles.UserManager)))
+            users = users.ToArray();
+            return await GXHistoryMutation.RunAsync<GXUser, IEnumerable<string>>(_dbFactory, User, _serviceProvider, users,
+        async () =>
+        {
+            try
             {
-                throw new UnauthorizedAccessException();
-            }
-            string creatorId = ServerHelpers.GetUserId(User);
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
-            DateTime now = DateTime.Now;
-            Dictionary<GXUser, List<string>> updates = new Dictionary<GXUser, List<string>>();
-            List<string> list = new List<string>();
-            List<GXUserGroup>? defaultGroups = null;
-            //Get list from roles that creator can access.
-            List<GXRole> available = await GetUserRolesAndScopesAsync(creatorId, isAdmin);
-            foreach (GXUser user in users)
-            {
-                //Get roles and scopes that user can access.
-                GXRole[] roles = GXRole.GetRoles(available, user.Roles, false, true);
-                GXScope[] scopes = GXRole.GetScopes(available, user.Scopes, true);
-                if (string.IsNullOrEmpty(user.Email))
+
+                await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.Add, GXUserPolicies.Edit);
+                string creatorId = ServerHelpers.GetUserId(User);
+                bool isAdmin = User.IsInRole(GXRoles.Admin);
+                DateTime now = DateTime.Now;
+                List<string> list = [];
+                List<GXUserGroup>? defaultGroups = null;
+                //Get list from roles that creator can access.
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                foreach (GXUser user in users)
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidEmailAddress);
-                }
-                if (user.Roles?.Any() != true && user.Scopes?.Any() != true)
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidUserRoleAtLeastOneRoleMustBeSelected);
-                }
-                //Remove all other roles when user is admin.
-                if (user.Roles?.Any(s => string.Equals(s, GXRoles.Admin, StringComparison.OrdinalIgnoreCase)) == true)
-                {
-                    user.Roles.Clear();
-                    user.Scopes?.Clear();
-                    user.Roles.Add(GXRoles.Admin);
-                }
-                user.NormalizedEmail = user.Email.ToUpper();
-                if (string.IsNullOrEmpty(user.Id))
-                {
-                    if (user.UserGroups == null || !user.UserGroups.Any())
+                    if (string.IsNullOrEmpty(user.Id) || columns == null || ServerHelpers.Contains(columns, nameof(GXUser.ProfilePicture)))
                     {
-                        if (defaultGroups == null)
-                        {
-                            //Get default user groups.
-                            ListUserGroups request = new ListUserGroups()
-                            {
-                                Filter = new GXUserGroup() { Default = true }
-                            };
-                            defaultGroups = [.. await _userGroupRepository.ListAsync(request, null, CancellationToken.None)];
-                        }
-                        user.UserGroups = [.. defaultGroups];
-                        if (!user.UserGroups.Any())
-                        {
-                            throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
-                        }
+                        await Gurux.DLMS.AMI.Server.Services.GXProfilePictures.ValidateAsync(connection, _authorizationService, User, user.ProfilePicture?.Id, cancellationToken);
                     }
-                    //Check that user email is not added yet.
-                    GXSelectArgs total = GXSelectArgs.Select<GXUser>(q => GXSql.Count(q));
-                    total.Where.And<GXUser>(q => q.NormalizedEmail.Contains(user.Email));
-                    if (await _host.Connection.SingleOrDefaultAsync<int>(total) != 0)
+                    if (string.IsNullOrEmpty(user.Email))
                     {
-                        throw new ArgumentException(string.Format("Email address '{0}' already in use.", user.Email));
+                        throw new ArgumentException(Properties.Resources.InvalidEmailAddress);
                     }
-                    user.Id = await AddUser(user.GivenName, user.Surname, user.Email, user.Password, user.Roles, user.Scopes);
-                    list.Add(user.Id);
-                    //Add default user groups.
-                    List<GXUserGroupUser> tmp = new List<GXUserGroupUser>();
-                    //Insert new user groups that are not in the DB.
-                    foreach (var it in user.UserGroups)
+                    if (user.Permissions != null)
                     {
-                        tmp.Add(new GXUserGroupUser() { UserId = user.Id, UserGroupId = it.Id });
-                    }
-                    GXInsertArgs args = GXInsertArgs.InsertRange(tmp);
-                    _host.Connection.Insert(args);
-                }
-                else
-                {
-                    if (user.UserGroups == null || !user.UserGroups.Any())
-                    {
-                        throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
-                    }
-                    GXSelectArgs m = GXSelectArgs.Select<GXUser>(q => q.ConcurrencyStamp, where => where.Id == user.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
-                    if (!string.IsNullOrEmpty(updated) && updated != user.ConcurrencyStamp)
-                    {
-                        throw new ArgumentException(Properties.Resources.ContentEdited);
+                        await UserPermissions.ValidateAsync(connection, user.Permissions);
                     }
 
-                    GXUser tmpUser = GetUser(user.Id);
-                    if (user.Email.CompareTo(tmpUser.Email) != 0)
+                    if (user.Roles != null)
                     {
-                        tmpUser.UserName = tmpUser.Email = user.Email;
-                        tmpUser.NormalizedUserName = tmpUser.NormalizedEmail = user.Email.ToUpper();
-                    }
-                    var roleComparer = new UniqueComparer<GXRole, Guid>();
-                    var scopeComparer = new UniqueComparer<GXScope, Guid>();
-                    //Get current roles and scopes.
-                    List<GXRole> current = await GetUserRolesAndScopesAsync(user.Id, false);
-                    var existingScopes = current.SelectMany(s => s.Scopes ?? Enumerable.Empty<GXScope>()).ToArray();
-                    var scopeRoles = existingScopes.Select(s => s.Role).Cast<GXRole>().ToArray();
-                    //Get roles that are not part of scopes.
-                    current = current.Except(scopeRoles).ToList();
-                    //GXRole[] current2 = current.Where(w => w.Scopes?.Any() != true).ToArray();
-                    List<GXRole> addedRoles = roles.Except(current, roleComparer).ToList();
-                    List<GXRole> removedRoles = current.Except(roles, roleComparer).ToList();
-                    List<GXScope> removedScopes = existingScopes.Except(scopes, scopeComparer).ToList();
-                    List<GXScope> addedScopes = scopes.Except(existingScopes, scopeComparer).ToList();
-                    if (removedRoles.Any())
-                    {
-                        var ids = removedRoles.Select(w => w.Id).ToArray();
-                        GXDeleteArgs del = GXDeleteArgs.Delete<GXUserRole>(w => ids.Contains(w.RoleId));
-                        await _host.Connection.DeleteAsync(del);
-                    }
-                    if (addedRoles.Any())
-                    {
-                        var tmp = new List<GXUserRole>();
-                        foreach (var r in addedRoles)
+                        foreach (var role in user.Roles)
                         {
-                            tmp.Add(new GXUserRole()
+                            var normalized = role.ToUpperInvariant();
+                            var assignedRole = await connection.SingleOrDefaultAsync<GXRole>(GXSelectArgs.SelectAll<GXRole>(r => r.NormalizedName == normalized && r.Removed == null)) ?? throw new ArgumentException($"Role '{role}' not found.");
+                        }
+                    }
+                    user.NormalizedEmail = user.Email.ToUpper();
+                    if (string.IsNullOrEmpty(user.Id))
+                    {
+                        var registration = await Gurux.DLMS.AMI.Server.Services.GXAccountRegistrationPolicy.ReadAsync(connection, cancellationToken);
+                        if (!registration.CanCreate(User))
+                        {
+                            throw new GXAmiForbiddenException(Properties.Resources.RegistrationDisabled);
+                        }
+                        if (user.UserGroups == null || user.UserGroups.Count == 0)
+                        {
+                            if (defaultGroups == null)
                             {
-                                UserId = user.Id,
-                                RoleId = r.Id,
-                            });
-                        }
-                        GXInsertArgs insert = GXInsertArgs.InsertRange(tmp);
-                        await _host.Connection.InsertAsync(insert);
-                    }
-                    if (removedScopes.Any())
-                    {
-                        var ids = removedScopes.Select(w => w.Id).Cast<Guid?>().ToArray();
-                        GXDeleteArgs del = GXDeleteArgs.Delete<GXUserScope>(w => ids.Contains(w.ScopeId));
-                        await _host.Connection.DeleteAsync(del);
-                    }
-                    if (addedScopes.Any())
-                    {
-                        var tmp = new List<GXUserScope>();
-                        foreach (var s in addedScopes)
-                        {
-                            tmp.Add(new GXUserScope()
+                                //Get default user groups.
+                                ListUserGroups request = new()
+                                {
+                                    Filter = new GXUserGroup() { Default = true }
+                                };
+                                defaultGroups = [.. await _userGroupRepository.ListAsync(request, cancellationToken: cancellationToken)];
+                            }
+                            user.UserGroups = [.. defaultGroups];
+                            if (user.UserGroups.Count == 0)
                             {
-                                UserId = user.Id,
-                                ScopeId = s.Id,
-                            });
+                                throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
+                            }
                         }
-                        GXInsertArgs insert = GXInsertArgs.InsertRange(tmp);
-                        await _host.Connection.InsertAsync(insert);
-                    }
-                    user.Updated = DateTime.Now;
-                    List<GXUserGroup> userGroups = await _userGroupRepository.GetJoinedUserGroups(user.Id);
-                    var comparer = new UniqueComparer<GXUserGroup, Guid>();
-                    List<GXUserGroup> removedUserGroups = userGroups.Except(user.UserGroups, comparer).ToList();
-                    List<GXUserGroup> addedUserGroups = user.UserGroups.Except(userGroups, comparer).ToList();
-                    if (removedUserGroups.Any())
-                    {
-                        //Remove un-checked user groups from the DB.
-                        List<Guid> tmp = new List<Guid>();
-                        foreach (var it in removedUserGroups)
+                        //Check that user email is not added yet.
+                        GXSelectArgs total = GXSelectArgs.Select<GXUser>(q => GXSql.Count(q));
+                        var normalizedEmail = user.Email.ToUpper();
+                        total.Where.And<GXUser>(q => q.NormalizedEmail == normalizedEmail);
+                        if (await connection.SingleOrDefaultAsync<int>(total) != 0)
                         {
-                            tmp.Add(it.Id);
+                            throw new ArgumentException(string.Format("Email address '{0}' already in use.", user.Email));
                         }
-                        GXDeleteArgs args = GXDeleteArgs.Delete<GXUserGroupUser>(where => where.UserId == user.Id && tmp.Contains(where.UserGroupId));
-                        _host.Connection.Delete(args);
-                    }
-                    if (addedUserGroups.Any())
-                    {
-                        List<GXUserGroupUser> tmp = new List<GXUserGroupUser>();
+                        user.Id = await AddUser(user.GivenName, user.Surname, user.Email, user.Password, user.Roles, user.Permissions);
+                        if (user.ProfilePicture != null)
+                            {
+                            await connection.UpdateAsync(GXUpdateArgs.Update(user, item => item.ProfilePicture!), cancellationToken);
+                        }
+                        list.Add(user.Id);
+                        //Add default user groups.
+                        List<GXUserGroupUser> tmp = [];
                         //Insert new user groups that are not in the DB.
-                        foreach (var it in addedUserGroups)
+                        foreach (var it in user.UserGroups)
                         {
                             tmp.Add(new GXUserGroupUser() { UserId = user.Id, UserGroupId = it.Id });
                         }
                         GXInsertArgs args = GXInsertArgs.InsertRange(tmp);
-                        _host.Connection.Insert(args);
+                        connection.Insert(args);
+
+                        _notificationCache.Add(await GetNotifiedUsers(user.Id, NotificationAction.Add, connection),
+                                               new GXTarget(GXUserPolicies.Add, user.Id, user.UserName));
                     }
-                    user.Updated = now;
-                    user.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs arg2 = GXUpdateArgs.Update(user, columns);
-                    arg2.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp, q.CreationTime, q.UserGroups, q.Roles });
-                    await _host.Connection.UpdateAsync(arg2);
+                    else
+                    {
+                        GXSelectArgs m = GXSelectArgs.Select<GXUser>(q => q.ConcurrencyStamp!, where => where.Id == user.Id);
+                        string? updated = connection.SingleOrDefault<string>(m);
+                        if (!string.IsNullOrEmpty(updated) && updated != user.ConcurrencyStamp)
+                        {
+                            throw new ArgumentException(Properties.Resources.ContentEdited);
+                        }
+
+                        GXUser tmpUser = GetUser(connection, user.Id);
+                        user.IsApproved ??= tmpUser.IsApproved;
+                        if (!isAdmin && user.IsApproved != tmpUser.IsApproved &&
+                            (columns == null || ServerHelpers.Contains(columns, nameof(GXUser.IsApproved))))
+                        {
+                            throw new GXAmiForbiddenException("Only an administrator can change account approval.");
+                        }
+                        if (user.Email.CompareTo(tmpUser.Email) != 0)
+                        {
+                            tmpUser.UserName = tmpUser.Email = user.Email;
+                            tmpUser.NormalizedUserName = tmpUser.NormalizedEmail = user.Email.ToUpper();
+                        }
+
+                        if (user.UserGroups == null || user.UserGroups.Count == 0)
+                        {
+                            throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
+                        }
+
+                        var identityUser = await _userManager.FindByIdAsync(user.Id)
+                            ?? throw new ArgumentException($"User '{user.Email}' not found.");
+                        var currentRoles = await _userManager.GetRolesAsync(identityUser);
+                        var currentPermissions = await UserPermissions.ReadDirectAsync(connection, user.Id);
+                        bool rightsChanged = (user.Roles != null && !currentRoles.ToHashSet(StringComparer.OrdinalIgnoreCase).SetEquals(user.Roles)) ||
+                            (user.Permissions != null && !currentPermissions.ToHashSet(StringComparer.Ordinal).SetEquals(user.Permissions));
+                        if (user.Roles != null)
+                        {
+                            try
+                            {
+                                await _userManager.UpdateUserRolesAsync(identityUser, user.Roles);
+                            }
+                            finally
+                            {
+                                if (!GXHistoryScope.Defer(GXUserPrincipalCache.InvalidateAll))
+                                {
+                                    GXUserPrincipalCache.InvalidateAll();
+                                }
+                            }
+                        }
+
+                        if (user.Permissions != null)
+                        {
+                            try
+                            {
+                                await UserPermissions.ReplaceAsync(connection, user.Id, user.Permissions);
+                            }
+                            finally
+                            {
+                                if (!GXHistoryScope.Defer(GXUserPrincipalCache.InvalidateAll))
+                                {
+                                    GXUserPrincipalCache.InvalidateAll();
+                                }
+                            }
+                        }
+
+                        user.Updated = DateTime.Now;
+                        List<GXUserGroup> userGroups = await _userGroupRepository.GetJoinedUserGroupsAsync(user.Id);
+                        var comparer = new UniqueComparer<GXUserGroup, Guid>();
+                        List<GXUserGroup> removedUserGroups = [.. userGroups.Except(user.UserGroups, comparer)];
+                        List<GXUserGroup> addedUserGroups = [.. user.UserGroups.Except(userGroups, comparer)];
+                        if (removedUserGroups.Count != 0)
+                        {
+                            //Remove un-checked user groups from the DB.
+                            List<Guid> tmp = [];
+                            foreach (var it in removedUserGroups)
+                            {
+                                tmp.Add(it.Id);
+                            }
+                            GXDeleteArgs args = GXDeleteArgs.Delete<GXUserGroupUser>(where => where.UserId == user.Id && tmp.Contains(where.UserGroupId));
+                            connection.Delete(args);
+                        }
+                        if (addedUserGroups.Count != 0)
+                        {
+                            List<GXUserGroupUser> tmp = [];
+                            //Insert new user groups that are not in the DB.
+                            foreach (var it in addedUserGroups)
+                            {
+                                tmp.Add(new GXUserGroupUser() { UserId = user.Id, UserGroupId = it.Id });
+                            }
+                            GXInsertArgs args = GXInsertArgs.InsertRange(tmp);
+                            connection.Insert(args);
+                        }
+                        if (rightsChanged)
+                        {
+                            var stampResult = await _userManager.UpdateSecurityStampAsync(identityUser);
+                            if (!stampResult.Succeeded)
+                            {
+                                throw new InvalidOperationException(string.Join(", ", stampResult.Errors.Select(e => e.Description)));
+                            }
+                        }
+                        user.Updated = now;
+                        user.ConcurrencyStamp = Guid.NewGuid().ToString();
+                        GXUpdateArgs arg2 = GXUpdateArgs.Update(user, columns);
+                        arg2.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp, q.CreationTime, q.UserGroups, q.Roles });
+                        await connection.UpdateAsync(arg2, cancellationToken);
+                        if (rightsChanged)
+                        {
+                            if (user.Id == creatorId)
+                            {
+                                await _serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>().RefreshSignInAsync(identityUser);
+                            }
+
+                            _notificationCache.Add(user.Id, new GXTarget(GXUserPolicies.Edit, user.Id, user.UserName));
+                        }
+                        _notificationCache.Add(await GetNotifiedUsers(user.Id, NotificationAction.Edit, connection),
+                            new GXTarget(GXUserPolicies.Edit, user.Id, user.UserName));
+                    }
                 }
-                updates[user] = GetUsersAsync(user.Id);
+                if (!GXHistoryScope.Defer(GXUserPrincipalCache.InvalidateAll))
+                {
+                    GXUserPrincipalCache.InvalidateAll();
+                }
+                return [.. users.Select(s => s.Id!)];
+
             }
-            foreach (var it in updates)
+            catch (GXDatabaseException ex)
             {
-                await _eventsNotifier.UserUpdate(it.Value, new GXUser[] { it.Key });
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        return await UpsertAsync(users, columns, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
-            return list.ToArray();
+        }, cancellationToken);
         }
 
-        private GXUser GetUser(string userId)
+        private static GXUser GetUser(GXDbConnection connection, string userId)
         {
             GXSelectArgs args = GXSelectArgs.SelectAll<GXUser>(where => where.Id == userId);
-            return _host.Connection.SingleOrDefault<GXUser>(args);
+            return connection.SingleOrDefault<GXUser>(args) ?? throw new ArgumentException("User was not found.", nameof(userId));
         }
     }
 }

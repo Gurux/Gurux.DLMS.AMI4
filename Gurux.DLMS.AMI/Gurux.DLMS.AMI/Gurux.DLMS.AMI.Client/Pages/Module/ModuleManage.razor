@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Client.Pages.Config;
 @using Gurux.DLMS.AMI.Client.Pages.Module
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -42,20 +39,25 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Module
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-
 @*If user adds a new item or modifies the existing one.*@
-@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+<GXHelpContext Topic="ModuleManage" />
+
+@if (string.Compare(EditorAction, "Add", true) == 0 || (Id != null && Path != null && string.Compare(EditorAction, "Edit", true) == 0))
 {
     @if (string.Compare(Path, "config/module", true) == 0)
     {
-        <ModuleTab Action="@Action" Id="@Id"></ModuleTab>
+        <Module Action="@EditorAction" Id="@Id"></Module>
+        @if (!string.IsNullOrWhiteSpace(Id))
+        {
+            <ModuleHealth @key="Id" ModuleId="@Id" />
+        }
     }
     else if (string.Compare(Path, "config/moduleGroup", true) == 0)
     {
-        <ModuleGroupTab Action="@Action" Id="@GetId()"></ModuleGroupTab>
+        <ModuleGroup Action="@Action" Id="@GetId()"></ModuleGroup>
     }
     else if (string.Compare(Path, "config/modulelog", true) == 0)
     {
@@ -64,51 +66,38 @@
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="config/Module" Active="@ActivePath" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
+            <GXImage Id="@context.Icon" />
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Module)
-                           Policy="@GXModulePolicies.View">
-                <TabPage Path="config/Module" Text=@Properties.Resources.ModulesTitle Icon="Modules">
-                    <Modules Parent="this" Title="false"></Modules>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleGroup)
-                           Policy="@GXModuleGroupPolicies.View">
-                <TabPage Path="config/ModuleGroup" Text=@Properties.Resources.ModuleGroups Icon="ModuleGroups">
-                    <ModuleGroups></ModuleGroups>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Module)
-                           Policy="@GXModulePolicies.View">
-                <TabPage Path="config/ModuleManage" Text="Manage" Icon="ModulesManage">
-                    <ModulesManage></ModulesManage>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-                <TabPage Path="config/ModuleUpdate" Text="Updates" Icon="Modules">
-                    <ModulesUpdates></ModulesUpdates>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleLog)>
-                <TabPage Path="config/ModuleLog" Text=@Properties.Resources.ModuleLogs Icon="ModuleLogs">
-                    <ModuleLogs></ModuleLogs>
-                </TabPage>
-            </AuthorizeView>
+            <TabHeader Name="@GXMenus.ModuleTab" ParametersForLink="@GetTabParameters" />
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
     <br />
 }
 @code {
+    private string? EditorAction => string.IsNullOrWhiteSpace(Action) && !string.IsNullOrWhiteSpace(Id) &&
+        string.Equals(Path, "config/module", StringComparison.OrdinalIgnoreCase) ? "Edit" : Action;
+
+    private IDictionary<string, object>? GetTabParameters(GXMenuLink link)
+    {
+        return Type.GetType(link.TargetType ?? "") == typeof(Modules)
+            ? new Dictionary<string, object>
+            {
+                [nameof(Modules.Parent)] = this,
+                [nameof(Modules.Title)] = false
+            } : null;
+    }
+
+    private IGXNotifier? Notifier;
 
     /// <summary>
     /// Parent component.
     /// </summary>
     [Parameter]
-    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     /// <summary>
     /// User action.
@@ -133,19 +122,31 @@ else
     [Parameter]
     public string? Path { get; set; }
 
+    private string? ActivePath => string.Equals(Path, "config/ModuleManage", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Path, "config/ModuleUpdate", StringComparison.OrdinalIgnoreCase)
+        ? "config/Module" : Path;
+
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
     }
 
     protected override Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        if (Notifier == null)
+        {
+            return Task.CompletedTask;
+        }
+
         return base.OnInitializedAsync();
     }
 
 }
+
+
 

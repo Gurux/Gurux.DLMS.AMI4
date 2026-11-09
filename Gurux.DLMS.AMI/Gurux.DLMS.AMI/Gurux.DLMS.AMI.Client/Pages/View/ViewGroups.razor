@@ -1,0 +1,405 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/viewgroups"
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXAmiConfirmation Confirmation
+@implements IDisposable
+
+<GXHelpContext Topic="ViewGroups" />
+
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXViewGroupPolicies.Add" />
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXViewGroupPolicies.Delete" />
+    </ChildContent>
+</GXMenuControl>
+
+<GXViewTable ViewName="View.ViewGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXViewGroupPolicies.View })"
+             TItem="GXViewGroup" @ref="table"
+             Context="group"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             ShowRemoved="@Header"
+             Columns="@Columns"
+             OnSearch="@Updated">
+    <FilterContent>
+        <GXFh Id="Name">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </GXFh>
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="ViewGroups-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </GXFh>
+        <GXFh Id="Updated">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+        </GXFh>
+    </FilterContent>
+    <MenuContent>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXViewGroupPolicies.Edit"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXViewGroupPolicies.Delete"></GXContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <GXTh Id="Name" Name="Name" Target="@group">@Properties.Resources.Name</GXTh>
+        <GXTh Id="CreationTime" Name="CreationTime" Target="@group" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Id="Updated" Name="Updated" Target="@group">@Properties.Resources.Updated</GXTh>
+    </HeaderContent>
+    <ItemContent>
+        <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath("/Config/ViewGroup/Edit/" + group.Id)">@group.Name</GXTd>
+        <GXTd Id="CreationTime">@group.CreationTime</GXTd>
+        <GXTd Id="Updated">@group.Updated</GXTd>
+    </ItemContent>
+</GXViewTable>
+<br />
+
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return "View groups";
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "view-group";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the view groups shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Menu group filter.
+    /// </summary>
+    private GXViewGroup filter = new GXViewGroup();
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXViewTable<GXViewGroup>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                NotificationService?.RemoveByKey("Pages/View/ViewGroups.Updated");
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroups.Updated");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/View/ViewGroups.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            {
+                foreach (var it in items)
+                {
+                    if (it.Type == GXViewGroupPolicies.Add ||
+                            it.Type == GXViewGroupPolicies.Edit ||
+                            it.Type == GXViewGroupPolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
+            });
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.RestoreSelection(new GXViewGroup() { Id = Id.Value });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroups.OnInitializedAsync");
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXViewGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            using var progressScope1 = Progress?.ProgressStart(Properties.Resources.RetrievingViewGroups);
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListViewGroups req = new ListViewGroups()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListViewGroupsResponse>("api/ViewGroup/List", req, request.CancellationToken);
+            if (ret.ViewGroups != null)
+            {
+                return new ItemsProviderResult<GXViewGroup>(ret.ViewGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new view group.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            ClientHelpers.NavigateTo(NavigationManager, "/Config/ViewGroup/Add");
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit view group.
+    /// </summary>
+
+    public void OnEdit()
+    {
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/View/ViewGroups.OnEdit");
+            if (table?.Active == null)
+            {
+                throw new Exception(Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, "/Config/ViewGroup/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/View/ViewGroups.OnEdit");
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected view groups.
+    /// </summary>
+    public async Task OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Properties.Resources.NoItemIsSelected);
+            }
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = true,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Name).ToArray()
+                });
+            await OnDeleteConfirmation(confirmation);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected view groups.
+    /// </summary>
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveViewGroup req = new RemoveViewGroup()
+                {
+                    Delete = args.Delete,
+                    Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                };
+                await Http.PostAsJson<RemoveViewGroupResponse>("api/ViewGroup/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
+    }
+}
+

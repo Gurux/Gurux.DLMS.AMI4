@@ -1,0 +1,158 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Internal
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@inject HttpClient Http
+@inject IServiceProvider Services
+
+<GXTable TItem="GXTableColumn" @ref="_table" ItemsProvider="GetItems" Save="false" Filter="false"
+         Total="false" ShowAllData="true" ShowAllUsers="false" ShowRemoved="false"
+         RearrangeRows="@(!Busy)" OnItemMoved="MoveAsync" ItemKey="@(column => column.Name)">
+    <HeaderContent>
+        <th><GXLocalizedText Value="@Properties.Resources.Column" /></th>
+        <th><GXLocalizedText Value="@Properties.Resources.Visibility" /></th>
+    </HeaderContent>
+    <ItemContent Context="column">
+        <td>
+            <label class="form-check mb-0">
+                <input type="checkbox" class="form-check-input" disabled="@Busy"
+                       @bind:get="Editor.VisibleColumns.Contains(column.Name)"
+                       @bind:set="(bool visible) => Editor.SetVisibleAsync(column.Name, visible)" />
+                <span class="form-check-label"><GXLocalizedText Value="@Caption(column)" /></span>
+            </label>
+        </td>
+        <td>
+            <GXInputDropdown TValue="Visibility" class="form-select form-select-sm w-auto" Disabled="@Busy" aria-label="@(Caption(column) + " visibility")" @bind-Value:get="Editor.Visibility.GetValueOrDefault(column.Name, Visibility.All)" @bind-Value:set="(Visibility value) => Editor.SetVisibilityAsync(column.Name, value)" Items="@(Enum.GetValues<Visibility>())" RememberValue="false"><Template Context="visibility"><GXLocalizedText Value="@visibility.ToString()" /></Template></GXInputDropdown>
+        </td>
+    </ItemContent>
+</GXTable>
+<AuthorizeView Roles="@GXRoles.Admin" Policy="@GXViewPolicies.Edit">
+    <button type="button" class="btn btn-outline-secondary" disabled="@Busy" @onclick="SaveDefaultsAsync">
+        <GXLocalizedText Value="@Properties.Resources.SaveAsDefaultForAllUsers" />
+    </button>
+</AuthorizeView>
+@if (_error != null)
+{
+    <div role="alert" class="text-danger">@_error</div>
+}
+
+@code {
+    /// <summary>The current GXTable draft and its editing commands.</summary>
+    [Parameter, EditorRequired] public GXTableColumnEditorContext Editor { get; set; } = default!;
+    /// <summary>The stable name of the table's shared defaults.</summary>
+    [Parameter, EditorRequired] public string ViewName { get; set; } = default!;
+    /// <summary>The display title for a newly saved view.</summary>
+    [Parameter] public string? Title { get; set; }
+    /// <summary>The original code-defined columns, without saved shared or personal overrides.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<GXViewColumn> DefaultColumns { get; set; } = [];
+    /// <summary>The currently saved shared view, if one exists.</summary>
+    [Parameter] public GXView? View { get; set; }
+    /// <summary>Policies to use when a shared override is first created.</summary>
+    [Parameter] public List<string>? Policies { get; set; }
+    /// <summary>Publishes the saved shared view, or null when all overrides have been removed.</summary>
+    [Parameter] public EventCallback<GXView?> ViewChanged { get; set; }
+
+    private GXTable<GXTableColumn>? _table;
+    private bool _saving;
+    private string? _error;
+    private bool Busy => _saving || Editor.IsSaving;
+    private string Caption(GXTableColumn column) => DefaultColumns.FirstOrDefault(c => c.Name == column.Name)?.Description ?? column.Text;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_table != null)
+        {
+            await _table.RefreshDataAsync(true);
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<GXTableColumn>> GetItems(GXItemsProviderRequest request) =>
+        ValueTask.FromResult(new ItemsProviderResult<GXTableColumn>(Editor.Columns, Editor.Columns.Count));
+
+    private Task MoveAsync((GXTableColumn Item, int Index) moved) => Editor.MoveAsync(moved.Item.Name, moved.Index);
+
+    /// <summary>Restores the original column defaults independently of saved shared overrides.</summary>
+    public static async Task ResetAsync(GXTableColumnEditorContext editor, IReadOnlyList<GXViewColumn> defaults)
+    {
+        var columns = defaults.Where(column => editor.Columns.Any(item => item.Name == column.Name))
+            .OrderBy(column => column.Position).ToArray();
+        for (int position = 0; position < columns.Length; ++position)
+        {
+            var column = columns[position];
+            await editor.SetVisibleAsync(column.Name!, column.Visible);
+            await editor.SetVisibilityAsync(column.Name!, (Visibility)(column.Visibility ?? 0));
+            await editor.MoveAsync(column.Name!, position);
+        }
+    }
+
+    private async Task SaveDefaultsAsync()
+    {
+        if (Busy)
+        {
+            return;
+        }
+        _saving = true;
+        _error = null;
+        try
+        {
+            var current = Editor.ColumnOrder.Select((name, position) => new GXViewColumn(name)
+            {
+                Position = position,
+                Visible = Editor.VisibleColumns.Contains(name),
+                Visibility = (byte)Editor.Visibility.GetValueOrDefault(name, Visibility.All)
+            });
+            var changes = GXViewColumnDefaults.Changes(DefaultColumns, current, View?.Columns);
+            var request = new GXView(ViewName)
+            {
+                Id = View?.Id ?? Guid.Empty, Title = View?.Title ?? Title ?? ViewName,
+                Description = View?.Description, Enabled = View?.Enabled ?? true,
+                AllowColumnCustomization = View?.AllowColumnCustomization,
+                Creator = View?.Creator, CreationTime = View?.CreationTime,
+                ConcurrencyStamp = View?.ConcurrencyStamp, ViewGroups = View?.ViewGroups,
+                Policies = (View?.Policies ?? Policies)?.ToList(), PageSize = View?.PageSize,
+                ShowAllData = View?.ShowAllData, SelectionMode = View?.SelectionMode, Preload = View?.Preload,
+                Columns = changes
+            };
+            var saved = await new GXViewAdapter(Http, Services.GetService<IAmiViewStorage>()).SaveAsync(request);
+            await ViewChanged.InvokeAsync(saved);
+            await Editor.SaveAsync();
+        }
+        catch (Exception exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

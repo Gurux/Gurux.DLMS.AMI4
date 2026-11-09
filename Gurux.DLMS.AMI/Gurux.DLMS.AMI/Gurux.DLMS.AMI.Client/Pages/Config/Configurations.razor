@@ -1,43 +1,48 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/config"
+@page "/config/settings"
 @page "/config/{Target}"
+@page "/config/{Target}/Groups"
+@page "/config/{Target}/Logs"
 @page "/config/{Target}/{Id}"
 @page "/config/{Target}/{Action}/{Id}"
+
+@using Gurux.DLMS.AMI.Client.Internal
+@using Gurux.DLMS.AMI.Module.Enums
 @using Gurux.DLMS.AMI.Client.Pages.Manufacturer
 @using Gurux.DLMS.AMI.Client.Pages.Module
+@using Gurux.DLMS.AMI.Shared.DTOs.Menu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = GXConfigurationPolicies.View)]
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using Gurux.DLMS.AMI.Shared.Rest
@@ -51,158 +56,154 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @implements IDisposable
 @inject ILogger<Configurations> Logger
 @inject IGXResourceStorage ResourceStorage
 
-@if (string.Compare(Target, GXConfigurations.System, true) == 0)
+<GXHelpContext Topic="config" />
+
+@if (Target != null && !_configurationReady)
+{
+    <p><GXLocalizedText Value="@Properties.Resources.Loading3" /></p>
+}
+else if (Target != null && _configurationType != null)
+{
+    <DynamicComponent @key="(_configurationType, _active?.Id)" Type="@_configurationType" Parameters="@ConfigurationParameters" />
+}
+else if (string.Compare(LegacyTarget, GXConfigurations.System, true) == 0)
 {
     <SystemConfig Parent="this" @ref="@_updater"></SystemConfig>
 }
-else if (string.Compare(Target, GXConfigurations.Status, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Status, true) == 0)
 {
     <Status Parent="this" @ref="@_updater"></Status>
 }
-else if (string.Compare(Target, GXConfigurations.Security, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Security, true) == 0)
 {
     <Security Parent="this" @ref="@_updater"></Security>
 }
-else if (string.Compare(Target, GXConfigurations.Language, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Language, true) == 0)
 {
-    <TabControl>
-        <TabTextTemplate>
-            <Image Id="@context.Icon" />
-            @context.Text
-        </TabTextTemplate>
-        <ChildContent>
-            <TabPage Text=@Properties.Resources.Language Icon="@GXConfigurations.Language">
-                <Languages AvailableLanguages="@AvailableLanguages"></Languages>
-            </TabPage>
-            <TabPage Text=@Properties.Resources.Localize Icon="@GXConfigurations.LocalizedResource">
-                <Localization AvailableLanguages="@AvailableLanguages"></Localization>
-            </TabPage>
-        </ChildContent>
-    </TabControl>
+    <ConfigurationLanguages AvailableLanguages="@AvailableLanguages" />
+    <ModuleViews Area="Gurux.DLMS.AMI.Module.Enums.AmiViewArea.Config" Display="Gurux.DLMS.AMI.Module.Enums.AmiViewDisplay.Append" Target="@this" Parameters="@ConfigurationTabParameters" />
 }
-else if (string.Compare(Target, "authentications", true) == 0 ||
-            string.Compare(Target, GXConfigurations.Authentication, true) == 0)
-{
-    <Authentications Action="@GetAction()"
-                     Id="@Id"
-                     Parent="this"
-                     @ref="@_updater"></Authentications>
-}
-else if (string.Compare(Target, "agent", true) == 0 ||
-         string.Compare(Target, "AgentInstallers", true) == 0)
+else if (string.Compare(LegacyTarget, "agent", true) == 0 ||
+         string.Compare(LegacyTarget, "AgentInstallers", true) == 0)
 {
     <AgentInstallers Parent="this" @ref="@_updater"></AgentInstallers>
 }
-else if (string.Compare(Target, "Module", true) == 0 ||
-        string.Compare(Target, "ModuleGroup", true) == 0 ||
-        string.Compare(Target, "ModuleUpdate", true) == 0 ||
-        string.Compare(Target, "ModuleManage", true) == 0 ||
-        string.Compare(Target, "ModuleUpdate", true) == 0 ||
-        string.Compare(Target, "ModuleLog", true) == 0)
+else if (string.Compare(LegacyTarget, "Module", true) == 0 ||
+        string.Compare(LegacyTarget, "ModuleGroup", true) == 0 ||
+        string.Compare(LegacyTarget, "ModuleUpdate", true) == 0 ||
+        string.Compare(LegacyTarget, "ModuleManage", true) == 0 ||
+        string.Compare(LegacyTarget, "ModuleUpdate", true) == 0 ||
+        string.Compare(LegacyTarget, "ModuleLog", true) == 0)
 {
     <ModuleManage Action="@GetAction()"
-                  Path="@("config/" + Target)"
+                  Path="@("config/" + LegacyTarget)"
                   Id="@Id"
                   Parent="this"></ModuleManage>
 }
-else if (string.Compare(Target, GXConfigurations.Manufacturer, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Manufacturer, true) == 0)
 {
-    <ManufacturerManage Path="@("config/" + Target)"
+    <ManufacturerManage Path="@("config/" + LegacyTarget)"
                         Action="@Action"
                         Id="@GetId()"
                         Parent="this"
                         @ref="@_updater"></ManufacturerManage>
 }
-else if (string.Compare(Target, GXConfigurations.Cron, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Cron, true) == 0)
 {
     <Cron Parent="this" @ref="@_updater"></Cron>
 }
-else if (string.Compare(Target, GXConfigurations.Performance, true) == 0)
-{
-    <Performance Parent="this" @ref="@_updater"></Performance>
-}
-else if (string.Compare(Target, GXConfigurations.Statistic, true) == 0)
-{
-    <Statistic Parent="this" @ref="@_updater"></Statistic>
-}
-else if (string.Compare(Target, GXConfigurations.Maintenance, true) == 0)
+
+else if (string.Compare(LegacyTarget, GXConfigurations.Maintenance, true) == 0)
 {
     <Maintenance Parent="this" @ref="@_updater"></Maintenance>
 }
-else if (string.Compare(Target, GXConfigurations.Prune, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Prune, true) == 0)
 {
     <Prune Parent="this" @ref="@_updater"></Prune>
 }
-else if (string.Compare(Target, GXConfigurations.DataExchange, true) == 0)
-{
-    <DataExchange Parent="this" @ref="@_updater"></DataExchange>
-}
-else if (string.Compare(Target, GXConfigurations.Proxy, true) == 0)
-{
-    <Proxy Parent="this" @ref="@_updater"></Proxy>
-}
-else if (string.Compare(Target, GXConfigurations.IpAccessControl, true) == 0)
-{
-    <IpAccessControl Parent="this" @ref="@_updater"></IpAccessControl>
-}
-else if (string.Compare(Target, GXConfigurations.Account, true) == 0)
+else if (string.Compare(LegacyTarget, GXConfigurations.Account, true) == 0)
 {
     <Account Parent="this" @ref="@_updater"></Account>
 }
 else
 {
-    <h1><LocalizedText Value="Settings" /></h1>
-    <Search2 placeholder="@Properties.Resources.FilterByName"
-             class="form-control"
-             id="Configurations.Filter"
-             Immediate="true"
-             LastValue="true"
-             @bind-Value="@Filter"
-             OnValueChanged="@(async (e) => await Updated())" />
-    <hr />
-    <GXTable @ref="table"
-             Context="conf"
-             ItemsProvider="@GetItems"
-             OnSearch="@Updated"
-             ShowAllUsers="false"
-             ShowRemoved="false"
-             ShowAllData="true">
-        <MenuContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-                <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-            </AuthorizeView>
-        </MenuContent>
-        <HeaderContent>
-            <th width="1%"></th>
-            <th><LocalizedText Value="Name" /></th>
-            <th style="display:table-cell; width:100%">
-                <LocalizedText Value="Description" />
-            </th>
-        </HeaderContent>
-        <ItemContent>
-            <td class="img-cell">
-                <Image Id="@conf.Name"></Image>
-            </td>
-            <td><a href="@GetPath(conf)"><LocalizedText Value="@conf.Name" /></a></td>
-            <td><LocalizedText Value="@conf.Description" /></td>
-        </ItemContent>
-    </GXTable>
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="config" Active="@(GXTabRoutes.Active(NavigationManager, "config", 0, null))">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            <GXLocalizedText Value="@ConfigurationTabTitle(context)" />
+        </TabTextTemplate>
+        <ChildContent>
+            <TabHeader Name="@GXMenus.ConfigurationTab" Parameters="@ConfigurationTabParameters" />
+            <ModuleTabs Area="Gurux.DLMS.AMI.Module.Enums.AmiViewArea.Config" Target="@this" Parameters="@ConfigurationTabParameters" />
+        </ChildContent>
+    </GXTabControl>
+    <ModuleViews Area="Gurux.DLMS.AMI.Module.Enums.AmiViewArea.Config" Display="Gurux.DLMS.AMI.Module.Enums.AmiViewDisplay.Append" Target="@this" Parameters="@ConfigurationTabParameters" />
 }
 @code {
+    private static string? ConfigurationTabTitle(GXTabPage page) =>
+        string.Equals(page.Path?.Trim('/'), "config/settings", StringComparison.OrdinalIgnoreCase) && page.Text == "Update settings"
+            ? Properties.Resources.ConfigurationLayout : page.Text;
+
+    private IDictionary<string, object> ConfigurationTabParameters => new Dictionary<string, object>
+    {
+        ["Parent"] = this
+    };
+
+    internal async Task ConfigurationLinksSavedAsync(GXMenu menu)
+    {
+        var snapshot = System.Text.Json.JsonSerializer.Deserialize<GXMenuLink[]>(System.Text.Json.JsonSerializer.Serialize(menu.Links));
+        _configurationLinks = snapshot?.Where(l => l.Configuration?.Name != GXConfigurations.Performance && !string.Equals(l.Url, "config/performance", StringComparison.OrdinalIgnoreCase)).OrderBy(l => l.Order).ToArray() ?? [];
+        await Updated();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     //Availalble languages.
     readonly List<GXLanguage> AvailableLanguages = new List<GXLanguage>();
     /// <summary>
     /// Cached configurations.
     /// </summary>
-    GXConfiguration[]? _configurations;
+    GXMenuLink[]? _configurationLinks;
+    private IAmiMenuStorage? _menuStorage;
+    private bool _configurationReady;
+    private bool _disposed;
+    private string? _loadedTarget;
+    private Type? _configurationType;
+    private long _configurationGeneration;
+
+    private IDictionary<string, object>? ConfigurationParameters
+    {
+        get
+        {
+            if (_configurationType == null)
+            {
+                return null;
+            }
+            var idType = _configurationType.GetProperty("Id")?.PropertyType;
+            object? id = idType == typeof(Guid?) || idType == typeof(Guid)
+                ? Guid.TryParse(Id, out var parsed) ? parsed : null : Id;
+            object? action = _configurationType.GetProperty("Action")?.PropertyType == typeof(CrudAction)
+                ? ClientHelpers.GetAction(NavigationManager, GetAction()) : GetAction();
+            return GXTabParameters.Filter(_configurationType, new Dictionary<string, object>
+            {
+                ["Parent"] = this,
+                ["Active"] = _active!,
+                ["Id"] = id!,
+                ["Action"] = action!,
+                ["Path"] = "config/" + LegacyTarget
+            });
+        }
+    }
 
     IGXConfigUpdate? _updater;
     GXConfiguration? _active;
@@ -217,24 +218,22 @@ else
             {
                 return _active;
             }
-            return table?.Active;
+            return table?.Active?.Configuration;
         }
     }
 
     /// <summary>
     /// Filter.
     /// </summary>
-    public string? Filter
-    {
-        get;
-        set;
-    }
+    public string? Filter { get; set; }
 
     /// <summary>
     /// Configuration target.
     /// </summary>
     [Parameter]
     public string? Target { get; set; }
+
+    private string? LegacyTarget => GXConfigurationRoutes.LegacyTarget(Target);
 
     /// <summary>
     /// Configuration action.
@@ -271,50 +270,44 @@ else
         return Action;
     }
 
-    private string GetPath(GXConfiguration target)
-    {
-        //If custom UI is used.
-        if (!string.IsNullOrEmpty(target.Path))
-        {
-            return target.Path;
-        }
-        return "/Config";
-    }
+    private static string GetPath(GXMenuLink target) => target.Url ?? "/Config";
+    private static string? GetName(GXMenuLink target) => target.Name;
+    private static string? GetDescription(GXMenuLink target) => target.Description;
 
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXConfiguration>? table;
+    internal GXTable<GXMenuLink>? table;
 
     /// <summary>
     /// Update table.
     /// </summary>
-    protected async Task Updated()
+    internal async Task Updated()
     {
         try
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Config/Configurations.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Configurations.Updated");
         }
     }
 
-    private ItemsProviderResult<GXConfiguration> GetFilteredItems(GXItemsProviderRequest request)
+    private ItemsProviderResult<GXMenuLink> GetFilteredItems(GXItemsProviderRequest request)
     {
-        var list = new List<GXConfiguration>();
-        if (_configurations != null)
+        var list = new List<GXMenuLink>();
+        if (_configurationLinks != null)
         {
-            int total = _configurations.Length;
+            int total = _configurationLinks.Length;
             if (!string.IsNullOrEmpty(Filter))
             {
                 string filter = Filter.ToLower();
-                foreach (var it in _configurations)
+                foreach (var it in _configurationLinks)
                 {
                     if (IsFiltered(it, filter))
                     {
@@ -324,9 +317,12 @@ else
             }
             else
             {
-                list.AddRange(_configurations);
+                list.AddRange(_configurationLinks);
             }
-            return new ItemsProviderResult<GXConfiguration>(list, _configurations.Length);
+            var ordered = request.OrderBy == nameof(GXMenuLink.Name) && request.Descending
+                ? list.OrderByDescending(GetName, StringComparer.CurrentCultureIgnoreCase)
+                : list.OrderBy(GetName, StringComparer.CurrentCultureIgnoreCase);
+            return new ItemsProviderResult<GXMenuLink>(ordered, list.Count);
         }
         return default;
     }
@@ -337,78 +333,98 @@ else
     /// <param name="value">Configuration</param>
     /// <param name="filter">filter</param>
     /// <returns>True, if configuration is shown.</returns>
-    private bool IsFiltered(GXConfiguration value, string filter)
+    private bool IsFiltered(GXMenuLink value, string filter)
     {
-        return ((value.Name != null && value.Name.ToLower().Contains(filter)) ||
-            (value.Description != null && value.Description.ToLower().Contains(filter)));
+        return (GetName(value)?.ToLower().Contains(filter) == true
+            || GetDescription(value)?.ToLower().Contains(filter) == true);
     }
 
-    private async ValueTask<ItemsProviderResult<GXConfiguration>> GetItems(GXItemsProviderRequest request)
+    internal async ValueTask<ItemsProviderResult<GXMenuLink>> GetItems(GXItemsProviderRequest request)
     {
-        if (_configurations == null)
+        if (_configurationLinks == null)
         {
             try
             {
-                Notifier?.ProgressStart();
-                Notifier?.ClearStatus();
-                ListConfiguration req = new ListConfiguration()
-                {
-                    Index = request.StartIndex,
-                    Count = request.Count,
-                    OrderBy = request.OrderBy,
-                    Descending = request.Descending
-                };
-                var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req, request.CancellationToken);
-                if (ret.Configurations != null)
-                {
-                    _configurations = ret.Configurations;
-                }
+                _menuStorage ??= Services.GetRequiredService<IAmiMenuStorage>();
+                var menu = await _menuStorage.GetMenuAsync(GXMenus.ConfigurationMenu);
+                _configurationLinks = menu?.Links?.Where(l => l.Configuration?.Name != GXConfigurations.Performance && !string.Equals(l.Url, "config/performance", StringComparison.OrdinalIgnoreCase)).OrderBy(l => l.Order).ToArray() ?? [];
             }
             catch (TaskCanceledException)
             {
-                //Let the table component handle this.
                 throw;
             }
             catch (Exception ex)
             {
-                Notifier?.ProcessError(ex);
-            }
-            finally
-            {
-                Notifier?.ProgressEnd();
+                NotificationService?.ReportError(ex, "Configurations.GetItems");
             }
         }
         return GetFilteredItems(request);
     }
 
-    protected override async Task OnInitializedAsync()
+    private void ConfigurationMenuChanged(object? sender, GXMenuChangedEventArgs args)
     {
-        try
+        if (_disposed || args.Name != GXMenus.ConfigurationMenu)
         {
-            if (Target != null)
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            if (_disposed)
             {
-                ListConfiguration req = new ListConfiguration();
-                var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
-                if (ret.Configurations != null && ret.Configurations.Length == 1)
-                {
-                    _active = ret.Configurations[0];
-                }
-                _configurations = ret.Configurations;
-                _updater?.Update();
                 return;
             }
-            if (Notifier == null)
+            _configurationLinks = args.Menu?.Links?.Where(l => l.Configuration?.Name != GXConfigurations.Performance && !string.Equals(l.Url, "config/performance", StringComparison.OrdinalIgnoreCase)).OrderBy(l => l.Order).ToArray() ?? [];
+            await Updated();
+            StateHasChanged();
+        });
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_configurationReady && string.Equals(_loadedTarget, Target, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        var generation = ++_configurationGeneration;
+        bool Current() => !_disposed && generation == _configurationGeneration;
+        var target = Target;
+        _loadedTarget = Target;
+        _configurationReady = false;
+        _active = null;
+        _configurationType = null;
+        try
+        {
+            GXConfiguration? active = null;
+            Type? type = null;
+            if (target != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                _menuStorage ??= Services.GetRequiredService<IAmiMenuStorage>();
+                var menu = await _menuStorage.GetMenuAsync(GXMenus.ConfigurationMenu);
+                if (!Current())
+                {
+                    return;
+                }
+
+                var path = "config/" + target;
+                var link = menu?.Links?.FirstOrDefault(l => string.Equals(GXConfigurationRoutes.Canonicalize(l.Url?.Trim('/') ?? string.Empty), GXConfigurationRoutes.Canonicalize(path), StringComparison.OrdinalIgnoreCase));
+                if (link?.Configuration != null)
+                {
+                    active = (await Http.GetAsJsonAsync<GetConfigurationResponse>("api/Configuration?id=" + link.Configuration.Id))?.Item;
+                }
+
+                if (!string.IsNullOrWhiteSpace(link?.TargetType))
+                {
+                    type = Type.GetType(link.TargetType);
+                }
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+
+            if (!Current())
             {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+                return;
+            }
+
+            _active = active;
+            _configurationType = type;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -416,11 +432,52 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            if (Current())
+            {
+                NotificationService?.ReportError(ex, "Configurations.Load");
+            }
         }
-        finally
+        if (Current())
         {
-            Notifier?.ProgressEnd();
+            _configurationReady = true;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        _menuStorage = Services.GetRequiredService<IAmiMenuStorage>();
+        _menuStorage.MenuChanged += ConfigurationMenuChanged;
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingConfigurations);
+            NotificationService?.RemoveByKey("Pages/Config/Configurations.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            {
+                foreach (var it in items)
+                {
+                    if (it.Type == GXConfigurationPolicies.Edit)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
+            });
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Config/Configurations.OnInitializedAsync");
         }
     }
 
@@ -431,12 +488,12 @@ else
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Config/Configurations.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, GetPath(table.Active));
+            ClientHelpers.NavigateTo(NavigationManager, GetPath(table.Active));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -444,16 +501,23 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Configurations.OnEdit");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _disposed = true;
+        ++_configurationGeneration;
+        if (_menuStorage != null)
+        {
+            _menuStorage.MenuChanged -= ConfigurationMenuChanged;
+        }
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

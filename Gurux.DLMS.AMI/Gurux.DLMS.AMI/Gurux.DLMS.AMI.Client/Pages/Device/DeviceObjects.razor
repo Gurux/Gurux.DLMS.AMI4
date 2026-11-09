@@ -1,0 +1,150 @@
+@page "/Device/Objects/{DeviceId:guid}"
+@page "/Device/Objects/{DeviceId:guid}/{ObjectId:guid}"
+@page "/Device/Objects/{DeviceId:guid}/{ObjectId:guid}/Attributes/{AttributeId:guid}"
+@using System.Net
+@using Gurux.DLMS.AMI.Client.Pages.Objects
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@attribute [Authorize(Policy = GXDevicePolicies.View)]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<PageTitle>@(_model?.Template?.Name ?? _device?.Name ?? Properties.Resources.Objects)</PageTitle>
+@if (_loading)
+{
+    <p role="status">@Properties.Resources.Loading</p>
+}
+else if (_notFound)
+{
+    <NotFoundPage />
+}
+else if (_error)
+{
+    <p role="alert">@Properties.Resources.InvalidTarget</p>
+}
+else if (_device != null)
+{
+    <button type="button" class="btn btn-link" @onclick="Back">@Properties.Resources.Back</button>
+    @if (ObjectId == null)
+    {
+        <Objects @key="DeviceId" Device="_device" Id="DeviceId" />
+    }
+    else if (_model != null)
+    {
+        <p><a href="@NavigationManager.GetCurrentPagePath(GXDeviceObjectRoutes.Objects(DeviceId))">@_device.Name</a></p>
+        <h1>@_model.Template?.Name</h1>
+        <p>@_model.Template?.LogicalName</p>
+        @if (AttributeId != null)
+        {
+            <p><a href="@NavigationManager.GetCurrentPagePath(GXDeviceObjectRoutes.Object(DeviceId, ObjectId.Value))">@Properties.Resources.Objects</a></p>
+        }
+        <ObjectView @key="(DeviceId, ObjectId, AttributeId)" Model="_model" Device="_device" Id="_model.Id" Action="Edit" SelectedAttributeId="_selectedAttributeId" />
+        @if (AttributeId == null)
+        {
+            <nav aria-label="@Properties.Resources.Attributes">
+                <h2>@Properties.Resources.Attributes</h2>
+                <ul>
+                    @foreach (var attribute in (_model.Attributes ?? []).Where(a => a.Template != null).OrderBy(a => a.Template!.Index))
+                    {
+                        <li><a href="@NavigationManager.GetCurrentPagePath(GXDeviceObjectRoutes.Attribute(DeviceId, ObjectId.Value, attribute.Id))">@(attribute.Template!.Index) — @(attribute.Template.Name)</a></li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+}
+
+@code {
+    [Parameter] public Guid DeviceId { get; set; }
+    [Parameter] public Guid? ObjectId { get; set; }
+    [Parameter] public Guid? AttributeId { get; set; }
+    private GXDevice? _device;
+    private GXObject? _model;
+    private Guid? _selectedAttributeId;
+    private CancellationTokenSource? _request;
+    private bool _loading = true, _notFound, _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _request?.Cancel();
+        _request?.Dispose();
+        var request = _request = new CancellationTokenSource();
+        _loading = true;
+        _notFound = _error = false;
+        _device = null;
+        _model = null;
+        _selectedAttributeId = null;
+        try
+        {
+            if (ObjectId == null)
+            {
+                var response = await Http.GetFromJsonAsync<GetDeviceResponse>($"api/Device?id={DeviceId}", request.Token);
+                if (!request.IsCancellationRequested)
+                {
+                    _device = response?.Item;
+                }
+            }
+            else
+            {
+                var url = $"api/Device/{DeviceId}/Objects/{ObjectId}";
+                if (AttributeId != null)
+                {
+                    url += $"/Attributes/{AttributeId}";
+                }
+                var response = await Http.GetFromJsonAsync<GXDeviceObjectResponse>(url, request.Token);
+                if (!request.IsCancellationRequested)
+                {
+                    _model = response?.Item;
+                    _device = _model?.Device;
+                    _selectedAttributeId = response?.AttributeId;
+                    if (AttributeId != null && (_selectedAttributeId == null || _model?.Attributes?.Any(a => a.Id == _selectedAttributeId) != true))
+                    {
+                        _notFound = true;
+                    }
+                }
+            }
+            if (!request.IsCancellationRequested && _device?.Id != DeviceId)
+            {
+                _notFound = true;
+            }
+        }
+        catch (AccessTokenNotAvailableException error)
+        {
+            error.Redirect();
+        }
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
+        {
+        }
+        catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
+        {
+            if (!request.IsCancellationRequested)
+            {
+                _notFound = true;
+            }
+        }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            if (!request.IsCancellationRequested)
+            {
+                _error = true;
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_request, request))
+            {
+                _loading = false;
+            }
+        }
+    }
+
+    private void Back() => ClientHelpers.NavigateToLastPage(NavigationManager);
+    public void Dispose()
+    {
+        _request?.Cancel();
+        _request?.Dispose();
+    }
+}

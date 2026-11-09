@@ -28,8 +28,8 @@
 # Build context: the verified release ZIP extracted into app/ by publish-agent.yml.
 FROM mcr.microsoft.com/dotnet/runtime:10.0
 WORKDIR /app
-COPY --chown=app:app app/ ./
-# Registration writes settings below /app; release updates replace the container image.
+# Registration and local script compilation require a writable application directory.
 RUN chown app:app /app
+COPY --chown=app:app app/ ./
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Gurux.DLMS.AMI.Agent.dll"]

@@ -1,38 +1,33 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Client.Pages.Schedule
-@using Gurux.DLMS.AMI.Client.Pages.Report
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -47,12 +42,13 @@
 @using System.Linq
 @using System.Text;
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="ObjectTemplatesSelector" />
 
 <SelectionContainer TItem="GXObjectTemplate" @ref="@_selectionContainer">
-    <SelectionList Title="Selected" @ref="_selected"
+    <SelectionList TItem="GXObjectTemplate" Title="@Properties.Resources.Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
                    OnAdded="OnAdded"
@@ -61,8 +57,8 @@
             @(context.LogicalName + " " + context.Name)
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchSelectedByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
         </FilterContent>
         <ButtonContent>
             <div>
@@ -73,18 +69,18 @@
             </div>
         </ButtonContent>
     </SelectionList>
-    <SelectionList Title="Available" @ref="_available"
+    <SelectionList TItem="GXObjectTemplate" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
                    ItemsProvider="@GetItems">
         <DataContent>
             @(context.LogicalName + " " + context.Name)
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchByName" />
-            <Search Placeholder="@Properties.Resources.FilterByDevice"
-                    OnClickAsync="@SearchByDevice" />
-            <Search Placeholder="@Properties.Resources.FilterByDeviceType"
-                    OnClickAsync="@SearchByDeviceType" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByDevice"
+                    ValueChanged="@SearchByDevice" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByDeviceType"
+                    ValueChanged="@SearchByDeviceType" />
         </FilterContent>
         <ButtonContent>
             <div>
@@ -99,6 +95,9 @@
 
 
 @code {
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
 
     /// <summary>
     /// Device templates where objects are asked.
@@ -151,7 +150,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -162,13 +161,13 @@
             if (_available != null)
             {
                 filter.Name = name;
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
         }
     }
 
@@ -189,13 +188,13 @@
                             Name = deviceName
                         };
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
         }
     }
 
@@ -217,13 +216,13 @@
                     }
                     filter.DeviceTemplate.Name = deviceType;
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
         }
     }
 
@@ -253,7 +252,7 @@
 
     private List<GXObjectTemplate> GetObjects()
     {
-        return Templates;
+        return Templates ??= [];
     }
 
     /// <summary>
@@ -311,7 +310,7 @@
         int total = objects.Count;
         if (!string.IsNullOrEmpty(selectedNameFilter))
         {
-            objects = objects.Where(w => w.Name.ToLower().Contains(selectedNameFilter.ToLower())).ToList();
+            objects = objects.Where(w => (w.Name ?? string.Empty).ToLower().Contains(selectedNameFilter.ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXObjectTemplate>(objects.Skip(request.StartIndex).Take(request.Count), total));
     }
@@ -319,13 +318,13 @@
     private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
         try
         {
             ListObjectTemplates req = new ListObjectTemplates()
                 {
-                    Index = (UInt64)request.StartIndex,
-                    Count = (UInt64)request.Count,
+                    Index = request.StartIndex,
+                    Count = request.Count,
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
@@ -347,7 +346,7 @@
             var ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
             if (ret?.ObjectTemplates != null && _selected != null)
             {
-                return new ItemsProviderResult<GXObjectTemplate>(ret.ObjectTemplates, ret.Count);
+                return new ItemsProviderResult<GXObjectTemplate>(ret.ObjectTemplates, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -357,23 +356,22 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
             if (_selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -391,15 +389,10 @@
             {
                 await _selected.RefreshDataAsync();
             }
-            Notifier.UpdateButtons();
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
         }
     }
 }

@@ -1,0 +1,330 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.UI.Components.Enums
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject HttpClient Http
+@inject IServiceProvider Services
+@implements IDisposable
+
+<section class="script-updates" aria-labelledby="script-updates-title" aria-busy="@_busy">
+    <h2 id="script-updates-title">@Properties.Resources.Scripts</h2>
+    @if (Items.Count == 0)
+    {
+        <p>@Properties.Resources.NoCompatibleScriptTemplatesAreAvailable</p>
+    }
+    else
+    {
+        <GXViewTable ViewName="Admin.ScriptUpdates" ViewColumns="ViewColumnDefaults" TItem="GXAvailableUpdate" Context="item" ItemsProvider="GetItems"
+                     Menu="false" ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+            <HeaderContent>
+                <GXTh Id="Name" TItem="GXAvailableUpdate">@Properties.Resources.Script</GXTh>
+                <GXTh Id="InstalledVersion" TItem="GXAvailableUpdate">@Properties.Resources.UpdatesInstalledVersion</GXTh>
+                <GXTh Id="Version" TItem="GXAvailableUpdate">@Properties.Resources.CatalogVersion</GXTh>
+                <GXTh Id="Actions" TItem="GXAvailableUpdate">@Properties.Resources.Actions</GXTh>
+            </HeaderContent>
+            <ItemContent>
+                <GXTd Id="Name">
+                    <strong>@item.Name</strong>
+                    <div>@item.CatalogId</div>
+                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                    {
+                        <p>@item.Description</p>
+                    }
+                </GXTd>
+                <GXTd Id="InstalledVersion">
+                    @(item.ScriptId == null ? Gurux.DLMS.AMI.Client.Properties.Resources.NotImported : item.InstalledVersion ?? Gurux.DLMS.AMI.Client.Properties.Resources.Unknown)
+                    @if (item.Customized)
+                    {
+                        <div>@Properties.Resources.LocalChanges</div>
+                    }
+                </GXTd>
+                <GXTd Id="Version">
+                    @if (item.Releases.Count != 0)
+                    {
+                        <GXInputDropdown TValue="string" class="form-select" aria-label="@(string.Format(Properties.Resources.CatalogVersionFor0, item.Name))" Disabled="@_busy" Value="@SelectedVersion(item)" ValueChanged="@(value => SelectVersion(item, value))" Items="@item.Releases.Select(release => release.Version)" Formatter="@(value => value + (item.Releases.First(release => release.Version == value).Prerelease ? " " + Properties.Resources.Prerelease : ""))" RememberValue="false" />
+                    }
+                    else
+                    {
+                        <span>@Properties.Resources.NoCompatibleVersions</span>
+                    }
+                </GXTd>
+                <GXTd Id="Actions">
+                    <AuthorizeView Policy="@GXScriptPolicies.View" Context="previewAuthorization">
+                        <button type="button" class="btn btn-info" disabled="@(_busy || item.Releases.Count == 0 || string.IsNullOrWhiteSpace(item.CatalogId))"
+                                @onclick="@(() => PreviewAsync(item))">@Gurux.DLMS.AMI.Client.Properties.Resources.CompareSource</button>
+                    </AuthorizeView>
+                </GXTd>
+            </ItemContent>
+        </GXViewTable>
+    }
+
+    @if (_error != null)
+    {
+        <p role="alert" class="alert alert-danger">@_error</p>
+    }
+
+    @if (_preview != null)
+    {
+        <div class="script-comparison" aria-labelledby="script-comparison-title">
+            <h3 id="script-comparison-title">@_previewName — @_preview.Version</h3>
+            <p>@_preview.CatalogId</p>
+            @if (!string.IsNullOrWhiteSpace(_preview.Description))
+            {
+                <p>@_preview.Description</p>
+            }
+            <dl class="template-attribution">
+                <dt>@Properties.Resources.Author</dt><dd>@_preview.Author</dd>
+                <dt>@Properties.Resources.License</dt><dd>@_preview.License</dd>
+            </dl>
+            <div class="source-comparison">
+                @if (_preview.ScriptId != null)
+                {
+                    <div>
+                        <label for="script-source-baseline">@Properties.Resources.PreviouslyInstalledSource</label>
+                        @if (_preview.OriginalSource == null)
+                        {
+                            <p>@Properties.Resources.ThePreviouslyInstalledSourceIsUnavailable</p>
+                        }
+                        else
+                        {
+                            <textarea id="script-source-baseline" class="form-control" readonly spellcheck="false">@_preview.OriginalSource</textarea>
+                        }
+                    </div>
+                    <div>
+                        <label for="script-source-current">@Properties.Resources.CurrentSavedSource</label>
+                        <textarea id="script-source-current" class="form-control" readonly spellcheck="false">@_preview.CurrentSource</textarea>
+                    </div>
+                }
+                <div>
+                    <label for="script-source-new">Catalog source — @_preview.Version</label>
+                    <textarea id="script-source-new" class="form-control" readonly spellcheck="false">@_preview.NewSource</textarea>
+                </div>
+            </div>
+            @if (_preview.ScriptId == null)
+            {
+                <div class="form-group">
+                    <label for="script-import-name">@Properties.Resources.ScriptName</label>
+                    <input id="script-import-name" class="form-control" disabled="@_busy" @bind="_importName" />
+                </div>
+            }
+            @if (_preview.Customized)
+            {
+                <p class="alert alert-warning">@Properties.Resources.ThisScriptHasLocalChangesReplacingItsSourceWillOverwriteThoseChanges</p>
+                <label class="overwrite-confirmation">
+                    <input type="checkbox" disabled="@_busy" @bind="_overwriteLocalChanges" />
+                    I have compared the sources and want to overwrite my local changes.
+                </label>
+            }
+            <div class="comparison-actions">
+                <AuthorizeView Policy="@(_preview.ScriptId == null ? GXScriptPolicies.Add : GXScriptPolicies.Edit)" Context="applyAuthorization">
+                    <button type="button" class="btn btn-primary" disabled="@(_busy || (_preview.Customized && !_overwriteLocalChanges) || (_preview.ScriptId == null && string.IsNullOrWhiteSpace(_importName)))"
+                            @onclick="ApplyAsync">@(_preview.ScriptId == null ? Gurux.DLMS.AMI.Client.Properties.Resources.ImportScript : Gurux.DLMS.AMI.Client.Properties.Resources.ReplaceScriptSource)</button>
+                </AuthorizeView>
+                <button type="button" class="btn btn-secondary" disabled="@_busy" @onclick="CloseComparison">@Properties.Resources.CloseComparison</button>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Script", Visibility = (byte)Visibility.All },
+        new("InstalledVersion") { Position = 1, Description = Properties.Resources.UpdatesInstalledVersion, Visibility = (byte)Visibility.All },
+        new("Version") { Position = 2, Description = Properties.Resources.CatalogVersion, Visibility = (byte)Visibility.All },
+        new("Actions") { Position = 3, Description = "Actions", Visibility = (byte)Visibility.All },
+    ];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<GXAvailableUpdate> Items { get; set; } = [];
+    [Parameter] public EventCallback OnUpdated { get; set; }
+
+    private const string ErrorKey = "Pages/Admin/Updates.Scripts";
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly Dictionary<string, string> _selected = new();
+    private ScriptTemplatePreview? _preview;
+    private string? _previewRowId;
+    private string? _previewName;
+    private string? _importName;
+    private string? _error;
+    private bool _overwriteLocalChanges;
+    private bool _busy;
+    private bool _disposed;
+
+    private string? SelectedVersion(GXAvailableUpdate item) => _selected.GetValueOrDefault(item.Id)
+        ?? item.Releases.FirstOrDefault(release => release.Version == item.AvailableVersion)?.Version
+        ?? item.Releases.FirstOrDefault()?.Version;
+
+    private void SelectVersion(GXAvailableUpdate item, string? version)
+    {
+        if (_busy || version == null || !item.Releases.Any(release => release.Version == version))
+        {
+            return;
+        }
+        _selected[item.Id] = version;
+        if (_previewRowId == item.Id && _preview?.Version != version)
+        {
+            CloseComparison();
+        }
+    }
+
+    private async Task PreviewAsync(GXAvailableUpdate item)
+    {
+        if (_disposed || _busy || string.IsNullOrWhiteSpace(item.CatalogId))
+        {
+            return;
+        }
+        var version = SelectedVersion(item);
+        if (version == null || !item.Releases.Any(release => release.Version == version))
+        {
+            return;
+        }
+        _busy = true;
+        _error = null;
+        var notifications = Services.GetService<IGXNotificationService>();
+        notifications?.RemoveByKey(ErrorKey);
+        try
+        {
+            using var progress = Services.GetService<IGXProgress>()?.ProgressStart(Gurux.DLMS.AMI.Client.Properties.Resources.RetrievingScriptSource);
+            var preview = await Http.PostAsJson<ScriptTemplatePreview>("api/ScriptCatalog/Preview", new PreviewScriptTemplate { ScriptId = item.ScriptId, CatalogId = item.CatalogId, Version = version }, _lifetime.Token);
+            if (_disposed)
+            {
+                return;
+            }
+        
+            if (preview.ScriptId != item.ScriptId || preview.CatalogId != item.CatalogId || preview.Version != version || string.IsNullOrWhiteSpace(preview.Sha256))
+            {
+                throw new InvalidOperationException(Properties.Resources.TheReturnedComparisonDoesNotMatchTheSelectedScriptVersionCompareTheSourceAgain);
+            }
+        
+            _preview = preview;
+            _previewRowId = item.Id;
+            _previewName = item.Name;
+            _importName = item.Name.Length <= 64 ? item.Name : item.Name[..64];
+            _overwriteLocalChanges = false;
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            if (!_disposed)
+            {
+                exception.Redirect();
+            }
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed)
+            {
+                _error = exception.Message;
+                notifications?.ReportError(exception, ErrorKey);
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        var preview = _preview;
+        if (_disposed || _busy || preview == null || (preview.Customized && !_overwriteLocalChanges)
+            || (preview.ScriptId == null && string.IsNullOrWhiteSpace(_importName)))
+        {
+            return;
+        }
+        _busy = true;
+        _error = null;
+        var notifications = Services.GetService<IGXNotificationService>();
+        notifications?.RemoveByKey(ErrorKey);
+        try
+        {
+            using var progress = Services.GetService<IGXProgress>()?.ProgressStart(preview.ScriptId == null ? Gurux.DLMS.AMI.Client.Properties.Resources.ImportingScript : Gurux.DLMS.AMI.Client.Properties.Resources.ReplacingScriptSource);
+            await Http.PostAsJson<Guid>("api/ScriptCatalog/Apply", new ApplyScriptTemplate { ScriptId = preview.ScriptId, CatalogId = preview.CatalogId, Version = preview.Version, ExpectedSha256 = preview.Sha256, ExpectedConcurrencyStamp = preview.ConcurrencyStamp, OverwriteLocalChanges = preview.Customized && _overwriteLocalChanges, Name = preview.ScriptId == null ? _importName?.Trim() : null, }, _lifetime.Token);
+            if (!_disposed)
+            {
+                CloseComparison();
+                notifications?.Add(new GXNotificationItem(NotificationLevel.Success, preview.ScriptId == null ? Properties.Resources.ScriptImported : Properties.Resources.ScriptSourceReplaced, ErrorKey));
+                await OnUpdated.InvokeAsync();
+            }
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            if (!_disposed)
+            {
+                exception.Redirect();
+            }
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed)
+            {
+                _error = exception.Message + Properties.Resources.CompareTheSourceAgainIfTheScriptOrCatalogHasChanged;
+                notifications?.ReportError(exception, ErrorKey);
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void CloseComparison()
+    {
+        _preview = null;
+        _previewRowId = null;
+        _previewName = null;
+        _importName = null;
+        _overwriteLocalChanges = false;
+        _error = null;
+    }
+
+    private ValueTask<ItemsProviderResult<GXAvailableUpdate>> GetItems(GXItemsProviderRequest request)
+    {
+        var rows = request.Count > 0 ? Items.Skip(request.StartIndex).Take(request.Count) : Items;
+        return new(new ItemsProviderResult<GXAvailableUpdate>(rows.ToArray(), Items.Count));
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) { return; }
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

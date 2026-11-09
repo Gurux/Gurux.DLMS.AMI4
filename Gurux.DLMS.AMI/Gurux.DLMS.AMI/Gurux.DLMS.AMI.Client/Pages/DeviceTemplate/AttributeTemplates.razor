@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 @page "/AttributeTemplate/{Action}"
 @page "/AttributeTemplate/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Device;
@@ -48,13 +47,15 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Text;
 
-@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 
 @*If user adds a new item or modifies the existing one.*@
+<GXHelpContext Topic="AttributeTemplates" />
+
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
 {
     <CascadingValue Value="this">
@@ -65,57 +66,62 @@ else
 {
     @if (Header)
     {
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
-            <MenuControl RightCorner="true">
-                <ChildContent>
-                    <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
-                </ChildContent>
-            </MenuControl>
-        </AuthorizeView>
+        <GXMenuControl RightCorner="true">
+            <ChildContent>
+                <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXDeviceTemplatePolicies.Delete" />
+            </ChildContent>
+        </GXMenuControl>
     }
 
-    <GXTable @ref="table"
-             Context="template"
-             ItemsProvider="@GetItems"
-             SelectionMode="SelectionMode.Multiple"
-             Filter="@Filter"
-             ShowAllUsers="@Header"
-             ShowRemoved="@Header"
-             CanEdit="@CanEdit"
-             Columns="@Columns"
-             OnSearch="@Updated">
+    <GXViewTable ViewName="DeviceTemplate.AttributeTemplates" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXAttributeTemplatePolicies.View })" TItem="GXAttributeTemplate" @ref="table"
+                 Context="template"
+                 ItemsProvider="@GetItems"
+                 SelectionMode="SelectionMode.Multiple"
+                 Filter="@Filter"
+                 ShowAllUsers="@Header"
+                 ShowRemoved="@Header"
+                 CanEdit="@CanEdit"
+                 Columns="@Columns"
+                 OnSearch="@Updated">
         <FilterContent>
         </FilterContent>
         <MenuContent>
             @if (Menu)
             {
-                <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-                <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
+                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit"></GXContextMenuItem>
+                <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"></GXContextMenuItem>
             }
         </MenuContent>
         <HeaderContent>
-            <Th Name="LogicalName" Target="@template">@Properties.Resources.LogicalName</Th>
-            <Th Name="ObjectName" Target="@template">@Properties.Resources.Name</Th>
-            <Th Name="Index" Target="@template">@Properties.Resources.Index</Th>
-            <Th Name="Name" Target="@template">@Properties.Resources.Name</Th>
+            <GXTh Name="LogicalName" Target="@template">@Properties.Resources.LogicalName</GXTh>
+            <GXTh Name="ObjectName" Target="@template">@Properties.Resources.Name</GXTh>
+            <GXTh Name="Index" Target="@template">@Properties.Resources.Index</GXTh>
+            <GXTh Name="Name" Target="@template">@Properties.Resources.Name</GXTh>
         </HeaderContent>
         <ItemContent>
-            <Td Id="LogicalName">@template.ObjectTemplate?.LogicalName</Td>
-            <Td Id="ObjectName">@template.ObjectTemplate?.Name</Td>
-            <Td Id="Index">@template.Index</Td>
-            <Td Id="Name">@template.Name</Td>
+            <GXTd Id="LogicalName">@template.ObjectTemplate?.LogicalName</GXTd>
+            <GXTd Id="ObjectName">@template.ObjectTemplate?.Name</GXTd>
+            <GXTd Id="Index">@template.Index</GXTd>
+            <GXTd Id="Name">@template.Name</GXTd>
         </ItemContent>
-    </GXTable>
-    <Confirm @ref="RemoveConfirmation"
-             ConfirmationChanged="OnDeleteConfirmation"
-             OkTitle="@Properties.Resources.Remove"
-             ConfirmationMessage=""
-             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-    </Confirm>
+    </GXViewTable>
+    
 }
 
 <br />
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("LogicalName") { Position = 0, Description = "LogicalName", Visibility = (byte)Visibility.All },
+        new("ObjectName") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Index") { Position = 2, Description = "Index", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 3, Description = "Name", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Action.
     /// </summary>
@@ -128,8 +134,7 @@ else
     [Parameter]
     public Guid? Id { get; set; }
 
-    [CascadingParameter]
-    private DeviceTemplateTab? Parent { get; set; }
+
 
     /// <summary>
     /// List of available device IDs.
@@ -157,7 +162,7 @@ else
     {
         get
         {
-            return "oi oi-tablet";
+            return "attribute-template";
         }
     }
 
@@ -222,29 +227,15 @@ else
     private string? filterByLogicalName;
 
     /// <summary>
-    /// User is verified before schedule is removed.
-    /// </summary>
-    protected ConfirmBase? RemoveConfirmation;
-    /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXAttributeTemplate>? table;
+    protected GXViewTable<GXAttributeTemplate>? table;
 
-    private GXDeviceTemplate? _device;
     /// <summary>
     /// Active device.
     /// </summary>
-    public GXDeviceTemplate? Device
-    {
-        get
-        {
-            if (_device != null)
-            {
-                return _device;
-            }
-            return Parent?.Active;
-        }
-    }
+    [Parameter, EditorRequired]
+    public GXDeviceTemplate? Device { get; set; }
 
     /// <summary>
     /// Active Attribute template.
@@ -266,18 +257,26 @@ else
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("AttributeTemplate/"))
         {
             //If Attribute template is shown.
@@ -287,31 +286,34 @@ else
         await Task.Delay(1);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.OnInitializedAsync");
             //Get selected item.
             if (Device == null &&
                 (AvailableAttributeTemplates == null || !AvailableAttributeTemplates.Any()))
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier.On<IEnumerable<GXAttributeTemplate>>(this, nameof(IGXHubEvents.AttributeTemplateUpdate), async (templates) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXAttributeTemplate>>(this, nameof(IGXHubEvents.AttributeTemplateDelete), async (templates) =>
-            {
-                await Updated();
-            });
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+           {
+               foreach (var it in items)
+               {
+                   if (it.Type == GXAttributeTemplatePolicies.Add ||
+                       it.Type == GXAttributeTemplatePolicies.Edit ||
+                       it.Type == GXAttributeTemplatePolicies.Delete)
+                   {
+                       _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                       break;
+                   }
+               }
+           });
             if (Header)
             {
-                Notifier.Clear();
-                Notifier.UpdateButtons();
             }
             if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = new GXAttributeTemplate() { Id = Id.Value };
+                table.RestoreSelection(new GXAttributeTemplate() { Id = Id.Value });
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -320,11 +322,7 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.OnInitializedAsync");
         }
     }
 
@@ -358,7 +356,7 @@ else
     private async ValueTask<ItemsProviderResult<GXAttributeTemplate>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
         try
         {
             if (request.Removed)
@@ -370,16 +368,16 @@ else
                 filter.Removed = null;
             }
             ListAttributeTemplates req = new ListAttributeTemplates()
-                {
-                    Index = (UInt64)request.StartIndex,
-                    Count = (UInt64)request.Count,
-                    Filter = filter,
-                    OrderBy = request.OrderBy,
-                    Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData,
-                    //Object template information are also read.
-                    Select = new string[] { TargetType.ObjectTemplate }
-                };
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData,
+                //Object template information are also read.
+                Select = new string[] { TargetType.ObjectTemplate }
+            };
             if (AvailableAttributeTemplates != null && AvailableAttributeTemplates.Any())
             {
                 req.Included = AvailableAttributeTemplates.Select(s => s.Id).ToArray();
@@ -395,7 +393,7 @@ else
             var ret = await Http.PostAsJson<ListAttributeTemplatesResponse>("api/AttributeTemplate/List", req, request.CancellationToken);
             if (ret.AttributeTemplates != null)
             {
-                return new ItemsProviderResult<GXAttributeTemplate>(ret.AttributeTemplates, ret.Count);
+                return new ItemsProviderResult<GXAttributeTemplate>(ret.AttributeTemplates, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -405,11 +403,7 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -421,12 +415,12 @@ else
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.OnEdit");
             if (Device == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/AttributeTemplate/Edit/" + Device.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "/AttributeTemplate/Edit/" + Device.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -434,22 +428,29 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.OnEdit");
         }
     }
 
     /// <summary>
     /// Remove selected Attribute templates.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = true,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Name).ToArray()
+                });
+            await OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -457,24 +458,24 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected Attribute templates.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
                 RemoveAttributeTemplate req = new RemoveAttributeTemplate()
-                    {
-                        Delete = args.Delete,
-                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
-                    };
+                {
+                    Delete = args.Delete,
+                    Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                };
                 await Http.PostAsJson<RemoveAttributeTemplateResponse>("api/AttributeTemplate/Delete", req);
             }
         }
@@ -484,12 +485,17 @@ else
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }

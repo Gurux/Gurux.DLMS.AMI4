@@ -1,141 +1,136 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Enums;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <inheritdoc />
+    /// <summary>
+    /// Constructor.
+    /// </summary>
     public class PerformanceRepository : IPerformanceRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly IDbConnectionFactory _dbFactory;
+        private readonly NotificationCache _notificationCache;
         private readonly IServiceProvider _serviceProvider;
 
-        /// <inheritdoc />
-        public Dictionary<string, GXPerformance> Snapshots
+        /// <summary>Creates a repository for performance snapshots.</summary>
+        public PerformanceRepository(IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor, IServiceProvider serviceProvider,
+            NotificationCache notificationCache)
         {
-            get;
-            private set;
-        } = new Dictionary<string, GXPerformance>();
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public PerformanceRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
-            IGXEventsNotifier eventsNotifier,
-            IServiceProvider serviceProvider,
-            GXPerformanceSettings performanceSettings)
-        {
+            _ = httpContextAccessor;
+            _dbFactory = dbFactory;
+            _notificationCache = notificationCache;
             _serviceProvider = serviceProvider;
-            User = contextAccessor?.User;
-            _host = host;
-            _eventsNotifier = eventsNotifier;
-            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />
-        public async Task ClearAsync()
+        public Dictionary<string, GXPerformance> Snapshots { get; private set; } = [];
+
+        /// <summary>Reads administrator recipients without changing the active request context.</summary>
+        private static async Task<List<string>> GetNotifiedUsersAsync(GXDbConnection connection, CancellationToken cancellationToken)
         {
-            if (User == null ||
-                !User.IsInRole(GXRoles.Admin))
+            var recipients = GXSelectArgs.Select<GXUser>(u => u.Id!, u => u.Removed == null);
+            recipients.Joins.AddInnerJoin<GXUser, GXUserRole>(u => u.Id!, r => r.UserId!);
+            recipients.Joins.AddInnerJoin<GXUserRole, GXRole>(r => r.RoleId!, r => r.Id);
+            recipients.Where.And<GXRole>(r => r.Name == GXRoles.Admin);
+            recipients.Distinct = true;
+            return [.. (await connection.SelectAsync<GXUser>(recipients, cancellationToken)).Select(u => u.Id!)];
+        }
+
+        /// <inheritdoc />
+        public async Task ClearAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
+        {
+            if (user?.IsInRole(GXRoles.Admin) != true)
             {
                 throw new UnauthorizedAccessException();
             }
-
             lock (Snapshots)
             {
-                Snapshots.Clear();
+                var now = DateTimeOffset.Now;
+                foreach (var target in Snapshots.Keys.ToArray())
+                {
+                    Snapshots[target] = new GXPerformance
+                    {
+                        Target = target,
+                        Start = now,
+                        AddCount = 0, ReadCount = 0, UpdateCount = 0,
+                        DeleteCount = 0, ListCount = 0, ClearCount = 0,
+                        AddTime = 0, ReadTime = 0, UpdateTime = 0,
+                        DeleteTime = 0, ListTime = 0, ClearTime = 0,
+                        AddNotificationTime = 0, UpdateNotificationTime = 0,
+                        DeleteNotificationTime = 0, ClearNotificationTime = 0
+                    };
+                }
             }
-            _host.Connection.Truncate<GXPerformance>();
-            using IServiceScope scope = _serviceProvider.CreateScope();
-            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-            var users = await userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]);
-            await _eventsNotifier.PerformanceClear(users);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            connection.Truncate<GXPerformance>();
+            var users = await GetNotifiedUsersAsync(connection, cancellationToken);
+            _notificationCache.Add(users, new GXTarget(GXPerformancePolicies.Clear));
         }
 
-
         /// <inheritdoc />
-        public async Task<GXPerformance[]> ListAsync(
+        public async Task<IEnumerable<GXPerformance>> ListAsync(ClaimsPrincipal user,
             ListPerformances? request,
             ListPerformancesResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
+            if (user?.IsInRole(GXRoles.Admin) != true)
+            {
+                throw new UnauthorizedAccessException();
+            }
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXPerformance>();
             arg.Distinct = true;
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
             }
-            if (request != null && request.Count != 0)
+            var dateFiltered = GXDateTimeFilters.Apply<GXPerformance>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXPerformance> snapshots;
+            lock (Snapshots)
             {
-                if (request.Count != 0)
-                {
-                    lock (Snapshots)
-                    {
-                        request.Index -= Snapshots.Count;
-                        request.Count -= Snapshots.Count;
-                    }
-                    if (request.Index < 0)
-                    {
-                        request.Index = 0;
-                    }
-                    if (request.Count < 0)
-                    {
-                        request.Count = 0;
-                    }
-                }
-                //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXPerformance>(q => GXSql.DistinctCount(q.Id));
-                total.Joins.Append(arg.Joins);
-                total.Where.Append(arg.Where);
-                if (response != null)
-                {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
-                }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                snapshots = [.. Snapshots.Values.Where(s =>
+                    (string.IsNullOrEmpty(request?.Filter?.Target) || s.Target == request.Filter.Target) &&
+                    (request?.Filter == null || request.Filter.Id == Guid.Empty || s.Id == request.Filter.Id))];
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -145,88 +140,129 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 arg.Descending = true;
-                arg.OrderBy.Add<GXPerformance>(q => q.Start);
+                arg.OrderBy.Add<GXPerformance>(q => q.Start!);
             }
-            List<GXPerformance> performances = (await _host.Connection.SelectAsync<GXPerformance>(arg)).ToList();
-            lock (Snapshots)
+            if (dateFiltered) {
+                snapshots.Clear();
+            }
+            snapshots = [.. (arg.Descending ? snapshots.OrderByDescending(s => s.Start) : snapshots.OrderBy(s => s.Start))];
+            var total = GXSelectArgs.Select<GXPerformance>(q => GXSql.Count(1));
+            total.Where.Append(arg.Where);
+            long storedCount = await connection.SingleOrDefaultAsync<long>(total, cancellationToken);
+            long index = Math.Max(0, request?.Index ?? 0);
+            long count = request?.Count ?? 0;
+            bool paged = count > 0;
+            long snapshotOffset = arg.Descending ? 0 : storedCount;
+            var visibleSnapshots = snapshots.Skip((int)Math.Min(snapshots.Count, Math.Max(0, index - snapshotOffset)));
+            if (paged)
             {
-                if (Snapshots.Any())
+                visibleSnapshots = visibleSnapshots.Take((int)Math.Min(snapshots.Count, Math.Max(0, count - Math.Max(0, snapshotOffset - index))));
+            }
+            var selectedSnapshots = visibleSnapshots.ToList();
+            long storedIndex = arg.Descending ? Math.Max(0, index - snapshots.Count) : index;
+            long storedTake = paged ? Math.Max(0, count - selectedSnapshots.Count) : storedCount;
+            var performances = new List<GXPerformance>();
+            if (storedIndex < storedCount && storedTake > 0)
+            {
+                arg.Index = storedIndex;
+                if (paged)
                 {
-                    if (response != null)
-                    {
-                        response.Count += Snapshots.Count;
-                    }
-                    //Add snapshot values.
-                    if (arg.Descending)
-                    {
-                        performances.InsertRange(0, Snapshots.Values);
-                    }
-                    else
-                    {
-                        performances.AddRange(Snapshots.Values);
-                    }
-                    if (!string.IsNullOrEmpty(request?.Filter?.Target))
-                    {
-                        //Remove snapshots using the filter.
-                        performances.RemoveAll(w => w.Target != request.Filter.Target);
-                    }
+                    arg.Count = storedTake;
                 }
+
+                performances = await connection.SelectAsync<GXPerformance>(arg, cancellationToken);
+            }
+            if (arg.Descending)
+            {
+                performances.InsertRange(0, selectedSnapshots);
+            }
+            else
+            {
+                performances.AddRange(selectedSnapshots);
             }
             if (response != null)
             {
-                response.Performances = performances.ToArray();
-                if (response.Count == 0)
-                {
-                    response.Count = performances.Count;
-                }
+                response.Count = storedCount + snapshots.Count;
+                response.Performances = [.. performances];
             }
-            return performances.ToArray();
+            return [.. performances];
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> AddAsync(
-            IEnumerable<GXPerformance> performances)
+        public async Task<IEnumerable<Guid>> AddAsync(ClaimsPrincipal user,
+            IEnumerable<GXPerformance> performances, CancellationToken cancellationToken)
         {
-            if (User == null ||
-                !User.IsInRole(GXRoles.Admin))
+            if (user?.IsInRole(GXRoles.Admin) != true)
             {
                 throw new UnauthorizedAccessException();
             }
-            List<Guid> list = new();
+            List<Guid> list = [];
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             foreach (GXPerformance it in performances)
             {
-                await _host.Connection.InsertAsync(GXInsertArgs.Insert(it));
+                // A prior attempt may have committed this snapshot before recipient lookup failed.
+                if (it.Id == Guid.Empty) {
+                    it.Id = Guid.NewGuid();
+                }
+                var existing = await connection.SingleOrDefaultAsync<GXPerformance>(
+                    GXSelectArgs.Select<GXPerformance>(p => p.Id, p => p.Id == it.Id), cancellationToken);
+                if (existing == null) {
+                    await connection.InsertAsync(GXInsertArgs.Insert(it), cancellationToken);
+                }
                 list.Add(it.Id);
             }
-            var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
-            var users = await userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]);
-            await _eventsNotifier.PerformanceAdd(users, performances);
-            return list.ToArray();
+            var users = await GetNotifiedUsersAsync(connection, cancellationToken);
+            _notificationCache.Add(users, new GXTarget(GXPerformancePolicies.Add));
+            return [.. list];
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(
-            IEnumerable<Guid> performances)
+        public async Task DeleteAsync(ClaimsPrincipal user,
+            IEnumerable<Guid> performances, CancellationToken cancellationToken)
         {
-            if (User == null ||
-                !User.IsInRole(GXRoles.Admin))
+            try
             {
-                throw new UnauthorizedAccessException();
+
+                if (user?.IsInRole(GXRoles.Admin) != true)
+                {
+                    throw new UnauthorizedAccessException();
+                }
+                GXSelectArgs arg = GXSelectArgs.Select<GXPerformance>(a => a.Id, q => performances.Contains(q.Id));
+                await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+                List<GXPerformance> list = connection.Select<GXPerformance>(arg);
+                DateTime now = DateTime.Now;
+                foreach (GXPerformance it in list)
+                {
+                    await connection.DeleteAsync(GXDeleteArgs.DeleteById<GXPerformance>(it.Id), cancellationToken);
+                }
+                var users = await GetNotifiedUsersAsync(connection, cancellationToken);
+                if (users.Count != 0)
+                {
+                    _notificationCache.Add(users, new GXTarget(GXPerformancePolicies.Delete));
+                }
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXPerformance>(a => a.Id, q => performances.Contains(q.Id));
-            List<GXPerformance> list = _host.Connection.Select<GXPerformance>(arg);
-            DateTime now = DateTime.Now;
-            foreach (GXPerformance it in list)
+            catch (GXDatabaseException ex)
             {
-                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXPerformance>(it.Id));
-            }
-            var userRepository = _serviceProvider.GetRequiredService<IUserRepository>();
-            var users = await userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]);
-            users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                users, TargetType.Performance, NotificationAction.Remove);
-            if (users != null && users.Any())
-            {
-                await _eventsNotifier.PerformanceDelete(users, performances);
+                if (ex.ErrorType == DatabaseErrorType.Deadlock)
+                {
+                    //Max time is 5 seconds to avoid infinite retry when there is some other issue that cause deadlock and not just temporary deadlock.
+                    CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(5));
+                    try
+                    {
+                        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                        // If deadlock, wait max 1 second and retry.
+                        await Task.Delay(1000, linkedCts.Token);
+                        await DeleteAsync(user, performances, linkedCts.Token);
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        throw ex;
+                    }
+                }
+                else
+                {
+                    throw;
+                }
             }
         }
     }

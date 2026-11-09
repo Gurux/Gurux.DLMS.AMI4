@@ -1,34 +1,29 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
@@ -41,18 +36,24 @@ namespace Gurux.DLMS.AMI.Server.Controllers
     /// <summary>
     /// This controller is used to handle the roles.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class RoleController : ControllerBase
+    public class RoleController(IRoleRepository roleRepository) : ControllerBase
     {
-        private readonly IRoleRepository _roleRepository;
+        private readonly IRoleRepository _roleRepository = roleRepository;
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public RoleController(IRoleRepository roleRepository)
+        /// <summary>Gets agent token scopes without requiring membership in the Agent role.</summary>
+        /// <param name="database">Database used to read current role and user permissions.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>Configured agent scopes limited to the requesting user's grants.</returns>
+        [HttpGet("AgentTokenScopes")]
+        [Authorize(Policy = GXAgentPolicies.Add)]
+        public async Task<ActionResult<string[]>> GetAgentTokenScopes([FromServices] Gurux.DLMS.AMI.Db.IDbConnectionFactory database, CancellationToken cancellationToken = default)
         {
-            _roleRepository = roleRepository;
+            return await Gurux.DLMS.AMI.Server.Internal.GXAgentTokenScopes.ReadAsync(database, User, cancellationToken);
         }
 
         /// <summary>
@@ -60,17 +61,20 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
-        [Authorize(Policy = GXRolePolicies.Add)]
-        public async Task<ActionResult<UpdateRoleResponse>> Post(UpdateRole request)
+        [Authorize]
+        public async Task<ActionResult<UpdateRoleResponse>> Post(UpdateRole request, CancellationToken cancellationToken = default)
         {
-            if (request.Roles == null || request.Roles.Length == 0)
+            if (request.Roles?.Any() != true)
             {
-                return BadRequest("Invalid roles");
+                return BadRequest("No roles to save.");
             }
-            UpdateRoleResponse ret = new UpdateRoleResponse();
-            ret.Ids = await _roleRepository.UpdateAsync(request.Roles);
+            UpdateRoleResponse ret = new()
+            {
+                Ids = await _roleRepository.UpsertAsync(request.Roles, cancellationToken)
+            };
             return ret;
         }
 
@@ -80,12 +84,11 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <returns>Available roles.</returns>
         [HttpPost("List")]
         [Authorize(Policy = GXRolePolicies.View)]
-        [Authorize(Policy = GXUserPolicies.View)]
         public async Task<ActionResult<ListRolesResponse>> Post(
-            ListRoles request,
+            ListRoles? request,
             CancellationToken cancellationToken)
         {
-            ListRolesResponse ret = new ListRolesResponse();
+            ListRolesResponse ret = new();
             await _roleRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -95,12 +98,15 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// </summary>
         /// <param name="id">Role id.</param>
         /// <returns>Role information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXRolePolicies.View)]
-        public async Task<ActionResult<GetRoleResponse>> Get(string id)
+        public async Task<ActionResult<GetRoleResponse>> Get(string id, CancellationToken cancellationToken = default)
         {
-            var ret = new GetRoleResponse();
-            ret.Item = await _roleRepository.ReadAsync(id);
+            var ret = new GetRoleResponse
+            {
+                Item = await _roleRepository.ReadAsync(id, null, cancellationToken)
+            };
             return ret;
         }
 
@@ -109,14 +115,32 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXRolePolicies.Delete)]
-        public async Task<ActionResult<RoleDeleteResponse>> Post(RoleDelete request)
+        public async Task<ActionResult<RoleDeleteResponse>> Post(RoleDelete request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _roleRepository.DeleteAsync(request.Ids);
+            await _roleRepository.DeleteAsync(request.Ids, cancellationToken);
             return new RoleDeleteResponse();
+        }
+
+        /// <summary>
+        /// Regenerates role items based on the specified identifiers.
+        /// </summary>
+        /// <param name="request">The request containing the identifiers of the role items to regenerate.</param>
+        /// <returns>A response indicating the result of the regeneration operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        [HttpPost("Regenerate")]
+        [Authorize(Policy = GXRolePolicies.Edit)]
+        public async Task<ActionResult<RegenerateRoleResponse>> Post(RegenerateRole request, CancellationToken cancellationToken = default)
+        {
+            if (request.Ids?.Any() == true)
+            {
+                await _roleRepository.ResetToDefaultsAsync(request.Ids, cancellationToken);
+            }
+            else
+            {
+                await _roleRepository.EnsureDefaultsAsync(cancellationToken);
+            }
+
+            return new RegenerateRoleResponse();
         }
     }
 }

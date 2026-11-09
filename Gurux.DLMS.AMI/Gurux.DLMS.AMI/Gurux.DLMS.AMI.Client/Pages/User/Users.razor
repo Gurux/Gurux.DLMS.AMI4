@@ -1,38 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @page "/users"
 
-@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Microsoft.AspNetCore.Authorization
@@ -45,122 +43,129 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = "Admin, UserManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
 @inject IGXResourceStorage ResourceStorage
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
-@implements IAmiComponent
+@implements IGXAmiComponent
+<GXHelpContext Topic="Users" />
+
 @if (Title)
 {
     <PageTitle>@Properties.Resources.UsersTitle</PageTitle>
 }
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
-            <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXUserPolicies.Add" />
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXUserPolicies.Delete" />
+    </ChildContent>
+</GXMenuControl>
 
-<GXTable @ref="table"
-         @bind-Active="Active"
-         Context="user"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         Filter="@Filter"
-         ShowAllUsers="false"
-         ShowRemoved="@Header"
-         Columns="@Columns"
-         CanEdit="@CanEdit"
-         OnSearch="@Updated">
+<GXViewTable ViewName="User.Users" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXUserPolicies.View })"
+             TItem="GXUser" @ref="table"
+             @bind-@bind-Active="Active"
+             Context="user"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             ShowAllUsers="false"
+             ShowRemoved="@Header"
+             Columns="@Columns"
+             CanEdit="@CanEdit"
+             OnSearch="@Updated">
     <FilterContent>
-        <th>
-            <input class="form-control" placeholder="Filter by given name..."
+        <GXFh Id="GivenName">
+            <input class="form-control" placeholder="@Properties.Resources.FilterByGivenName"
                    @onchange="@((ChangeEventArgs __e) => filter.GivenName = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by surname..."
+        </GXFh>
+        <GXFh Id="Surname">
+            <input class="form-control" placeholder="@Properties.Resources.FilterBySurname"
                    @onchange="@((ChangeEventArgs __e) => filter.Surname = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by email..."
+        </GXFh>
+        <GXFh Id="Email">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByEmail"
                    @onchange="@((ChangeEventArgs __e) => filter.Email = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by email confirmed..."
-                   @onchange="@((ChangeEventArgs __e) => filter.EmailConfirmed = StatusTile.ToBoolean(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by role..."
-                   @onchange="@((ChangeEventArgs __e) => @UpdateRoles(Convert.ToString(__e.Value)))" />
-        </th>
-        <Fh Id="CreationTime" Visibility="Visibility.Medium">
-            <GXDateTimeSelector Id="Users-CreationTime"
+        </GXFh>
+        <GXFh Id="EmailConfirmed">
+        </GXFh>
+        <GXFh Id="Roles">
+        </GXFh>
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="users-creation-time"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <th>
-            <input class="form-control" placeholder="Filter by Updated..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by last login..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.LastLogin = StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by access failed count..."
-                   @onchange="@((ChangeEventArgs __e) => filter.AccessFailedCount = StatusTile.ToInt32(__e.Value))" />
-        </th>
+        </GXFh>
+        <GXFh Id="Updated">
+            <GXDateTimeSelector Id="users-updated-time"
+                                @bind-Value="@filter.Updated"
+                                Placeholder="@Properties.Resources.FilterByUpdated">
+            </GXDateTimeSelector>
+        </GXFh>
+        <GXFh Id="LastLogin">
+            <GXDateTimeSelector Id="users-last-login-time"
+                                @bind-Value="@filter.LastLogin"
+                                Placeholder="@Properties.Resources.FilterByLastLogin">
+            </GXDateTimeSelector>
+        </GXFh>
+        <GXFh Id="AccessFailed">
+        </GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Actions" Id="Actions" OnClick="@OnActions"></ContextMenuItem>
-            @*TODO:
-            <ContextMenuItem Text="@Properties.Resources.Agents" Icon="oi oi-wifi" OnClick="async () => OnAgents()"></ContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXUserPolicies.Edit"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXUserPolicies.Delete"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Actions" Id="actions" OnClick="@OnActions" Policy="@GXUserPolicies.View"></GXContextMenuItem>
+        @*TODO:
+            <GXContextMenuItem Text="@Properties.Resources.Agents" Icon="oi oi-wifi" OnClick="async () => OnAgents()"></GXContextMenuItem>
             *@
-        </AuthorizeView>
     </MenuContent>
     <HeaderContent>
-        <Th Name="GivenName" Target="@user">@Properties.Resources.GivenName</Th>
-        <Th Name="Surname" Target="@user">@Properties.Resources.Surname</Th>
-        <Th Name="Email" Target="@user">@Properties.Resources.Email</Th>
-        <Th Name="EmailConfirmed" Target="@user">@Properties.Resources.EmailConfirmed</Th>
-        <Th Target="@user">@Properties.Resources.Roles</Th>
-        <Th Name="CreationTime" Target="@user" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Name="Updated" Target="@user">@Properties.Resources.Updated</Th>
-        <Th Name="LastLogin" Target="@user">@Properties.Resources.LastLogin</Th>
-        <Th Name="AccessFailed" Target="@user">@Properties.Resources.AccessFailed</Th>
+        <GXTh Id="GivenName" Name="GivenName" Target="@user">@Properties.Resources.GivenName</GXTh>
+        <GXTh Id="Surname" Name="Surname" Target="@user">@Properties.Resources.Surname</GXTh>
+        <GXTh Id="Email" Name="Email" Target="@user">@Properties.Resources.Email</GXTh>
+        <GXTh Id="EmailConfirmed" Name="EmailConfirmed" Target="@user">@Properties.Resources.EmailConfirmed</GXTh>
+        <GXTh Id="Roles" Target="@user">@Properties.Resources.Roles</GXTh>
+        <GXTh Id="CreationTime" Name="CreationTime" Target="@user" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Id="Updated" Name="Updated" Target="@user">@Properties.Resources.Updated</GXTh>
+        <GXTh Id="LastLogin" Name="LastLogin" Target="@user">@Properties.Resources.LastLogin</GXTh>
+        <GXTh Id="AccessFailed" Name="AccessFailed" Target="@user">@Properties.Resources.AccessFailed</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>@user.GivenName</td>
-        <td>@user.Surname</td>
-        <Td Link="@("User/Edit/" + user.Id)">@user.Email</Td>
-        <td>@user.EmailConfirmed</td>
-        <td>@RolesToString(user.Roles)</td>
-        <td>@user.CreationTime</td>
-        <td>@ResourceStorage.DateTimeOffsetToString(user.Updated)</td>
-        <td>@GetConnectionInformation(user)</td>
-        <td>@user.AccessFailedCount</td>
+        <GXTd Id="GivenName">@user.GivenName</GXTd>
+        <GXTd Id="Surname">@user.Surname</GXTd>
+        <GXTd Id="Email" Link="@NavigationManager.GetCurrentPagePath("/User/Edit/" + user.Id)">@user.Email</GXTd>
+        <GXTd Id="EmailConfirmed">@user.EmailConfirmed</GXTd>
+        <GXTd Id="Roles">@RolesToString(user.Roles)</GXTd>
+        <GXTd Id="CreationTime">@user.CreationTime</GXTd>
+        <GXTd Id="Updated">@ResourceStorage.DateTimeOffsetToString(user.Updated)</GXTd>
+        <GXTd Id="LastLogin">@GetConnectionInformation(user)</GXTd>
+        <GXTd Id="AccessFailed">@user.AccessFailedCount</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="DeleteConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("GivenName") { Position = 0, Description = "GivenName", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Surname") { Position = 1, Description = "Surname", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Email") { Position = 2, Description = "Email", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("EmailConfirmed") { Position = 3, Description = "EmailConfirmed", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Roles") { Position = 4, Description = "Roles", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CreationTime") { Position = 5, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Updated") { Position = 6, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("LastLogin") { Position = 7, Description = "LastLogin", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("AccessFailed") { Position = 8, Description = "AccessFailed", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+    ];
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected user ID.
     /// </summary>
@@ -174,7 +179,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.UsersTitle;
+            return Properties.Resources.UsersTitle;
         }
     }
 
@@ -192,7 +197,7 @@
     {
         get
         {
-            return "Users";
+            return "user";
         }
     }
 
@@ -278,10 +283,6 @@
     /// </summary>
     private GXUser filter = new GXUser();
 
-    /// <summary>
-    /// User is verified before user is removed.
-    /// </summary>
-    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
     /// Table reference.
@@ -297,40 +298,42 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/User/Users.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/Users.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
+            NotificationService?.RemoveByKey("Pages/User/Users.OnInitialized");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ClearStatus();
-            object? data = Notifier.GetData("users");
-            if (data is GXUser u && table != null)
-            {
-                table.Active = u;
-            }
-            Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.UserUpdate), async (user) =>
-            {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXUserPolicies.Add ||
+                        it.Type == GXUserPolicies.Edit ||
+                        it.Type == GXUserPolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.UserDelete), async (user) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
             if (Id != null)
             {
                 //Get last selected item.
@@ -343,18 +346,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/User/Users.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXUser>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUsers);
         try
         {
             if (request.Removed)
@@ -379,7 +378,7 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXUser>(ret.Users, ret.Count);
+            return new ItemsProviderResult<GXUser>((ret.Users ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
         catch (TaskCanceledException)
         {
@@ -388,11 +387,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -404,8 +399,8 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/User/Add");
+            NotificationService?.RemoveByKey("Pages/User/Users.OnAdd");
+            ClientHelpers.NavigateTo(NavigationManager, "/User/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -413,7 +408,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/Users.OnAdd");
         }
     }
 
@@ -424,12 +419,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/User/Users.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/User/Edit/" + table.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "/User/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -437,7 +432,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/Users.OnEdit");
         }
     }
 
@@ -445,15 +440,22 @@
     /// <summary>
     /// Remove selected user.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.UserName).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = true,
+                    Items = table?.SingleOrDefault()?.Select(s => s.UserName).ToArray()
+                });
+            OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -461,25 +463,37 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected users.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public void OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
+                using var progressScope2 = Progress?.ProgressStart(GXProgress.RemovingUsers);
                 RemoveUser req = new RemoveUser()
                 {
                     Delete = args.Delete,
-                    Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    Ids = table.SingleOrDefault().Select(w => w.Id!).ToArray()
                 };
-                await Http.PostAsJson<RemoveUserResponse>("api/User/Delete", req);
+                _ = Http.PostAsJson<RemoveUserResponse>("api/User/Delete", req).ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        NotificationService?.ReportError(t.Exception);
+                    }
+                    else
+                    {
+                        NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.UsersRemoved, string.Empty, Closable: false));
+                        _ = Updated();
+                    }
+                });
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -488,7 +502,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -500,13 +514,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/User/Users.OnActions");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Users, table.Active);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, $"/userActions");
+            ClientHelpers.NavigateTo(NavigationManager, $"/userActions");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -514,7 +527,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/Users.OnActions");
         }
     }
 
@@ -525,13 +538,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/User/Users.OnAgents");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Users, table.Active);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, $"/agents");
+            ClientHelpers.NavigateTo(NavigationManager, $"/agents");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -539,13 +551,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/Users.OnAgents");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

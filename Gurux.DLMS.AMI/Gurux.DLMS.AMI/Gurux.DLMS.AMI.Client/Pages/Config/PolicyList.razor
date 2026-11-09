@@ -1,0 +1,278 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Module
+@inject HttpClient Http
+@inject IGXNotificationService NotificationService
+@inject IGXAmiConfirmation Confirmation
+@inject IServiceProvider Services
+
+<GXHelpContext Topic="PolicyList" />
+
+<h1>@Properties.Resources.Policies</h1>
+<GXMenuControl RightCorner="true">
+    <GXMenuEntry Text="@Properties.Resources.Add" Id="AddPolicy" OnClick="Add" Policy="@GXPolicyPolicies.Add" />
+    <GXMenuEntry Text="@Properties.Resources.Edit" Id="EditPolicy" OnClick="Edit" Policy="@GXPolicyPolicies.Edit" />
+    <GXMenuEntry Text="@Properties.Resources.Remove" Id="RemovePolicy" OnClick="Remove" Policy="@GXPolicyPolicies.Delete" />
+    <GXMenuEntry Text="@Properties.Resources.ApplyDefaults" Id="Regenerate" OnClick="OnRegenerate" Policy="@GXPolicyPolicies.Edit" />
+</GXMenuControl>
+<PolicyForm @ref="_editor" OnSaved="Update" />
+<p class="small text-muted">Select one custom policy to edit, or custom policies to remove. Built-in policies are managed with @Properties.Resources.ApplyDefaults.</p>
+<GXViewTable ViewName="Config.PolicyList" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXPolicyPolicies.View })" TItem="GXPolicy" @ref="table" Context="policy" ItemsProvider="GetItems" OnSearch="Update"
+         ShowAllUsers="false" ShowRemoved="false" ShowAllData="false" Filter="true" SelectionMode="SelectionMode.Multiple">
+    <FilterContent>
+        <GXFh Id="Name">
+            <GXSearch Placeholder="@Properties.Resources.FilterByName" Id="policies.filter"
+                    Immediate="true" @bind-Value="Filter" @bind-Value:after="Update" />
+        </GXFh>
+        <GXFh Id="RequirementOperator"></GXFh>
+        <GXFh Id="RequireAuthenticatedUser"></GXFh>
+        <GXFh Id="SystemDefined"></GXFh>
+        <GXFh Id="PolicyRequirements"></GXFh>
+        <GXFh Id="Description"></GXFh>
+    </FilterContent>
+    <HeaderContent>
+        <GXTh Name="Name" Target="@policy">@Properties.Resources.Name</GXTh>
+        <GXTh Name="RequirementOperator" Target="@policy">@Properties.Resources.RequirementOperator</GXTh>
+        <GXTh Name="RequireAuthenticatedUser" Target="@policy">@Properties.Resources.RequireAuthenticatedUser</GXTh>
+        <GXTh Name="SystemDefined" Target="@policy">@Properties.Resources.SystemDefined</GXTh>
+        <GXTh Id="PolicyRequirements" TItem="GXPolicy">@Properties.Resources.PolicyRequirements</GXTh>
+        <GXTh Id="Description" TItem="GXPolicy">@Properties.Resources.Description</GXTh>
+    </HeaderContent>
+    <ItemContent>
+        <GXTd Id="Name">
+            @(string.IsNullOrWhiteSpace(policy.DisplayName) ? policy.Name : policy.DisplayName)
+            @if (!string.IsNullOrWhiteSpace(policy.DisplayName))
+            {
+                <div class="small text-muted">@policy.Name</div>
+            }
+        </GXTd>
+        <GXTd Id="RequirementOperator">@(policy.RequirementOperator == PolicyRequirementOperator.And ? Properties.Resources.AllRequirements : Properties.Resources.AnyRequirement)</GXTd>
+        <GXTd Id="RequireAuthenticatedUser"><input type="checkbox" checked="@policy.RequireAuthenticatedUser" disabled aria-label="@Properties.Resources.RequireAuthenticatedUser" /></GXTd>
+        <GXTd Id="SystemDefined"><input type="checkbox" checked="@policy.SystemDefined" disabled aria-label="@Properties.Resources.SystemDefined" /></GXTd>
+        <GXTd Id="PolicyRequirements">
+            @if (policy.Requirements?.Count > 0)
+            {
+                <details>
+                    <summary>@Properties.Resources.PolicyRequirements (@policy.Requirements.Count)</summary>
+                    <ul class="mb-0">
+                        @foreach (var requirement in policy.Requirements)
+                        {
+                            <li>
+                                @if (!string.IsNullOrWhiteSpace(requirement.Name))
+                                {
+                                    <strong>@requirement.Name: </strong>
+                                }
+                                @FormatRequirement(requirement)
+                                @if (!string.IsNullOrWhiteSpace(requirement.Description))
+                                {
+                                    <div class="small text-muted">@requirement.Description</div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+            else
+            {
+                <span>0</span>
+            }
+        </GXTd>
+        <GXTd Id="Description">@policy.Description</GXTd>
+    </ItemContent>
+</GXViewTable>
+
+@code {
+    private PolicyForm? _editor;
+    private Task Add() => _editor?.Open(new GXPolicy { Requirements = [], RequireAuthenticatedUser = true }) ?? Task.CompletedTask;
+    private async Task Edit()
+    {
+        var selected = table?.SingleOrDefault().ToArray() ?? [];
+        if (selected.Length != 1 || selected[0].SystemDefined)
+        {
+            NotificationService.ReportError(new InvalidOperationException("Select one custom policy to edit. Built-in policies are managed with Apply defaults."));
+            return;
+        }
+        if (_editor != null)
+        {
+            await _editor.Open(selected[0]);
+        }
+    }
+    private bool _removing;
+    private async Task Remove()
+    {
+        if (_removing || _applyingDefaults || _editor?.Busy == true)
+        {
+            return;
+        }
+        var selected = table?.SingleOrDefault().ToArray() ?? [];
+        if (selected.Length == 0 || selected.Any(p => p.SystemDefined))
+        {
+            NotificationService.ReportError(new InvalidOperationException("Select custom policies to remove. Built-in policies cannot be removed."));
+            return;
+        }
+        _removing = true;
+        try
+        {
+            if (_editor != null && !await _editor.CanDiscard())
+            {
+                return;
+            }
+            var result = await Confirmation.ConfirmAsync(Properties.Resources.Remove, Properties.Resources.Policies,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.Remove, AllowDelete = false, Items = selected.Select(p => p.Name).ToArray() });
+            if (!result.Confirm)
+            {
+                return;
+            }
+            await Http.PostAsJson<PolicyDeleteResponse>("api/Policy/Delete", new PolicyDelete { Ids = selected.Select(p => p.Id.ToString()).ToArray() });
+            _editor?.Clear();
+            await Update();
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            ex.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ReportError(ex, "Pages/Config/PolicyList.Remove");
+        }
+        finally
+        {
+            _removing = false;
+        }
+    }
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
+        new("RequirementOperator") { Position = 1, Description = "RequirementOperator", Visibility = (byte)Visibility.All },
+        new("RequireAuthenticatedUser") { Position = 2, Description = "RequireAuthenticatedUser", Visibility = (byte)Visibility.All },
+        new("SystemDefined") { Position = 3, Description = "SystemDefined", Visibility = (byte)Visibility.All },
+        new("PolicyRequirements") { Position = 4, Description = "PolicyRequirements", Visibility = (byte)Visibility.All },
+        new("Description") { Position = 5, Description = "Description", Visibility = (byte)Visibility.All },
+    ];
+
+    private GXViewTable<GXPolicy>? table;
+    private string? Filter { get; set; }
+    private bool _applyingDefaults;
+
+    public async Task OnRegenerate()
+    {
+        if (_applyingDefaults || _removing || _editor?.Busy == true)
+        {
+            return;
+        }
+        _applyingDefaults = true;
+        try
+        {
+            if (_editor != null && !await _editor.CanDiscard())
+            {
+                return;
+            }
+            var selected = table?.SingleOrDefault().ToArray() ?? [];
+            var ids = selected.Select(p => p.Id).ToArray();
+            var result = await Confirmation.ConfirmAsync(Properties.Resources.ApplyBuiltInDefaults,
+                Properties.Resources.SelectedItemsWillBeResetToDefaultsWithoutASelectionOnlyMissingDefaultsWillBeAdded,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.ApplyDefaults, AllowDelete = false, Items = selected.Select(p => p.Name).ToArray() });
+            if (!result.Confirm)
+            {
+                return;
+            }
+            using var progress = Services.GetService<IGXProgress>()?.ProgressStart(Properties.Resources.ApplyDefaults);
+            await Http.PostAsJson<RegeneratePolicyResponse>("api/Policy/Regenerate", new RegeneratePolicy { Ids = ids },
+                progress?.CancellationToken ?? CancellationToken.None);
+            _editor?.Clear();
+            await Update();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ReportError(ex, "Pages/Config/PolicyList.OnRegenerate");
+        }
+        finally
+        {
+            _applyingDefaults = false;
+        }
+    }
+
+    private async Task Update()
+    {
+        NotificationService.RemoveByKey("Pages/Config/PolicyList.GetItems");
+        if (table != null)
+        {
+            table.ResetPage();
+            await table.RefreshDataAsync(true);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXPolicy>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            var response = await Http.PostAsJson<ListPolicysResponse>("api/Policy/List", new ListPolicys
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Search = Filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending
+            }, request.CancellationToken);
+            return new ItemsProviderResult<GXPolicy>(response.Policys ?? [], ClientHelpers.ToVirtualizedCount(response.Count));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception exception)
+        {
+            NotificationService.ReportError(exception, "Pages/Config/PolicyList.GetItems");
+        }
+        return new ItemsProviderResult<GXPolicy>([], 0);
+    }
+
+    private static string FormatRequirement(GXPolicyRequirement requirement)
+    {
+        return requirement.Type == PolicyRequirementType.Claim
+            ? $"{requirement.Type}: {requirement.ClaimType}" + (string.IsNullOrWhiteSpace(requirement.Value) ? "" : $" = {requirement.Value}")
+            : $"{requirement.Type}" + (string.IsNullOrWhiteSpace(requirement.Value) ? "" : $": {requirement.Value}");
+    }
+}
+

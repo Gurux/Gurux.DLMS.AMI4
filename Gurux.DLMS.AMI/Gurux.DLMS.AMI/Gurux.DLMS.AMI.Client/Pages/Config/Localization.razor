@@ -1,39 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
-@using Gurux.DLMS.AMI.Components.Accordion
-@using Gurux.DLMS.AMI.Components.Enums
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
 @using Gurux.DLMS.AMI.Shared.DIs
 
+@using Gurux.UI.Components.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -43,32 +40,35 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @inject IGXResourceStorage ResourceStorage
 
 @implements IDisposable
 
+<GXHelpContext Topic="Localization" />
+
 @if (Active?.Language != null)
 {
-    <Dialog OnCancel="Cancel"
+    <GXDialog OnCancel="Cancel"
             CancelButtonTitle="@Properties.Resources.Cancel"
             OkButtonTitle="@Properties.Resources.Ok"
             OnOk="Save">
-        <EditForm Model="@Active">
+        <EditForm EditContext="@GXEditContexts.For(Active)">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <GXValidator @ref="_validator" OnValidate="OnValidate" />
             <label>@Properties.Resources.Language</label>
             <label class="form-control">@GetLanguage(Active)</label>
-            <CopyLabel Value="@Active.Value">@Properties.Resources.Text</CopyLabel>
+            <GXCopyButton Value="@Active.Value">@Properties.Resources.Text</GXCopyButton>
             <InputText id="description" @bind-Value="Active.Value" class="form-control" />
+            <GXInputSwitch Text="@Properties.Resources.Preload" @bind-Value="Active.Preload" />
         </EditForm>
-    </Dialog>
+    </GXDialog>
 }
 
-<GXTable @ref="table"
+<GXViewTable ViewName="Config.Localization" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXLocalizationPolicies.View })" TItem="GXLocalizedResource" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Single"
@@ -76,51 +76,49 @@
          ShowRemoved="false"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
-            <Search2 id="localization-search-value"
-                     Immediate="true"
-                     LastValue="true"
-                     @bind-Value="filter.Value"
-                     OnValueChanged="@(async (e) => await Updated())" />
-        </th>
-        <Fh Id="localization-creationTime-field" Visibility="Visibility.Medium">
+        <GXFh Id="Value">
+            <GXSearch id="localization-search-value"
+                    Immediate="true"
+                    RememberValue="true"
+                    @bind-Value="filter.Value"
+                    @bind-Value:after="Updated" />
+        </GXFh>
+        <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="localization-creationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <Fh Id="localization-updated-field" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="Updated" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="localization-updated"
                                 @bind-Value="@filter.Updated"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
-        </Fh>
-        <Fh Id="localization-status" Visibility="Visibility.Medium">
+        </GXFh>
+        <GXFh Id="Status" Visibility="Visibility.Medium">
             <EnumTypeSelector Type="@TargetType.LocalizedResource"
                               @bind-Value="@filter.Status"
                               OnSelected="@((int? e) => Updated())">
             </EnumTypeSelector>
-        </Fh>
+        </GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-        </AuthorizeView>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXLocalizationPolicies.Edit"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <Th Name="Value" Target="@item">@Properties.Resources.Value</Th>
-        <Th Name="CreationTime" Target="@item">@Properties.Resources.CreationTime</Th>
-        <Th Name="Updated" Target="@item">@Properties.Resources.Updated</Th>
-        <Th Name="Status" Target="@item">@Properties.Resources.Status</Th>
+        <GXTh Name="Value" Target="@item">@Properties.Resources.Value</GXTh>
+        <GXTh Name="CreationTime" Target="@item">@Properties.Resources.CreationTime</GXTh>
+        <GXTh Name="Updated" Target="@item">@Properties.Resources.Updated</GXTh>
+        <GXTh Name="Status" Target="@item">@Properties.Resources.Status</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td>
-            @if (LocalizedTexts.ContainsKey(item.Hash) && LocalizedTexts[item.Hash].Any())
+        <GXTd Id="Value">
+            @if (item.Hash != null && LocalizedTexts.ContainsKey(item.Hash) && LocalizedTexts[item.Hash].Any())
             {
-                <Accordion Id="content-type-authoring">
+                <GXAccordion Id="content-type-authoring">
                     <HeaderTemplate>
                         <div>
-                            <LinkButton Target="@item" OnClick="@Edit" Text="@item.Value" /><br />
+                            <GXLinkButton TItem="GXLocalizedResource" Target="@item" OnClick="@Edit" Text="@item.Value" /><br />
                         </div>
                     </HeaderTemplate>
                     <ChildContent>
@@ -128,28 +126,40 @@
                         {
                             <div class="form-group">
                                 <label>@GetLanguage(it)</label>
-                                <LinkButton Target="@it" OnClick="@Edit" Text="@it.Value" /><br />
+                                <GXLinkButton TItem="GXLocalizedResource" Target="@it" OnClick="@Edit" Text="@it.Value" /><br />
                             </div>
                         }
                     </ChildContent>
-                </Accordion>
+                </GXAccordion>
             }
             else
             {
-                <LinkButton Target="@item" OnClick="@Edit" Text="@item.Value" />
+                <GXLinkButton TItem="GXLocalizedResource" Target="@item" OnClick="@Edit" Text="@item.Value" />
             }
-        </td>
-        <td>@item.CreationTime</td>
-        <td>@item.Updated</td>
-        <td>@(ResourceStorage.GetEnumType(TargetType.LocalizedResource, item.Status))</td>
+        </GXTd>
+        <GXTd Id="CreationTime">@item.CreationTime</GXTd>
+        <GXTd Id="Updated">@item.Updated</GXTd>
+        <GXTd Id="Status">@(ResourceStorage.GetEnumType(TargetType.LocalizedResource, item.Status))</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Value") { Position = 0, Description = "Value", Visibility = (byte)Visibility.All },
+        new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
+        new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Visibility.All },
+        new("Status") { Position = 3, Description = "Status", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     [Parameter]
     public List<GXLanguage> AvailableLanguages { get; set; } = new List<GXLanguage>();
-    private readonly Dictionary<string?, List<GXLocalizedResource>> LocalizedTexts = new();
+    private readonly Dictionary<string, List<GXLocalizedResource>> LocalizedTexts = new();
     internal GXLanguage[]? Installedlanguages = null;
 
     private GXValidator? _validator;
@@ -160,7 +170,6 @@
     [Parameter]
     public string? Id { get; set; }
 
-    CrudAction Action;
     GXLocalizedResource? Active;
 
     /// <summary>
@@ -190,13 +199,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Config/Localization.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Localization.Updated");
         }
     }
 
@@ -212,16 +221,18 @@
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingLocalization);
+            NotificationService?.RemoveByKey("Pages/Config/Localization.OnInitialized");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -229,18 +240,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Localization.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXLocalizedResource>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingLocalization);
         try
         {
             //Get enum types.
@@ -253,8 +260,8 @@
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
             };
-            var lang = AvailableLanguages.Where(w => w.Active == true && w.Default == true).SingleOrDefault();
-            req.Filter.Language = new() { Id = lang.Id };
+            var lang = AvailableLanguages.Where(w => w.Enabled == true && w.Default == true).SingleOrDefault();
+            req.Filter.Language = lang == null ? null : new() { Id = lang.Id };
             req.Filter.Value = filter.Value;
             req.Filter.Status = filter.Status;
             if (filter.CreationTime != null && filter.CreationTime != DateTimeOffset.MinValue)
@@ -279,6 +286,10 @@
                 //Group texts by language.
                 foreach (var it in ret.LocalizedResources)
                 {
+                    if (it.Hash == null)
+                    {
+                        continue;
+                    }
                     if (LocalizedTexts.ContainsKey(it.Hash))
                     {
                         //Localized language.
@@ -291,7 +302,7 @@
                         tmp.Add(it);
                     }
                 }
-                return new ItemsProviderResult<GXLocalizedResource>(tmp, ret.Count);
+                return new ItemsProviderResult<GXLocalizedResource>(tmp, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -301,11 +312,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -316,8 +323,7 @@
 
     private void Edit(GXLocalizedResource value)
     {
-        Action = CrudAction.Update;
-        Active = value;
+        Active = ClientHelpers.Clone<GXLocalizedResource>(value);
         InvokeAsync(StateHasChanged);
     }
 
@@ -331,7 +337,7 @@
         {
             if (string.IsNullOrEmpty(Active.Value))
             {
-                sender.AddError(() => Active.Value, "Invalid text.");
+                sender.AddError(() => Active.Value, Properties.Resources.InvalidText);
             }
         }
     }
@@ -343,10 +349,10 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Config/Localization.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             Edit(table.Active);
         }
@@ -356,7 +362,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Localization.OnEdit");
         }
     }
 
@@ -369,7 +375,7 @@
         {
             _validator?.ClearErrors();
             if (_validator != null &&
-                !_validator.Validate())
+                !await _validator.ValidateAsync())
             {
                 return;
             }
@@ -381,8 +387,8 @@
             {
                 LocalizedResources = [Active]
             };
-            Active = null;
             await Http.PostAsJson<UpdateLocalizedResourceResponse>("api/LocalizedResource/Update", req);
+            Active = null;
             if (table != null)
             {
                 await table.RefreshDataAsync(true);
@@ -390,7 +396,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -406,7 +412,7 @@
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

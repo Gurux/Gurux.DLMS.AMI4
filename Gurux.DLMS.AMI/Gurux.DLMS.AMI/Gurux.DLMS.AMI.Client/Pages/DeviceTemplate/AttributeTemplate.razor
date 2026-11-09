@@ -1,35 +1,32 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
@@ -47,43 +44,45 @@
 @using System.Text;
 @using Gurux.DLMS.AMI.Client.Helpers
 
-@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier2 Notifier
+<GXHelpContext Topic="AttributeTemplate" />
 
 @if (Active != null)
 {
-    <EditForm Model="@Active">
+    <EditForm EditContext="@GXEditContexts.For(Active)">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
                     <label>@Properties.Resources.Index</label>
-                    <InputNumber id="name" disabled="disabled" class="form-control"
-                                 @bind-Value="Active.Index" />
+                    <GXInputNumber RememberValue="false" id="name" disabled="disabled" class="form-control"
+                                 @bind-Value="Active.Index" Min="@GXNumberBounds.Minimum(Active.Index)" Max="@GXNumberBounds.Maximum(Active.Index)" />
                 </div>
                 <div class="form-group">
-                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
+                    <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                                @bind-Value="Active.Name" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.DataType</label>
-                    <InputNumber id="name" disabled="@IsDeleting" class="form-control"
-                                 @bind-Value="Active.DataType" />
+                    <GXInputNumber RememberValue="false" id="name" disabled="@IsDeleting" class="form-control"
+                                 @bind-Value="Active.DataType" Min="@GXNumberBounds.Minimum(Active.DataType)" Max="@GXNumberBounds.Maximum(Active.DataType)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.UIDataType</label>
-                    <InputNumber id="name" disabled="@IsDeleting" class="form-control"
-                                 @bind-Value="Active.UIDataType" />
+                    <GXInputNumber RememberValue="false" id="name" disabled="@IsDeleting" class="form-control"
+                                 @bind-Value="Active.UIDataType" Min="@GXNumberBounds.Minimum(Active.UIDataType)" Max="@GXNumberBounds.Maximum(Active.UIDataType)" />
                 </div>
 
                 <div class="form-group">
                     <label>@Properties.Resources.Scaler</label>
-                    <InputNumber id="name" disabled="@IsDeleting" class="form-control"
-                                 @bind-Value="Active.Scaler" />
+                    <GXInputNumber RememberValue="false" id="name" disabled="@IsDeleting" class="form-control"
+                                 @bind-Value="Active.Scaler" Min="@GXNumberBounds.Minimum(Active.Scaler)" Max="@GXNumberBounds.Maximum(Active.Scaler)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Unit</label>
@@ -91,15 +90,21 @@
                                @bind-Value="Active.Unit" />
                 </div>
                 <div class="form-group">
-                    <label>Expiration time</label>
-                    <InputNullableDateTimeOffsetTimeSpan id="name" disabled="@IsDeleting" class="form-control"
-                                                         @bind-Value="Active.ExpirationTime" />
+                    <label for="attribute-expiration">@Properties.Resources.ExpirationTime</label>
+                    <AttributeExpirationEditor Id="attribute-expiration" Template="@Active" Disabled="@(IsDeleting != null)" />
                 </div>
             </div>
         </div>
     </EditForm>
 }
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     [CascadingParameter]
     private AttributeTemplates? Parent { get; set; }
 
@@ -154,7 +159,7 @@
         }
         if (key == null)
         {
-            throw new Exception("Invalid target.");
+            throw new Exception(Properties.Resources.InvalidTarget);
         }
         if (save)
         {
@@ -164,14 +169,13 @@
         {
             Modified.Remove(key);
         }
-        key.Modified = false;
     }
 
     public string? IsDeleting
     {
         get
         {
-            if (Notifier.Action != CrudAction.Delete)
+            if (action != CrudAction.Delete)
             {
                 return null;
             }
@@ -181,11 +185,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
+            action = ClientHelpers.GetAction(NavigationManager, Action);
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAttributeTemplate);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplate.OnInitializedAsync");
+            MenuService.Clear();
             if (Active == null && Id != null)
             {
                 //Get Attribute template data.
@@ -203,16 +216,15 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            action = ClientHelpers.GetAction(Action); if (action == CrudAction.Delete)
+             if (action == CrudAction.Delete)
             {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
+                MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
             }
             else
             {
-                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+                MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
             }
-            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -220,11 +232,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplate.OnInitializedAsync");
         }
     }
 
@@ -232,7 +240,6 @@
     {
         GXAttributeTemplate tmp = ClientHelpers.Clone<GXAttributeTemplate>(template);
         Modified.Add(template, tmp);
-        tmp.Modified = true;
         InvokeAsync(StateHasChanged);
     }
 
@@ -247,8 +254,8 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAttributeTemplate);
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplate.OnSave");
             if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAgentResponse>("api/AttributeTemplate/Delete", new RemoveAgent() { Ids = new Guid[] { Active.Id } });
@@ -270,7 +277,7 @@
                 }
                 await Http.PostAsJson<UpdateAttributeTemplateResponse>(address, new UpdateAttributeTemplate() { AttributeTemplates = new GXAttributeTemplate[] { Active } });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -278,11 +285,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplate.OnSave");
         }
     }
 
@@ -291,6 +294,11 @@
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+    }
+
+    public void Dispose()
+    {
+        MenuService.Dispose();
     }
 }

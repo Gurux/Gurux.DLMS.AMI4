@@ -1,0 +1,369 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@attribute [Authorize(Policy = GXUpdatePolicies.Admin)]
+@inject IServiceProvider Services
+@inject HttpClient Http
+@implements IDisposable
+
+<GXHelpContext Topic="Updates" />
+
+<PageTitle>@Properties.Resources.AvailableUpdates</PageTitle>
+
+<div class="available-updates" aria-busy="@(_loading || _checking || _updatingDatabase)">
+    <h1>@Properties.Resources.AvailableUpdates</h1>
+    <StaticDeployment @key="(nameof(StaticDeployment), _snapshot?.Checked)" />
+    @if (_snapshot?.Core.SecurityUpdateRequired == true)
+    {
+        <p role="alert" class="alert alert-warning">@Properties.Resources.ThereIsASecurityUpdateAvailableForYourVersionOfGuruxDLMSAMIToEnsureTheSecurityOfYourS</p>
+    }
+    <div class="last-checked" aria-live="polite">
+        <span>@LastCheckedText</span>
+        <button type="button" class="btn btn-link check-manually" disabled="@(_loading || _checking || _updatingDatabase)" @onclick="CheckManuallyAsync">
+            (@Properties.Resources.CheckManually)
+        </button>
+    </div>
+
+    @if (_schemaLoaded && _schemaChanges.Count != 0)
+    {
+        <section aria-labelledby="database-updates-title">
+            <h2 id="database-updates-title">@Properties.Resources.DatabaseUpdates</h2>
+            @if (_schemaChanges.Count != 0)
+            {
+                <p role="status">@Properties.Resources.UpdateTheFollowingConfigurationTablesToTheCurrentSchema</p>
+                <button type="button" class="btn btn-primary" disabled="@(_updatingDatabase || _loading || _checking || (Progress?.IsBusy == true))" @onclick="UpdateDatabaseAsync">
+                    @(_updatingDatabase ? Gurux.DLMS.AMI.Client.Properties.Resources.Updating : Gurux.DLMS.AMI.Client.Properties.Resources.UpdateTables)
+                </button>
+            }
+            <GXViewTable ViewName="Admin.Updates" ViewColumns="ViewColumnDefaults" TItem="GXConfigurationTableChange" @key="_schemaChanges" Context="table" ItemsProvider="GetDatabaseChanges"
+                     ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+                <HeaderContent><GXTh Id="TableName" TItem="GXConfigurationTableChange">@Properties.Resources.Table</GXTh><GXTh Id="Changes" TItem="GXConfigurationTableChange">@Properties.Resources.Changes</GXTh></HeaderContent>
+                <ItemContent><GXTd Id="TableName">@table.TableName</GXTd><GXTd Id="Changes">@string.Join("; ", table.Changes)</GXTd></ItemContent>
+            </GXViewTable>
+        </section>
+    }
+
+    @if (_loading && _snapshot == null)
+    {
+        <p role="status">@Properties.Resources.RetrievingUpdates</p>
+    }
+    else if (_snapshot != null)
+    {
+        <section aria-labelledby="core-updates-title">
+            <h2 id="core-updates-title">Gurux AMI Core</h2>
+            <UpdateTable @key="_snapshot" Items="@(new[] { _snapshot.Core })" />
+        </section>
+        <section aria-labelledby="profile-updates-title">
+            <h2 id="profile-updates-title">@Properties.Resources.DeviceProfiles</h2>
+            @if (_snapshot.DeviceProfiles.Count == 0)
+            {
+                <p>@Properties.Resources.NoUpdatesForInstalledManufacturers</p>
+            }
+            <UpdateTable @key="_snapshot.DeviceProfiles" Items="@_snapshot.DeviceProfiles" />
+        </section>
+        <section aria-labelledby="agent-updates-title">
+            <h2 id="agent-updates-title">@Properties.Resources.AgentUpdatesTitle</h2>
+            <UpdateTable @key="_snapshot.Agents" Items="@_snapshot.Agents" />
+        </section>
+        <section aria-labelledby="module-updates-title">
+            <h2 id="module-updates-title">@Properties.Resources.ModulesTitle</h2>
+            @if (_snapshot.Modules.Count == 0)
+            {
+                <p class="empty-section">@Properties.Resources.NoModuleUpdates</p>
+            }
+            <UpdateTable @key="_snapshot.Modules" Items="@_snapshot.Modules" Modules="true" OnUpdated="RefreshAfterCronAsync" />
+        </section>
+        <ScriptUpdates @key="_snapshot.Scripts" Items="@_snapshot.Scripts" OnUpdated="RefreshAfterCronAsync" />
+        <LocalizationUpdates @key="(nameof(LocalizationUpdates), _snapshot.Checked)" />
+    }
+    else
+    {
+        <p role="status">@Properties.Resources.UpdateInformationUnavailable</p>
+    }
+</div>
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("TableName") { Position = 0, Description = "Table", Visibility = (byte)Visibility.All },
+        new("Changes") { Position = 1, Description = "Changes", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    private const string LoadErrorKey = "Pages/Admin/Updates.Load";
+    private const string CheckErrorKey = "Pages/Admin/Updates.Check";
+    private readonly CancellationTokenSource _lifetime = new();
+    private GXAvailableUpdatesResponse? _snapshot;
+
+    private List<GXConfigurationTableChange> _schemaChanges = new();
+    private bool _schemaLoaded;
+    private bool _updatingDatabase;
+
+    private ValueTask<ItemsProviderResult<GXConfigurationTableChange>> GetDatabaseChanges(GXItemsProviderRequest request)
+    {
+        var rows = request.Count > 0 ? _schemaChanges.Skip(request.StartIndex).Take(request.Count) : _schemaChanges;
+        return new(new ItemsProviderResult<GXConfigurationTableChange>(rows.ToArray(), _schemaChanges.Count));
+    }
+
+    private async Task UpdateDatabaseAsync()
+    {
+        if (_disposed || _updatingDatabase || _loading || _checking || (Progress?.IsBusy == true))
+        {
+            return;
+        }
+        _updatingDatabase = true;
+        using var progress = Progress?.ProgressStart(Properties.Resources.UpdatingDatabaseSchema);
+        NotificationService?.RemoveByKey("Pages/Admin/Updates.UpdateDatabase");
+        try
+        {
+            var remaining = await Http.PostAsJson<IEnumerable<GXConfigurationTableChange>>("api/Configuration/UpdateTables", new { }, _lifetime.Token);
+            if (!_disposed)
+            {
+                _schemaChanges = remaining.ToList();
+                _schemaLoaded = true;
+                NotificationService?.Add(new GXNotificationItem(_schemaChanges.Count == 0 ? Gurux.UI.Components.Enums.NotificationLevel.Success : Gurux.UI.Components.Enums.NotificationLevel.Warning, _schemaChanges.Count == 0 ? Properties.Resources.ConfigurationTablesUpdatedSuccessfully : Properties.Resources.SomeTablesStillRequireAnUpdate, "Pages/Admin/Updates.UpdateDatabase"));
+            }
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed)
+            {
+                NotificationService?.ReportError(exception, "Pages/Admin/Updates.UpdateDatabase");
+            }
+        }
+        finally
+        {
+            _updatingDatabase = false;
+        }
+    }
+
+    private bool _loading;
+    private int _requestVersion;
+    private bool _checking;
+    private bool _reloadPending;
+    private bool _disposed;
+
+    private string LastCheckedText => string.Format(Properties.Resources.LastChecked,
+        ClientHelpers.GetLastChecked(_snapshot?.Checked));
+
+    protected override void OnInitialized()
+    {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+        {
+            if (!_disposed && items.Any(item => item.Type == GXConfigurationPolicies.Cron && item.Id == GXCronNotifications.Completed))
+            {
+                _ = InvokeAsync(RefreshAfterCronAsync);
+            }
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadSnapshotAsync();
+            if (!_disposed)
+            {
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task RefreshAfterCronAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        if (_checking)
+        {
+            _reloadPending = true;
+            return;
+        }
+        await LoadSnapshotAsync();
+        if (!_disposed)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSnapshotAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        var requestVersion = ++_requestVersion;
+        _loading = true;
+        using var progress = Progress?.ProgressStart(Properties.Resources.RetrievingUpdates);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, (progress?.CancellationToken ?? CancellationToken.None));
+        NotificationService?.RemoveByKey(LoadErrorKey);
+        try
+        {
+            var tables = await Http.PostAsJson<IEnumerable<GXConfigurationTableChange>>("api/Configuration/GetTableChanges", new { }, cancellation.Token);
+            if (!_disposed && requestVersion == _requestVersion)
+            {
+                _schemaChanges = tables.ToList();
+                _schemaLoaded = true;
+                NotificationService?.RemoveByKey("Pages/Admin/Updates.Schema");
+            }
+        }
+        catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed && requestVersion == _requestVersion)
+            {
+                NotificationService?.ReportError(exception, "Pages/Admin/Updates.Schema");
+            }
+        }
+        try
+        {
+            var snapshot = await Http.GetFromJsonAsync<GXAvailableUpdatesResponse>("api/Update/List", cancellation.Token);
+            if (!_disposed && requestVersion == _requestVersion)
+            {
+                _snapshot = snapshot ?? throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+            }
+        }
+        catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
+        {
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            if (!_disposed)
+            {
+                exception.Redirect();
+            }
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed && requestVersion == _requestVersion)
+            {
+                NotificationService?.ReportError(exception, LoadErrorKey);
+            }
+        }
+        finally
+        {
+            if (!_disposed && requestVersion == _requestVersion)
+            {
+                _loading = false;
+            }
+        }
+    }
+
+    private async Task CheckManuallyAsync()
+    {
+        if (_disposed || _checking || _updatingDatabase)
+        {
+            return;
+        }
+        _checking = true;
+        var requestVersion = ++_requestVersion;
+        StateHasChanged();
+        using var progress = Progress?.ProgressStart(Properties.Resources.CheckingUpdates);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, (progress?.CancellationToken ?? CancellationToken.None));
+        NotificationService?.RemoveByKey(CheckErrorKey);
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/Update/Check", new { }, cancellation.Token);
+            response.EnsureSuccessStatusCode();
+            var snapshot = await response.Content.ReadFromJsonAsync<GXAvailableUpdatesResponse>(cancellationToken: cancellation.Token);
+            if (!_disposed && requestVersion == _requestVersion)
+            {
+                _snapshot = snapshot ?? throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+            }
+        }
+        catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
+        {
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            if (!_disposed)
+            {
+                exception.Redirect();
+            }
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed)
+            {
+                NotificationService?.ReportError(exception, CheckErrorKey);
+            }
+        }
+        finally
+        {
+            if (!_disposed)
+            {
+                _loading = false;
+                _checking = false;
+                if (_reloadPending)
+                {
+                    _reloadPending = false;
+                    await LoadSnapshotAsync();
+                }
+        
+                StateHasChanged();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        Notifier?.RemoveListener(this);
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

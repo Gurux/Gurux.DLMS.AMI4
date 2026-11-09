@@ -1,35 +1,34 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
 
 @using Gurux.DLMS.AMI.Shared.DIs
 
@@ -51,17 +50,20 @@
 @using System.Web
 @using System.Text.Json.Serialization
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@inject ILogger<DeviceTemplate> Logger
+@inject ILogger<DeviceTemplateGeneral> Logger
+@inject IGXAmiConfirmation Confirmation
 
-<MenuControl RightCorner="true">
+<GXHelpContext Topic="Profiles" />
+
+<GXMenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd"></MenuItem>
-        <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></MenuItem>
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd"></GXMenuEntry>
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"></GXMenuEntry>
     </ChildContent>
-</MenuControl>
+</GXMenuControl>
 
 @if (ProfileAction != CrudAction.None)
 {
@@ -75,7 +77,7 @@
     <div class="row">
         <div style="width:100%">
             <div class="form-group">
-                <GXTable @ref="table"
+                <GXViewTable ViewName="DeviceTemplate.Profiles" ViewColumns="ViewColumnDefaults" TItem="GXCommunicationProfile" @ref="table"
                          Context="profile"
                          ItemsProvider="@GetItems"
                          SelectionMode="SelectionMode.Multiple"
@@ -86,39 +88,44 @@
                     <FilterContent>
                     </FilterContent>
                     <MenuContent>
-                        <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-                        <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
+                        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit"></GXContextMenuItem>
+                        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"></GXContextMenuItem>
                     </MenuContent>
                     <HeaderContent>
-                        <Th Name="InterfaceType" Target="@profile">@Properties.Resources.InterfaceType</Th>
-                        <Th Name="ClientAddress" Target="@profile">@Properties.Resources.ClientAddress</Th>
-                        <Th Name="LogicalAddress" Target="@profile">@Properties.Resources.LogicalAddress</Th>
-                        <Th Name="PhysicalAddress" Target="@profile">@Properties.Resources.PhysicalAddress</Th>
+                        <GXTh Name="InterfaceType" Target="@profile">@Properties.Resources.InterfaceType</GXTh>
+                        <GXTh Name="ClientAddress" Target="@profile">@Properties.Resources.ClientAddress</GXTh>
+                        <GXTh Name="LogicalAddress" Target="@profile">@Properties.Resources.LogicalAddress</GXTh>
+                        <GXTh Name="PhysicalAddress" Target="@profile">@Properties.Resources.PhysicalAddress</GXTh>
                     </HeaderContent>
                     <ItemContent>
-                        <td>
-                            <LinkButton Target="@profile" OnClick="@Edit"
+                        <GXTd Id="InterfaceType">
+                            <GXLinkButton TItem="GXCommunicationProfile" Target="@profile" OnClick="@Edit"
                                         Text="@(((Gurux.DLMS.Enums.InterfaceType)profile.InterfaceType).ToString())" />
-                        </td>
-                        <td>@profile.ClientAddress</td>
-                        <td>@profile.LogicalAddress</td>
-                        <td>@profile.PhysicalAddress</td>
+                        </GXTd>
+                        <GXTd Id="ClientAddress">@profile.ClientAddress</GXTd>
+                        <GXTd Id="LogicalAddress">@profile.LogicalAddress</GXTd>
+                        <GXTd Id="PhysicalAddress">@profile.PhysicalAddress</GXTd>
                     </ItemContent>
-                </GXTable>
+                </GXViewTable>
             </div>
         </div>
     </div>
 </p>
 <br />
-<Confirm @ref="RemoveConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         AllowDelete="false"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("InterfaceType") { Position = 0, Description = "InterfaceType", Visibility = (byte)Visibility.All },
+        new("ClientAddress") { Position = 1, Description = "ClientAddress", Visibility = (byte)Visibility.All },
+        new("LogicalAddress") { Position = 2, Description = "LogicalAddress", Visibility = (byte)Visibility.All },
+        new("PhysicalAddress") { Position = 3, Description = "PhysicalAddress", Visibility = (byte)Visibility.All },
+    ];
+
+
+    private IGXNotificationService? NotificationService;
+
     internal CrudAction ProfileAction;
 
     internal List<GXCommunicationProfile>? _profiles;
@@ -136,7 +143,6 @@
     /// <summary>
     /// User is verified before profiles are removed.
     ///</summary>
-    protected ConfirmBase? RemoveConfirmation;
 
     internal void Update(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s, bool renderOnSuccess = true)
     {
@@ -186,7 +192,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -211,7 +217,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -222,10 +228,10 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/DeviceTemplate/Profiles.OnEdit");
             if (table == null || table.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             ProfileAction = CrudAction.Update;
             Active = table.Active;
@@ -233,23 +239,29 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/Profiles.OnEdit");
         }
     }
-
 
     /// <summary>
     /// Remove selected device template group.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.InterfaceType.ToString()).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = false,
+                    Items = table?.SingleOrDefault()?.Select(s => s.InterfaceType.ToString()).ToArray()
+                });
+            OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -257,25 +269,28 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected device template groups.
     /// </summary>
-    public void OnDeleteConfirmation(ConfirmArgs args)
+    public void OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (args.Confirm)
             {
-                _profiles?.RemoveAll(w => table.SingleOrDefault().Contains(w));
+                if (_profiles?.RemoveAll(w => (table?.SingleOrDefault()?.Contains(w) == true)) > 0)
+                    {
+                    Parent?.SettingsChanged();
+                }
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -285,11 +300,11 @@
 
     internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
-        s.Profiles = _profiles;
+        s.Profiles = _profiles ?? [];
     }
 
     [Parameter]
-    public DeviceTemplate? Parent { get; set; }
+    public DeviceTemplateGeneral? Parent { get; set; }
 
     public bool IsDeleting
     {
@@ -305,6 +320,8 @@
 
     protected override void OnInitialized()
     {
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
         {
             Update(s, false);

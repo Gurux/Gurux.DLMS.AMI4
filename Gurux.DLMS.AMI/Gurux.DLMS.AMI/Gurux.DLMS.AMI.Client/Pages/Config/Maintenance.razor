@@ -1,35 +1,33 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@using Gurux.UI.Components.TemplateToken
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -50,23 +48,37 @@
 
 @namespace Gurux.DLMS.AMI.Client.Pages.Config
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
+@inject IGXMenuService SharedMenuService
 @implements IDisposable
 @inject HttpClient Http
-@inject IGXNotifier Notifier
 @implements IGXConfigUpdate
+
+<GXHelpContext Topic="Maintenance" />
 
 @if (_settings != null)
 {
-    <EditForm Model="@_settings">
+    <EditForm EditContext="@MenuService.EditContext">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.SiteIsInMaintenanceMode" id="maintenanceMode" @bind-Value="_settings.MaintenanceMode" />
+                    <GXInputSwitch Text="@Properties.Resources.SiteIsInMaintenanceMode" id="maintenanceMode" @bind-Value="_settings.MaintenanceMode" />
                     <p>
-                        <LocalizedText Value="@Properties.Resources.MaintenanceModeDescription" />
+                        <GXLocalizedText Value="@Properties.Resources.MaintenanceModeDescription" />
                     </p>
+                </div>
+                <div class="form-group">
+                    <label for="maintenance-message">@Properties.Resources.Message</label>
+                    <GXTemplateTokenEditor id="maintenance-message" @bind-Value="_settings.Message" Page="maintenance" Values="@_settings.GetTokenValues()" />
+                </div>
+                <div class="form-group">
+                    <label for="maintenance-start">@Properties.Resources.StartTimeOptional</label>
+                    <GXDateTimeSelector Id="maintenance-start" @bind-Value="_settings.StartTime" />
+                </div>
+                <div class="form-group">
+                    <label for="maintenance-end">@Properties.Resources.EndTimeOptional</label>
+                    <GXDateTimeSelector Id="maintenance-end" @bind-Value="_settings.EndTime" />
                 </div>
             </div>
         </div>
@@ -74,6 +86,15 @@
 }
 
 @code {
+    private GXPageMenu? _pageMenu;
+    private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+
+    private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Parent component.
     /// </summary>
@@ -82,12 +103,20 @@
 
     MaintenanceSettings? _settings;
 
+    private void LoadSettings(string? settings)
+    {
+        _settings = string.IsNullOrEmpty(settings) ? new MaintenanceSettings()
+            : JsonSerializer.Deserialize<MaintenanceSettings>(settings) ?? new MaintenanceSettings();
+        MenuService.EditContext = new EditContext(_settings);
+    }
+    private bool _menuInitialized;
+
     /// <inheritdoc/>
     public void Update()
     {
         if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
         {
-            _settings = JsonSerializer.Deserialize<MaintenanceSettings>(Parent.Active.Settings);
+            LoadSettings(Parent.Active.Settings);
             if (!string.IsNullOrEmpty(_settings?.Message))
             {
                 _settings.Message = ((MarkupString)_settings.Message).ToString();
@@ -98,40 +127,35 @@
 
     protected override void OnInitialized()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
         if (Notifier == null)
         {
-            throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            return;
         }
-        Notifier.ProgressStart();
-        Notifier.ClearStatus();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingMaintenance);
+        NotificationService?.RemoveByKey("Pages/Config/Maintenance.OnInitialized");
+        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+        {
+            _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Maintenance, configuration =>
+            {
+                if (Parent?.Active?.Id != configuration.Id) {
+                    return;
+                }
+                Parent.Active.Settings = configuration.Settings;
+                Update();
+            }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
+        });
         try
         {
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
-            {
-                if (configurations != null)
-                {
-                    foreach (var it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Maintenance && !string.IsNullOrEmpty(it.Settings))
-                        {
-                            _settings = JsonSerializer.Deserialize<MaintenanceSettings>(it.Settings);
-                            InvokeAsync(StateHasChanged);
-                            break;
-                        }
-                    }
-                }
-            });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
             if (string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                _settings = new MaintenanceSettings();
+                LoadSettings(null);
             }
             else
             {
-                _settings = JsonSerializer.Deserialize<MaintenanceSettings>(Parent.Active.Settings);
+                LoadSettings(Parent.Active.Settings);
                 if (!string.IsNullOrEmpty(_settings?.Message))
                 {
                     _settings.Message = ((MarkupString)_settings.Message).ToString();
@@ -144,12 +168,22 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Config/Maintenance.OnInitialized");
         }
-        finally
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_settings == null || _menuInitialized)
         {
-            Notifier?.ProgressEnd();
+            return;
         }
+        _menuInitialized = true;
+        var editContext = MenuService.EditContext;
+        MenuService.Clear();
+        MenuService.EditContext = editContext;
+        MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+        MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
     }
 
     /// <summary>
@@ -159,13 +193,14 @@
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingMaintenance);
+            NotificationService?.RemoveByKey("Pages/Config/Maintenance.OnSave");
             if (Parent?.Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
             //This is needed to serialize special chars.
+            _settings?.Validate();
             var options = new JsonSerializerOptions
             {
                 Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -175,15 +210,11 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Maintenance.OnSave");
         }
     }
 
@@ -192,21 +223,17 @@
     /// </summary>
     public async void OnRun()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingMaintenance);
+        NotificationService?.RemoveByKey("Pages/Config/Maintenance.OnRun");
         try
         {
             ConfigurationRunCron req = new ConfigurationRunCron();
             await Http.PostAsJson<ConfigurationRunCronResponse>("api/Configuration/Cron", req);
-            Notifier?.ShowInformation("Cron started.");
+            NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.CronStarted, string.Empty, Closable: false));
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Config/Maintenance.OnRun");
         }
     }
 
@@ -215,11 +242,13 @@
     ///</summary>
     private async Task OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        _configurationRefresh.Dispose();
+        MenuService.Dispose();
+        Notifier?.RemoveListener(this);
     }
 }

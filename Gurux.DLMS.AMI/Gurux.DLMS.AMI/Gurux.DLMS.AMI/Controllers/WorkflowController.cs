@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -40,18 +36,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle workflows.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class WorkflowController : ControllerBase
+    public class WorkflowController(IWorkflowRepository workflowrRepository) : ControllerBase
     {
-        private readonly IWorkflowRepository _workflowrRepository;
+        private readonly IWorkflowRepository _workflowrRepository = workflowrRepository;
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public WorkflowController(IWorkflowRepository workflowrRepository)
+        /// <summary>Preview matching and execution identity without evaluating any scripts.</summary>
+        [HttpPost("Preview")]
+        [Authorize(Policy = GXWorkflowPolicies.View)]
+        public async Task<ActionResult<PreviewWorkflowResponse>> Preview(PreviewWorkflow request,
+            [FromServices] Gurux.DLMS.AMI.Db.IDbConnectionFactory factory,
+            [FromServices] IAuthorizationService authorization, CancellationToken cancellationToken = default)
         {
-            _workflowrRepository = workflowrRepository;
+            await using var connection = await factory.GetConnectionAsync(cancellationToken);
+            return await Gurux.DLMS.AMI.Server.Internal.GXWorkflowPreview.PreviewAsync(
+                connection, authorization, User, request, cancellationToken);
         }
 
         /// <summary>
@@ -59,13 +62,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="id">Workflow id.</param>
         /// <returns>Workflow information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXWorkflowPolicies.View)]
-        public async Task<ActionResult<GetWorkflowResponse>> Get(Guid id)
+        public async Task<ActionResult<GetWorkflowResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
             return new GetWorkflowResponse()
             {
-                Item = await _workflowrRepository.ReadAsync(id, false)
+                Item = await _workflowrRepository.ReadAsync(id, false, null, cancellationToken)
             };
         }
 
@@ -74,10 +78,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         [HttpPost("List")]
         [Authorize(Policy = GXWorkflowPolicies.View)]
-        public async Task<ActionResult<ListWorkflowsResponse>> Post(ListWorkflows request)
+        public async Task<ActionResult<ListWorkflowsResponse>> Post(ListWorkflows request, CancellationToken cancellationToken = default)
         {
             ListWorkflowsResponse ret = new();
-            await _workflowrRepository.ListAsync(request, ret, false);
+            await _workflowrRepository.ListAsync(request, ret, false, cancellationToken);
             return ret;
         }
 
@@ -86,31 +90,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXWorkflowPolicies.Add)]
-        public async Task<ActionResult<UpdateWorkflowResponse>> Post(UpdateWorkflow request)
+        public async Task<ActionResult<UpdateWorkflowResponse>> Post(UpdateWorkflow request, CancellationToken cancellationToken = default)
         {
-            if (request.Workflows == null || request.Workflows.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
             UpdateWorkflowResponse ret = new()
             {
-                WorkflowIds = await _workflowrRepository.UpdateAsync(request.Workflows)
+                Ids = await _workflowrRepository.UpsertAsync(request.Workflows, null, cancellationToken)
             };
             return ret;
         }
 
+        /// <summary>
+        /// Deletes workflows specified in the request.
+        /// </summary>
+        /// <param name="request">Contains workflow IDs to delete and a flag for soft deletion.</param>
+        /// <returns>A response indicating the outcome of the delete operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXWorkflowPolicies.Delete)]
-        public async Task<ActionResult<RemoveWorkflowResponse>> Post(RemoveWorkflow request)
+        public async Task<ActionResult<RemoveWorkflowResponse>> Post(RemoveWorkflow request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _workflowrRepository.DeleteAsync(request.Ids, request.Delete);
+            await _workflowrRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveWorkflowResponse();
         }
 
@@ -121,11 +124,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <remarks>
         /// This can be used for testing the workflow.
         /// </remarks>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet("Run")]
-        [Authorize(Policy = GXWorkflowPolicies.Edit)]
-        public async Task<ActionResult> Run(Guid id)
+        [Authorize(Policy = GXWorkflowPolicies.Run)]
+        public async Task<ActionResult> Run(Guid id, CancellationToken cancellationToken = default)
         {
-            await _workflowrRepository.RunAsync(id);
+            await _workflowrRepository.RunAsync(id, cancellationToken);
             return Ok();
         }
     }

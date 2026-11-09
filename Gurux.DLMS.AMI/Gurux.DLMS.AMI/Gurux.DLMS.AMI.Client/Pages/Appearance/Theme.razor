@@ -1,0 +1,258 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/config/appearance/theme/{Id:guid}"
+@page "/config/appearance/theme/{Action}/{Id:guid}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXMenuService SharedMenuService
+@inject IJSRuntime JSRuntime
+@using System.Text.Json
+@implements IDisposable
+<GXHelpContext Topic="Theme" />
+
+@if (_ready)
+{
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <TabHeader Name="@GXMenus.ThemeDetailsTab">
+                <ContentForLink Context="link">
+                    @if (link.Url == "Theme")
+                    {
+                        <Themes AvailableThemes="@_themes"></Themes>
+                    }
+                    else if (link.Url == "Color")
+                    {
+                        <Colors AvailableThemes="@_themes"></Colors>
+                    }
+                    else if (link.Url == "Text")
+                    {
+                        <Texts AvailableThemes="@_themes"></Texts>
+                    }
+                </ContentForLink>
+            </TabHeader>
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+}
+
+@code {
+    private bool _ready;
+    private GXEditorMenu? _editorMenu;
+    private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
+    private GXAppearance? _styleTarget;
+    private readonly List<GXThemeStyle> _styleValues = new();
+    private readonly Dictionary<string, string> _styleDefaults = new();
+    private Task? _styleLoad;
+
+    internal IEnumerable<GXThemeStyle> GetStyles(IEnumerable<GXThemeStyle> definitions)
+    {
+        var names = definitions.Select(it => it.Name).ToHashSet();
+        return _styleValues.Where(it => names.Contains(it.Name));
+    }
+
+    internal Task LoadStylesAsync(IEnumerable<GXThemeStyle> definitions)
+    {
+        var previous = _styleLoad ?? Task.CompletedTask;
+        return _styleLoad = LoadStylesAfterAsync(previous, definitions.ToList());
+    }
+
+    private async Task LoadStylesAfterAsync(Task previous, List<GXThemeStyle> definitions)
+    {
+        await previous;
+        try
+        {
+            var target = _themes.SingleOrDefault(it => it.Enabled == true);
+            if (target == null) {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (!ReferenceEquals(_styleTarget, target))
+            {
+                _styleTarget = target;
+                _styleValues.Clear();
+                _styleDefaults.Clear();
+                EditorMenu.Set(target, CrudAction.Update, SaveStylesAsync, CancelStylesAsync);
+            }
+            var settings = JsonSerializer.Deserialize<GXThemeInfo>(target.Value ?? "{}") ?? new GXThemeInfo();
+            await using var theme = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./theme.js");
+            foreach (var definition in definitions)
+            {
+                if (_styleDefaults.ContainsKey(definition.Name)) {
+                    continue;
+                }
+                var item = settings.Styles.FirstOrDefault(it => it.Name == definition.Name && it.Type == definition.Type) ?? definition;
+                string defaultValue = await theme.InvokeAsync<string>("getStyleValue", item.Name);
+                _styleDefaults[item.Name] = defaultValue;
+                if (string.IsNullOrEmpty(item.Value)) {
+                    item.Value = defaultValue;
+                }
+                _styleValues.Add(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    internal void ChangeStyle(GXThemeStyle item, string? value)
+    {
+        item.Value = value;
+        if (_styleTarget != null)
+            {
+            GXEditContexts.For(_styleTarget).NotifyFieldChanged(new FieldIdentifier(_styleTarget, nameof(GXAppearance.Value)));
+        }
+    }
+
+    internal void ResetStyle(GXThemeStyle item) => ChangeStyle(item, _styleDefaults[item.Name]);
+
+    private async Task SaveStylesAsync()
+    {
+        try
+        {
+            if (_styleLoad != null) {
+                await _styleLoad;
+            }
+            var target = _styleTarget ?? throw new ArgumentException(Properties.Resources.InvalidTarget);
+            var settings = JsonSerializer.Deserialize<GXThemeInfo>(target.Value ?? "{}") ?? new GXThemeInfo();
+            var names = _styleValues.Select(it => it.Name).ToHashSet();
+            settings.Styles.RemoveAll(it => it.Type == (byte)ThemeType.Color && names.Contains(it.Name));
+            settings.Styles.AddRange(_styleValues.Where(it => !string.IsNullOrEmpty(it.Value) && it.Value != _styleDefaults[it.Name]));
+            target.Value = JsonSerializer.Serialize(settings);
+            await Http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Update", new UpdateAppearance { Appearances = [target] });
+            GXEditContexts.For(target).MarkAsUnmodified();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    private Task CancelStylesAsync()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _editorMenu?.Dispose();
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private readonly List<GXAppearance> _themes = new();
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXAppearance Active = new GXAppearance { ResourceType = (byte)ResourceType.Theme };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
+        try
+        {
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTheme);
+            NotificationService?.RemoveByKey("Pages/Appearance/Theme.OnInitializedAsync");
+            //Get available themes.
+            ListAppearances req = new ListAppearances()
+            {
+                Filter = new() { ResourceType = (byte)ResourceType.Theme },
+                //Active item is shown as the first one.
+                OrderBy = nameof(GXAppearance.Enabled),
+                Descending = true
+            };
+            var ret = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", req);
+            if (ret.Appearances?.Any() == true)
+            {
+                _themes.Clear();
+                _themes.AddRange(ret.Appearances);
+            }
+            if (string.Compare(Action, "Add", true) != 0 && Id.HasValue)
+            {
+                //Get Appearance data.
+                var tmp = (await Http.GetAsJsonAsync<GetAppearanceResponse>(string.Format("api/Appearance?type={0}&id={1}", (int)ResourceType.Theme, Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            _ready = true;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Appearance/Theme.OnInitializedAsync");
+        }
+    }
+}
+
+

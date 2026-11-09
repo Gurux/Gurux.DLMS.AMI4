@@ -1,0 +1,416 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Client.Pages.Config
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+@using System.Text.Json
+
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+<GXHelpContext Topic="IconPack" />
+
+@if (Active != null)
+{
+    <GXDialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Cancel"
+            OkButtonTitle="@Properties.Resources.Ok"
+            OnOk="Save">
+        <IconPackEditor Action="@CrudAction.Update" Active="@Active"></IconPackEditor>
+    </GXDialog>
+}
+
+<GXViewTable ViewName="Appearance.IconPack" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="GXAppearance" @ref="table"
+         Context="item"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Single"
+         Filter="@Filter"
+         ShowAllUsers="false"
+         ShowRemoved="false"
+         Columns="@Columns"
+         OnRowChanged="@(async (e) => await IconsUpdated())"
+         OnSearch="@Updated">
+    <FilterContent>
+        <GXFh Id="Enabled">
+            @*Is active*@
+        </GXFh>
+        <GXFh Id="Name">
+            <GXSearch class="form-control"
+                     placeholder="@Properties.Resources.FilterByName"
+                     id="Resources"
+                     Immediate="true"
+                     RememberValue="true"
+                     @bind-Value="@filter.Name"
+                     @bind-Value:after="Updated" />
+        </GXFh>
+        <GXFh Id="Updated"></GXFh>
+    </FilterContent>
+    <MenuContent>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXAppearancePolicies.Edit"></GXContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <GXTh Id="Enabled" TItem="GXAppearance" width="1%"></GXTh>
+        <GXTh Name="Name" Target="@item">@Properties.Resources.Name</GXTh>
+        <GXTh Name="Updated" Target="@item">@Properties.Resources.Updated</GXTh>
+    </HeaderContent>
+    <ItemContent>
+        <GXTd Id="Enabled">
+            @if (item.Enabled == true)
+            {
+                <div class="rounded-circle bg-success" style="width: 16px; height: 16px;"></div>
+            }
+        </GXTd>
+        <GXTd Id="Name">
+            <GXLinkButton TItem="GXAppearance" Target="@item" OnClick="@Edit" Text="@item.Name" />
+        </GXTd>
+        <GXTd Id="Updated">@item.Updated</GXTd>
+    </ItemContent>
+</GXViewTable>
+
+<GXViewTable ViewName="Appearance.IconPack.Icons" ViewColumns="IconColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="(string, string)" @ref="iconsTable"
+         Context="item"
+         ItemsProvider="@GetIcons"
+         SelectionMode="SelectionMode.Single"
+         ShowAllUsers="false"
+         ShowRemoved="false"
+         OnSearch="@IconsUpdated">
+    <FilterContent>
+        <GXFh Id="Icon">
+            @*Is active*@
+        </GXFh>
+        <GXFh Id="Name">
+            <GXSearch class="form-control"
+                     placeholder="@Properties.Resources.FilterByName"
+                     id="Resources"
+                     Immediate="true"
+                     RememberValue="true"
+                     @bind-Value="@iconFilter"
+                     @bind-Value:after="IconsUpdated" />
+        </GXFh>
+    </FilterContent>
+    <MenuContent>
+    </MenuContent>
+    <HeaderContent>
+        <GXTh Id="Icon" TItem="(string, string)" width="1%"></GXTh>
+        <GXTh Name="Name" Target="@item">@Properties.Resources.Name</GXTh>
+    </HeaderContent>
+    <ItemContent>
+        <GXTd Id="Icon" class="img-cell">
+            <GXImage Value="@item.Item1" Color="black"></GXImage>
+        </GXTd>
+        <GXTd Id="Name">@item.Item2</GXTd>
+    </ItemContent>
+</GXViewTable>
+
+@code {
+    private static readonly GXViewColumn[] IconColumnDefaults =
+    [
+        new("Icon") { Position = 0, Description = "Icon", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+    ];
+
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Enabled") { Position = 0, Description = "Enabled", Visibility = (byte)Visibility.All },
+        new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    GXAppearance? Active;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXAppearance>? table;
+    /// <summary>
+    /// Icons table reference.
+    /// </summary>
+    protected GXTable<(string, string)>? iconsTable;
+
+
+    /// <summary>
+    /// Amount of the resources shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Resource filter.
+    /// </summary>
+    private GXAppearance filter = new GXAppearance();
+
+    /// <summary>
+    /// Icon filter.
+    /// </summary>
+    private string? iconFilter;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                NotificationService?.RemoveByKey("Pages/Appearance/IconPack.Updated");
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Appearance/IconPack.Updated");
+        }
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task IconsUpdated()
+    {
+        try
+        {
+            if (table?.Active?.Enabled == true && iconsTable != null)
+            {
+                await iconsTable.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<(string, string)>> GetIcons(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        try
+        {
+            if (table?.Active?.Enabled == true)
+            {
+                var icons = ClientHelpers.GetIconPackIcons(table.Active.Name);
+                int total = icons.Count;
+                if (!string.IsNullOrEmpty(iconFilter))
+                {
+                    icons = icons.Where(w => w.Item1.ToLower().Contains(iconFilter.ToLower())).ToList();
+                }
+                if (request.StartIndex != 0)
+                {
+                    icons = icons.Skip(request.StartIndex).ToList();
+                }
+                if (request.Count != 0)
+                {
+                    icons = icons.Take(request.Count).ToList();
+                }
+                return new(new ItemsProviderResult<(string, string)>(icons, total));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+        return default;
+    }
+
+    private async ValueTask<ItemsProviderResult<GXAppearance>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingIconPack);
+        try
+        {
+            ListAppearances req = new ListAppearances()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+            };
+            if (request.Removed)
+            {
+                req.Filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                req.Filter.Removed = null;
+            }
+            req.Filter.ResourceType = (byte)ResourceType.Iconpack;
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", req, request.CancellationToken);
+            if (ret.Appearances != null)
+            {
+                return new ItemsProviderResult<GXAppearance>(ret.Appearances, ClientHelpers.ToVirtualizedCount(ret.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+        return default;
+    }
+
+    protected override void OnInitialized()
+    {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingIconPack);
+            NotificationService?.RemoveByKey("Pages/Appearance/IconPack.OnInitialized");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Appearance/IconPack.OnInitialized");
+        }
+    }
+
+    /// <summary>
+    /// Edit theme.
+    /// </summary>
+
+    private void Edit(GXAppearance value)
+    {
+        Active = ClientHelpers.Clone<GXAppearance>(value);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Edit theme.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            NotificationService?.RemoveByKey("Pages/Appearance/IconPack.OnEdit");
+            if (table?.Active == null)
+            {
+                throw new Exception(Properties.Resources.NoItemIsSelected);
+            }
+            Edit(table.Active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, "Pages/Appearance/IconPack.OnEdit");
+        }
+    }
+
+    /// <summary>
+    /// Save icon pack.
+    ///</summary>
+    public async Task Save()
+    {
+        try
+        {
+            UpdateAppearance req = new UpdateAppearance()
+            {
+                Appearances = [Active ?? throw new InvalidOperationException(Properties.Resources.NoAppearanceIsSelected)]
+            };
+            await Http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Update", req);
+            Active = null;
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Hide icon pack dlg.
+    /// </summary>
+    public void Cancel()
+    {
+        Active = null;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Notifier?.RemoveListener(this);
+    }
+}
+

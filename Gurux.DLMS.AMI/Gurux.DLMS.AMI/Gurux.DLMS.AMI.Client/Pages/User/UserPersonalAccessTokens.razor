@@ -1,0 +1,246 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Module
+@using Gurux.UI.Components.Enums
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject HttpClient Http
+@inject IGXNotificationService Notifications
+@inject IGXAmiConfirmation Confirmation
+@inject AuthenticationStateProvider Authentication
+
+<GXHelpContext Topic="PersonalAccessTokens" />
+<h1>@Properties.Resources.PersonalAccessTokens</h1>
+<AuthorizeView Policy="@GXTokenPolicies.View">
+    <Authorized>
+        <GXMenuControl RightCorner="true">
+            <GXMenuEntry Text="@Properties.Resources.ExtendExpiration" Id="ExtendExpiration" OnClick="BeginExtendAsync" Policy="@GXTokenPolicies.Edit" />
+            <GXMenuEntry Text="@Properties.Resources.Revoke" Id="Remove" OnClick="RevokeAsync" Policy="@GXTokenPolicies.Delete" />
+        </GXMenuControl>
+        <GXTable TItem="GXPersonalToken" @key="_owner" @ref="_table" Context="token" ItemsProvider="GetItems"
+                 Filter="true" SelectionMode="SelectionMode.Multiple" OnSearch="Update"
+                 ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+            <FilterContent>
+                <GXFh Id="Name"><GXSearch Id="pat.name" Immediate="true" Placeholder="@Properties.Resources.Name" @bind-Value="_name" @bind-Value:after="Update" /></GXFh>
+                <GXFh Id="CreationTime"></GXFh>
+                <GXFh Id="Expiration"></GXFh>
+                <GXFh Id="Scopes"><GXSearch Id="pat.permissions" Immediate="true" Placeholder="@Properties.Resources.Permissions" @bind-Value="_permission" @bind-Value:after="Update" /></GXFh>
+            </FilterContent>
+            <HeaderContent>
+                <GXTh Id="Name" TItem="GXPersonalToken">@Properties.Resources.Name</GXTh>
+                <GXTh Id="CreationTime" TItem="GXPersonalToken">@Properties.Resources.CreationTime</GXTh>
+                <GXTh Id="Expiration" TItem="GXPersonalToken">@Properties.Resources.Expiration</GXTh>
+                <GXTh Id="Scopes" TItem="GXPersonalToken">@Properties.Resources.Permissions</GXTh>
+            </HeaderContent>
+            <ItemContent>
+                <GXTd Id="Name">@token.Name</GXTd>
+                <GXTd Id="CreationTime">@token.CreationTime?.ToLocalTime()</GXTd>
+                <GXTd Id="Expiration">@token.Expiration?.ToLocalTime()</GXTd>
+                <GXTd Id="Scopes">@string.Join(", ", token.Scopes ?? [])</GXTd>
+            </ItemContent>
+        </GXTable>
+        @if (_extensionToken != null)
+        {
+            <GXDialog OnCancel="CancelExtension" CancelButtonTitle="@Properties.Resources.Cancel"
+                    OkButtonTitle="@Properties.Resources.ExtendExpiration" OnOk="SaveExtensionAsync">
+                <h2>@Properties.Resources.ExtendExpiration</h2>
+                <p>@_extensionToken.Name</p>
+                <p>@Properties.Resources.CurrentExpiration: @_extensionToken.Expiration?.ToLocalTime()</p>
+                <EditForm EditContext="@_extensionContext" Context="expirationContext">
+                    <label for="pat-expiration">@Properties.Resources.NewExpiration</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" id="pat-expiration" class="form-control"
+                               @bind-Value="_expiration" disabled="@_busy" />
+                    <ValidationMessage For="@(() => _expiration)" />
+                </EditForm>
+                <p>@Properties.Resources.TokenValueUnchanged</p>
+                @if (_extensionError != null)
+                {
+                    <p class="text-danger" role="alert">@_extensionError</p>
+                }
+            </GXDialog>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Parameter] public GXUser? User { get; set; }
+    private GXTable<GXPersonalToken>? _table;
+    private GXPersonalToken[] _items = [];
+    private string? _owner, _name, _permission;
+    private bool _busy;
+    private long _revision;
+    private GXPersonalToken? _extensionToken;
+    private string? _extensionOwner, _extensionError;
+    private DateTime? _expiration;
+    private EditContext? _extensionContext;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var principal = (await Authentication.GetAuthenticationStateAsync()).User;
+        var currentUserId = ClientHelpers.GetUserId(principal, false);
+        var owner = principal.Identity?.IsAuthenticated == true && currentUserId == User?.Id ? User?.Id : null;
+        if (_owner == owner) {
+            return;
+        }
+        _owner = owner;
+        ClearExtension();
+        ++_revision;
+        _items = [];
+        await LoadAsync();
+    }
+
+    private ValueTask<ItemsProviderResult<GXPersonalToken>> GetItems(GXItemsProviderRequest request)
+    {
+        var items = _items.Where(t => Matches(t.Name, _name) && (string.IsNullOrWhiteSpace(_permission) ||
+            (t.Scopes ?? []).Any(p => Matches(p, _permission)))).ToArray();
+        return new(new ItemsProviderResult<GXPersonalToken>(items, items.Length));
+    }
+    private static bool Matches(string? value, string? filter) => string.IsNullOrWhiteSpace(filter) || value?.Contains(filter.Trim(), StringComparison.OrdinalIgnoreCase) == true;
+    private Task Update() => _table?.RefreshDataAsync(true) ?? Task.CompletedTask;
+
+    private async Task LoadAsync()
+    {
+        var owner = _owner;
+        var revision = ++_revision;
+        if (string.IsNullOrEmpty(owner)) {
+            return;
+        }
+        try
+        {
+            var response = await Http.PostAsJson<ListTokensResponse>("api/Token/List", new ListTokens());
+            if (revision != _revision) {
+                return;
+            }
+            _items = (response.Tokens ?? []).ToArray();
+            await Update();
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { if (revision == _revision) {
+            Notifications.ReportError(ex);
+        } }
+    }
+
+    private Task BeginExtendAsync()
+    {
+        if (_busy || string.IsNullOrEmpty(_owner)) {
+            return Task.CompletedTask;
+        }
+        var selected = _table?.SingleOrDefault().ToArray() ?? [];
+        if (selected.Length != 1 || selected[0].Expiration is not { } expiration || expiration <= DateTimeOffset.UtcNow)
+        {
+            Notifications.ReportError(new InvalidOperationException(Properties.Resources.SelectOneActiveToken));
+            return Task.CompletedTask;
+        }
+        var token = selected[0];
+        _extensionToken = new GXPersonalToken { Id = token.Id, Name = token.Name, Expiration = expiration };
+        _extensionOwner = _owner;
+        var localExpiration = expiration.LocalDateTime;
+        _expiration = localExpiration <= DateTime.MaxValue.AddDays(-30) ? localExpiration.AddDays(30) : localExpiration;
+        _extensionContext = new EditContext(this);
+        _extensionError = null;
+        return Task.CompletedTask;
+    }
+
+    private void ClearExtension()
+    {
+        _extensionToken = null;
+        _extensionOwner = null;
+        _expiration = null;
+        _extensionError = null;
+        _extensionContext = null;
+    }
+
+    private void CancelExtension() { if (!_busy) {
+        ClearExtension();
+    } }
+
+    private async Task SaveExtensionAsync()
+    {
+        if (_busy || _extensionToken == null || string.IsNullOrEmpty(_owner) || _owner != _extensionOwner) {
+            return;
+        }
+        if (_extensionContext?.Validate() != true || _expiration == null || TimeZoneInfo.Local.IsInvalidTime(_expiration.Value))
+        {
+            _extensionError = Properties.Resources.ExpirationMustBeLater;
+            return;
+        }
+        var expiration = new DateTimeOffset(_expiration.Value);
+        if (expiration <= DateTimeOffset.UtcNow || expiration <= _extensionToken.Expiration)
+        {
+            _extensionError = Properties.Resources.ExpirationMustBeLater;
+            return;
+        }
+        var owner = _owner;
+        var id = _extensionToken.Id;
+        _busy = true;
+        try
+        {
+            await Http.PostAsJson<ExtendTokenResponse>("api/Token/Extend", new ExtendToken { Id = id, Expiration = expiration });
+            if (owner != _owner) {
+                return;
+            }
+            ClearExtension();
+            await LoadAsync();
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { if (owner == _owner) {
+            Notifications.ReportError(ex);
+        } }
+        finally { _busy = false; }
+    }
+
+    private async Task RevokeAsync()
+    {
+        if (_busy) {
+            return;
+        }
+        var selected = _table?.SingleOrDefault().ToArray() ?? [];
+        var owner = _owner;
+        if (selected.Length == 0 || string.IsNullOrEmpty(owner)) {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var result = await Confirmation.ConfirmAsync(Properties.Resources.Revoke, Properties.Resources.ConfirmRevokePersonalAccessTokens,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.Revoke, AllowDelete = false, Items = selected.Select(t => t.Name).ToArray() });
+            if (!result.Confirm || owner != _owner) {
+                return;
+            }
+            await Http.PostAsJson<DeleteTokenResponse>("api/Token/Delete", new DeleteToken { Ids = selected.Select(t => t.Id).ToArray() });
+            await LoadAsync();
+        }
+        catch (AccessTokenNotAvailableException ex) { ex.Redirect(); }
+        catch (Exception ex) { Notifications.ReportError(ex); }
+        finally { _busy = false; }
+    }
+}

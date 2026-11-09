@@ -1,76 +1,70 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.Rest;
 using System.Diagnostics;
+using System.Security.Claims;
 using System.Text.Json;
+using MenuKind = Gurux.DLMS.AMI.Shared.DTOs.Enums.MenuKind;
 
 namespace Gurux.DLMS.AMI.Server.Cron
 {
     /// <summary>
     /// This class implements cron service.
     /// </summary>
-    internal class GXCronService : IGXCronService, IHostedService, IDisposable
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
+    internal class GXCronService(ILogger<GXCronService> logger,
+        IDbConnectionFactory dbFactory,
+        IServiceProvider serviceProvider,
+        IConfigurationRepository configurationRepository,
+        NotificationCache notificationCache,
+        GXBackgroundTaskRunner runner) : IGXBackgroundService, IHostedService, IDisposable
     {
-        private readonly IGXHost _host;
-        private readonly ILogger _logger;
-        private Timer? _timer;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IConfigurationRepository _configurationRepository;
-        private readonly IGXEventsNotifier _eventsNotifier;
+        private readonly IDbConnectionFactory _dbFactory = dbFactory;
+        private readonly ILogger _logger = logger;
+        private GXAsyncTimer? _timer;
+        private GXAsyncTimer? _configurationTimer;
+        private GXConfiguration[]? _pendingConfiguration;
+        private readonly IServiceProvider _serviceProvider = serviceProvider;
+        private readonly IConfigurationRepository _configurationRepository = configurationRepository;
+        private readonly NotificationCache _notificationCache = notificationCache;
+        private readonly GXBackgroundTaskRunner _runner = runner;
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXCronService(ILogger<GXCronService> logger,
-            IGXHost host,
-            IServiceProvider serviceProvider,
-            IConfigurationRepository configurationRepository,
-            IGXEventsNotifier eventsNotifier)
-        {
-            _logger = logger;
-            _host = host;
-            _serviceProvider = serviceProvider;
-            _configurationRepository = configurationRepository;
-            _eventsNotifier = eventsNotifier;
-        }
-
-        private async Task InitTimer(GXConfiguration[] configurations, CronSettings options)
+        private async Task InitTimer(IEnumerable<GXConfiguration> configurations, CronSettings options, CancellationToken cancellationToken = default)
         {
             //The start time is at midnight.
             if (options.Interval < 0)
@@ -82,174 +76,245 @@ namespace Gurux.DLMS.AMI.Server.Cron
             {
                 DateTime now = DateTime.Now;
                 TimeSpan start = now.Date.AddHours(now.Hour + (options.Interval - (now.Hour % options.Interval))) - now;
-                if (_timer == null)
-                {
-                    _timer = new Timer(RunCronTasks, null, start, TimeSpan.FromHours(options.Interval));
-                }
-                else
-                {
-                    _timer.Change(start, TimeSpan.FromHours(options.Interval));
-                }
+                _timer!.Change(start, TimeSpan.FromHours(options.Interval));
                 options.EstimatedNextTime = now + start;
             }
             else
             {
-                if (_timer != null)
-                {
-                    _timer.Dispose();
-                    _timer = null;
-                }
+                _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
                 options.EstimatedNextTime = null;
             }
             //Update the next estimated run time.
-            configurations[0].Settings = JsonSerializer.Serialize(options);
-            await _configurationRepository.UpdateAsync(configurations, false);
+            configurations.First().Settings = JsonSerializer.Serialize(options);
+            await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
+            var admin = await ServerSettings.GetDefaultAdminUserAsync(connection, cancellationToken: cancellationToken);
+            await _configurationRepository.UpsertAsync(admin!, configurations, false, cancellationToken);
         }
 
         /// <inheritdoc />
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (ServerSettings.GetDefaultAdminUser(_host) == null)
+            await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
+            var admin = await ServerSettings.GetDefaultAdminUserAsync(connection, cancellationToken: cancellationToken);
+            if (admin == null)
             {
+                //Update role scopes if default admin user is not created yet.
+                //This ensures that the default admin user has all permissions.
                 await StopAsync(cancellationToken);
                 return;
             }
+            await ServerSettings.UpdateLanguagesAsync(connection);
+            await _serviceProvider.RunAsUserAsync(admin, async services =>
+            {
+                var repo = services.GetRequiredService<INotificationTypeRepository>();
+                await repo.EnsureDefaultsAsync(cancellationToken);
+            }, cancellationToken);
+            //Update shared version.
+            ServerSettings.UpdateScriptCommonSharedVersion(connection);
             CronSettings? options;
             _logger.LogInformation("Cron is starting.");
-            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Cron } };
-            GXConfiguration[] ret = _configurationRepository.ListAsync(req, null, cancellationToken).Result;
-            if (ret != null && ret.Length == 1 && ret[0].Settings is string settings)
+            ListConfiguration req = new() { Filter = new GXConfiguration() { Name = GXConfigurations.Cron } };
+            IEnumerable<GXConfiguration> ret = await _configurationRepository.ListAsync(admin, req, null, cancellationToken);
+            if (ret != null && ret.Count() == 1 && ret.First().Settings is string settings)
             {
+                _timer = new GXAsyncTimer(RunScheduledAsync, _logger);
                 options = JsonSerializer.Deserialize<CronSettings>(settings);
-                _configurationRepository.Updated += async (configurations) =>
+                _configurationTimer = new GXAsyncTimer(async token =>
                 {
-                    //If cron configuration is updated.
-                    foreach (GXConfiguration it in configurations)
-                    {
-                        if (it.Name == GXConfigurations.Cron && it.Settings != null)
-                        {
-                            options = JsonSerializer.Deserialize<CronSettings>(it.Settings);
-                            if (options != null)
-                            {
-                                await InitTimer(ret, options);
-                            }
-                            break;
-                        }
+                    var pending = Interlocked.Exchange(ref _pendingConfiguration, null);
+                    if (pending == null) {
+                        return;
                     }
-                };
+                    var configuration = pending.FirstOrDefault(c => c.Name == GXConfigurations.Cron);
+                    var updated = configuration?.Settings == null ? null : JsonSerializer.Deserialize<CronSettings>(configuration.Settings);
+                    if (updated != null) {
+                        await InitTimer([configuration!], updated, token);
+                    }
+                }, _logger);
+                _configurationRepository.Updated += OnConfigurationUpdated;
                 if (options != null)
                 {
-                    await InitTimer(ret, options);
+                    await InitTimer(ret, options, cancellationToken);
                 }
             }
         }
 
-        /// <inheritdoc />
-        public Task RunAsync()
+        private void OnConfigurationUpdated(IEnumerable<GXConfiguration> configurations)
         {
-            return Task.Run(() => RunCronTasks(null));
+            var cron = configurations.Where(c => c.Name == GXConfigurations.Cron).ToArray();
+            if (cron.Length == 0) {
+                return;
+            }
+            Interlocked.Exchange(ref _pendingConfiguration, cron);
+            _configurationTimer?.Change(TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+        }
+
+        /// <inheritdoc />
+        public Task RunAsync(ClaimsPrincipal user)
+            => _serviceProvider.RunAsUserAsync(user, services => RunCronTasks(services, user));
+
+        public Task<Guid> StartAsync(string taskId, ClaimsPrincipal user, CancellationToken cancellationToken = default)
+            => _runner.StartAsync(taskId, user, cancellationToken);
+
+        public GXBackgroundTaskStatus? GetTaskStatus(Guid runId) => _runner.GetTaskStatus(runId);
+
+        /// <inheritdoc />
+        public async Task InitAsync()
+        {
+            using IServiceScope scope = _serviceProvider.CreateScope();
+            var appereanceRepository = scope.ServiceProvider.GetRequiredService<IAppearanceRepository>();
+            await appereanceRepository.EnsureDefaultsAsync(null);
+            var menuRepository = scope.ServiceProvider.GetRequiredService<IMenuRepository>();
+            await menuRepository.EnsureDefaultsAsync(MenuKind.All);
+            var policyRepository = scope.ServiceProvider.GetRequiredService<IPolicyRepository>();
+            await policyRepository.EnsureDefaultsAsync();
+            await scope.ServiceProvider.GetRequiredService<IRoleRepository>().EnsureDefaultsAsync();
+            await scope.ServiceProvider.GetRequiredService<ILogTypeRepository>().EnsureDefaultsAsync();
+            await scope.ServiceProvider.GetRequiredService<IEnumTypeRepository>().EnsureDefaultsAsync();
+            var blockRepository = scope.ServiceProvider.GetRequiredService<IBlockRepository>();
+            await blockRepository.EnsureDefaultsAsync();
+            var notificationTypeRepository = scope.ServiceProvider.GetRequiredService<INotificationTypeRepository>();
+            await notificationTypeRepository.EnsureDefaultsAsync();
         }
 
         /// <summary>
         /// Run cron tasks.
         /// </summary>
-        /// <param name="state"></param>
-        private void RunCronTasks(object? state)
+        /// <param name="cancellationToken">The service shutdown token.</param>
+        private async Task RunScheduledAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation(ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronStarted)));
-            List<string> users;
-            using (IServiceScope scope = _serviceProvider.CreateScope())
+            ClaimsPrincipal? admin;
+            await using (var connection = await _dbFactory.GetConnectionAsync(cancellationToken))
             {
-                var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                users = userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]).Result;
-                ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                GXSystemLog error = new GXSystemLog(TraceLevel.Info);
-                error.Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronStarted));
-                errors.AddAsync(TargetType.Cron, [error]).Wait();
+                admin = await ServerSettings.GetDefaultAdminUserAsync(connection, cancellationToken: cancellationToken);
             }
-            _eventsNotifier.CronStart(users).Wait();
+            if (admin == null)
+            {
+                _logger.LogWarning("Cron cannot start because no default administrator is available.");
+                return;
+            }
+            await _serviceProvider.RunAsUserAsync(admin,
+                services => RunCronTasks(services, admin, cancellationToken), cancellationToken);
+        }
+        /// <summary>
+        /// Run cron tasks.
+        /// </summary>
+        private async Task RunCronTasks(IServiceProvider services, ClaimsPrincipal user, CancellationToken cancellationToken = default)
+        {
+            if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+            {
+                _logger.LogInformation("{Message}", ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronStarted)));
+            }
+            List<string> users;
+            var userRepository = services.GetRequiredService<IUserRepository>();
+            users = await userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]);
+            ILogRepository repository = services.GetRequiredService<ILogRepository>().ForSource("system");
+            GXLog error = new(TraceLevel.Info)
+            {
+                Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronStarted))
+            };
+            await repository.AddAsync(TargetType.Cron, [error], cancellationToken);
             try
             {
-                foreach (var it in _serviceProvider.GetServices<IGXCronTask>())
+                foreach (var taskId in _runner.ScheduledTaskIds)
                 {
                     try
                     {
-                        it.RunAsync().Wait();
+                        if (taskId == GXBackgroundTaskIds.Update &&
+                            !await services.GetRequiredService<Gurux.DLMS.AMI.Update.GXUpdateSettingsStore>().IsDueAsync())
+                        {
+                            continue;
+                        }
+                        await _runner.RunAsync(taskId, user, cancellationToken);
                     }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex.Message);
-                        using (IServiceScope scope = _serviceProvider.CreateScope())
+                        if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
                         {
-                            ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                            GXSystemLog error = new GXSystemLog();
-                            error.Message = "Cron failed: " + ex.Message;
-                            errors.AddAsync(TargetType.Cron, [error]).Wait();
+                            _logger.LogError("{Message}", ex.Message);
                         }
+                        repository = services.GetRequiredService<ILogRepository>().ForSource("system");
+                        error = new GXLog
+                        {
+                            Message = "Cron failed: " + ex.Message
+                        };
+                        await repository.AddAsync(TargetType.Cron, [error], cancellationToken);
                     }
                     //Update last cron run time.
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
+                    IConfigurationRepository configurationRepository = services.GetRequiredService<IConfigurationRepository>();
+                    ListConfiguration req = new()
                     {
-                        IConfigurationRepository configurationRepository = scope.ServiceProvider.GetRequiredService<IConfigurationRepository>();
-                        ListConfiguration req = new ListConfiguration()
+                        Filter = new GXConfiguration()
                         {
-                            Filter = new GXConfiguration()
-                            {
-                                Name = GXConfigurations.Cron
-                            }
-                        };
-                        GXConfiguration[] confs = configurationRepository.ListAsync(
-                            req, null, CancellationToken.None).Result;
-                        foreach (GXConfiguration conf in confs)
+                            Name = GXConfigurations.Cron
+                        }
+                    };
+                    IEnumerable<GXConfiguration> confs = await configurationRepository.ListAsync(user, req, cancellationToken: cancellationToken);
+                    foreach (GXConfiguration conf in confs)
+                    {
+                        if (string.Compare(conf.Name, GXConfigurations.Cron, StringComparison.OrdinalIgnoreCase) == 0 && !string.IsNullOrEmpty(conf.Settings))
                         {
-                            if (conf.Name == GXConfigurations.Cron && !string.IsNullOrEmpty(conf.Settings))
+                            CronSettings? s = JsonSerializer.Deserialize<CronSettings>(conf.Settings);
+                            if (s != null)
                             {
-                                CronSettings? s = JsonSerializer.Deserialize<CronSettings>(conf.Settings);
-                                if (s != null)
+                                s.Run = DateTime.Now;
+                                conf.Settings = JsonSerializer.Serialize(s);
+                                await configurationRepository.UpsertAsync(user, [conf], false, cancellationToken);
+                                _notificationCache.Add(users, new GXTarget(GXConfigurationPolicies.Cron, GXCronNotifications.ScheduleUpdated, "Cron schedule updated.")
                                 {
-                                    s.Run = DateTime.Now;
-                                    conf.Settings = JsonSerializer.Serialize(s);
-                                    configurationRepository.UpdateAsync([conf], false).Wait();
-                                }
-                                break;
+                                    Settings = conf.Settings
+                                });
                             }
+                            break;
                         }
                     }
                 }
-                _eventsNotifier.CronCompleate(users).Wait();
-                using (IServiceScope scope = _serviceProvider.CreateScope())
+                repository = services.GetRequiredService<ILogRepository>().ForSource("system");
+                error = new GXLog(TraceLevel.Info)
                 {
-                    ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                    GXSystemLog error = new GXSystemLog(TraceLevel.Info);
-                    error.Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronCompleted));
-                    errors.AddAsync(TargetType.Cron, [error]).Wait();
+                    Message = ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronCompleted))
+                };
+                await repository.AddAsync(TargetType.Cron, [error], cancellationToken);
+                if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
+                {
+                    _logger.LogInformation("{Message}", ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronCompleted)));
                 }
-                _logger.LogInformation(ServerHelpers.GetInvariantString(nameof(Properties.Resources.CronCompleted)));
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
-                using (IServiceScope scope = _serviceProvider.CreateScope())
+                if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
                 {
-                    ISystemLogRepository errors = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                    GXSystemLog error = new GXSystemLog();
-                    error.Message = "Cron failed: " + ex.Message;
-                    errors.AddAsync(TargetType.Cron, [error]).Wait();
+                    _logger.LogError("{Message}", ex.Message);
                 }
+                repository = services.GetRequiredService<ILogRepository>().ForSource("system");
+                error = new GXLog
+                {
+                    Message = "Cron failed: " + ex.Message
+                };
+                await repository.AddAsync(TargetType.Cron, [error], cancellationToken);
             }
         }
 
         /// <inheritdoc />
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogWarning("Cron is stopping.");
-            _timer?.Change(Timeout.Infinite, 0);
-            return Task.CompletedTask;
+            _configurationRepository.Updated -= OnConfigurationUpdated;
+            if (_configurationTimer != null) {
+                await _configurationTimer.StopAsync(cancellationToken);
+            }
+            if (_timer != null) {
+                await _timer.StopAsync(cancellationToken);
+            }
         }
 
         /// <inheritdoc />
         public void Dispose()
         {
+            _configurationRepository.Updated -= OnConfigurationUpdated;
+            _configurationTimer?.Dispose();
             _timer?.Dispose();
         }
     }

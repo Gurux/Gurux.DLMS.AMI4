@@ -1,102 +1,118 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 
-using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Server.Services;
+using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Server.Services;
-using Gurux.DLMS.AMI.Client.Shared;
-using System.Linq.Expressions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
-using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Shared.Enums;
+using System.Linq.Expressions;
+using System.Security.Claims;
+
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
+
     /// <inheritdoc />
     public class WorkflowRepository : IWorkflowRepository
     {
-        private readonly ClaimsPrincipal? User;
-        private readonly IGXHost _host;
-        private readonly IGXEventsNotifier _eventsNotifier;
+        private readonly ClaimsPrincipal User;
+        private readonly IDbConnectionFactory _dbFactory;
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IWorkflowHandler _workflowHandler;
         private readonly IWorkflowGroupRepository _workflowGroupRepository;
-        private readonly GXPerformanceSettings _performanceSettings;
+        private readonly NotificationCache _notificationCache;
+        private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public WorkflowRepository(IGXHost host,
-            IGXAmiContextAccessor contextAccessor,
+        public WorkflowRepository(IDbConnectionFactory dbFactory,
+            IHttpContextAccessor httpContextAccessor,
+            IAuthorizationService authorizationService,
             IUserRepository userRepository,
             IServiceProvider serviceProvider,
             IWorkflowHandler workflowHandler,
-            IGXEventsNotifier eventsNotifier,
             IWorkflowGroupRepository workflowGroupRepository,
-            GXPerformanceSettings performanceSettings)
+            NotificationCache notificationCache)
         {
-            User = contextAccessor?.User;
-            _host = host;
+            if (httpContextAccessor.HttpContext?.User == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            User = httpContextAccessor.HttpContext.User;
+            _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
             _workflowHandler = workflowHandler;
-            _eventsNotifier = eventsNotifier;
             _workflowGroupRepository = workflowGroupRepository;
-            _performanceSettings = performanceSettings;
+            _notificationCache = notificationCache;
+            _authorizationService = authorizationService;
         }
 
+        private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
+            GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
+            => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXWorkflow), id, action, GXWorkflowPolicies.View, connection, transaction, notifications: _notificationCache);
+
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(Guid? workflowId)
+        public async Task<List<string>> GetUsersAsync(Guid? workflowId, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Workflow) &&
-                !User.IsInRole(GXRoles.WorkflowManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            GXSelectArgs args = GXQuery.GetUsersByWorkflow(s => s.Id,
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByWorkflow(s => s.Id!,
                 ServerHelpers.GetUserId(User), workflowId);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (workflowId.HasValue && workflowId.Value != Guid.Empty)
+                {
+                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), workflowId.Value, cancellationToken);
+            }
+            if (workflowId != null)
+            {
+                var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXWorkflow), workflowId, token: cancellationToken);
+                args.Where.And<GXUser>(u => members.Contains(u.Id!));
+            }
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User != null && User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -105,19 +121,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? workflowIds)
+        public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Workflow) &&
-                !User.IsInRole(GXRoles.WorkflowManager)))
-            {
-                throw new UnauthorizedAccessException();
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByWorkflows(s => s.Id!,
+                ServerHelpers.GetUserId(User), Ids);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            if (Ids != null)
+                {
+                foreach (var resourceId in Ids.Distinct())
+                    {
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), resourceId, cancellationToken);
+                }
             }
-            GXSelectArgs args = GXQuery.GetUsersByWorkflows(s => s.Id,
-                ServerHelpers.GetUserId(User), workflowIds);
-            List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
-            List<string> ret = users.Select(s => s.Id).ToList();
+            List<GXUser> users = await connection.SelectAsync<GXUser>(args);
+            List<string> ret = [.. users.Select(s => s.Id!)];
             if (User != null && User.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
@@ -126,76 +144,68 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(IEnumerable<Guid> workflows, bool delete)
+        public async Task DeleteAsync(IEnumerable<Guid> workflows, bool delete = true, bool notify = true,
+            CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                 (!User.IsInRole(GXRoles.Admin) &&
-                 !User.IsInRole(GXRoles.WorkflowManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            workflows = workflows.ToArray();
+            await GXHistoryMutation.RunDeleteAsync<GXWorkflow, Guid>(_dbFactory, User, _serviceProvider, workflows,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.Delete);
             GXSelectArgs arg = GXSelectArgs.Select<GXWorkflow>(a => a.Id, q => workflows.Contains(q.Id));
-            List<GXWorkflow> list = _host.Connection.Select<GXWorkflow>(arg);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            List<GXWorkflow> list = connection.Select<GXWorkflow>(arg);
+                foreach (var resource in list)
+                    {
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), resource.Id, cancellationToken);
+                }
             DateTime now = DateTime.Now;
-            Dictionary<GXWorkflow, List<string>> updates = new();
+            Dictionary<GXWorkflow, List<string>> updates = [];
+
+            foreach (var workflow in list)
+            {
+                updates[workflow] = await GetNotifiedUsers(workflow.Id, NotificationAction.Remove, connection);
+            }
+
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             foreach (GXWorkflow workflow in list)
             {
-                _workflowHandler.Delete(workflow);
+                GXHistoryRuntimeEffects.EnqueueWorkflow(workflow, _workflowHandler, deleted: true);
+                await GXLogStore.DeleteOwnedAsync(connection, transaction, "workflow", [workflow.Id], cancellationToken);
                 workflow.Removed = now;
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXWorkflow>(workflow.Id));
+                    await connection.DeleteAsync(transaction, GXDeleteArgs.DeleteById<GXWorkflow>(workflow.Id), cancellationToken);
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(workflow, q => q.Removed));
+                    connection.Update(transaction, GXUpdateArgs.Update(workflow, q => q.Removed!));
                 }
-                updates[workflow] = await GetUsersAsync(workflow.Id);
+
             }
+            await transaction.CommitAsync(cancellationToken);
             foreach (var it in updates)
             {
-                var users = NotificationRepository.GetNotifiedUsers(_host.Connection, _performanceSettings,
-                    it.Value, TargetType.Workflow, NotificationAction.Remove);
+                var users = it.Value;
                 if (users == null)
                 {
                     break;
                 }
-                GXWorkflow tmp = new GXWorkflow() { Id = it.Key.Id };
-                await _eventsNotifier.WorkflowDelete(users, [tmp]);
+                GXWorkflow tmp = new() { Id = it.Key.Id };
+                _notificationCache.Add(users, new GXTarget(GXWorkflowPolicies.Delete, tmp.Id));
             }
-            if (!delete)
-            {
-                List<GXWorkflowLog> logs = new List<GXWorkflowLog>();
-                foreach (var it in updates.Keys)
-                {
-                    logs.Add(new GXWorkflowLog(TraceLevel.Info)
-                    {
-                        CreationTime = DateTime.Now,
-                        Workflow = it,
-                        Message = Properties.Resources.WorkflowRemoved
-                    });
-                }
-                using (IServiceScope scope = _serviceProvider.CreateScope())
-                {
-                    var workfloLogRepository = scope.ServiceProvider.GetRequiredService<IWorkflowLogRepository>();
-                    await workfloLogRepository.AddAsync("Delete", logs);
-                }
-            }
+
+        }, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<GXWorkflow[]> ListAsync(
+        public async Task<IEnumerable<GXWorkflow>> ListAsync(
             ListWorkflows? request,
             ListWorkflowsResponse? response,
-            bool includeActivity)
+            bool includeActivity,
+            CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Workflow) &&
-                !User.IsInRole(GXRoles.WorkflowManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
             GXSelectArgs arg;
             if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
             {
@@ -210,28 +220,37 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
+                if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXWorkflow>(w => !request.Exclude.Contains(w.Id));
                 }
-                if (request?.Included != null && request.Included.Any())
+                if (request.Included?.Any() == true)
                 {
                     arg.Where.And<GXWorkflow>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;
+            GXDateTimeFilters.Apply<GXWorkflow>(arg, request?.DateFilters);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            await GXAutomationPolicyAccess.ApplyAsync(connection, _authorizationService, User, typeof(GXWorkflow), arg, cancellationToken);
+            arg.Columns.Exclude<GXWorkflow>(w => w.Properties!);
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXWorkflow>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXWorkflow>(q => GXSql.Count(1));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    response.Count = connection.SingleOrDefault<long>(total);
+                    if (response.Count == 0)
+                    {
+                        //No need to retrieve data when none is available.
+                        return [];
+                    }
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
+                arg.Index = request.Index;
+                arg.Count = request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -241,21 +260,26 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 arg.Descending = true;
-                arg.OrderBy.Add<GXWorkflow>(q => q.CreationTime);
+                arg.OrderBy.Add<GXWorkflow>(q => q.CreationTime!);
             }
             if (includeActivity)
             {
                 arg.Columns.Add<GXTrigger>();
                 arg.Columns.Add<GXTriggerActivity>();
-                arg.Columns.Exclude<GXTrigger>(e => e.Activities);
-                arg.Joins.AddInnerJoin<GXWorkflow, GXTriggerActivity>(x => x.TriggerActivity, y => y.Id);
-                arg.Joins.AddInnerJoin<GXTriggerActivity, GXTrigger>(x => x.Trigger, y => y.Id);
+                arg.Columns.Exclude<GXTrigger>(e => e.Activities!);
+                arg.Joins.AddInnerJoin<GXWorkflow, GXTriggerActivity>(x => x.TriggerActivity!, y => y.Id);
+                arg.Joins.AddInnerJoin<GXTriggerActivity, GXTrigger>(x => x.Trigger!, y => y.Id);
             }
             //Get creator information.
             arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
-            arg.Joins.AddInnerJoin<GXWorkflow, GXUser>(j => j.Creator, j => j.Id);
+            arg.Columns.Exclude<GXUser>(e => new { e.Workflows, e.WorkflowGroups });
+            arg.Joins.AddInnerJoin<GXWorkflow, GXUser>(j => j.Creator!, j => j.Id!);
 
-            GXWorkflow[] workflows = (await _host.Connection.SelectAsync<GXWorkflow>(arg)).ToArray();
+            GXWorkflow[] workflows = [.. (await connection.SelectAsync<GXWorkflow>(arg))];
+            foreach (var resource in workflows)
+                {
+                resource.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXWorkflow), resource.Id, cancellationToken);
+            }
             if (response != null)
             {
                 response.Workflows = workflows;
@@ -268,15 +292,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<GXWorkflow> ReadAsync(Guid id, bool includeScripts)
+        public async Task<GXWorkflow> ReadAsync(Guid id, bool includeScripts, Expression<Func<GXWorkflow, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Workflow) &&
-                !User.IsInRole(GXRoles.WorkflowManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
             GXSelectArgs arg;
             if (User.IsInRole(GXRoles.Admin))
             {
@@ -288,69 +306,104 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetWorkflowsByUser(s => s.Id, userId, id);
+                arg = GXQuery.GetWorkflowsByUser(s => "*", userId, id);
+                arg.Joins.AddInnerJoin<GXWorkflow, GXWorkflowGroupWorkflow>(x => x.Id, y => y.WorkflowId);
                 arg.Joins.AddInnerJoin<GXWorkflowGroupWorkflow, GXWorkflowGroup>(j => j.WorkflowGroupId, j => j.Id);
             }
             arg.Columns.Add<GXWorkflowGroup>();
-            arg.Columns.Exclude<GXWorkflowGroup>(e => e.Workflows);
+            arg.Columns.Exclude<GXWorkflowGroup>(e => e.Workflows!);
             arg.Distinct = true;
-            GXWorkflow workflow = await _host.Connection.SingleOrDefaultAsync<GXWorkflow>(arg);
-            if (workflow == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            workflow.ScriptMethods = GetScriptMethods(workflow, includeScripts);
+            arg.Joins.AddLeftJoin<GXWorkflow, GXWorkflowProperty>(w => w.Id, p => p.Workflow!);
+            arg.Joins.AddLeftJoin<GXWorkflowProperty, Gurux.DLMS.AMI.Shared.DTOs.Module.GXModule>(p => p.Module!, m => m.Id);
+            arg.Columns.Add<GXWorkflowProperty>();
+            arg.Columns.Exclude<GXWorkflowProperty>(p => p.Workflow!);
+            arg.Columns.Add<Gurux.DLMS.AMI.Shared.DTOs.Module.GXModule>(m => m.Id);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            GXWorkflow? workflow = await connection.SingleOrDefaultAsync<GXWorkflow>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
+            workflow.Properties = workflow.Properties?.Where(p => p.Removed == null).ToList();
+            await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), id, cancellationToken);
+            workflow.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXWorkflow), id, cancellationToken);
+            workflow.ScriptMethods = GetScriptMethods(connection, workflow, includeScripts);
             //Get trigger activity
             arg = GXSelectArgs.SelectAll<GXTriggerActivity>();
             arg.Columns.Add<GXTrigger>();
-            arg.Columns.Exclude<GXTrigger>(e => e.Activities);
-            arg.Joins.AddInnerJoin<GXWorkflow, GXTriggerActivity>(x => x.TriggerActivity, y => y.Id);
-            arg.Joins.AddInnerJoin<GXTriggerActivity, GXTrigger>(x => x.Trigger, y => y.Id);
+            arg.Columns.Exclude<GXTrigger>(e => e.Activities!);
+            arg.Joins.AddInnerJoin<GXWorkflow, GXTriggerActivity>(x => x.TriggerActivity!, y => y.Id);
+            arg.Joins.AddInnerJoin<GXTriggerActivity, GXTrigger>(x => x.Trigger!, y => y.Id);
             arg.Where.And<GXWorkflow>(w => w.Id == workflow.Id);
-            workflow.TriggerActivity = _host.Connection.SingleOrDefault<GXTriggerActivity>(arg);
+            workflow.TriggerActivity = connection.SingleOrDefault<GXTriggerActivity>(arg);
             //Get creator with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName });
             arg.Distinct = true;
-            arg.Joins.AddInnerJoin<GXWorkflow, GXUser>(s => s.Creator, o => o.Id);
+            arg.Joins.AddInnerJoin<GXWorkflow, GXUser>(s => s.Creator!, o => o.Id!);
             arg.Where.And<GXWorkflow>(w => w.Id == id);
-            workflow.Creator = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
+            workflow.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
             //Get user.
             return workflow;
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(
+        public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXWorkflow> workflows,
-            Expression<Func<GXWorkflow, object?>>? columns)
+            Expression<Func<GXWorkflow, object>>? columns, CancellationToken cancellationToken = default)
         {
-            if (User == null ||
-                (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Workflow) &&
-                !User.IsInRole(GXRoles.WorkflowManager)))
-            {
-                throw new UnauthorizedAccessException();
-            }
+            workflows = workflows.ToArray();
+            return await GXHistoryMutation.RunAsync<GXWorkflow, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, workflows,
+        async () =>
+        {
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.Add, GXWorkflowPolicies.Edit);
             DateTime now = DateTime.Now;
-            List<Guid> list = new();
-            GXUser user = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            Dictionary<GXWorkflow, List<string>> updates = new();
+            List<Guid> list = [];
+            GXUser user = new() { Id = ServerHelpers.GetUserId(User) };
+            Dictionary<GXWorkflow, List<string>> updates = [];
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             foreach (GXWorkflow workflow in workflows)
             {
+                if (workflow.Id != Guid.Empty)
+                    {
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), workflow.Id, cancellationToken);
+                }
+                await _authorizationService.EnsureAnyPolicyAsync(User, workflow.Id == Guid.Empty ? GXWorkflowPolicies.Add : GXWorkflowPolicies.Edit);
+                await GXResourcePolicyAccess.ValidateAsync(connection, workflow.Policies, cancellationToken);
+                await GXAutomationPolicyAccess.EnsureWorkflowReferencesAsync(connection, _authorizationService, User, workflow, cancellationToken);
+                workflow.Enabled ??= true;
+                await GXWorkflowIdentityAccess.ValidateAsync(connection, User, workflow, cancellationToken);
+                await GXWorkflowEventFilter.ValidateAsync(connection, _authorizationService, User, workflow, cancellationToken);
+                GXWorkflowService.ValidateExecutionSettings(workflow);
+                // The queued runner currently publishes After only. Never accept Before and silently run it after a change.
+                if (workflow.Phase != TriggerPhase.After)
+                    {
+                    throw new ArgumentException("Only the After workflow phase is currently executable.", nameof(workflows));
+                }
+                if (workflow.TriggerActivity != null)
+                {
+                    var activityQuery = GXSelectArgs.SelectAll<GXTriggerActivity>(a => a.Id == workflow.TriggerActivity.Id);
+                    activityQuery.Columns.Add<GXTrigger>();
+                    activityQuery.Columns.Exclude<GXTrigger>(t => t.Activities!);
+                    activityQuery.Joins.AddInnerJoin<GXTriggerActivity, GXTrigger>(a => a.Trigger!, t => t.Id);
+                    var activity = await connection.SingleOrDefaultAsync<GXTriggerActivity>(activityQuery, cancellationToken);
+                    if (activity == null || !activity.SupportedPhases.HasFlag(workflow.Phase))
+                        {
+                        throw new ArgumentException("The trigger activity does not support the selected workflow phase.", nameof(workflows));
+                    }
+                    workflow.TriggerActivity = activity;
+                }
                 //Verify start date time.
                 if (string.IsNullOrEmpty(workflow.Name))
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
-                if (workflow.WorkflowGroups == null || !workflow.WorkflowGroups.Any())
+                if (workflow.WorkflowGroups == null || workflow.WorkflowGroups.Count == 0)
                 {
-                    workflow.WorkflowGroups = new List<GXWorkflowGroup>();
-                    ListWorkflowGroups request = new ListWorkflowGroups() { Filter = new GXWorkflowGroup() { Default = true } };
-                    workflow.WorkflowGroups.AddRange(await _workflowGroupRepository.ListAsync(request, null, CancellationToken.None));
-                    if (!workflow.WorkflowGroups.Any())
+                    workflow.WorkflowGroups = [];
+                    ListWorkflowGroups request = new() { Filter = new GXWorkflowGroup() { Default = true } };
+                    workflow.WorkflowGroups.AddRange(await _workflowGroupRepository.ListAsync(request, cancellationToken: cancellationToken));
+                    if (workflow.WorkflowGroups.Count == 0)
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }
                 }
+                await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
                 if (workflow.Id == Guid.Empty)
                 {
                     workflow.CreationTime = now;
@@ -359,19 +412,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     args.Exclude<GXWorkflow>(q => new
                     {
                         q.Updated,
+                        q.Properties,
                         q.WorkflowGroups,
                         q.ScriptMethods
                     });
-                    _host.Connection.Insert(args);
+                    connection.Insert(transaction, args);
                     list.Add(workflow.Id);
-                    AddWorkflowToWorkflowGroups(workflow.Id, workflow.WorkflowGroups);
-                    AddScriptMethodsToWorkflow(workflow, workflow.ScriptMethods);
-                    _workflowHandler.Add(workflow);
+                    AddWorkflowToWorkflowGroups(connection, workflow.Id, workflow.WorkflowGroups, transaction);
+                    AddScriptMethodsToWorkflow(connection, workflow, workflow.ScriptMethods, transaction);
+
                 }
                 else
                 {
-                    GXSelectArgs m = GXSelectArgs.Select<GXWorkflow>(q => q.ConcurrencyStamp, where => where.Id == workflow.Id);
-                    string updated = _host.Connection.SingleOrDefault<string>(m);
+                    GXSelectArgs m = GXSelectArgs.Select<GXWorkflow>(q => q.ConcurrencyStamp!, where => where.Id == workflow.Id);
+                    string? updated = connection.SingleOrDefault<string>(transaction, m);
                     if (!string.IsNullOrEmpty(updated) && updated != workflow.ConcurrencyStamp)
                     {
                         throw new ArgumentException(Properties.Resources.ContentEdited);
@@ -382,6 +436,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     args.Exclude<GXWorkflow>(q => new
                     {
                         q.CreationTime,
+                        q.Properties,
                         q.WorkflowGroups,
                         q.ScriptMethods,
                     });
@@ -390,54 +445,72 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         string.IsNullOrEmpty(workflow.Creator.Id))
                     {
                         //Only admin can update the creator.
-                        args.Exclude<GXWorkflow>(q => q.Creator);
+                        args.Exclude<GXWorkflow>(q => q.Creator!);
                     }
-                    _host.Connection.Update(args);
+                    connection.Update(transaction, args);
                     //Map workflow groups to workflow.
-                    List<GXWorkflowGroup> workflowGroups;
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
-                    {
-                        IWorkflowGroupRepository workflowGroupRepository = scope.ServiceProvider.GetRequiredService<IWorkflowGroupRepository>();
-                        workflowGroups = await workflowGroupRepository.GetJoinedWorkflowGroups(workflow.Id);
-                    }
+                    await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+                    var joined = GXSelectArgs.SelectAll<GXWorkflowGroup>(g => g.Removed == null);
+                    joined.Joins.AddInnerJoin<GXWorkflowGroup, GXWorkflowGroupWorkflow>(g => g.Id, map => map.WorkflowGroupId);
+                    joined.Where.And<GXWorkflowGroupWorkflow>(map => map.WorkflowId == workflow.Id && map.Removed == null);
+                    var workflowGroups = await connection.SelectAsync<GXWorkflowGroup>(transaction, joined, cancellationToken);
                     var comparer = new UniqueComparer<GXWorkflowGroup, Guid>();
-                    List<GXWorkflowGroup> removedWorkflowGroups = workflowGroups.Except(workflow.WorkflowGroups, comparer).ToList();
-                    List<GXWorkflowGroup> addedWorkflowGroups = workflow.WorkflowGroups.Except(workflowGroups, comparer).ToList();
-                    if (removedWorkflowGroups.Any())
+                    List<GXWorkflowGroup> removedWorkflowGroups = [.. workflowGroups.Except(workflow.WorkflowGroups, comparer)];
+                    List<GXWorkflowGroup> addedWorkflowGroups = [.. workflow.WorkflowGroups.Except(workflowGroups, comparer)];
+                    if (removedWorkflowGroups.Count != 0)
                     {
-                        RemoveWorkflowsFromWorkflowGroup(workflow.Id, removedWorkflowGroups);
+                        RemoveWorkflowsFromWorkflowGroup(connection, workflow.Id, removedWorkflowGroups, transaction);
                     }
-                    if (addedWorkflowGroups.Any())
+                    if (addedWorkflowGroups.Count != 0)
                     {
-                        AddWorkflowToWorkflowGroups(workflow.Id, addedWorkflowGroups);
+                        AddWorkflowToWorkflowGroups(connection, workflow.Id, addedWorkflowGroups, transaction);
                     }
-                    List<GXScriptMethod> methods = GetScriptMethods(workflow, false);
+                    List<GXScriptMethod> methods = GetScriptMethods(connection, workflow, false, transaction);
                     var comparer2 = new UniqueComparer<GXScriptMethod, Guid>();
-                    List<GXScriptMethod> removedScripts = methods.Except(workflow.ScriptMethods, comparer2).ToList();
-                    List<GXScriptMethod> addedScripts = workflow.ScriptMethods.Except(methods, comparer2).ToList();
-                    if (removedScripts.Any())
+                    List<GXScriptMethod>? removedScripts = methods?.Except(workflow.ScriptMethods ?? [], comparer2).ToList();
+                    List<GXScriptMethod>? addedScripts;
+                    if (methods?.Count > 0)
                     {
-                        RemoveScriptMethodsFromWorkflow(workflow, removedScripts);
+                        addedScripts = workflow.ScriptMethods?.Except(methods, comparer2).ToList();
                     }
-                    if (addedScripts.Any())
+                    else
                     {
-                        AddScriptMethodsToWorkflow(workflow, addedScripts);
+                        addedScripts = workflow.ScriptMethods;
+                    }
+                    if (removedScripts?.Count > 0)
+                    {
+                        RemoveScriptMethodsFromWorkflow(connection, workflow, removedScripts, transaction);
+                    }
+                    if (addedScripts?.Count > 0)
+                    {
+                        AddScriptMethodsToWorkflow(connection, workflow, addedScripts, transaction);
                     }
                 }
-                updates[workflow] = await GetUsersAsync(workflow.Id);
+                if (workflow.Properties != null)
+                    {
+                    await GXPropertyStores.Workflow.ReplaceAsync(connection, transaction, workflow,
+                        workflow.Properties.Where(p => p.Removed == null), cancellationToken);
+                }
+                if (workflow.Policies != null)
+                    {
+                    await GXResourcePolicyStorage.SaveAsync(connection, typeof(GXWorkflow), workflow.Id, workflow.Policies, cancellationToken, transaction);
+                }
+                await transaction.CommitAsync(cancellationToken);
+                GXHistoryRuntimeEffects.EnqueueWorkflow(workflow, _workflowHandler);
+                updates[workflow] = await GetNotifiedUsers(workflow.Id, NotificationAction.Edit, connection);
             }
             foreach (var it in updates)
             {
-                GXWorkflow tmp = new GXWorkflow() { Id = it.Key.Id };
-                await _eventsNotifier.WorkflowUpdate(it.Value, new GXWorkflow[] { tmp });
+                GXWorkflow tmp = new() { Id = it.Key.Id };
+                _notificationCache.Add(it.Value, new GXTarget(GXWorkflowPolicies.Edit, tmp.Id));
             }
-            List<GXWorkflowLog> logs = new List<GXWorkflowLog>();
+            List<GXLog> logs = [];
             foreach (var it in updates.Keys)
             {
-                logs.Add(new GXWorkflowLog(TraceLevel.Info)
+                logs.Add(new GXLog(TraceLevel.Info)
                 {
                     CreationTime = DateTime.Now,
-                    Workflow = it,
+                    Creator = it.Id,
                     Message = it.CreationTime == now ?
                     Properties.Resources.WorkflowInstalled :
                     Properties.Resources.WorkflowUpdated
@@ -445,21 +518,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
-                var workfloLogRepository = scope.ServiceProvider.GetRequiredService<IWorkflowLogRepository>();
-                await workfloLogRepository.AddAsync("Update", logs);
+                var workfloLogRepository = scope.ServiceProvider.GetRequiredService<ILogRepository>().ForSource("workflow");
+                await workfloLogRepository.AddAsync("Update", logs, cancellationToken);
             }
-            return list.ToArray();
+            return [.. list];
+        }, cancellationToken);
         }
 
         /// <summary>
         /// Map workflow group to user groups.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="workflowId">Workflow ID.</param>
         /// <param name="groups">Group IDs of the workflow groups where the workflow is added.</param>
-        public void AddWorkflowToWorkflowGroups(Guid workflowId, IEnumerable<GXWorkflowGroup> groups)
+        /// <param name="transaction">Transaction for the resource and its memberships.</param>
+        private static void AddWorkflowToWorkflowGroups(GXDbConnection connection,
+            Guid workflowId, IEnumerable<GXWorkflowGroup> groups, System.Data.IDbTransaction? transaction = null)
         {
             DateTime now = DateTime.Now;
-            List<GXWorkflowGroupWorkflow> list = new();
+            List<GXWorkflowGroupWorkflow> list = [];
             foreach (GXWorkflowGroup it in groups)
             {
                 list.Add(new GXWorkflowGroupWorkflow()
@@ -469,99 +546,102 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between workflow group and workflow.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="workflowId">Workflow ID.</param>
         /// <param name="groups">Group IDs of the workflow groups where the workflow is removed.</param>
-        public void RemoveWorkflowsFromWorkflowGroup(Guid workflowId, IEnumerable<GXWorkflowGroup> groups)
+        /// <param name="transaction">Transaction for the resource and its memberships.</param>
+        private static void RemoveWorkflowsFromWorkflowGroup(GXDbConnection connection,
+            Guid workflowId, IEnumerable<GXWorkflowGroup> groups, System.Data.IDbTransaction? transaction = null)
         {
             foreach (var it in groups)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXWorkflowGroupWorkflow>(w => w.WorkflowId == workflowId && w.WorkflowGroupId == it.Id));
+                connection.Delete(transaction, GXDeleteArgs.Delete<GXWorkflowGroupWorkflow>(w => w.WorkflowId == workflowId && w.WorkflowGroupId == it.Id));
             }
         }
 
         /// <summary>
         /// Select all scripts that belong for this workflow.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="workflow">Workflow where scripts belongs.</param>
         /// <param name="includeScripts">Are scripts included.</param>
         /// <returns>Collection of scripts that belong for this workflow.</returns>
-        private List<GXScriptMethod> GetScriptMethods(GXWorkflow workflow, bool includeScripts)
+        /// <param name="transaction">Transaction for the resource and its memberships.</param>
+        private static List<GXScriptMethod> GetScriptMethods(GXDbConnection connection,
+            GXWorkflow workflow, bool includeScripts, System.Data.IDbTransaction? transaction = null)
         {
             GXSelectArgs args = GXSelectArgs.SelectAll<GXScriptMethod>();
             args.Columns.Add<GXScript>();
-            args.Joins.AddInnerJoin<GXScriptMethod, GXScript>(j => j.Script, j => j.Id);
+            args.Joins.AddInnerJoin<GXScriptMethod, GXScript>(j => j.Script!, j => j.Id);
             if (!includeScripts)
             {
                 args.Columns.Exclude<GXScript>(e => new { e.Methods, e.ByteAssembly });
             }
             else
             {
-                args.Columns.Exclude<GXScript>(e => e.Methods);
+                args.Columns.Exclude<GXScript>(e => e.Methods!);
             }
             args.Joins.AddInnerJoin<GXScriptMethod, GXWorkflowScriptMethod>(j => j.Id, j => j.MethodId);
             args.Where.And<GXWorkflowScriptMethod>(q => q.WorkflowId == workflow.Id);
-            return _host.Connection.Select<GXScriptMethod>(args);
+            return connection.Select<GXScriptMethod>(transaction, args);
         }
 
         /// <summary>
         /// Add scripts to workflow.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="workflow">Workflow where scripts belongs.</param>
         /// <param name="methods">Added script methods.</param>
-        public void AddScriptMethodsToWorkflow(GXWorkflow workflow, IEnumerable<GXScriptMethod> methods)
+        /// <param name="transaction">Transaction for the resource and its memberships.</param>
+        private static void AddScriptMethodsToWorkflow(GXDbConnection connection,
+            GXWorkflow workflow, IEnumerable<GXScriptMethod>? methods, System.Data.IDbTransaction? transaction = null)
         {
-            DateTime now = DateTime.Now;
-            List<GXWorkflowScriptMethod> list = new();
-            foreach (GXScriptMethod it in methods)
+            if (methods?.Any() == true)
             {
-                list.Add(new GXWorkflowScriptMethod()
+                DateTime now = DateTime.Now;
+                List<GXWorkflowScriptMethod> list = [];
+                foreach (GXScriptMethod it in methods)
                 {
-                    MethodId = it.Id,
-                    WorkflowId = workflow.Id,
-                    CreationTime = now
-                });
+                    list.Add(new GXWorkflowScriptMethod()
+                    {
+                        MethodId = it.Id,
+                        WorkflowId = workflow.Id,
+                        CreationTime = now
+                    });
+                }
+                connection.Insert(transaction, GXInsertArgs.InsertRange(list));
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove scripts from the workflow.
         /// </summary>
+        /// <param name="connection">DB connection.</param>
         /// <param name="workflow">Workflow where scripts belongs.</param>
         /// <param name="methods">Removed script methods.</param>
-        public void RemoveScriptMethodsFromWorkflow(GXWorkflow workflow, IEnumerable<GXScriptMethod> methods)
+        /// <param name="transaction">Transaction for the resource and its memberships.</param>
+        private static void RemoveScriptMethodsFromWorkflow(GXDbConnection connection,
+            GXWorkflow workflow, IEnumerable<GXScriptMethod> methods, System.Data.IDbTransaction? transaction = null)
         {
             foreach (GXScriptMethod it in methods)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXWorkflowScriptMethod>(w => w.MethodId == it.Id && w.WorkflowId == workflow.Id));
+                connection.Delete(transaction, GXDeleteArgs.Delete<GXWorkflowScriptMethod>(w => w.MethodId == it.Id && w.WorkflowId == workflow.Id));
             }
         }
 
         /// <inheritdoc />
-        public async Task RunAsync(Guid id)
+        public async Task RunAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            GXWorkflow workflow = await ReadAsync(id, false);
-            if (workflow == null ||
-                workflow.TriggerActivity == null ||
-                workflow.TriggerActivity.Trigger == null)
-            {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }
-            IWorkflowHandler workflowHandler = _serviceProvider.GetRequiredService<IWorkflowHandler>();
-            Type? type = Type.GetType(workflow.TriggerActivity.Trigger.ClassName);
-            if (type == null)
-            {
-                throw new ArgumentException(String.Format("Unknown service type {0}.", workflow.TriggerActivity.Trigger.ClassName));
-            }
-            GXSelectArgs args = GXSelectArgs.SelectById<GXUser>(Internal.ServerHelpers.GetUserId(User));
-            GXUser user = await _host.Connection.SingleOrDefaultAsync<GXUser>(args);
-            workflowHandler.Execute(type, workflow.TriggerActivity.Name, user);
+            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.Run);
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync();
+            await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), id, cancellationToken);
+            _workflowHandler.ExecuteWorkflow(id, User);
         }
     }
 }

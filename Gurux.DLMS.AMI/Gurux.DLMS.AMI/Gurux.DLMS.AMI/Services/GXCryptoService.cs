@@ -1,34 +1,29 @@
-﻿//
+﻿// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
-//  Gurux Ltd
-//
-//
-//
-// Filename:        $HeadURL$
-//
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
-//
-// Copyright (c) Gurux Ltd
-//
-//---------------------------------------------------------------------------
-//
-//  DESCRIPTION
-//
-// This file is a part of Gurux Device Framework.
-//
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
 
 using System.Security.Cryptography;
 using System.Text;
@@ -45,7 +40,7 @@ namespace Gurux.DLMS.AMI.Services
     /// cryptographic key must be 32 bytes in length and is typically provided via configuration. Instances of this
     /// class are not thread-safe; concurrent access should be synchronized if used in multi-threaded
     /// scenarios.</remarks>
-    public class GXCryptoService : IAmiCryptoService
+    public class GXCryptoService : IGXAmiCryptoService
     {
         private readonly byte[] _key;
 
@@ -68,56 +63,48 @@ namespace Gurux.DLMS.AMI.Services
             using Aes aes = Aes.Create();
             byte[] iv = new byte[aes.IV.Length];
             byte[] data = new byte[encrypted.Length - aes.IV.Length];
-            using (MemoryStream ms = new MemoryStream(encrypted))
+            using MemoryStream ms = new(encrypted);
+            ms.Read(iv, 0, aes.IV.Length);
+            using CryptoStream cs = new(ms, aes.CreateDecryptor(_key, iv), CryptoStreamMode.Read);
+            int total = 0;
+            while (total < data.Length)
             {
-                ms.Read(iv, 0, aes.IV.Length);
-                using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(_key, iv), CryptoStreamMode.Read))
+                int amount = cs.Read(data, total, data.Length - total);
+                if (amount == 0)
                 {
-                    int total = 0;
-                    while (total < data.Length)
-                    {
-                        int amount = cs.Read(data, total, data.Length - total);
-                        if (amount == 0)
-                        {
-                            break;
-                        }
-                        total += amount;
-                    }
-                    byte[] tmp = new byte[total];
-                    Array.Copy(data, tmp, total);
-                    return Task.FromResult(tmp);
+                    break;
                 }
+                total += amount;
             }
+            byte[] tmp = new byte[total];
+            Array.Copy(data, tmp, total);
+            return Task.FromResult(tmp);
         }
 
         /// <inheritdoc/>
-        public Task<string> DecryptAsync(string encrypted)
+        public async Task<byte[]> DecryptAsync(string encrypted)
         {
             byte[] value = Convert.FromBase64String(encrypted);
-            value = DecryptAsync(value).Result;
-            return Task.FromResult(Convert.ToBase64String(value));
+            return await DecryptAsync(value);
         }
 
         /// <inheritdoc/>
         public Task<byte[]> EncryptAsync(byte[] plainText)
         {
-            using (MemoryStream ms = new MemoryStream())
+            using MemoryStream ms = new();
+            Aes aes = Aes.Create();
+            ms.Write(aes.IV, 0, aes.IV.Length);
+            using (CryptoStream cs = new(ms, aes.CreateEncryptor(_key, aes.IV), CryptoStreamMode.Write))
             {
-                Aes aes = Aes.Create();
-                ms.Write(aes.IV, 0, aes.IV.Length);
-                using (CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(_key, aes.IV), CryptoStreamMode.Write))
-                {
-                    cs.Write(plainText);
-                }
-                return Task.FromResult(ms.ToArray());
+                cs.Write(plainText);
             }
+            return Task.FromResult(ms.ToArray());
         }
 
         /// <inheritdoc/>
-        public Task<string> EncryptAsync(string plainText)
+        public async Task<byte[]> EncryptAsync(string plainText)
         {
-            byte[] value = EncryptAsync(ASCIIEncoding.UTF8.GetBytes(plainText)).Result;
-            return Task.FromResult(Convert.ToBase64String(value));
+            return await EncryptAsync(ASCIIEncoding.UTF8.GetBytes(plainText));
         }
     }
 }

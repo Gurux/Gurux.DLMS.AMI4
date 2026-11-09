@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -40,33 +36,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the module groups.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class ModuleGroupController : ControllerBase
+    public class ModuleGroupController(
+        IModuleGroupRepository ModuleGroupRepository) : ControllerBase
     {
-        private readonly IModuleGroupRepository _ModuleGroupRepository;
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public ModuleGroupController(
-            IModuleGroupRepository ModuleGroupRepository)
-        {
-            _ModuleGroupRepository = ModuleGroupRepository;
-        }
+        private readonly IModuleGroupRepository _ModuleGroupRepository = ModuleGroupRepository;
 
         /// <summary>
         /// Get module group information.
         /// </summary>
         /// <param name="id">Module group id.</param>
         /// <returns>Module group.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXModuleGroupPolicies.View)]
-        public async Task<ActionResult<GetModuleGroupResponse>> Get(Guid id)
+        public async Task<ActionResult<GetModuleGroupResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
             return new GetModuleGroupResponse()
             {
-                Item = await _ModuleGroupRepository.ReadAsync(id)
+                Item = await _ModuleGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -76,12 +68,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXModuleGroupPolicies.Edit)]
-        public async Task<ActionResult<AddModuleGroupResponse>> Post(AddModuleGroup request)
+        public async Task<ActionResult<AddModuleGroupResponse>> Post(AddModuleGroup request, CancellationToken cancellationToken = default)
         {
-            await _ModuleGroupRepository.UpdateAsync(request.ModuleGroups);
+            await _ModuleGroupRepository.UpsertAsync(request.ModuleGroups, null, cancellationToken);
             return new AddModuleGroupResponse()
             {
-                Ids = request.ModuleGroups.Select(s => s.Id).ToArray()
+                Ids = [.. request.ModuleGroups.Select(s => s.Id)]
             };
         }
 
@@ -94,20 +86,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListModuleGroups request,
             CancellationToken cancellationToken)
         {
-            ListModuleGroupsResponse ret = new ListModuleGroupsResponse();
+            ListModuleGroupsResponse ret = new();
             await _ModuleGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
+        /// <summary>
+        /// Deletes module groups based on the specified IDs and delete option.
+        /// </summary>
+        /// <param name="request">Contains the IDs of the module groups to delete and a flag indicating whether to perform a soft delete.</param>
+        /// <returns>A response indicating the outcome of the delete operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXModuleGroupPolicies.Delete)]
-        public async Task<ActionResult<RemoveModuleGroupResponse>> Post(RemoveModuleGroup request)
+        public async Task<ActionResult<RemoveModuleGroupResponse>> Post(RemoveModuleGroup request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _ModuleGroupRepository.DeleteAsync(request.Ids, request.Delete);
+            await _ModuleGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveModuleGroupResponse();
         }
     }

@@ -1,0 +1,143 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Client.Rest
+@inject HttpClient Http
+@inject IGXNotificationService NotificationService
+@implements IDisposable
+
+<GXHelpContext Topic="LocalizationUpdates" />
+
+<section aria-labelledby="localization-updates-title">
+    <h2 id="localization-updates-title">@Properties.Resources.Localization</h2>
+    @if (_loading)
+    {
+        <p role="status">@Properties.Resources.RetrievingUpdates</p>
+    }
+    else if (_response == null)
+    {
+        <p>@Properties.Resources.UpdateInformationUnavailable</p>
+    }
+    else if (!_response.Configured)
+    {
+        <p>@Properties.Resources.LocalizationCatalogIsNotConfigured</p>
+    }
+    else
+    {
+        @if (_response.Items.Count == 0)
+        {
+            <p>@Properties.Resources.NoLocalizationPackagesForActiveLanguagesRunCheckManuallyToRefreshCatalogMetadata</p>
+        }
+        <GXViewTable ViewName="Admin.LocalizationUpdates" ViewColumns="ViewColumnDefaults" TItem="GXLocalizationUpdate" Context="item" ItemsProvider="GetItems"
+                 ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
+            <HeaderContent>
+                <GXTh Id="Owner" TItem="GXLocalizationUpdate">@Properties.Resources.Owner</GXTh>
+                <GXTh Id="OwnerType" TItem="GXLocalizationUpdate">@Properties.Resources.Type</GXTh>
+                <GXTh Id="Version" TItem="GXLocalizationUpdate">@Properties.Resources.Version</GXTh>
+                <GXTh Id="Languages" TItem="GXLocalizationUpdate">@Properties.Resources.Languages</GXTh>
+                <GXTh Id="OwnerCompatibility" TItem="GXLocalizationUpdate">@Properties.Resources.OwnerCompatibility</GXTh>
+            </HeaderContent>
+            <ItemContent>
+                <GXTd Id="Owner">@item.Owner</GXTd>
+                <GXTd Id="OwnerType">@item.OwnerType</GXTd>
+                <GXTd Id="Version">
+                    @if (item.Versions.Count != 0)
+                    {
+                        <GXInputDropdown TValue="string" class="form-select" aria-label="@(string.Format(Properties.Resources.LocalizationVersionFor0, item.Owner))" Value="@item.Version" ValueChanged="@(value => SelectVersion(item, value))" Items="@item.Versions.Select(version => version.Version)" RememberValue="false" />
+                    }
+                    else { @item.Version }
+                </GXTd>
+                <GXTd Id="Languages">@string.Join(", ", item.Cultures)</GXTd>
+                <GXTd Id="OwnerCompatibility">@(item.OwnerVersionRange ?? "any")</GXTd>
+            </ItemContent>
+        </GXViewTable>
+    }
+</section>
+
+@code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Owner") { Position = 0, Description = "Owner", Visibility = (byte)Visibility.All },
+        new("OwnerType") { Position = 1, Description = "Type", Visibility = (byte)Visibility.All },
+        new("Version") { Position = 2, Description = "Version", Visibility = (byte)Visibility.All },
+        new("Languages") { Position = 3, Description = "Languages", Visibility = (byte)Visibility.All },
+        new("OwnerCompatibility") { Position = 4, Description = Properties.Resources.OwnerCompatibility, Visibility = (byte)Visibility.All },
+    ];
+
+    private readonly CancellationTokenSource _lifetime = new();
+    private GXLocalizationUpdatesResponse? _response;
+    private bool _loading = true;
+
+    private void SelectVersion(GXLocalizationUpdate item, string? number)
+    {
+        var version = item.Versions.FirstOrDefault(version => version.Version == number);
+        if (version == null)
+        {
+            return;
+        }
+        item.Version = version.Version;
+        item.Cultures = version.Cultures;
+        item.OwnerVersionRange = version.OwnerVersionRange;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            NotificationService.RemoveByKey("Pages/Admin/Updates.Localization");
+            _response = await Http.GetFromJsonAsync<GXLocalizationUpdatesResponse>("api/Update/Localization", _lifetime.Token);
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            NotificationService.ReportError(error, "Pages/Admin/Updates.Localization");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<GXLocalizationUpdate>> GetItems(GXItemsProviderRequest request)
+    {
+        var items = _response?.Items ?? [];
+        var rows = request.Count > 0 ? items.Skip(request.StartIndex).Take(request.Count) : items;
+        return new(new ItemsProviderResult<GXLocalizationUpdate>(rows, items.Count));
+    }
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

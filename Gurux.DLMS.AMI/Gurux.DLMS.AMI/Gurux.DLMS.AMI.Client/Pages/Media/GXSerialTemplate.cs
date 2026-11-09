@@ -1,34 +1,29 @@
-﻿//
+﻿// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
-//  Gurux Ltd
-//
-//
-//
-// Filename:        $HeadURL$
-//
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
-//
-// Copyright (c) Gurux Ltd
-//
-//---------------------------------------------------------------------------
-//
-//  DESCRIPTION
-//
-// This file is a part of Gurux Device Framework.
-//
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
 
 using System.ComponentModel;
 using System.Text;
@@ -41,62 +36,38 @@ namespace Gurux.DLMS.AMI.Client.Pages.Media
         /// <summary>
         /// Gets or sets the port for communications, including but not limited to all available COM ports.
         /// </summary>
-        public string? PortName
-        {
-            get;
-            set;
-        }
+        public string? PortName { get; set; }
 
         /// <summary>
         /// Used baud rate for communication.
         /// </summary>
         /// <remarks>Can be changed without disconnecting.</remarks>
         [DefaultValue(9600)]
-        public int BaudRate
-        {
-            get;
-            set;
-        }
+        public int BaudRate { get; set; }
 
         /// <summary>
         /// Gets or sets the standard number of stopbits per byte.
         /// </summary>
         [DefaultValue(1)]
-        public int StopBits
-        {
-            get;
-            set;
-        }
+        public int StopBits { get; set; }
 
         /// <summary>
         /// Gets or sets the parity-checking protocol.
         /// </summary>
-        public int Parity
-        {
-            get;
-            set;
-        }
+        public int Parity { get; set; }
 
 
         /// <summary>
         /// Gets or sets the standard length of data bits per byte.
         /// </summary>
         [DefaultValue(8)]
-        public int DataBits
-        {
-            get;
-            set;
-        }
+        public int DataBits { get; set; }
 
 
         /// <summary>
         /// Gets or sets the handshaking protocol for serial port transmission of data.
         /// </summary>
-        public int Handshake
-        {
-            get;
-            set;
-        }
+        public int Handshake { get; set; }
 
         /// <summary>
         /// Constructor.
@@ -115,7 +86,7 @@ namespace Gurux.DLMS.AMI.Client.Pages.Media
         /// <returns></returns>
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             sb.Append(PortName);
             sb.Append(' ');
             sb.Append(BaudRate);
@@ -168,40 +139,40 @@ namespace Gurux.DLMS.AMI.Client.Pages.Media
             {
                 if (!string.IsNullOrEmpty(value))
                 {
-                    XmlReaderSettings settings = new XmlReaderSettings();
-                    settings.ConformanceLevel = ConformanceLevel.Fragment;
+                    XmlReaderSettings settings = new()
+                    {
+                        ConformanceLevel = ConformanceLevel.Fragment
+                    };
                     //Set default settings.
                     BaudRate = 9600;
                     DataBits = 8;
                     Parity = 0;
                     StopBits = 1;
-                    using (XmlReader xmlReader = XmlReader.Create(new System.IO.StringReader(value), settings))
+                    using XmlReader xmlReader = XmlReader.Create(new System.IO.StringReader(value), settings);
+                    while (xmlReader.Read())
                     {
-                        while (xmlReader.Read())
+                        if (xmlReader.IsStartElement())
                         {
-                            if (xmlReader.IsStartElement())
+                            switch (xmlReader.Name)
                             {
-                                switch (xmlReader.Name)
-                                {
-                                    case "Port":
-                                        PortName = xmlReader.ReadString();
-                                        break;
-                                    case "Bps":
-                                        BaudRate = Convert.ToInt32(xmlReader.ReadString());
-                                        break;
-                                    case "StopBits":
-                                        StopBits = int.Parse(xmlReader.ReadString());
-                                        break;
-                                    case "Parity":
-                                        Parity = int.Parse(xmlReader.ReadString());
-                                        break;
-                                    case "ByteSize":
-                                        DataBits = int.Parse(xmlReader.ReadString());
-                                        break;
-                                    case "Handshake":
-                                        Handshake = int.Parse(xmlReader.ReadString());
-                                        break;
-                                }
+                                case "Port":
+                                    PortName = xmlReader.ReadString();
+                                    break;
+                                case "Bps":
+                                    BaudRate = Convert.ToInt32(xmlReader.ReadString());
+                                    break;
+                                case "StopBits":
+                                    StopBits = int.Parse(xmlReader.ReadString());
+                                    break;
+                                case "Parity":
+                                    Parity = int.Parse(xmlReader.ReadString());
+                                    break;
+                                case "ByteSize":
+                                    DataBits = int.Parse(xmlReader.ReadString());
+                                    break;
+                                case "Handshake":
+                                    Handshake = int.Parse(xmlReader.ReadString());
+                                    break;
                             }
                         }
                     }

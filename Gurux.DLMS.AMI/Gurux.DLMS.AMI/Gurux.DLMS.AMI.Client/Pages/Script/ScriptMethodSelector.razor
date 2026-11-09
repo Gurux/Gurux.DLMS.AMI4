@@ -1,34 +1,30 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -45,6 +41,10 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
+@inject NavigationManager NavigationManager
+
+<GXHelpContext Topic="ScriptMethodSelector" />
+
 @if (Scripts != null)
 {
     @if (!string.IsNullOrEmpty(Title))
@@ -52,31 +52,26 @@
         <label style="margin:auto">@Title</label>
     }
     <div class="d-inline-flex">
-        <select class="form-select" @bind="@ScriptMethod">
-            @*Empty option is used to reset selection.*@
-            <option></option>
-            @foreach (var script in Scripts)
-            {
-                @if (script.Methods != null)
-                {
-                    @foreach (var method in script.Methods)
-                    {
-                        <option value="@method.Id">@(script.Name + "." + method.Name)</option>
-                    }
-                }
-            }
-        </select>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Script, GXRoles.ScriptGroupManager)>
+        <GXInputDropdown TValue="MethodChoice" class="form-select" RememberValue="false" Items="@MethodChoices"
+                         Formatter="@(choice => choice.Name)" Value="@SelectedChoice" ValueChanged="@SetChoiceAsync" />
+        <AuthorizeView Policy="@GXScriptPolicies.View">
             &nbsp;<a target="_blank" href="@GetScriptId()">@Properties.Resources.Manage</a>
         </AuthorizeView>
     </div>
 }
 
 @code {
+    private sealed record MethodChoice(Guid? Id, string Name);
+    private IEnumerable<MethodChoice> MethodChoices => new[] { new MethodChoice(null, string.Empty) }
+        .Concat((Scripts ?? []).SelectMany(script => (script.Methods ?? [])
+            .Select(method => new MethodChoice(method.Id, script.Name + "." + method.Name))));
+    private MethodChoice SelectedChoice => MethodChoices.FirstOrDefault(choice => choice.Id == ScriptMethod)
+        ?? MethodChoices.First();
+    private Task SetChoiceAsync(MethodChoice choice) => SetScriptMethodAsync(choice.Id);
     Guid? _scriptMethod;
 
     [Parameter]
-    public GXScript[]? Scripts { get; set; }
+    public IEnumerable<GXScript>? Scripts { get; set; }
 
     [Parameter]
     public string? Title { get; set; }
@@ -91,13 +86,18 @@
         }
         set
         {
-            bool changed = _scriptMethod != value;
             _scriptMethod = value;
-            if (changed)
-            {
-                SelectionChanged?.Invoke(value);
-            }
         }
+    }
+
+    private async Task SetScriptMethodAsync(Guid? value)
+    {
+        if (_scriptMethod == value)
+        {
+            return;
+        }
+        _scriptMethod = value;
+        await SelectionChanged.InvokeAsync(value);
     }
 
     private string GetScriptId()
@@ -112,7 +112,7 @@
                     {
                         if (method.Id == _scriptMethod)
                         {
-                            return "Config/Script/Edit/" + script.Id;
+                            return NavigationManager.GetCurrentPagePath("/Config/Script/Edit/" + script.Id);
                         }
                     }
                 }
@@ -125,5 +125,5 @@
     /// User has selected a new script.
     /// </summary>
     [Parameter]
-    public Action<Guid?>? SelectionChanged { get; set; }
+    public EventCallback<Guid?> SelectionChanged { get; set; }
 }

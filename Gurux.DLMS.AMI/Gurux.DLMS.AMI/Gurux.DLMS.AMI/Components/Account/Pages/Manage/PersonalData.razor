@@ -1,24 +1,53 @@
-﻿@page "/Account/Manage/PersonalData"
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/Manage/PersonalData"
 
 @inject IdentityUserAccessor UserAccessor
 
-<PageTitle>Personal Data</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.PersonalData2</PageTitle>
 
 <StatusMessage />
-<h3>Personal Data</h3>
+<h3>@Gurux.DLMS.AMI.Properties.Resources.PersonalData2</h3>
 
-<div class="row">
+<div class="row mx-0">
     <div class="col-md-6">
-        <p>Your account contains personal data that you have given us. This page allows you to download or delete that data.</p>
+        <p>@Gurux.DLMS.AMI.Properties.Resources.YourAccountContainsPersonalDataThatYouHaveGivenUsThisPageAllowsYouToDownloadOrDeleteT</p>
         <p>
-            <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
+            <strong>@Gurux.DLMS.AMI.Properties.Resources.DeletingThisDataWillPermanentlyRemoveYourAccountAndThisCannotBeRecovered</strong>
         </p>
         <form action="Account/Manage/DownloadPersonalData" method="post">
             <AntiforgeryToken />
-            <button class="btn btn-primary" type="submit">Download</button>
+            <button class="btn btn-primary" type="submit">@Gurux.DLMS.AMI.Properties.Resources.Download</button>
         </form>
         <p>
-            <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">Delete</a>
+            <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">@Gurux.DLMS.AMI.Properties.Resources.Delete</a>
         </p>
     </div>
 </div>

@@ -1,40 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Shared.Rest
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using System.Globalization
 @using System.Diagnostics
-@inject IGXNotifier2 Notifier
 @inject HttpClient Http
 
 @typeparam TItem
@@ -48,11 +44,16 @@
                      Id="Tasks-Type"
                      @bind-Value="@Selected"
                      Items="Values"
+                     Formatter="@(name => GXEnumTypeKeys.GetDisplayName(Type, name) ?? string.Empty)"
                      OnSelected="@((string? e) => Updated(e))">
     </GXInputDropdown>
 }
 
 @code {
+    private IGXNotifier2? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected value.
     /// </summary>
@@ -69,7 +70,7 @@
     {
         get
         {
-            return Types?.Select(s => s.Name);
+            return Types?.Select(s => s.Name) ?? Enumerable.Empty<string?>();
         }
     }
 
@@ -81,11 +82,7 @@
 
     GXEnumType[]? Types;
 
-    private string? Selected
-    {
-        get;
-        set;
-    }
+    private string? Selected { get; set; }
 
     /// <summary>
     /// Notified when the selected item is changed.
@@ -96,8 +93,10 @@
     /// <summary>
     /// Used resource storage.
     /// </summary>
-    [CascadingParameter]
-    public IGXResourceStorage ResourceStorage { get; set; } = default!;
+    [Inject]
+    public IServiceProvider Services { get; set; } = default!;
+
+    public IGXResourceStorage? ResourceStorage => Services.GetService<IGXResourceStorage>();
 
     private string? ToString(GXEnumType value)
     {
@@ -113,30 +112,32 @@
         try
         {
             Type type = Nullable.GetUnderlyingType(typeof(TItem)) ?? typeof(TItem);
-            if (type.IsEnum)
+            if (string.IsNullOrEmpty(value) || value == "-")
+            {
+                // The placeholder clears the filter; its default Id is not a log type.
+                Value = default!;
+            }
+            else if (type.IsEnum)
             {
                 // Special handling for enums.
-                if (string.IsNullOrEmpty(value) || value == "-")
-                {
-                    Value = default!;
-                }
-                else
-                {
-                    Value = (TItem)Enum.Parse(type, value);
-                    Logger.LogInformation("New value changed from {Value} to {value}", Value, value);
-                }
+                Value = (TItem)Enum.Parse(type, value);
+                Logger.LogInformation("New value changed from {Value} to {value}", Value, value);
             }
             else
             {
                 GXEnumType? sel = Types?.Where(w => w.Name == value).SingleOrDefault();
                 if (sel != null)
                 {
-                    TItem? result;
-                    if (!BindConverter.TryConvertTo<TItem>(sel.Id, CultureInfo.InvariantCulture, out result))
+                    var targetType = Nullable.GetUnderlyingType(typeof(TItem)) ?? typeof(TItem);
+                    var converted = (TItem?)Convert.ChangeType(
+                       GXEnumTypeKeys.GetKey(Type, sel),
+                       targetType,
+                       CultureInfo.InvariantCulture);
+                    if (converted == null)
                     {
-                        throw new Exception("Invalid enum type.");
+                        throw new Exception($"Conversion failed for value '{value}' to type '{targetType}'.");
                     }
-                    Value = result;
+                    Value = converted;
                 }
                 else
                 {
@@ -159,11 +160,21 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier2>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        if (Notifier == null)
+        {
+            return;
+        }
+
         try
         {
-            ResourceStorage.OnEnumTypesChanged = EventCallback.Factory.Create(this, v => Refresh());
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            var storage = ResourceStorage;
+            if (storage != null)
+            {
+                storage.OnEnumTypesChanged = EventCallback.Factory.Create(this, v => Refresh());
+            }
             await Refresh();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -172,7 +183,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -182,7 +193,7 @@
     protected async Task Refresh()
     {
         //Don't clear status or error is lost.
-        Notifier.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingEnumType);
         try
         {
             filter.Type = Type;
@@ -216,16 +227,12 @@
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(ex.ToString());
-            Notifier.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        Notifier?.RemoveListener(this);
     }
 }

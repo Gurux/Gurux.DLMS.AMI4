@@ -1,37 +1,36 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/config/Component/Groups"
 @page "/config/componentviewmanage"
 @page "/config/component"
+@page "/config/components"
 @page "/config/componentGroup"
 
 @using Gurux.DLMS.AMI.Client.Pages.Admin
@@ -44,54 +43,49 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ComponentViewManager + "," + GXRoles.ComponentViewGroupManager)]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-
 @*If user adds a new item or modifies the existing one.*@
+<GXHelpContext Topic="ComponentViewManage" />
+
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
     @if (string.Compare(Path, "/config/Component", true) == 0)
     {
-        <ComponentViewTab Action="@Action" Id="@Id"></ComponentViewTab>
+        <ComponentView Action="@Action" Id="@Id"></ComponentView>
     }
     @*Component view group is not used at the moment.
     else if (string.Compare(Path, "/config/ComponentGroup", true) == 0)
     {
-        <ComponentViewGroupTab Action="@Action" Id="@Id"></ComponentViewGroupTab>
+        <ComponentViewGroup Action="@Action" Id="@Id"></ComponentViewGroup>
     }
     *@
 }
 else
 {
-    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="config/Component" Active="@Path" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-            <Image Id="@context.Icon" />
+            <GXImage Id="@context.Icon" />
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewManager)>
-                <TabPage Path="config/Component" Text=@Properties.Resources.ComponentViews Icon="ComponentViews">
-                    <div style="position: relative; width: 100%; ">
-                        <ComponentViews Id="@Id"></ComponentViews>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            @*TODO: Component view group is not used at the moment.
-                        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewGroupManager)>
-                <TabPage Path="config/ComponentGroup" Text=@Properties.Resources.ComponentViewGroups Icon="ComponentViewGroups">
-                    <div style="position: relative; width: 100%; ">
-                        <ComponentViewGroups Id="@Id"></ComponentViewGroups>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            *@
+            <TabHeader Name="@GXMenus.ComponentViewTab" Parameters="@TabParameters" />
         </ChildContent>
-    </TabControl>
+    </GXTabControl>
 }
 <br />
 @code {
+    protected override void OnParametersSet()
+    {
+        Path = GXTabRoutes.Active(NavigationManager, "config/Component", 0, Path);
+    }
+
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Id"] = Id!
+    };
+
     /// <summary>
     /// User action.
     /// </summary>
@@ -109,15 +103,18 @@ else
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
-    void SelectionChanged(TabPage page)
+    void SelectionChanged(GXTabPage page)
     {
         Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
+
         //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        Path = GXTabRoutes.Active(NavigationManager, "config/Component", 0, Path);
     }
 }
+
+
 

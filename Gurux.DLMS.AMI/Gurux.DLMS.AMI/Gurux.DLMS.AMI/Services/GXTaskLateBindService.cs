@@ -1,119 +1,134 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.Common;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Microsoft.AspNetCore.Authorization;
+using System.Diagnostics;
 using System.Security.Claims;
+using System.Threading;
 
 namespace Gurux.DLMS.AMI.Server.Services
 {
     /// <inheritdoc/>
-    internal sealed class GXTaskLateBindService : ITaskLateBindHandler
+    internal sealed class GXTaskLateBindService(IServiceProvider serviceProvider,
+        ILogger<GXTaskLateBindService> logger) : BackgroundService, ITaskLateBindHandler
     {
-        private struct GXUserTask
-        {
-            public ClaimsPrincipal user;
-            public IEnumerable<GXTask> tasks;
-        }
-        private readonly List<GXUserTask> _tasks = new List<GXUserTask>();
-        private static SemaphoreSlim _signal = new SemaphoreSlim(0);
-        private readonly IServiceProvider _serviceProvider;
+        private sealed record GXUserTask(ClaimsPrincipal user, GXTask[] tasks);
+        private readonly System.Threading.Channels.Channel<GXUserTask> _tasks =
+            System.Threading.Channels.Channel.CreateUnbounded<GXUserTask>(new() { SingleReader = true });
 
-        public GXTaskLateBindService(
-            IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-            Thread t = new Thread(() => TaskHandler());
-            t.Start();
-        }
-
-        public void Add(ClaimsPrincipal user, GXTask item)
-        {
-            lock (_tasks)
-            {
-                _tasks.Add(new GXUserTask()
-                {
-                    user = user,
-                    tasks = new GXTask[] { item }
-                });
-            }
-            _signal.Release();
-        }
+        public void Add(ClaimsPrincipal user, GXTask item) => AddRange(user, [item]);
 
         public void AddRange(ClaimsPrincipal user, IEnumerable<GXTask> tasks)
         {
-            lock (_tasks)
+            // Capture identities and enumerate lazy input in the caller's scope.
+            var captured = new ClaimsPrincipal(user.Identities.Select(identity => identity.Clone()));
+            if (!_tasks.Writer.TryWrite(new GXUserTask(captured, tasks.ToArray())))
             {
-                _tasks.Add(new GXUserTask()
-                {
-                    user = user,
-                    tasks = tasks
-                });
+                throw new InvalidOperationException("Late-bound tasks are no longer accepting work.");
             }
-            _signal.Release();
         }
 
         /// <summary>
         /// Wait for workflow events and execute them.
         /// </summary>
-        private async void TaskHandler()
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (true)
+            try
             {
-                _signal.Wait();
-                GXUserTask? task;
-                lock (_tasks)
+                await foreach (var task in _tasks.Reader.ReadAllAsync(stoppingToken))
                 {
-                    task = _tasks.FirstOrDefault();
-                    if (task != null)
+                    stoppingToken.ThrowIfCancellationRequested();
+                    try
                     {
-                        _tasks.RemoveAt(0);
+                        await serviceProvider.RunAsUserAsync(task.user,
+                            services => AddTasksAsync(services, task, stoppingToken), stoppingToken);
+                    }
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Error reporting can itself fail; keep processing subsequent items.
+                        logger.LogError(ex, "Failed to process late-bound tasks.");
                     }
                 }
-                if (task != null)
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        }
+
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            _tasks.Writer.TryComplete();
+            return base.StopAsync(cancellationToken);
+        }
+
+        public override void Dispose()
+        {
+            _tasks.Writer.TryComplete();
+            base.Dispose();
+        }
+
+        private static async Task AddTasksAsync(IServiceProvider services, GXUserTask task, CancellationToken cancellationToken)
+        {
+            try
+            {
+                ITaskRepository repository = services.GetRequiredService<ITaskRepository>();
+                await repository.AddAsync(task.tasks, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                //Add user error.
+                ILogRepository repository = services.GetRequiredService<ILogRepository>().ForSource("user-error");
+                var err = new GXLog()
                 {
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
+                    User = new Shared.DTOs.Authentication.GXUser()
                     {
-                        try
-                        {
-                            ITaskRepository repository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-                            await repository.AddAsync(task.Value.tasks);
-                        }
-                        catch (Exception ex)
-                        {
-                            var repository = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
-                            await repository.AddAsync(TargetType.Task, ex);
-                        }
-                    }
+                        Id = ServerHelpers.GetUserId(task.user),
+                    },
+                    Type = (int)TraceLevel.Error,
+                    Message = ex.Message,
+                };
+                await repository.AddAsync(TargetType.Task, [err], cancellationToken);
+                var authorizationService = services.GetRequiredService<IAuthorizationService>();
+                if (await authorizationService.CanAccessPolicyAsync(task.user, GXSystemLogPolicies.Add))
+                {
+                    var se = services.GetRequiredService<ILogRepository>().ForSource("system");
+                    await se.AddAsync(TargetType.Task, ex, cancellationToken);
                 }
             }
         }

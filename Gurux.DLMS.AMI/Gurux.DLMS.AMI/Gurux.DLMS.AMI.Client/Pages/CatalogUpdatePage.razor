@@ -1,0 +1,111 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/catalog-update"
+@using System.Net
+@using Gurux.DLMS.AMI.Client.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject HttpClient Http
+@inject AuthenticationStateProvider Authentication
+@implements IDisposable
+
+<PageTitle>@(_entry?.Name ?? Properties.Resources.CatalogUpdateRelease)</PageTitle>
+<AuthorizeView Roles="@GXRoles.Admin">
+    <section class="catalog-update-page" aria-labelledby="catalog-page-title" aria-busy="@_loading.ToString().ToLowerInvariant()">
+        <a href="">← @Properties.Resources.Walkthroughs</a>
+        <h1 id="catalog-page-title">@Properties.Resources.CatalogUpdateRelease</h1>
+        @if (_loading)
+        {
+            <p role="status">@Properties.Resources.Loading</p>
+        }
+        else if (_error)
+        {
+            <p role="alert">@Properties.Resources.CatalogUpdatesUnavailable</p>
+        }
+        else if (_entry == null)
+        {
+            <p role="status">@Properties.Resources.PageNotFound</p>
+        }
+        else
+        {
+            <CatalogUpdateDetails Entry="_entry" />
+        }
+    </section>
+</AuthorizeView>
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "productId")] public string? ProductId { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "version")] public string? Version { get; set; }
+    private GXCatalogUpdateEntry? _entry;
+    private CancellationTokenSource? _request;
+    private bool _loading, _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _request?.Cancel();
+        _request?.Dispose();
+        var request = _request = new CancellationTokenSource();
+        var token = request.Token;
+        _entry = null;
+        _error = false;
+        _loading = true;
+        try
+        {
+            if (!(await Authentication.GetAuthenticationStateAsync()).User.IsInRole(GXRoles.Admin) ||
+                string.IsNullOrWhiteSpace(ProductId) || string.IsNullOrWhiteSpace(Version)) {
+                return;
+            }
+            using var response = await Http.GetAsync("api/Block/CatalogUpdates/Item?productId=" + Uri.EscapeDataString(ProductId) +
+                "&version=" + Uri.EscapeDataString(Version), token);
+            if (response.StatusCode == HttpStatusCode.NotFound) {
+                return;
+            }
+            response.EnsureSuccessStatusCode();
+            var entry = await response.Content.ReadFromJsonAsync<GXCatalogUpdateEntry>(token);
+            if (!request.IsCancellationRequested) {
+                _entry = entry;
+            }
+        }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+        catch (OperationCanceledException) when (request.IsCancellationRequested) { }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            if (!request.IsCancellationRequested) {
+                _error = true;
+            }
+        }
+        finally { if (!request.IsCancellationRequested) {
+            _loading = false;
+        } }
+    }
+
+    public void Dispose() { _request?.Cancel(); _request?.Dispose(); }
+}

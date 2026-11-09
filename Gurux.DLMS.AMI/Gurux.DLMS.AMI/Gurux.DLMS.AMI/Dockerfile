@@ -25,34 +25,38 @@
 # SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 # --------------------------------------------------------------------------
 
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
+# Build with the repository root as context.
+# The base stage is also used by Visual Studio fast-mode debugging.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
 WORKDIR /app
+RUN mkdir -p /data /app/Modules && chown app:app /app /data /app/Modules
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    ASPNETCORE_HTTP_PORTS=8080 \
+    Database__Type=SQLite \
+    Database__Settings="Data Source=/data/ami.db;Foreign Keys=True" \
+    HOME=/data \
+    XDG_DATA_HOME=/data \
+    ImageStorage__RootPath=/data/images
 EXPOSE 8080
 EXPOSE 8081
+USER $APP_UID
 
-
-# This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.csproj", "Gurux.DLMS.AMI/Gurux.DLMS.AMI/"]
-COPY ["Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/Gurux.DLMS.AMI.Client.csproj", "Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/"]
-RUN dotnet restore "./Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.csproj"
-COPY . .
-WORKDIR "/src/Gurux.DLMS.AMI/Gurux.DLMS.AMI"
-RUN dotnet build "./Gurux.DLMS.AMI.csproj" -c $BUILD_CONFIGURATION -o /app/build
+COPY ["Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.csproj", "Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/"]
+COPY ["Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/Gurux.DLMS.AMI.Client.csproj", "Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/"]
+RUN --mount=type=cache,id=ami-nuget,target=/root/.nuget/packages,sharing=locked \
+    dotnet restore "Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.csproj" -p:Configuration=$BUILD_CONFIGURATION -p:AmiReleaseBuild=true
+COPY Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/
+COPY Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/
+COPY README.md README.md
 
-# This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Gurux.DLMS.AMI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN --mount=type=cache,id=ami-nuget,target=/root/.nuget/packages,sharing=locked \
+    dotnet publish "Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.csproj" -c $BUILD_CONFIGURATION --no-restore -o /app/publish -p:UseAppHost=false -p:AmiReleaseBuild=true
 
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=publish --chown=app:app /app/publish/ ./
+HEALTHCHECK --interval=10s --timeout=8s --start-period=60s --retries=3 CMD ["dotnet", "Gurux.DLMS.AMI.dll", "--health-check"]
 ENTRYPOINT ["dotnet", "Gurux.DLMS.AMI.dll"]

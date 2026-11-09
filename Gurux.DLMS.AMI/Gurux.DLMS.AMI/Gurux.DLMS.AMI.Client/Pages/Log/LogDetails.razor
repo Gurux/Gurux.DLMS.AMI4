@@ -1,0 +1,183 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Log/{Id:guid}"
+@page "/Log/Edit/{Id:guid}"
+@using System.Net
+@using System.Net.Http.Json
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Shared.DTOs.Log
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IGXResourceStorage ResourceStorage
+@implements IDisposable
+
+@if (!Embedded)
+{
+    <PageTitle>@Properties.Resources.Logs</PageTitle>
+    <button type="button" class="btn btn-link" @onclick="() => NavigationManager.NavigateToLastPage()">@Gurux.DLMS.AMI.Client.Properties.Resources.Back</button>
+}
+@if (_loading)
+{
+    <p role="status">@Properties.Resources.Loading2</p>
+}
+else if (_error != null)
+{
+    <p role="alert">@_error</p>
+}
+else if (_log != null)
+{
+    <h1>@Properties.Resources.Logs</h1>
+    <dl class="row">
+        <dt class="col-sm-3">@Properties.Resources.Id</dt><dd class="col-sm-9">@_log.PublicId</dd>
+        <dt class="col-sm-3">@Properties.Resources.StorageID</dt><dd class="col-sm-9">@_log.Id</dd>
+        <dt class="col-sm-3">@Properties.Resources.LogType</dt><dd class="col-sm-9">@_log.LogType?.Name (@_log.LogType?.PublicId; @_log.LogType?.Id)</dd>
+        <dt class="col-sm-3">@Properties.Resources.Source</dt><dd class="col-sm-9">@_log.SourceId</dd>
+        <dt class="col-sm-3">Execution ID</dt><dd class="col-sm-9">@_log.ExecutionId</dd>
+        <dt class="col-sm-3">@Properties.Resources.User</dt><dd class="col-sm-9">@_log.User?.UserName (@_log.User?.Id)</dd>
+        <dt class="col-sm-3">@Properties.Resources.Creator</dt><dd class="col-sm-9">@_log.Creator</dd>
+        <dt class="col-sm-3">@Properties.Resources.CreationTime</dt><dd class="col-sm-9">@ResourceStorage.DateTimeOffsetToString(_log.CreationTime)</dd>
+        <dt class="col-sm-3">@Properties.Resources.CloseTime</dt><dd class="col-sm-9">@ResourceStorage.DateTimeOffsetToString(_log.Closed)</dd>
+        <dt class="col-sm-3">@Properties.Resources.Closable</dt><dd class="col-sm-9">@_log.Closable</dd>
+        <dt class="col-sm-3">@Properties.Resources.Level</dt><dd class="col-sm-9">@ClientHelpers.LevelToString(_log.Level)</dd>
+        <dt class="col-sm-3">@Properties.Resources.Type</dt><dd class="col-sm-9">@_log.Type</dd>
+        <dt class="col-sm-3">@Properties.Resources.Group</dt><dd class="col-sm-9">@_log.Group</dd>
+        <dt class="col-sm-3">@Properties.Resources.Duration</dt><dd class="col-sm-9">@_log.Duration ms</dd>
+        <dt class="col-sm-3">@Properties.Resources.TargetType</dt><dd class="col-sm-9">@_log.TargetType</dd>
+        <dt class="col-sm-3">@Properties.Resources.Action</dt><dd class="col-sm-9">@_log.Action</dd>
+        <dt class="col-sm-3">@Properties.Resources.Status</dt><dd class="col-sm-9">@_log.Status</dd>
+    </dl>
+    <h2>@Properties.Resources.Message</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@_log.Message</pre>
+    <h2>@Properties.Resources.Data</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@FormatPayload(_log.Data)</pre>
+    <h2>@Properties.Resources.Reply</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@FormatPayload(_log.Reply)</pre>
+    <h2>@Properties.Resources.StackTrace</h2>
+    <pre class="text-break" style="white-space:pre-wrap">@_log.StackTrace</pre>
+}
+
+@code {
+    [Parameter] public bool Embedded { get; set; }
+    [Parameter] public Guid Id { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "source")] public string? Source { get; set; }
+    private GXLog? _log;
+    private string? _error;
+    private bool _loading;
+    private CancellationTokenSource? _load;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _load?.Cancel();
+        using var load = new CancellationTokenSource();
+        _load = load;
+        _log = null;
+        _error = null;
+        _loading = true;
+        try
+        {
+            var source = Source;
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                // Older Show links did not carry their log type. Search only authorized,
+                // explicitly bound sources; never issue an unscoped log request.
+                using var typesResponse = await Http.PostAsJsonAsync("api/LogType/List", new ListLogTypes(), load.Token);
+                typesResponse.EnsureSuccessStatusCode();
+                var types = await typesResponse.Content.ReadFromJsonAsync<ListLogTypesResponse>(load.Token);
+                foreach (var type in types?.LogTypes ?? [])
+                {
+                    var candidate = type.PublicId.ToString();
+                    using var response = await Http.PostAsJsonAsync("api/Log/List?source=" + Uri.EscapeDataString(candidate), new ListLogs { Included = [Id], Count = 1, AllUsers = true }, load.Token);
+                    if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+                    {
+                        continue;
+                    }
+        
+                    response.EnsureSuccessStatusCode();
+                    var matches = await response.Content.ReadFromJsonAsync<ListLogsResponse>(load.Token);
+                    if (matches?.Logs?.Any(l => l.PublicId == Id) == true)
+                    {
+                        source = candidate;
+                        break;
+                    }
+                }
+            }
+        
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                throw new InvalidOperationException(Properties.Resources.TheLogWasNotFoundOrIsNotAvailableToThisUser);
+            }
+        
+            using var details = await Http.GetAsync("api/Log?source=" + Uri.EscapeDataString(source) + "&id=" + Id, load.Token);
+            details.EnsureSuccessStatusCode();
+            var item = (await details.Content.ReadFromJsonAsync<GetLogResponse>(load.Token))?.Item ?? throw new InvalidOperationException("The log was not found.");
+            load.Token.ThrowIfCancellationRequested();
+            _log = item;
+        }
+        catch (OperationCanceledException)when (load.IsCancellationRequested)
+        {
+        }
+        catch (Exception exception)
+        {
+            if (!load.IsCancellationRequested)
+            {
+                _error = exception.Message;
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_load, load))
+            {
+                _loading = false;
+                _load = null;
+            }
+        }
+    }
+
+    private static string? FormatPayload(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            return JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (JsonException)
+        {
+            return value;
+        }
+    }
+    public void Dispose() => _load?.Cancel();
+}

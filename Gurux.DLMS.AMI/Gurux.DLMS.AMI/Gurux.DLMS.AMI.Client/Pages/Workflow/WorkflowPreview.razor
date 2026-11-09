@@ -1,0 +1,147 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@inject IServiceProvider Services
+
+@if (Active != null)
+{
+    <fieldset disabled="@Disabled" class="mt-3 mb-3">
+        <legend class="fs-6">Execution limits</legend>
+        <label for="workflow-timeout">Timeout (seconds, 1–3600)</label>
+        <input id="workflow-timeout" type="number" min="1" max="3600" class="form-control" @bind="TimeoutSeconds" />
+        <label for="workflow-depth">Maximum workflow depth (1–64)</label>
+        <input id="workflow-depth" type="number" min="1" max="64" class="form-control" @bind="MaximumDepth" />
+        <small class="form-text text-muted">Defaults: 60 seconds and 16 workflow levels.</small>
+    </fieldset>
+}
+
+@if (Active != null && !Disabled && CanPreviewEvents)
+{
+    <details class="mt-3 mb-3">
+        <summary>Preview event matching</summary>
+        <p class="text-muted">Preview unsaved values using your account as the hypothetical initiating actor. No condition or action scripts run. For deletion events, select a device that still exists; current group membership is used.</p>
+        <label>Sample registered event</label>
+        <GXInputDropdown class="form-select" @bind-Value="EventCode" RememberValue="false" Items="@(EventChoices.Select(it => it.Key))" Formatter="@(value => EventChoices.First(it => it.Key == value).Value)" />
+        <label>Sample device (device and value events)</label>
+        <Gurux.DLMS.AMI.Client.Pages.Device.DeviceDropdownSelector Value="@Device" ValueChanged="@((GXDevice? value) => Device = value)" Disabled="@Busy" />
+        <label>Sample target ID (agent or schedule events)</label>
+        <input class="form-control" @bind="TargetId" />
+        <button type="button" class="btn btn-outline-primary mt-2" disabled="@(Busy || string.IsNullOrEmpty(EventCode))" @onclick="Preview">Preview filters and identity</button>
+        @if (Result != null)
+        {
+            <div class="alert alert-info mt-2" role="status">
+                <div>Trigger: @(Result.TriggerMatches ? "matches" : "does not match")</div>
+                <div>Device and group filters: @(Result.FiltersMatch ? "match" : "do not match")</div>
+                <div>Workflow: @(Result.Enabled ? "enabled" : "disabled")</div>
+                <div>Execution account: @Result.ExecutionUserName (@Result.ExecutionUserId)</div>
+                <div>Condition: @Result.ConditionStatus</div>
+                <small>This result describes the values at the time Preview was clicked.</small>
+            </div>
+        }
+    </details>
+}
+
+@code {
+    private IEnumerable<KeyValuePair<string, string>> EventChoices =>
+        new[] { new KeyValuePair<string, string>(string.Empty, "Select an event") }
+        .Concat((Triggers ?? []).SelectMany(trigger => (trigger.Activities ?? [])
+            .Select(activity => new KeyValuePair<string, string>(activity.Permission ?? activity.Name ?? string.Empty, $"{trigger.Name}: {activity.Name}"))));
+    [Parameter, EditorRequired] public GXWorkflow? Active { get; set; }
+    [Parameter] public IEnumerable<GXTrigger>? Triggers { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool CanPreviewEvents { get; set; } = true;
+    private string? EventCode;
+    private string? TargetId;
+    private GXDevice? Device;
+    private bool Busy;
+    private PreviewWorkflowResponse? Result;
+
+    private int TimeoutSeconds
+    {
+        get => GetLimit("execution.timeout-seconds", 60);
+        set => SetLimit("execution.timeout-seconds", value);
+    }
+    private int MaximumDepth
+    {
+        get => GetLimit("execution.max-depth", 16);
+        set => SetLimit("execution.max-depth", value);
+    }
+    private int GetLimit(string key, int defaultValue)
+    {
+        var property = Active?.Properties?.FirstOrDefault(p => p.Module == null && p.Removed == null && p.Name == key);
+        return int.TryParse(property?.Value, out var value) ? value : defaultValue;
+    }
+    private void SetLimit(string key, int value)
+    {
+        if (Active == null || Disabled) {
+            return;
+        }
+        Active.Properties ??= [];
+        var property = Active.Properties.FirstOrDefault(p => p.Module == null && p.Removed == null && p.Name == key);
+        var text = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (property?.Value == text) {
+            return;
+        }
+        if (property == null)
+            {
+            Active.Properties.Add(new GXWorkflowProperty { Name = key, Value = text });
+        }
+        else
+            {
+            property.Value = text;
+        }
+        Result = null;
+        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXWorkflow.Properties)));
+    }
+
+    private async Task Preview()
+    {
+        if (Active == null || Busy) {
+            return;
+        }
+        Busy = true;
+        Result = null;
+        var notifications = Services.GetService<IGXNotificationService>();
+        try
+        {
+            notifications?.RemoveByKey("WorkflowPreview");
+            Result = await Http.PostAsJson<PreviewWorkflowResponse>("api/Workflow/Preview", new PreviewWorkflow
+            {
+                Workflow = Active, EventCode = EventCode ?? "", DeviceId = Device?.Id, TargetId = TargetId
+            });
+        }
+        catch (Exception ex)
+        {
+            notifications?.ReportError(ex, "WorkflowPreview");
+        }
+        finally { Busy = false; }
+    }
+}

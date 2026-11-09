@@ -1,34 +1,30 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
 
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -44,37 +40,41 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="UsersSelector" />
 
 <SelectionContainer TItem="GXUser" @ref="@_selectionContainer">
-    <SelectionList Title="Selected" @ref="_selected"
+    <SelectionList TItem="GXUser" Title="@Properties.Resources.Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems">
         <DataContent>
             @context.UserName
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchSelectedByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
-    <SelectionList Title="Available" @ref="_available"
+    <SelectionList TItem="GXUser" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
                    ItemsProvider="@GetItems">
         <DataContent>
             @context.UserName
         </DataContent>
         <FilterContent>
-            <Search Placeholder="@Properties.Resources.FilterByName"
-                    OnClickAsync="@SearchByName" />
+            <GXSearch Placeholder="@Properties.Resources.FilterByName"
+                    ValueChanged="@SearchByName" />
         </FilterContent>
     </SelectionList>
 </SelectionContainer>
 
 @code {
-    [CascadingParameter]
-    private UserGroupTab? Parent { get; set; }
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    [Parameter, EditorRequired]
+    public GXUserGroup? Active { get; set; }
 
     SelectionList<GXUser>? _selected;
     SelectionList<GXUser>? _available;
@@ -102,13 +102,13 @@
                         }
                     }
                 }
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/User/UsersSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/UsersSelector.SearchSelectedByName");
         }
     }
 
@@ -119,13 +119,13 @@
             if (_available != null)
             {
                 filter.UserName = name;
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/User/UsersSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/User/UsersSelector.SearchByName");
         }
     }
 
@@ -147,7 +147,7 @@
     private async ValueTask<ItemsProviderResult<GXUser>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUsers);
         try
         {
             ListUsers req = new ListUsers()
@@ -157,12 +157,12 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Exclude = _selected?.Items?.Select(s => s.Id).OfType<string>().ToArray()
                 };
             var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req, request.CancellationToken);
             if (ret?.Users != null && _selected != null)
             {
-                return new ItemsProviderResult<GXUser>(ret.Users, ret.Count);
+                return new ItemsProviderResult<GXUser>(ret.Users, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
         catch (TaskCanceledException)
@@ -172,31 +172,30 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingUsers);
+            NotificationService?.RemoveByKey("Pages/User/UsersSelector.OnInitializedAsync");
             if (_selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             //Get selected user groups.
-            if (Parent?.Active?.Users != null)
+            if (Active?.Users != null)
             {
-                _selected.Items = Parent.Active.Users;
+                _selected.Items = Active.Users;
             }
             else
             {
@@ -214,11 +213,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/User/UsersSelector.OnInitializedAsync");
         }
     }
 }

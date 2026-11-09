@@ -1,0 +1,7 @@
+<GXAccordion @key="ModuleId" Id="@($"module-runtime-health-{ModuleId}")" Header="Runtime health">
+    <ModuleHealthContent ModuleId="@ModuleId" />
+</GXAccordion>
+
+@code {
+    [Parameter] public string ModuleId { get; set; } = "";
+}

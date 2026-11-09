@@ -1,6 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
+    <!-- 
     Microsoft ResX Schema 
     
     Version 2.0
@@ -59,1416 +59,3071 @@
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
-  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
-    <xsd:element name="root" msdata:IsDataSet="true">
-      <xsd:complexType>
-        <xsd:choice maxOccurs="unbounded">
-          <xsd:element name="metadata">
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+        <xsd:element name="root" msdata:IsDataSet="true">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
-              </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string" />
-              <xsd:attribute name="type" type="xsd:string" />
-              <xsd:attribute name="mimetype" type="xsd:string" />
-              <xsd:attribute ref="xml:space" />
+                <xsd:choice maxOccurs="unbounded">
+                    <xsd:element name="metadata">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+                            </xsd:sequence>
+                            <xsd:attribute name="name" use="required" type="xsd:string" />
+                            <xsd:attribute name="type" type="xsd:string" />
+                            <xsd:attribute name="mimetype" type="xsd:string" />
+                            <xsd:attribute ref="xml:space" />
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="assembly">
+                        <xsd:complexType>
+                            <xsd:attribute name="alias" type="xsd:string" />
+                            <xsd:attribute name="name" type="xsd:string" />
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="data">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+                            <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+                            <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+                            <xsd:attribute ref="xml:space" />
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="resheader">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" />
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:choice>
             </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="assembly">
-            <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string" />
-              <xsd:attribute name="name" type="xsd:string" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="data">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="resheader">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:choice>
-      </xsd:complexType>
-    </xsd:element>
-  </xsd:schema>
-  <resheader name="resmimetype">
-    <value>text/microsoft-resx</value>
-  </resheader>
-  <resheader name="version">
-    <value>2.0</value>
-  </resheader>
-  <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <data name="About" xml:space="preserve">
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="About" xml:space="preserve">
     <value>About</value>
   </data>
-  <data name="AboutInfo" xml:space="preserve">
-    <value>For information about Gurux products see:</value>
+    <data name="AboutInfo" xml:space="preserve">
+    <value>For information about Gurux products, see:</value>
   </data>
-  <data name="AboutTitle" xml:space="preserve">
+    <data name="AboutTitle" xml:space="preserve">
     <value>About Gurux.DLMS.AMI</value>
   </data>
-  <data name="AccessFailed" xml:space="preserve">
+    <data name="AccessFailed" xml:space="preserve">
     <value>Access failed</value>
   </data>
-  <data name="Action" xml:space="preserve">
+    <data name="Action" xml:space="preserve">
     <value>Action</value>
   </data>
-  <data name="Actions" xml:space="preserve">
+    <data name="Actions" xml:space="preserve">
     <value>Actions</value>
   </data>
-  <data name="Active" xml:space="preserve">
+    <data name="Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+    <data name="Active" xml:space="preserve">
     <value>Active</value>
   </data>
-  <data name="ActiveDeviceErrors" xml:space="preserve">
+    <data name="ActiveDeviceErrors" xml:space="preserve">
     <value>Active device errors</value>
   </data>
-  <data name="Add" xml:space="preserve">
+    <data name="Add" xml:space="preserve">
     <value>Add</value>
   </data>
-  <data name="AdministratorSettings" xml:space="preserve">
+    <data name="AdministratorSettings" xml:space="preserve">
     <value>Administrator settings</value>
   </data>
-  <data name="Agent" xml:space="preserve">
+    <data name="Agent" xml:space="preserve">
     <value>Agent</value>
   </data>
-  <data name="AgentLogs" xml:space="preserve">
+    <data name="AgentLogs" xml:space="preserve">
     <value>Agent logs</value>
   </data>
-  <data name="AgentGroups" xml:space="preserve">
+    <data name="AgentGroups" xml:space="preserve">
     <value>Agent groups</value>
   </data>
-  <data name="Agents" xml:space="preserve">
+    <data name="Agents" xml:space="preserve">
     <value>Agents</value>
   </data>
-  <data name="AmiForum" xml:space="preserve">
-    <value>Gurux.DLMS.AMI forum.</value>
+    <data name="AmiForum" xml:space="preserve">
+    <value>Gurux.DLMS.AMI forum</value>
   </data>
-  <data name="AMiQuestions" xml:space="preserve">
-    <value>If you have questions or problems you can ask them in</value>
+    <data name="AMiQuestions" xml:space="preserve">
+    <value>If you have questions or need help, visit the</value>
   </data>
-  <data name="AreYouSureYouWantToClearErrors" xml:space="preserve">
-    <value>Are you sure you want to clear errors?</value>
+    <data name="AreYouSureYouWantToClearErrors" xml:space="preserve">
+    <value>Are you sure you want to clear the errors?</value>
   </data>
-  <data name="AreYouSureYouWantToDeleteSelectedItems" xml:space="preserve">
-    <value>Are you sure you want to delete selected items?</value>
+    <data name="AreYouSureYouWantToDeleteSelectedItems" xml:space="preserve">
+    <value>Are you sure you want to delete the selected items?</value>
   </data>
-  <data name="BlockGroups" xml:space="preserve">
+    <data name="BlockGroups" xml:space="preserve">
     <value>Block groups</value>
   </data>
-  <data name="Blocks" xml:space="preserve">
+    <data name="Blocks" xml:space="preserve">
     <value>Blocks</value>
   </data>
-  <data name="Body" xml:space="preserve">
+    <data name="Body" xml:space="preserve">
     <value>Body</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
+    <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="Clear" xml:space="preserve">
+    <data name="Clear" xml:space="preserve">
     <value>Clear</value>
   </data>
-  <data name="Closable" xml:space="preserve">
+    <data name="Closable" xml:space="preserve">
     <value>Closable</value>
   </data>
-  <data name="Close" xml:space="preserve">
+    <data name="Close" xml:space="preserve">
     <value>Close</value>
   </data>
-  <data name="Closed" xml:space="preserve">
+    <data name="Closed" xml:space="preserve">
     <value>Closed</value>
   </data>
-  <data name="CloseTime" xml:space="preserve">
+    <data name="CloseTime" xml:space="preserve">
     <value>Closed</value>
   </data>
-  <data name="CompletedTime" xml:space="preserve">
+    <data name="CompletedTime" xml:space="preserve">
     <value>Completed</value>
   </data>
-  <data name="Component" xml:space="preserve">
+    <data name="Component" xml:space="preserve">
     <value>Component</value>
   </data>
-  <data name="ComponentView" xml:space="preserve">
+    <data name="ComponentView" xml:space="preserve">
     <value>Component</value>
   </data>
-  <data name="ComponentViewGroup" xml:space="preserve">
+    <data name="ComponentViewGroup" xml:space="preserve">
     <value>Component group</value>
   </data>
-  <data name="ComponentViewGroups" xml:space="preserve">
+    <data name="ComponentViewGroups" xml:space="preserve">
     <value>Component groups</value>
   </data>
-  <data name="ComponentViews" xml:space="preserve">
+    <data name="ComponentViews" xml:space="preserve">
     <value>Components</value>
   </data>
-  <data name="Configuration" xml:space="preserve">
+    <data name="Configuration" xml:space="preserve">
     <value>Configuration</value>
   </data>
-  <data name="Copy" xml:space="preserve">
+    <data name="Copy" xml:space="preserve">
     <value>Copy</value>
   </data>
-  <data name="Copyright" xml:space="preserve">
+    <data name="Copyright" xml:space="preserve">
     <value>Copyright</value>
   </data>
-  <data name="CopyrightAllRightsReserved" xml:space="preserve">
+    <data name="CopyrightAllRightsReserved" xml:space="preserve">
     <value>All rights reserved.</value>
   </data>
-  <data name="CreationTime" xml:space="preserve">
-    <value>Creation Time</value>
+    <data name="CreationTime" xml:space="preserve">
+    <value>Creation time</value>
   </data>
-  <data name="Data" xml:space="preserve">
+    <data name="Data" xml:space="preserve">
     <value>Data</value>
   </data>
-  <data name="DefaultGroup" xml:space="preserve">
+    <data name="DefaultGroup" xml:space="preserve">
     <value>Default group</value>
   </data>
-  <data name="Description" xml:space="preserve">
+    <data name="Description" xml:space="preserve">
     <value>Description</value>
   </data>
-  <data name="Detected" xml:space="preserve">
+    <data name="Detected" xml:space="preserve">
     <value>Detected</value>
   </data>
-  <data name="Device" xml:space="preserve">
+    <data name="Device" xml:space="preserve">
     <value>Device</value>
   </data>
-  <data name="DeviceActions" xml:space="preserve">
+    <data name="DeviceActions" xml:space="preserve">
     <value>Device actions</value>
   </data>
-  <data name="DeviceErrors" xml:space="preserve">
+    <data name="DeviceErrors" xml:space="preserve">
     <value>Device errors</value>
   </data>
-  <data name="DeviceGroups" xml:space="preserve">
+    <data name="DeviceGroups" xml:space="preserve">
     <value>Device groups</value>
   </data>
-  <data name="Devices" xml:space="preserve">
+    <data name="Devices" xml:space="preserve">
     <value>Devices</value>
   </data>
-  <data name="DevicesTitle" xml:space="preserve">
+    <data name="DevicesTitle" xml:space="preserve">
     <value>Devices</value>
   </data>
-  <data name="DeviceTemplateGroups" xml:space="preserve">
+    <data name="DeviceTemplateGroups" xml:space="preserve">
     <value>Device template groups</value>
   </data>
-  <data name="DeviceTemplates" xml:space="preserve">
-    <value>Device Templates</value>
+    <data name="DeviceTemplates" xml:space="preserve">
+    <value>Device templates</value>
   </data>
-  <data name="Edit" xml:space="preserve">
+    <data name="Edit" xml:space="preserve">
     <value>Edit</value>
   </data>
-  <data name="Email" xml:space="preserve">
+    <data name="Email" xml:space="preserve">
     <value>Email</value>
   </data>
-  <data name="EmailConfirmed" xml:space="preserve">
+    <data name="EmailHeader" xml:space="preserve">
+    <value>Email header</value>
+  </data>
+    <data name="EmailText" xml:space="preserve">
+    <value>Email text</value>
+  </data>
+    <data name="EmailConfirmed" xml:space="preserve">
     <value>Email confirmed</value>
   </data>
-  <data name="EndTime" xml:space="preserve">
+    <data name="EndTime" xml:space="preserve">
     <value>End time</value>
   </data>
-  <data name="Error" xml:space="preserve">
+    <data name="Error" xml:space="preserve">
     <value>Error</value>
   </data>
-  <data name="Errors" xml:space="preserve">
+    <data name="Errors" xml:space="preserve">
     <value>Errors</value>
   </data>
-  <data name="ErrorSeverityLevel" xml:space="preserve">
+    <data name="ErrorSeverityLevel" xml:space="preserve">
     <value>Error severity level</value>
   </data>
-  <data name="Expiration" xml:space="preserve">
+    <data name="Expiration" xml:space="preserve">
     <value>Expiration</value>
   </data>
-  <data name="GeneralInformation" xml:space="preserve">
+    <data name="GeneralInformation" xml:space="preserve">
     <value>General information</value>
   </data>
-  <data name="Generation" xml:space="preserve">
+    <data name="Generation" xml:space="preserve">
     <value>Generation</value>
   </data>
-  <data name="GivenName" xml:space="preserve">
+    <data name="GivenName" xml:space="preserve">
     <value>Given name</value>
   </data>
-  <data name="Hello" xml:space="preserve">
+    <data name="Hello" xml:space="preserve">
     <value>Hello</value>
   </data>
-  <data name="Home" xml:space="preserve">
+    <data name="Home" xml:space="preserve">
     <value>Home</value>
   </data>
-  <data name="HostName" xml:space="preserve">
+    <data name="HostName" xml:space="preserve">
     <value>Host name</value>
   </data>
-  <data name="Installed" xml:space="preserve">
+    <data name="Installed" xml:space="preserve">
     <value>Installed</value>
   </data>
-  <data name="InvalidHttpAddress" xml:space="preserve">
+    <data name="InvalidHttpAddress" xml:space="preserve">
     <value>Sorry, there's nothing at this address.</value>
   </data>
-  <data name="LastExecutionTime" xml:space="preserve">
+    <data name="LastExecutionTime" xml:space="preserve">
     <value>Last execution time</value>
   </data>
-  <data name="LastLogin" xml:space="preserve">
+    <data name="LastLogin" xml:space="preserve">
     <value>Last login</value>
   </data>
-  <data name="Level" xml:space="preserve">
+    <data name="Level" xml:space="preserve">
     <value>Level</value>
   </data>
-  <data name="Loading" xml:space="preserve">
+    <data name="Loading" xml:space="preserve">
     <value>Loading</value>
   </data>
-  <data name="Location" xml:space="preserve">
+    <data name="Location" xml:space="preserve">
     <value>Location</value>
   </data>
-  <data name="LocationOrder" xml:space="preserve">
+    <data name="LocationOrder" xml:space="preserve">
     <value>Location order</value>
   </data>
-  <data name="Logging" xml:space="preserve">
+    <data name="Logging" xml:space="preserve">
     <value>Logging</value>
   </data>
-  <data name="LogicalName" xml:space="preserve">
+    <data name="LogicalName" xml:space="preserve">
     <value>Logical name</value>
   </data>
-  <data name="Login" xml:space="preserve">
+    <data name="Login" xml:space="preserve">
     <value>Log in</value>
   </data>
-  <data name="LogOut" xml:space="preserve">
+    <data name="LogOut" xml:space="preserve">
     <value>Log out</value>
   </data>
-  <data name="Method" xml:space="preserve">
+    <data name="Method" xml:space="preserve">
     <value>Method</value>
   </data>
-  <data name="Module" xml:space="preserve">
+    <data name="Module" xml:space="preserve">
     <value>Module</value>
   </data>
-  <data name="ModuleLogs" xml:space="preserve">
+    <data name="ModuleLogs" xml:space="preserve">
     <value>Module logs</value>
   </data>
-  <data name="ModuleGroups" xml:space="preserve">
+    <data name="ModuleGroups" xml:space="preserve">
     <value>Module groups</value>
   </data>
-  <data name="ModulesTitle" xml:space="preserve">
+    <data name="ModulesTitle" xml:space="preserve">
     <value>Modules</value>
   </data>
-  <data name="Name" xml:space="preserve">
+    <data name="Name" xml:space="preserve">
     <value>Name</value>
   </data>
-  <data name="NoItemIsSelected" xml:space="preserve">
+    <data name="NoItemIsSelected" xml:space="preserve">
     <value>No item is selected.</value>
   </data>
-  <data name="NotAuthorized" xml:space="preserve">
+    <data name="NotAuthorized" xml:space="preserve">
     <value>You are not authorized to access this resource.</value>
   </data>
-  <data name="Objects" xml:space="preserve">
+    <data name="Objects" xml:space="preserve">
     <value>Objects</value>
   </data>
-  <data name="ObjectTemplates" xml:space="preserve">
+    <data name="ObjectTemplates" xml:space="preserve">
     <value>Object templates</value>
   </data>
-  <data name="ObjectType" xml:space="preserve">
-    <value>Object Type</value>
+    <data name="ObjectType" xml:space="preserve">
+    <value>Object type</value>
   </data>
-  <data name="Options" xml:space="preserve">
+    <data name="Options" xml:space="preserve">
     <value>Options</value>
   </data>
-  <data name="PageSelectionPath" xml:space="preserve">
+    <data name="PageSelectionPath" xml:space="preserve">
     <value>Page selection path</value>
   </data>
-  <data name="Parameters" xml:space="preserve">
+    <data name="Parameters" xml:space="preserve">
     <value>Parameters</value>
   </data>
-  <data name="PersonalAccessTokens" xml:space="preserve">
-    <value>Personal Access Tokens</value>
+    <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Personal access tokens</value>
   </data>
-  <data name="Port" xml:space="preserve">
+    <data name="Port" xml:space="preserve">
     <value>Port</value>
   </data>
-  <data name="Protocol" xml:space="preserve">
+    <data name="Protocol" xml:space="preserve">
     <value>Protocol</value>
   </data>
-  <data name="Publish" xml:space="preserve">
+    <data name="Publish" xml:space="preserve">
     <value>Publish</value>
   </data>
-  <data name="Read" xml:space="preserve">
+    <data name="Read" xml:space="preserve">
     <value>Read</value>
   </data>
-  <data name="Ready" xml:space="preserve">
+    <data name="Ready" xml:space="preserve">
     <value>Ready</value>
   </data>
-  <data name="Refresh" xml:space="preserve">
+    <data name="Refresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
-  <data name="Register" xml:space="preserve">
+    <data name="Register" xml:space="preserve">
     <value>Register</value>
   </data>
-  <data name="Remove" xml:space="preserve">
+    <data name="Remove" xml:space="preserve">
     <value>Remove</value>
   </data>
-  <data name="Reply" xml:space="preserve">
+    <data name="Reply" xml:space="preserve">
     <value>Reply</value>
   </data>
-  <data name="Reset" xml:space="preserve">
+    <data name="Reset" xml:space="preserve">
     <value>Reset</value>
   </data>
-  <data name="Result" xml:space="preserve">
+    <data name="Result" xml:space="preserve">
     <value>Result</value>
   </data>
-  <data name="Roles" xml:space="preserve">
+    <data name="Roles" xml:space="preserve">
     <value>Roles</value>
   </data>
-  <data name="Run" xml:space="preserve">
+    <data name="Run" xml:space="preserve">
     <value>Run</value>
   </data>
-  <data name="Save" xml:space="preserve">
+    <data name="Save" xml:space="preserve">
     <value>Save</value>
   </data>
-  <data name="SaveConfigurationText" xml:space="preserve">
+    <data name="SaveConfigurationText" xml:space="preserve">
     <value>Save configuration</value>
   </data>
-  <data name="Schedule" xml:space="preserve">
+    <data name="Schedule" xml:space="preserve">
     <value>Schedule</value>
   </data>
-  <data name="ScheduleLogs" xml:space="preserve">
+    <data name="ScheduleLogs" xml:space="preserve">
     <value>Schedule log</value>
   </data>
-  <data name="ScheduleExecutionTime" xml:space="preserve">
+    <data name="ScheduleExecutionTime" xml:space="preserve">
     <value>Schedule execution time</value>
   </data>
-  <data name="ScheduleGroups" xml:space="preserve">
+    <data name="ScheduleGroups" xml:space="preserve">
     <value>Schedule groups</value>
   </data>
-  <data name="ScheduleName" xml:space="preserve">
+    <data name="ScheduleName" xml:space="preserve">
     <value>Schedule name</value>
   </data>
-  <data name="SchedulesTitle" xml:space="preserve">
+    <data name="SchedulesTitle" xml:space="preserve">
     <value>Schedules</value>
   </data>
-  <data name="Script" xml:space="preserve">
+    <data name="Script" xml:space="preserve">
     <value>Script</value>
   </data>
-  <data name="ScriptLogs" xml:space="preserve">
+    <data name="ScriptLogs" xml:space="preserve">
     <value>Script logs</value>
   </data>
-  <data name="ScriptGroups" xml:space="preserve">
+    <data name="ScriptGroups" xml:space="preserve">
     <value>Script groups</value>
   </data>
-  <data name="ScriptMethods" xml:space="preserve">
+    <data name="ScriptMethods" xml:space="preserve">
     <value>Script methods</value>
   </data>
-  <data name="Scripts" xml:space="preserve">
+    <data name="Scripts" xml:space="preserve">
     <value>Scripts</value>
   </data>
-  <data name="Search" xml:space="preserve">
+    <data name="Search" xml:space="preserve">
     <value>Search</value>
   </data>
-  <data name="ServerSide" xml:space="preserve">
+    <data name="ServerSide" xml:space="preserve">
     <value>Run on the server</value>
   </data>
-  <data name="SettingsTitle" xml:space="preserve">
+    <data name="SettingsTitle" xml:space="preserve">
     <value>Configuration</value>
   </data>
-  <data name="Show" xml:space="preserve">
+    <data name="Show" xml:space="preserve">
     <value>Show</value>
   </data>
-  <data name="SiteInformation" xml:space="preserve">
+    <data name="SiteInformation" xml:space="preserve">
     <value>Site information</value>
   </data>
-  <data name="StartTime" xml:space="preserve">
+    <data name="StartTime" xml:space="preserve">
     <value>Start time</value>
   </data>
-  <data name="Status" xml:space="preserve">
+    <data name="Status" xml:space="preserve">
     <value>Status</value>
   </data>
-  <data name="Surname" xml:space="preserve">
+    <data name="Surname" xml:space="preserve">
     <value>Surname</value>
   </data>
-  <data name="SystemLogs" xml:space="preserve">
+    <data name="SystemLogs" xml:space="preserve">
     <value>System log</value>
   </data>
-  <data name="SystemSettings" xml:space="preserve">
-    <value>System Settings</value>
+    <data name="SystemSettings" xml:space="preserve">
+    <value>System settings</value>
   </data>
-  <data name="Target" xml:space="preserve">
+    <data name="Target" xml:space="preserve">
     <value>Target</value>
   </data>
-  <data name="Tasks" xml:space="preserve">
+    <data name="Tasks" xml:space="preserve">
     <value>Tasks</value>
   </data>
-  <data name="TaskType" xml:space="preserve">
+    <data name="TaskType" xml:space="preserve">
     <value>Task type</value>
   </data>
-  <data name="Title" xml:space="preserve">
+    <data name="Title" xml:space="preserve">
     <value>Title</value>
   </data>
-  <data name="TokensTitle" xml:space="preserve">
+    <data name="TokensTitle" xml:space="preserve">
     <value>Tokens</value>
   </data>
-  <data name="Total" xml:space="preserve">
+    <data name="Total" xml:space="preserve">
     <value>Total</value>
   </data>
-  <data name="Trigger" xml:space="preserve">
+    <data name="Trigger" xml:space="preserve">
     <value>Trigger</value>
   </data>
-  <data name="TriggerGroups" xml:space="preserve">
+    <data name="TriggerGroups" xml:space="preserve">
     <value>Trigger groups</value>
   </data>
-  <data name="Triggers" xml:space="preserve">
+    <data name="Triggers" xml:space="preserve">
     <value>Triggers</value>
   </data>
-  <data name="Type" xml:space="preserve">
+    <data name="Type" xml:space="preserve">
     <value>Type</value>
   </data>
-  <data name="Updated" xml:space="preserve">
+    <data name="Updated" xml:space="preserve">
     <value>Updated</value>
   </data>
-  <data name="User" xml:space="preserve">
+    <data name="User" xml:space="preserve">
     <value>User</value>
   </data>
-  <data name="UserActions" xml:space="preserve">
+    <data name="UserActions" xml:space="preserve">
     <value>User actions</value>
   </data>
-  <data name="UserErrors" xml:space="preserve">
+    <data name="UserErrors" xml:space="preserve">
     <value>User errors</value>
   </data>
-  <data name="UserGroupsTitle" xml:space="preserve">
+    <data name="UserGroupsTitle" xml:space="preserve">
     <value>User groups</value>
   </data>
-  <data name="UserManagement" xml:space="preserve">
-    <value>User Management</value>
+    <data name="UserManagement" xml:space="preserve">
+    <value>User management</value>
   </data>
-  <data name="UsersTitle" xml:space="preserve">
+    <data name="UsersTitle" xml:space="preserve">
     <value>Users</value>
   </data>
-  <data name="Variables" xml:space="preserve">
+    <data name="Variables" xml:space="preserve">
     <value>Variables</value>
   </data>
-  <data name="Version" xml:space="preserve">
+    <data name="Version" xml:space="preserve">
     <value>Version</value>
   </data>
-  <data name="WelcomeText" xml:space="preserve">
-    <value>Welcome to use Gurux.DLMS.AMI.</value>
+    <data name="WelcomeText" xml:space="preserve">
+    <value>Welcome to Gurux.DLMS.AMI.</value>
   </data>
-  <data name="Workflow" xml:space="preserve">
+    <data name="Workflow" xml:space="preserve">
     <value>Workflow</value>
   </data>
-  <data name="WorkflowLogs" xml:space="preserve">
+    <data name="WorkflowLogs" xml:space="preserve">
     <value>Workflow logs</value>
   </data>
-  <data name="WorkflowGroups" xml:space="preserve">
+    <data name="WorkflowGroups" xml:space="preserve">
     <value>Workflow groups</value>
   </data>
-  <data name="Workflows" xml:space="preserve">
+    <data name="Workflows" xml:space="preserve">
     <value>Workflows</value>
   </data>
-  <data name="Write" xml:space="preserve">
+    <data name="Write" xml:space="preserve">
     <value>Write</value>
   </data>
-  <data name="InvalidId" xml:space="preserve">
-    <value>Invalid Id.</value>
+    <data name="InvalidId" xml:space="preserve">
+    <value>Invalid ID.</value>
   </data>
-  <data name="Threads" xml:space="preserve">
+    <data name="Threads" xml:space="preserve">
     <value>Threads</value>
   </data>
-  <data name="ListenerPort" xml:space="preserve">
+    <data name="ListenerPort" xml:space="preserve">
     <value>Listener port</value>
   </data>
-  <data name="NotificationPort" xml:space="preserve">
+    <data name="NotificationPort" xml:space="preserve">
     <value>Notification port</value>
   </data>
-  <data name="CustomBuild" xml:space="preserve">
+    <data name="CustomBuild" xml:space="preserve">
     <value>Custom build</value>
   </data>
-  <data name="Network" xml:space="preserve">
+    <data name="Network" xml:space="preserve">
     <value>Network</value>
   </data>
-  <data name="RESTStatistic" xml:space="preserve">
-    <value>REST statistic</value>
+    <data name="RESTStatistic" xml:space="preserve">
+    <value>REST statistics</value>
   </data>
-  <data name="ExecutionTime" xml:space="preserve">
+    <data name="ExecutionTime" xml:space="preserve">
     <value>Execution time</value>
   </data>
-  <data name="Install" xml:space="preserve">
+    <data name="Install" xml:space="preserve">
     <value>Install</value>
   </data>
-  <data name="Update" xml:space="preserve">
+    <data name="Update" xml:space="preserve">
     <value>Update</value>
   </data>
-  <data name="AvailableVersion" xml:space="preserve">
+    <data name="AvailableVersion" xml:space="preserve">
     <value>Available version</value>
   </data>
-  <data name="ConfirmUpdate" xml:space="preserve">
+    <data name="ConfirmUpdate" xml:space="preserve">
     <value>Confirm update</value>
   </data>
-  <data name="Manage" xml:space="preserve">
+    <data name="Manage" xml:space="preserve">
     <value>Manage</value>
   </data>
-  <data name="UpdateVersion" xml:space="preserve">
-    <value>Updatating</value>
+    <data name="UpdateVersion" xml:space="preserve">
+    <value>Updating</value>
   </data>
-  <data name="TaskWaitTime" xml:space="preserve">
+    <data name="TaskWaitTime" xml:space="preserve">
     <value>Task wait time</value>
   </data>
-  <data name="Start" xml:space="preserve">
+    <data name="Start" xml:space="preserve">
     <value>Start</value>
   </data>
-  <data name="Readers" xml:space="preserve">
+    <data name="Readers" xml:space="preserve">
     <value>Readers</value>
   </data>
-  <data name="ReadersTitle" xml:space="preserve">
+    <data name="ReadersTitle" xml:space="preserve">
     <value>Readers</value>
   </data>
-  <data name="AliveTime" xml:space="preserve">
+    <data name="AliveTime" xml:space="preserve">
     <value>Alive time</value>
   </data>
-  <data name="TraceLevels" xml:space="preserve">
+    <data name="TraceLevels" xml:space="preserve">
     <value>Trace levels</value>
   </data>
-  <data name="ClientAddress" xml:space="preserve">
+    <data name="ClientAddress" xml:space="preserve">
     <value>Client address</value>
   </data>
-  <data name="ServerAddress" xml:space="preserve">
+    <data name="ServerAddress" xml:space="preserve">
     <value>Server address</value>
   </data>
-  <data name="UseLogicalNameReferencing" xml:space="preserve">
+    <data name="UseLogicalNameReferencing" xml:space="preserve">
     <value>Use logical name referencing</value>
   </data>
-  <data name="Password" xml:space="preserve">
+    <data name="Password" xml:space="preserve">
     <value>Password</value>
   </data>
-  <data name="Security" xml:space="preserve">
+    <data name="Security" xml:space="preserve">
     <value>Security</value>
   </data>
-  <data name="InvocationCounter" xml:space="preserve">
+    <data name="InvocationCounter" xml:space="preserve">
     <value>Invocation counter</value>
   </data>
-  <data name="System" xml:space="preserve">
-    <value>System title</value>
+    <data name="System" xml:space="preserve">
+    <value>System</value>
   </data>
-  <data name="BlockCipherKey" xml:space="preserve">
+    <data name="BlockCipherKey" xml:space="preserve">
     <value>Block cipher key</value>
   </data>
-  <data name="AuthenticationKey" xml:space="preserve">
+    <data name="AuthenticationKey" xml:space="preserve">
     <value>Authentication key</value>
   </data>
-  <data name="ExpirationTime" xml:space="preserve">
+    <data name="ExpirationTime" xml:space="preserve">
     <value>Expiration time</value>
   </data>
-  <data name="Traces" xml:space="preserve">
+    <data name="Traces" xml:space="preserve">
     <value>Traces</value>
   </data>
-  <data name="DeviceTraces" xml:space="preserve">
+    <data name="DeviceTraces" xml:space="preserve">
     <value>Device traces</value>
   </data>
-  <data name="Logs" xml:space="preserve">
+    <data name="Logs" xml:space="preserve">
     <value>Logs</value>
   </data>
-  <data name="DownloadAgent" xml:space="preserve">
+    <data name="DownloadAgent" xml:space="preserve">
     <value>Download the agent</value>
   </data>
-  <data name="GenerateAccessToken" xml:space="preserve">
+    <data name="GenerateAccessToken" xml:space="preserve">
     <value>Generate access token</value>
   </data>
-  <data name="TokenCreateInfo" xml:space="preserve">
-    <value>Warning - Make sure you copy the above token now. It's not stored it and you will not be able to see it again.</value>
+    <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Copy this token now. It is not stored, and you will not be able to view it again.</value>
   </data>
-  <data name="TokenCreateSucceeded" xml:space="preserve">
-    <value>You have successfully added a new personal access token. Copy the token now!</value>
+    <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>Personal access token created. Copy the token now; you will not be able to view it again.</value>
   </data>
-  <data name="ShowRemoved" xml:space="preserve">
+    <data name="ShowRemoved" xml:space="preserve">
     <value>Show removed targets</value>
   </data>
-  <data name="FilterByName" xml:space="preserve">
+    <data name="FilterByName" xml:space="preserve">
     <value>Filter by name...</value>
   </data>
-  <data name="Language" xml:space="preserve">
+    <data name="Language" xml:space="preserve">
     <value>Language</value>
   </data>
-  <data name="Refreshed" xml:space="preserve">
+    <data name="Refreshed" xml:space="preserve">
     <value>Refreshed</value>
   </data>
-  <data name="Saved" xml:space="preserve">
+    <data name="Saved" xml:space="preserve">
     <value>Saved</value>
   </data>
-  <data name="Path" xml:space="preserve">
+    <data name="Path" xml:space="preserve">
     <value>Path</value>
   </data>
-  <data name="MaintenanceModeEnds" xml:space="preserve">
+    <data name="MaintenanceModeEnds" xml:space="preserve">
     <value>Maintenance mode is expected to end at</value>
   </data>
-  <data name="Removed" xml:space="preserve">
+    <data name="Removed" xml:space="preserve">
     <value>Removed</value>
   </data>
-  <data name="Never" xml:space="preserve">
+    <data name="Never" xml:space="preserve">
     <value>Never</value>
   </data>
-  <data name="InvalidNotifier" xml:space="preserve">
-    <value>The notifier is Invalid.</value>
+    <data name="InvalidNotifier" xml:space="preserve">
+    <value>The notifier is invalid.</value>
   </data>
-  <data name="InvalidTarget" xml:space="preserve">
+    <data name="InvalidTarget" xml:space="preserve">
     <value>Invalid target.</value>
   </data>
-  <data name="DefaultRole" xml:space="preserve">
+    <data name="DefaultRole" xml:space="preserve">
     <value>Default role</value>
   </data>
-  <data name="ShowClosedErrors" xml:space="preserve">
+    <data name="ShowClosedErrors" xml:space="preserve">
     <value>Show closed errors</value>
   </data>
-  <data name="Task" xml:space="preserve">
+    <data name="Task" xml:space="preserve">
     <value>Task</value>
   </data>
-  <data name="Attributes" xml:space="preserve">
+    <data name="Attributes" xml:space="preserve">
     <value>Attributes</value>
   </data>
-  <data name="Values" xml:space="preserve">
+    <data name="Values" xml:space="preserve">
     <value>Values</value>
   </data>
-  <data name="EnableSwagger" xml:space="preserve">
+    <data name="EnableSwagger" xml:space="preserve">
     <value>Enable Swagger</value>
   </data>
-  <data name="Restart" xml:space="preserve">
+    <data name="Restart" xml:space="preserve">
     <value>Restart</value>
   </data>
-  <data name="Message" xml:space="preserve">
+    <data name="Message" xml:space="preserve">
     <value>Message</value>
   </data>
-  <data name="StackTrace" xml:space="preserve">
+    <data name="StackTrace" xml:space="preserve">
     <value>Stack trace</value>
   </data>
-  <data name="Capture" xml:space="preserve">
+    <data name="Capture" xml:space="preserve">
     <value>Capture</value>
   </data>
-  <data name="UpgradeableModules" xml:space="preserve">
+    <data name="UpgradeableModules" xml:space="preserve">
     <value>Upgradeable modules</value>
   </data>
-  <data name="AgentTokenCreateSucceeded" xml:space="preserve">
-    <value>You have successfully added a new agent access token. Copy the token now!</value>
+    <data name="AgentTokenCreateSucceeded" xml:space="preserve">
+    <value>Agent access token created. Copy the token now; you will not be able to view it again.</value>
   </data>
-  <data name="LastRead" xml:space="preserve">
+    <data name="LastRead" xml:space="preserve">
     <value>Last read</value>
   </data>
-  <data name="LastWrite" xml:space="preserve">
+    <data name="LastWrite" xml:space="preserve">
     <value>Last write</value>
   </data>
-  <data name="LastAction" xml:space="preserve">
+    <data name="LastAction" xml:space="preserve">
     <value>Last action</value>
   </data>
-  <data name="LastError" xml:space="preserve">
+    <data name="LastError" xml:space="preserve">
     <value>Last error</value>
   </data>
-  <data name="FilterByObjectType" xml:space="preserve">
+    <data name="FilterByObjectType" xml:space="preserve">
     <value>Filter by object type...</value>
   </data>
-  <data name="FilterByLogicalName" xml:space="preserve">
+    <data name="FilterByLogicalName" xml:space="preserve">
     <value>Filter by logical name...</value>
   </data>
-  <data name="TargetDisableQuestion" xml:space="preserve">
+    <data name="TargetDisableQuestion" xml:space="preserve">
     <value>Disable the target and unpublish its content.</value>
   </data>
-  <data name="TargetDeleteQuestion" xml:space="preserve">
+    <data name="TargetDeleteQuestion" xml:space="preserve">
     <value>Delete the target and its content.</value>
   </data>
-  <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
-    <value>Are you sure you want to clear tasks?</value>
+    <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
+    <value>Are you sure you want to clear the tasks?</value>
   </data>
-  <data name="ConfirmDataClear" xml:space="preserve">
-    <value>Confirm Data Clear</value>
+    <data name="ConfirmDataClear" xml:space="preserve">
+    <value>Confirm data clearing</value>
   </data>
-  <data name="AreYouSureYouWantToCloseErrors" xml:space="preserve">
-    <value>Are you sure you want to close errors?</value>
+    <data name="AreYouSureYouWantToCloseErrors" xml:space="preserve">
+    <value>Are you sure you want to close the errors?</value>
   </data>
-  <data name="AreYouSureYouWantToCloseSelectedItems" xml:space="preserve">
-    <value>Are you sure you want to close selected items?</value>
+    <data name="AreYouSureYouWantToCloseSelectedItems" xml:space="preserve">
+    <value>Are you sure you want to close the selected items?</value>
   </data>
-  <data name="AgentUpdates" xml:space="preserve">
+    <data name="AgentUpdates" xml:space="preserve">
     <value>Are you sure you want to update the agents?\r\nAll running jobs will complete before this action begins. All queued jobs will be delayed until the update is complete.</value>
   </data>
-  <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
-    <value>Are you sure you want to clear log?</value>
+    <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
+    <value>Are you sure you want to clear the log?</value>
   </data>
-  <data name="ShowDataForAllUsers" xml:space="preserve">
-    <value>Show data for all users.</value>
+    <data name="ShowDataForAllUsers" xml:space="preserve">
+    <value>Show data for all users</value>
   </data>
-  <data name="ScheduleGroup" xml:space="preserve">
+    <data name="ScheduleGroup" xml:space="preserve">
     <value>Schedule group</value>
   </data>
-  <data name="WorkflowGroup" xml:space="preserve">
+    <data name="WorkflowGroup" xml:space="preserve">
     <value>Workflow group</value>
   </data>
-  <data name="UserGroup" xml:space="preserve">
+    <data name="UserGroup" xml:space="preserve">
     <value>User group</value>
   </data>
-  <data name="ModuleGroup" xml:space="preserve">
+    <data name="ModuleGroup" xml:space="preserve">
     <value>Module group</value>
   </data>
-  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <data name="DeviceTemplateGroup" xml:space="preserve">
     <value>Device template group</value>
   </data>
-  <data name="DeviceGroup" xml:space="preserve">
+    <data name="DeviceGroup" xml:space="preserve">
     <value>Device group</value>
   </data>
-  <data name="BlockGroup" xml:space="preserve">
-    <value>Block groups</value>
+    <data name="BlockGroup" xml:space="preserve">
+    <value>Block group</value>
   </data>
-  <data name="Block" xml:space="preserve">
+    <data name="Block" xml:space="preserve">
     <value>Block</value>
   </data>
-  <data name="AgentGroup" xml:space="preserve">
+    <data name="AgentGroup" xml:space="preserve">
     <value>Agent group</value>
   </data>
-  <data name="TriggerGroup" xml:space="preserve">
+    <data name="TriggerGroup" xml:space="preserve">
     <value>Trigger group</value>
   </data>
-  <data name="ThisActionCannotBeUndone" xml:space="preserve">
+    <data name="ThisActionCannotBeUndone" xml:space="preserve">
     <value>This action cannot be undone.</value>
   </data>
-  <data name="DeviceTemplate" xml:space="preserve">
-    <value>Device Template</value>
+    <data name="DeviceTemplate" xml:space="preserve">
+    <value>Device template</value>
   </data>
-  <data name="AmountOfTheRowsShownOnTheView" xml:space="preserve">
-    <value>Amount of the rows shown on the view</value>
+    <data name="AmountOfTheRowsShownOnTheView" xml:space="preserve">
+    <value>Number of rows shown in the view</value>
   </data>
-  <data name="ShowFilter" xml:space="preserve">
+    <data name="ShowFilter" xml:space="preserve">
     <value>Show filter</value>
   </data>
-  <data name="ShowTotal" xml:space="preserve">
+    <data name="ShowTotal" xml:space="preserve">
     <value>Show total count</value>
   </data>
-  <data name="ShowMenu" xml:space="preserve">
+    <data name="ShowMenu" xml:space="preserve">
     <value>Show menu</value>
   </data>
-  <data name="SerialPort" xml:space="preserve">
+    <data name="SerialPort" xml:space="preserve">
     <value>Serial port</value>
   </data>
-  <data name="ManufacturerGroups" xml:space="preserve">
+    <data name="ManufacturerGroups" xml:space="preserve">
     <value>Manufacturer groups</value>
   </data>
-  <data name="Manufacturers" xml:space="preserve">
+    <data name="Manufacturers" xml:space="preserve">
     <value>Manufacturers</value>
   </data>
-  <data name="Manufacturer" xml:space="preserve">
+    <data name="Manufacturer" xml:space="preserve">
     <value>Manufacturer</value>
   </data>
-  <data name="ManufacturerGroup" xml:space="preserve">
+    <data name="ManufacturerGroup" xml:space="preserve">
     <value>Manufacturer group</value>
   </data>
-  <data name="Favorites" xml:space="preserve">
+    <data name="Favorites" xml:space="preserve">
     <value>Favorites</value>
   </data>
-  <data name="Favorite" xml:space="preserve">
+    <data name="Favorite" xml:space="preserve">
     <value>Favorite</value>
   </data>
-  <data name="Versions" xml:space="preserve">
+    <data name="Versions" xml:space="preserve">
     <value>Versions</value>
   </data>
-  <data name="Models" xml:space="preserve">
+    <data name="Models" xml:space="preserve">
     <value>Models</value>
   </data>
-  <data name="Model" xml:space="preserve">
+    <data name="Model" xml:space="preserve">
     <value>Model</value>
   </data>
-  <data name="Unknown" xml:space="preserve">
+    <data name="Unknown" xml:space="preserve">
     <value>Unknown</value>
   </data>
-  <data name="InterfaceType" xml:space="preserve">
+    <data name="InterfaceType" xml:space="preserve">
     <value>Interface type</value>
   </data>
-  <data name="Authentication" xml:space="preserve">
+    <data name="Authentication" xml:space="preserve">
     <value>Authentication</value>
   </data>
-  <data name="LastChecked" xml:space="preserve">
+    <data name="LastChecked" xml:space="preserve">
     <value>Last checked: {0} ago.</value>
   </data>
-  <data name="CheckManually" xml:space="preserve">
+    <data name="CheckManually" xml:space="preserve">
     <value>Check manually</value>
   </data>
-  <data name="Days" xml:space="preserve">
+    <data name="Days" xml:space="preserve">
     <value>days</value>
   </data>
-  <data name="Hours" xml:space="preserve">
+    <data name="Hours" xml:space="preserve">
     <value>hours</value>
   </data>
-  <data name="Minutes" xml:space="preserve">
+    <data name="Minutes" xml:space="preserve">
     <value>minutes</value>
   </data>
-  <data name="Seconds" xml:space="preserve">
+    <data name="Seconds" xml:space="preserve">
     <value>seconds</value>
   </data>
-  <data name="AreYouSureYouWantToInstallSelectedItems" xml:space="preserve">
-    <value>Are you sure you want to install selected items?</value>
+    <data name="AreYouSureYouWantToInstallSelectedItems" xml:space="preserve">
+    <value>Are you sure you want to install the selected items?</value>
   </data>
-  <data name="Media" xml:space="preserve">
+    <data name="Media" xml:space="preserve">
     <value>Media</value>
   </data>
-  <data name="WaitTime" xml:space="preserve">
+    <data name="WaitTime" xml:space="preserve">
     <value>Wait time</value>
   </data>
-  <data name="Generic" xml:space="preserve">
+    <data name="Generic" xml:space="preserve">
     <value>Generic</value>
   </data>
-  <data name="Custom" xml:space="preserve">
+    <data name="Custom" xml:space="preserve">
     <value>Custom</value>
   </data>
-  <data name="Baudrate" xml:space="preserve">
+    <data name="Baudrate" xml:space="preserve">
     <value>Baud rate</value>
   </data>
-  <data name="DataBits" xml:space="preserve">
-    <value>Data Bits</value>
+    <data name="DataBits" xml:space="preserve">
+    <value>Data bits</value>
   </data>
-  <data name="Parity" xml:space="preserve">
+    <data name="Parity" xml:space="preserve">
     <value>Parity</value>
   </data>
-  <data name="StopBits" xml:space="preserve">
-    <value>StopBits</value>
+    <data name="StopBits" xml:space="preserve">
+    <value>Stop bits</value>
   </data>
-  <data name="SerialNumber" xml:space="preserve">
+    <data name="SerialNumber" xml:space="preserve">
     <value>Serial number</value>
   </data>
-  <data name="InstallMetersVerify" xml:space="preserve">
+    <data name="InstallMetersVerify" xml:space="preserve">
     <value>Are you sure you want to install support for the following meters?</value>
   </data>
-  <data name="InstallVersions" xml:space="preserve">
+    <data name="InstallVersions" xml:space="preserve">
     <value>All {0} versions.</value>
   </data>
-  <data name="InstallAllSettings" xml:space="preserve">
+    <data name="InstallAllSettings" xml:space="preserve">
     <value>All {0} {1} settings.</value>
   </data>
-  <data name="DeviceTemplatesNotInstalled" xml:space="preserve">
-    <value>{0}Manufacturers {1} or {2}device templates{3} must be added before devices can be added.</value>
+    <data name="DeviceTemplatesNotInstalled" xml:space="preserve">
+    <value>[url:config/Manufacturer]Manufacturers[/url] or [url:DeviceTemplate]device templates[/url] must be added before devices can be added.</value>
   </data>
-  <data name="ModuleNeedsRestart" xml:space="preserve">
-    <value>Server needs restart to apply the module changes. Do you want to restart the server now?</value>
+    <data name="ModuleNeedsRestart" xml:space="preserve">
+    <value>The server must restart to apply the module changes. Restart now?</value>
   </data>
-  <data name="ConfirmRestart" xml:space="preserve">
+    <data name="ConfirmRestart" xml:space="preserve">
     <value>Confirm restart</value>
   </data>
-  <data name="FilterByUser" xml:space="preserve">
+    <data name="FilterByUser" xml:space="preserve">
     <value>Filter by user...</value>
   </data>
-  <data name="KeyManagementGroups" xml:space="preserve">
+    <data name="KeyManagementGroups" xml:space="preserve">
     <value>Key management groups</value>
   </data>
-  <data name="KeyManagements" xml:space="preserve">
-    <value>Key managements</value>
-  </data>
-  <data name="KeyManagement" xml:space="preserve">
+    <data name="KeyManagements" xml:space="preserve">
     <value>Key management</value>
   </data>
-  <data name="KeyManagementGroup" xml:space="preserve">
+    <data name="KeyManagement" xml:space="preserve">
+    <value>Key management</value>
+  </data>
+    <data name="KeyManagementGroup" xml:space="preserve">
     <value>Key management group</value>
   </data>
-  <data name="KeyManagementLogs" xml:space="preserve">
+    <data name="KeyManagementLogs" xml:space="preserve">
     <value>Key management logs</value>
   </data>
-  <data name="SystemTitle" xml:space="preserve">
+    <data name="SystemTitle" xml:space="preserve">
     <value>System title</value>
   </data>
-  <data name="KeyManagementKeys" xml:space="preserve">
+    <data name="KeyManagementKeys" xml:space="preserve">
     <value>Keys</value>
   </data>
-  <data name="KeyManagementKey" xml:space="preserve">
+    <data name="KeyManagementKey" xml:space="preserve">
     <value>Key</value>
   </data>
-  <data name="KeyManagementLLSPassword" xml:space="preserve">
-    <value>Low level security password</value>
+    <data name="KeyManagementLLSPassword" xml:space="preserve">
+    <value>Low-level security password</value>
   </data>
-  <data name="KeyManagementPublicKey" xml:space="preserve">
+    <data name="KeyManagementPublicKey" xml:space="preserve">
     <value>Public key</value>
   </data>
-  <data name="KeyManagementPrivateKey" xml:space="preserve">
+    <data name="KeyManagementPrivateKey" xml:space="preserve">
     <value>Private key</value>
   </data>
-  <data name="KeyManagementHLSPassword" xml:space="preserve">
-    <value>High level security password</value>
+    <data name="KeyManagementHLSPassword" xml:space="preserve">
+    <value>High-level security password</value>
   </data>
-  <data name="KeyManagementAuthenticationKey" xml:space="preserve">
+    <data name="KeyManagementAuthenticationKey" xml:space="preserve">
     <value>Authentication key</value>
   </data>
-  <data name="KeyManagementBroadcast" xml:space="preserve">
+    <data name="KeyManagementBroadcast" xml:space="preserve">
     <value>Broadcast key</value>
   </data>
-  <data name="KeyManagementUnicastKey" xml:space="preserve">
+    <data name="KeyManagementUnicastKey" xml:space="preserve">
     <value>Unicast key</value>
   </data>
-  <data name="KeyManagementKeyType" xml:space="preserve">
+    <data name="KeyManagementKeyType" xml:space="preserve">
     <value>Key type</value>
   </data>
-  <data name="InvalidKey" xml:space="preserve">
+    <data name="InvalidKey" xml:space="preserve">
     <value>Invalid password or key.</value>
   </data>
-  <data name="Hex" xml:space="preserve">
+    <data name="Hex" xml:space="preserve">
     <value>Hex</value>
   </data>
-  <data name="KeyManagementMasterKey" xml:space="preserve">
+    <data name="KeyManagementMasterKey" xml:space="preserve">
     <value>Master key</value>
   </data>
-  <data name="Default" xml:space="preserve">
+    <data name="Default" xml:space="preserve">
     <value>Default</value>
   </data>
-  <data name="DeviceSystemTitle" xml:space="preserve">
+    <data name="DeviceSystemTitle" xml:space="preserve">
     <value>Device system title</value>
   </data>
-  <data name="ClientSystemTitle" xml:space="preserve">
+    <data name="ClientSystemTitle" xml:space="preserve">
     <value>Client system title</value>
   </data>
-  <data name="InvalidSystemTitle" xml:space="preserve">
+    <data name="InvalidSystemTitle" xml:space="preserve">
     <value>Invalid system title.</value>
   </data>
-  <data name="InvalidBlockCipherKey" xml:space="preserve">
+    <data name="InvalidBlockCipherKey" xml:space="preserve">
     <value>Invalid block cipher key.</value>
   </data>
-  <data name="InvalidAuthenticationKey" xml:space="preserve">
+    <data name="InvalidAuthenticationKey" xml:space="preserve">
     <value>Invalid authentication key.</value>
   </data>
-  <data name="PreEstablishedConnection" xml:space="preserve">
+    <data name="PreEstablishedConnection" xml:space="preserve">
     <value>Pre-established connection</value>
   </data>
-  <data name="RowsPerPage" xml:space="preserve">
-    <value>Rows per page</value>
-  </data>
-  <data name="SiteEmailAddress" xml:space="preserve">
+    <data name="SiteEmailAddress" xml:space="preserve">
     <value>Site email address</value>
   </data>
-  <data name="RegenerateAgentTokens" xml:space="preserve">
+    <data name="RegenerateAgentTokens" xml:space="preserve">
     <value>Are you sure you want to update the agents' tokens?</value>
   </data>
-  <data name="Regenerate" xml:space="preserve">
+    <data name="Regenerate" xml:space="preserve">
     <value>Regenerate</value>
   </data>
-  <data name="Rebuild" xml:space="preserve">
+    <data name="Rebuild" xml:space="preserve">
     <value>Rebuild</value>
   </data>
-  <data name="ScriptRebuildWarning" xml:space="preserve">
-    <value>Scripts need rebuild before they can be used. This might take a long time.</value>
+    <data name="ScriptRebuildWarning" xml:space="preserve">
+    <value>Scripts must be rebuilt before they can be used. This may take some time.</value>
   </data>
-  <data name="Disconnect" xml:space="preserve">
+    <data name="Disconnect" xml:space="preserve">
     <value>Disconnect</value>
   </data>
-  <data name="Reconnect" xml:space="preserve">
+    <data name="Reconnect" xml:space="preserve">
     <value>Reconnect</value>
   </data>
-  <data name="Dynamic" xml:space="preserve">
+    <data name="Dynamic" xml:space="preserve">
     <value>Meter establishes the connection</value>
   </data>
-  <data name="IdentifyWaitTime" xml:space="preserve">
+    <data name="IdentifyWaitTime" xml:space="preserve">
     <value>Identify wait time</value>
   </data>
-  <data name="LogicalDeviceName" xml:space="preserve">
+    <data name="LogicalDeviceName" xml:space="preserve">
     <value>Logical device name</value>
   </data>
-  <data name="LogicalAddress" xml:space="preserve">
+    <data name="LogicalAddress" xml:space="preserve">
     <value>Logical address</value>
   </data>
-  <data name="PhysicalAddress" xml:space="preserve">
+    <data name="PhysicalAddress" xml:space="preserve">
     <value>Physical address</value>
   </data>
-  <data name="ConnectionUpTime" xml:space="preserve">
-    <value>Connection up time</value>
+    <data name="ConnectionUpTime" xml:space="preserve">
+    <value>Connection uptime</value>
   </data>
-  <data name="Value" xml:space="preserve">
+    <data name="Value" xml:space="preserve">
     <value>Value</value>
   </data>
-  <data name="FilterByDevice" xml:space="preserve">
+    <data name="FilterByDevice" xml:space="preserve">
     <value>Filter by device name...</value>
   </data>
-  <data name="FilterByDeviceType" xml:space="preserve">
+    <data name="FilterByDeviceType" xml:space="preserve">
     <value>Filter by device type...</value>
   </data>
-  <data name="FilterByObject" xml:space="preserve">
+    <data name="FilterByObject" xml:space="preserve">
     <value>Filter by object...</value>
   </data>
-  <data name="RemoveAll" xml:space="preserve">
+    <data name="RemoveAll" xml:space="preserve">
     <value>Remove all</value>
   </data>
-  <data name="AddAll" xml:space="preserve">
+    <data name="AddAll" xml:space="preserve">
     <value>Add all</value>
   </data>
-  <data name="FilterByAttributeIndex" xml:space="preserve">
+    <data name="FilterByAttributeIndex" xml:space="preserve">
     <value>Filter by attribute index...</value>
   </data>
-  <data name="Gateways" xml:space="preserve">
+    <data name="Gateways" xml:space="preserve">
     <value>Gateways</value>
   </data>
-  <data name="Gateway" xml:space="preserve">
+    <data name="Gateway" xml:space="preserve">
     <value>Gateway</value>
   </data>
-  <data name="GatewayGroups" xml:space="preserve">
+    <data name="GatewayGroups" xml:space="preserve">
     <value>Gateway groups</value>
   </data>
-  <data name="GatewayGroup" xml:space="preserve">
+    <data name="GatewayGroup" xml:space="preserve">
     <value>Gateway group</value>
   </data>
-  <data name="GatewayLogs" xml:space="preserve">
+    <data name="GatewayLogs" xml:space="preserve">
     <value>Gateway logs</value>
   </data>
-  <data name="Identifier" xml:space="preserve">
+    <data name="Identifier" xml:space="preserve">
     <value>Identifier</value>
   </data>
-  <data name="GatewayIdentificationScript" xml:space="preserve">
+    <data name="GatewayIdentificationScript" xml:space="preserve">
     <value>Gateway identification script</value>
   </data>
-  <data name="AutoConnectIdentificationScript" xml:space="preserve">
-    <value>Identification script for the auto connect.</value>
+    <data name="AutoConnectIdentificationScript" xml:space="preserve">
+    <value>Identification script for automatic connections</value>
   </data>
-  <data name="DefaultDeviceTemplate" xml:space="preserve">
+    <data name="DefaultDeviceTemplate" xml:space="preserve">
     <value>Default device template</value>
   </data>
-  <data name="Nothing" xml:space="preserve">
+    <data name="Nothing" xml:space="preserve">
     <value>Nothing</value>
   </data>
-  <data name="Verify" xml:space="preserve">
+    <data name="Verify" xml:space="preserve">
     <value>Verify</value>
   </data>
-  <data name="Activate" xml:space="preserve">
+    <data name="Activate" xml:space="preserve">
     <value>Activate</value>
   </data>
-  <data name="Transfer" xml:space="preserve">
+    <data name="Transfer" xml:space="preserve">
     <value>Transfer</value>
   </data>
-  <data name="FirmwareFile" xml:space="preserve">
+    <data name="FirmwareFile" xml:space="preserve">
     <value>Firmware file</value>
   </data>
-  <data name="Identification" xml:space="preserve">
+    <data name="Identification" xml:space="preserve">
     <value>Identification:</value>
   </data>
-  <data name="InvalidIdentification" xml:space="preserve">
+    <data name="InvalidIdentification" xml:space="preserve">
     <value>Invalid identification.</value>
   </data>
-  <data name="InvalidFirmware" xml:space="preserve">
+    <data name="InvalidFirmware" xml:space="preserve">
     <value>Invalid firmware.</value>
   </data>
-  <data name="Scaler" xml:space="preserve">
+    <data name="Scaler" xml:space="preserve">
     <value>Scaler</value>
   </data>
-  <data name="Unit" xml:space="preserve">
+    <data name="Unit" xml:space="preserve">
     <value>Unit</value>
   </data>
-  <data name="DataType" xml:space="preserve">
+    <data name="DataType" xml:space="preserve">
     <value>Data type</value>
   </data>
-  <data name="UIDataType" xml:space="preserve">
+    <data name="UIDataType" xml:space="preserve">
     <value>UI data type</value>
   </data>
-  <data name="Index" xml:space="preserve">
+    <data name="Index" xml:space="preserve">
     <value>Index</value>
   </data>
-  <data name="ToolTipReadValue" xml:space="preserve">
+    <data name="ToolTipReadValue" xml:space="preserve">
     <value>Read value</value>
   </data>
-  <data name="ToolTipReadValues" xml:space="preserve">
+    <data name="ToolTipReadValues" xml:space="preserve">
     <value>Read values</value>
   </data>
-  <data name="Performance" xml:space="preserve">
+    <data name="Performance" xml:space="preserve">
     <value>Performance</value>
   </data>
-  <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
+    <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
     <value>Are you sure you want to clear performance counters?</value>
   </data>
-  <data name="Extension" xml:space="preserve">
+    <data name="Extension" xml:space="preserve">
     <value>Extension</value>
   </data>
-  <data name="Extensions" xml:space="preserve">
+    <data name="Extensions" xml:space="preserve">
     <value>Extensions</value>
   </data>
-  <data name="Import" xml:space="preserve">
+    <data name="Import" xml:space="preserve">
     <value>Import</value>
   </data>
-  <data name="Reports" xml:space="preserve">
+    <data name="Reports" xml:space="preserve">
     <value>Reports</value>
   </data>
-  <data name="Report" xml:space="preserve">
+    <data name="Report" xml:space="preserve">
     <value>Report</value>
   </data>
-  <data name="ReportGroups" xml:space="preserve">
+    <data name="ReportGroups" xml:space="preserve">
     <value>Report groups</value>
   </data>
-  <data name="ReportGroup" xml:space="preserve">
+    <data name="ReportGroup" xml:space="preserve">
     <value>Report group</value>
   </data>
-  <data name="Interval" xml:space="preserve">
+    <data name="Interval" xml:space="preserve">
     <value>Interval</value>
   </data>
-  <data name="Calculated" xml:space="preserve">
+    <data name="Calculated" xml:space="preserve">
     <value>Calculated</value>
   </data>
-  <data name="All" xml:space="preserve">
+    <data name="All" xml:space="preserve">
     <value>All</value>
   </data>
-  <data name="Calculate" xml:space="preserve">
+    <data name="Calculate" xml:space="preserve">
     <value>Calculate</value>
   </data>
-  <data name="Operation" xml:space="preserve">
+    <data name="Operation" xml:space="preserve">
     <value>Operation</value>
   </data>
-  <data name="ReportLogs" xml:space="preserve">
+    <data name="ReportLogs" xml:space="preserve">
     <value>Report logs</value>
   </data>
-  <data name="Fill" xml:space="preserve">
-    <value>Fill empty value with zero value</value>
+    <data name="Fill" xml:space="preserve">
+    <value>Replace empty values with zero</value>
   </data>
-  <data name="Push" xml:space="preserve">
+    <data name="Push" xml:space="preserve">
     <value>Push</value>
   </data>
-  <data name="AttributeIndex" xml:space="preserve">
+    <data name="AttributeIndex" xml:space="preserve">
     <value>Attribute index</value>
   </data>
-  <data name="DataIndex" xml:space="preserve">
+    <data name="DataIndex" xml:space="preserve">
     <value>Data index</value>
   </data>
-  <data name="FilterByCreationTime" xml:space="preserve">
+    <data name="FilterByCreationTime" xml:space="preserve">
     <value>Filter by creation time...</value>
   </data>
-  <data name="TraceLevel" xml:space="preserve">
+    <data name="TraceLevel" xml:space="preserve">
     <value>Trace level</value>
   </data>
-  <data name="Delete" xml:space="preserve">
+    <data name="Delete" xml:space="preserve">
     <value>Delete</value>
   </data>
-  <data name="Clone" xml:space="preserve">
+    <data name="Clone" xml:space="preserve">
     <value>Clone</value>
   </data>
-  <data name="Delta" xml:space="preserve">
+    <data name="Delta" xml:space="preserve">
     <value>Delta</value>
   </data>
-  <data name="Destination" xml:space="preserve">
+    <data name="Destination" xml:space="preserve">
     <value>Destination</value>
   </data>
-  <data name="Subtotal" xml:space="preserve">
+    <data name="Subtotal" xml:space="preserve">
     <value>Subtotal</value>
   </data>
-  <data name="SubtotalGroups" xml:space="preserve">
+    <data name="SubtotalGroups" xml:space="preserve">
     <value>Subtotal groups</value>
   </data>
-  <data name="SubtotalLogs" xml:space="preserve">
+    <data name="SubtotalLogs" xml:space="preserve">
     <value>Subtotal logs</value>
   </data>
-  <data name="Subtotals" xml:space="preserve">
+    <data name="Subtotals" xml:space="preserve">
     <value>Subtotals</value>
   </data>
-  <data name="SubtotalGroup" xml:space="preserve">
+    <data name="SubtotalGroup" xml:space="preserve">
     <value>Subtotal group</value>
   </data>
-  <data name="LastDevelivery" xml:space="preserve">
-    <value>Last develivery</value>
+    <data name="LastDevelivery" xml:space="preserve">
+    <value>Last delivery</value>
   </data>
-  <data name="NextDevelivery" xml:space="preserve">
-    <value>Next develivery</value>
+    <data name="NextDevelivery" xml:space="preserve">
+    <value>Next delivery</value>
   </data>
-  <data name="Send" xml:space="preserve">
+    <data name="Send" xml:space="preserve">
     <value>Send</value>
   </data>
-  <data name="Compression" xml:space="preserve">
+    <data name="Compression" xml:space="preserve">
     <value>Compression</value>
   </data>
-  <data name="Delivery" xml:space="preserve">
+    <data name="Delivery" xml:space="preserve">
     <value>Delivery</value>
   </data>
-  <data name="ContentGroup" xml:space="preserve">
+    <data name="ContentGroup" xml:space="preserve">
     <value>Content group</value>
   </data>
-  <data name="ContentGroups" xml:space="preserve">
+    <data name="ContentGroups" xml:space="preserve">
     <value>Content groups</value>
   </data>
-  <data name="Content" xml:space="preserve">
+    <data name="Content" xml:space="preserve">
     <value>Content</value>
   </data>
-  <data name="Contents" xml:space="preserve">
+    <data name="Contents" xml:space="preserve">
     <value>Contents</value>
   </data>
-  <data name="MenuGroups" xml:space="preserve">
+    <data name="MenuGroups" xml:space="preserve">
     <value>Menu groups</value>
   </data>
-  <data name="MenuDescription" xml:space="preserve">
+    <data name="MenuDescription" xml:space="preserve">
     <value>Manage menus and menu links.</value>
   </data>
-  <data name="Menu" xml:space="preserve">
+    <data name="Menu" xml:space="preserve">
     <value>Menu</value>
   </data>
-  <data name="Menus" xml:space="preserve">
+    <data name="Menus" xml:space="preserve">
     <value>Menus</value>
   </data>
-  <data name="MenuGroup" xml:space="preserve">
+    <data name="MenuGroup" xml:space="preserve">
     <value>Menu group</value>
   </data>
-  <data name="Links" xml:space="preserve">
+    <data name="Links" xml:space="preserve">
     <value>Links</value>
   </data>
-  <data name="Link" xml:space="preserve">
+    <data name="Link" xml:space="preserve">
     <value>Link</value>
   </data>
-  <data name="ContentTypeGroups" xml:space="preserve">
+    <data name="ContentTypeGroups" xml:space="preserve">
     <value>Content type groups</value>
   </data>
-  <data name="ContentTypeGroup" xml:space="preserve">
-    <value>Content type groups</value>
+    <data name="ContentTypeGroup" xml:space="preserve">
+    <value>Content type group</value>
   </data>
-  <data name="ContentType" xml:space="preserve">
+    <data name="ContentType" xml:space="preserve">
     <value>Content type</value>
   </data>
-  <data name="ContentTypes" xml:space="preserve">
+    <data name="ContentTypes" xml:space="preserve">
     <value>Content types</value>
   </data>
-  <data name="Fields" xml:space="preserve">
+    <data name="Fields" xml:space="preserve">
     <value>Fields</value>
   </data>
-  <data name="NotificationGroups" xml:space="preserve">
-    <value>Notification Groups</value>
+    <data name="NotificationGroups" xml:space="preserve">
+    <value>Notification groups</value>
   </data>
-  <data name="Notification" xml:space="preserve">
+    <data name="Notification" xml:space="preserve">
     <value>Notification</value>
   </data>
-  <data name="Notifications" xml:space="preserve">
+    <data name="Notifications" xml:space="preserve">
     <value>Notifications</value>
   </data>
-  <data name="NotificationLogs" xml:space="preserve">
+    <data name="NotificationLogs" xml:space="preserve">
     <value>Notification log</value>
   </data>
-  <data name="NotificationGroup" xml:space="preserve">
-    <value>Notification Group</value>
+    <data name="NotificationGroup" xml:space="preserve">
+    <value>Notification group</value>
   </data>
-  <data name="Required" xml:space="preserve">
+    <data name="Required" xml:space="preserve">
     <value>Required</value>
   </data>
-  <data name="Enumeration" xml:space="preserve">
+    <data name="Enumeration" xml:space="preserve">
     <value>Enumeration</value>
   </data>
-  <data name="PruneDescription" xml:space="preserve">
-    <value>Prune removes unused targets based on criteria such as time.</value>
+    <data name="PruneDescription" xml:space="preserve">
+    <value>Clean up unused items and old data according to retention settings.</value>
   </data>
-  <data name="Creator" xml:space="preserve">
+    <data name="Creator" xml:space="preserve">
     <value>Creator</value>
   </data>
-  <data name="Visibility" xml:space="preserve">
+    <data name="Visibility" xml:space="preserve">
     <value>Visibility</value>
   </data>
-  <data name="AvailableLanguages" xml:space="preserve">
+    <data name="AvailableLanguages" xml:space="preserve">
     <value>Available languages</value>
   </data>
-  <data name="SupportedLanguages" xml:space="preserve">
-    <value>Supported Languages</value>
+    <data name="SupportedLanguages" xml:space="preserve">
+    <value>Supported languages</value>
   </data>
-  <data name="Minimum" xml:space="preserve">
+    <data name="Minimum" xml:space="preserve">
     <value>Minimum</value>
   </data>
-  <data name="Maximum" xml:space="preserve">
+    <data name="Maximum" xml:space="preserve">
     <value>Maximum</value>
   </data>
-  <data name="Ok" xml:space="preserve">
-    <value>Ok</value>
+    <data name="Ok" xml:space="preserve">
+    <value>OK</value>
   </data>
-  <data name="Export" xml:space="preserve">
+    <data name="Export" xml:space="preserve">
     <value>Export</value>
   </data>
-  <data name="Execute" xml:space="preserve">
+    <data name="Execute" xml:space="preserve">
     <value>Execute</value>
   </data>
-  <data name="AuthoringInformation" xml:space="preserve">
+    <data name="AuthoringInformation" xml:space="preserve">
     <value>Authoring information</value>
   </data>
-  <data name="Immediately" xml:space="preserve">
-    <value>Immediately public</value>
+    <data name="Immediately" xml:space="preserve">
+    <value>Publish immediately</value>
   </data>
-  <data name="Unique" xml:space="preserve">
+    <data name="Unique" xml:space="preserve">
     <value>Unique</value>
   </data>
-  <data name="AuthoringInformationFormat" xml:space="preserve">
+    <data name="AuthoringInformationFormat" xml:space="preserve">
     <value>By {0} on {1}</value>
   </data>
-  <data name="Appearances" xml:space="preserve">
+    <data name="Appearances" xml:space="preserve">
     <value>Appearances</value>
   </data>
-  <data name="Appearance" xml:space="preserve">
+    <data name="Appearance" xml:space="preserve">
     <value>Appearance</value>
   </data>
-  <data name="Admin" xml:space="preserve">
+    <data name="Admin" xml:space="preserve">
     <value>Administrator</value>
   </data>
-  <data name="UserAction" xml:space="preserve">
+    <data name="UserAction" xml:space="preserve">
     <value>User actions</value>
   </data>
-  <data name="Icons" xml:space="preserve">
+    <data name="Icons" xml:space="preserve">
     <value>Icons</value>
   </data>
-  <data name="Theme" xml:space="preserve">
+    <data name="Theme" xml:space="preserve">
     <value>Theme</value>
   </data>
-  <data name="Icon" xml:space="preserve">
+    <data name="Icon" xml:space="preserve">
     <value>Icon</value>
   </data>
-  <data name="Color" xml:space="preserve">
+    <data name="Color" xml:space="preserve">
     <value>Color</value>
   </data>
-  <data name="Text" xml:space="preserve">
+    <data name="Text" xml:space="preserve">
     <value>Text</value>
   </data>
-  <data name="IconPack" xml:space="preserve">
-    <value>Icon packs</value>
+    <data name="IconPack" xml:space="preserve">
+    <value>Icon pack</value>
   </data>
-  <data name="IpAddress" xml:space="preserve">
-    <value>IP Address</value>
+    <data name="IpAddress" xml:space="preserve">
+    <value>IP address</value>
   </data>
-  <data name="FilterByIpAddress" xml:space="preserve">
+    <data name="FilterByIpAddress" xml:space="preserve">
     <value>Filter by IP address...</value>
   </data>
-  <data name="Invite" xml:space="preserve">
+    <data name="Invite" xml:space="preserve">
     <value>Invite</value>
   </data>
-  <data name="Blocked" xml:space="preserve">
+    <data name="Blocked" xml:space="preserve">
     <value>Blocked</value>
   </data>
-  <data name="ConnectionInformationFormat" xml:space="preserve">
+    <data name="ConnectionInformationFormat" xml:space="preserve">
     <value>{0} from {1}</value>
   </data>
-  <data name="Localize" xml:space="preserve">
+    <data name="Localize" xml:space="preserve">
     <value>Localize</value>
   </data>
-  <data name="EnglishName" xml:space="preserve">
+    <data name="EnglishName" xml:space="preserve">
     <value>English name</value>
   </data>
-  <data name="NativeName" xml:space="preserve">
+    <data name="NativeName" xml:space="preserve">
     <value>Native name</value>
   </data>
-  <data name="SiteIsInMaintenanceMode" xml:space="preserve">
-    <value>Site is in maintenance mode</value>
+    <data name="SiteIsInMaintenanceMode" xml:space="preserve">
+    <value>The site is in maintenance mode</value>
   </data>
-  <data name="MaintenanceModeDescription" xml:space="preserve">
-    <value>When enabled, only admin users are able to access site to perform maintenance;;\rall other visitors see the maintenance mode message configured below.\rAuthorized users can log in directly via the user login page.</value>
+    <data name="MaintenanceModeDescription" xml:space="preserve">
+    <value>When maintenance mode is enabled, only administrators can access the site. Other visitors see the message configured below. Administrators can sign in directly on the login page.</value>
   </data>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="BootstrapIcons" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>bootstrap-icons.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
-  </data>
-  <data name="MaterialIcons" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>material-icons.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
-  </data>
-  <data name="FontawesomeIcons" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>fontawesome-icons.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
-  </data>
-  <data name="Announcements" xml:space="preserve">
+    <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+    <data name="BootstrapIcons" type="System.Resources.ResXFileRef, System.Windows.Forms">
+        <value>bootstrap-icons.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+    </data>
+    <data name="MaterialIcons" type="System.Resources.ResXFileRef, System.Windows.Forms">
+        <value>material-icons.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+    </data>
+    <data name="FontawesomeIcons" type="System.Resources.ResXFileRef, System.Windows.Forms">
+        <value>fontawesome-icons.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+    </data>
+    <data name="Announcements" xml:space="preserve">
     <value>Announcements</value>
   </data>
-  <data name="Announcement" xml:space="preserve">
+    <data name="Announcement" xml:space="preserve">
     <value>Announcement</value>
   </data>
-  <data name="UploadFile" xml:space="preserve">
-    <value>Upload File</value>
+    <data name="UploadFile" xml:space="preserve">
+    <value>Upload file</value>
   </data>
-  <data name="UploadModule" xml:space="preserve">
+    <data name="UploadModule" xml:space="preserve">
     <value>Upload module</value>
   </data>
-  <data name="Settings" xml:space="preserve">
+    <data name="Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
-  <data name="SaveAsDefault" xml:space="preserve">
+    <data name="SaveAsDefault" xml:space="preserve">
     <value>Save as default</value>
+  </data>
+    <data name="AreYouSureYouWantToRegenerateMenus" xml:space="preserve">
+    <value>Are you sure you want to regenerate menus?</value>
+  </data>
+    <data name="GatewayLog" xml:space="preserve">
+    <value>Gateway log</value>
+  </data>
+    <data name="Connecting" xml:space="preserve">
+    <value>Connecting...</value>
+  </data>
+    <data name="ReadingBlocks" xml:space="preserve">
+    <value>Reading blocks...</value>
+  </data>
+    <data name="BroadcastKey" xml:space="preserve">
+    <value>Broadcast key</value>
+  </data>
+    <data name="InvalidBroadcastKey" xml:space="preserve">
+    <value>Invalid broadcast key</value>
+  </data>
+    <data name="Duration" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+    <data name="Policies" xml:space="preserve">
+    <value>Access policies</value>
+  </data>
+    <data name="PolicyRequirements" xml:space="preserve">
+    <value>Requirements</value>
+  </data>
+    <data name="RequirementOperator" xml:space="preserve">
+    <value>Combine requirements</value>
+  </data>
+    <data name="RequireAuthenticatedUser" xml:space="preserve">
+    <value>Authentication required</value>
+  </data>
+    <data name="SystemDefined" xml:space="preserve">
+    <value>Application-defined</value>
+  </data>
+    <data name="AllRequirements" xml:space="preserve">
+    <value>All (AND)</value>
+  </data>
+    <data name="AnyRequirement" xml:space="preserve">
+    <value>At least one (OR)</value>
+  </data>
+    <data name="AccessControl" xml:space="preserve">
+    <value>Access control</value>
+  </data>
+    <data name="AccessControlDescription" xml:space="preserve">
+    <value>Manage roles and access policies.</value>
+  </data>
+    <data name="AvailableUpdates" xml:space="preserve">
+    <value>Available updates</value>
+  </data>
+    <data name="UpdatesLastChecked" xml:space="preserve">
+    <value>Last checked: {0}</value>
+  </data>
+    <data name="UpdatesLessThanAMinuteAgo" xml:space="preserve">
+    <value>Less than a minute ago</value>
+  </data>
+    <data name="UpdatesOneHour" xml:space="preserve">
+    <value>{0} hour</value>
+  </data>
+    <data name="UpdatesHours" xml:space="preserve">
+    <value>{0} hours</value>
+  </data>
+    <data name="UpdatesOneMinute" xml:space="preserve">
+    <value>{0} minute</value>
+  </data>
+    <data name="UpdatesMinutes" xml:space="preserve">
+    <value>{0} minutes</value>
+  </data>
+    <data name="UpdatesTimeAgo" xml:space="preserve">
+    <value>{0} ago</value>
+  </data>
+    <data name="RetrievingUpdates" xml:space="preserve">
+    <value>Retrieving updates</value>
+  </data>
+    <data name="CheckingUpdates" xml:space="preserve">
+    <value>Checking updates</value>
+  </data>
+    <data name="UpdateInformationUnavailable" xml:space="preserve">
+    <value>Update information is unavailable. Check manually to try again.</value>
+  </data>
+    <data name="NoDeviceProfileUpdates" xml:space="preserve">
+    <value>No device profiles are installed or available.</value>
+  </data>
+    <data name="NoModuleUpdates" xml:space="preserve">
+    <value>No modules are installed or available.</value>
+  </data>
+    <data name="UpdatesInstalledVersion" xml:space="preserve">
+    <value>Installed version</value>
+  </data>
+    <data name="UpdatesLatestVersion" xml:space="preserve">
+    <value>Latest version</value>
+  </data>
+    <data name="ReleaseNotes" xml:space="preserve">
+    <value>Release notes</value>
+  </data>
+    <data name="UpdatesNotInstalled" xml:space="preserve">
+    <value>Not installed</value>
+  </data>
+    <data name="UpdatesUpToDate" xml:space="preserve">
+    <value>Up to date</value>
+  </data>
+    <data name="UpdatesUpdateAvailable" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+    <data name="UpdatesAvailable" xml:space="preserve">
+    <value>Available</value>
+  </data>
+    <data name="Columns" xml:space="preserve">
+    <value>Columns</value>
+  </data>
+    <data name="UpdateSettings" xml:space="preserve">
+    <value>Update settings</value>
+  </data>
+    <data name="NotFound" xml:space="preserve">
+    <value>Not found</value>
+  </data>
+    <data name="UnableToLoadTheBlockContentFile" xml:space="preserve">
+    <value>Unable to load the block content file.</value>
+  </data>
+    <data name="UnableToLoadTheRSSFeed" xml:space="preserve">
+    <value>Unable to load the RSS feed.</value>
+  </data>
+    <data name="DetectionInformation" xml:space="preserve">
+    <value>Detection information</value>
+  </data>
+    <data name="SignInToAccessThisPage" xml:space="preserve">
+    <value>Sign in to access this page.</value>
+  </data>
+    <data name="SignIn" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+    <data name="PageIsUnavailableOrAccessIsNotPermitted" xml:space="preserve">
+    <value>The page is unavailable, or you do not have permission to access it.</value>
+  </data>
+    <data name="RemoveModules" xml:space="preserve">
+    <value>Remove modules</value>
+  </data>
+    <data name="KeepDataAndTables" xml:space="preserve">
+    <value>Keep data and tables</value>
+  </data>
+    <data name="DeleteModuleDataKeepTables" xml:space="preserve">
+    <value>Delete module data, keep tables</value>
+  </data>
+    <data name="DeleteModuleDataAndTables" xml:space="preserve">
+    <value>Delete module data and tables</value>
+  </data>
+    <data name="TheSelectedModulesDataWillBePermanentlyDeleted" xml:space="preserve">
+    <value>The selected modules' data will be permanently deleted.</value>
+  </data>
+    <data name="TheModulesDatabaseTablesWillAlsoBeRemoved" xml:space="preserve">
+    <value>The modules' database tables will also be removed.</value>
+  </data>
+    <data name="TheComponentForThisTabIsUnavailableCheckTheMenuLinkSettings" xml:space="preserve">
+    <value>The component for this tab is unavailable. Check the menu link settings.</value>
+  </data>
+    <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+    <data name="NavigationMenu" xml:space="preserve">
+    <value>Navigation menu</value>
+  </data>
+    <data name="GuruxDLMSAMI" xml:space="preserve">
+    <value>Gurux DLMS AMI</value>
+  </data>
+    <data name="AuthenticationInProgress" xml:space="preserve">
+    <value>Authentication in progress</value>
+  </data>
+    <data name="PrivacyPolicy" xml:space="preserve">
+    <value>Privacy policy</value>
+  </data>
+    <data name="Localization" xml:space="preserve">
+    <value>Localization</value>
+  </data>
+    <data name="LocalizationCatalogIsNotConfigured" xml:space="preserve">
+    <value>The localization catalog is not configured.</value>
+  </data>
+    <data name="NoLocalizationPackagesForActiveLanguagesRunCheckManuallyToRefreshCatalogMetadata" xml:space="preserve">
+    <value>No localization packages are available for the active languages. Select Check manually to refresh the catalog metadata.</value>
+  </data>
+    <data name="Owner" xml:space="preserve">
+    <value>Owner</value>
+  </data>
+    <data name="Languages" xml:space="preserve">
+    <value>Languages</value>
+  </data>
+    <data name="OwnerCompatibility" xml:space="preserve">
+    <value>Owner compatibility</value>
+  </data>
+    <data name="Time" xml:space="preserve">
+    <value>Time</value>
+  </data>
+    <data name="Count" xml:space="preserve">
+    <value>Count</value>
+  </data>
+    <data name="FilterByStartTime" xml:space="preserve">
+    <value>Filter by start time...</value>
+  </data>
+    <data name="TotalCount" xml:space="preserve">
+    <value>Total count</value>
+  </data>
+    <data name="TotalTimeMs" xml:space="preserve">
+    <value>Total time (ms)</value>
+  </data>
+    <data name="NoCompatibleScriptTemplatesAreAvailable" xml:space="preserve">
+    <value>No compatible script templates are available.</value>
+  </data>
+    <data name="CatalogVersion" xml:space="preserve">
+    <value>Catalog version</value>
+  </data>
+    <data name="LocalChanges" xml:space="preserve">
+    <value>Local changes</value>
+  </data>
+    <data name="NoCompatibleVersions" xml:space="preserve">
+    <value>No compatible versions</value>
+  </data>
+    <data name="Author" xml:space="preserve">
+    <value>Author</value>
+  </data>
+    <data name="License" xml:space="preserve">
+    <value>License</value>
+  </data>
+    <data name="PreviouslyInstalledSource" xml:space="preserve">
+    <value>Previously installed source</value>
+  </data>
+    <data name="ThePreviouslyInstalledSourceIsUnavailable" xml:space="preserve">
+    <value>The previously installed source is unavailable.</value>
+  </data>
+    <data name="CurrentSavedSource" xml:space="preserve">
+    <value>Current saved source</value>
+  </data>
+    <data name="ScriptName" xml:space="preserve">
+    <value>Script name</value>
+  </data>
+    <data name="ThisScriptHasLocalChangesReplacingItsSourceWillOverwriteThoseChanges" xml:space="preserve">
+    <value>This script has local changes. Replacing its source will overwrite those changes.</value>
+  </data>
+    <data name="CloseComparison" xml:space="preserve">
+    <value>Close comparison</value>
+  </data>
+    <data name="FilterByError" xml:space="preserve">
+    <value>Filter by error...</value>
+  </data>
+    <data name="FilterByCloseTime" xml:space="preserve">
+    <value>Filter by close time...</value>
+  </data>
+    <data name="FilterByEndTime" xml:space="preserve">
+    <value>Filter by end time...</value>
+  </data>
+    <data name="Prerelease" xml:space="preserve">
+    <value>(prerelease)</value>
+  </data>
+    <data name="ThereIsASecurityUpdateAvailableForYourVersionOfGuruxDLMSAMIToEnsureTheSecurityOfYourS" xml:space="preserve">
+    <value>A security update is available for your version of Gurux.DLMS.AMI. Update immediately to protect your server.</value>
+  </data>
+    <data name="DatabaseUpdates" xml:space="preserve">
+    <value>Database updates</value>
+  </data>
+    <data name="UpdateTheFollowingConfigurationTablesToTheCurrentSchema" xml:space="preserve">
+    <value>Update the following configuration tables to the current schema.</value>
+  </data>
+    <data name="Table" xml:space="preserve">
+    <value>Table</value>
+  </data>
+    <data name="Changes" xml:space="preserve">
+    <value>Changes</value>
+  </data>
+    <data name="DeviceProfiles" xml:space="preserve">
+    <value>Device profiles</value>
+  </data>
+    <data name="NoUpdatesForInstalledManufacturers" xml:space="preserve">
+    <value>No updates for installed manufacturers.</value>
+  </data>
+    <data name="LoadingUpdateSettings" xml:space="preserve">
+    <value>Loading update settings…</value>
+  </data>
+    <data name="CheckForUpdates" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+    <data name="Daily" xml:space="preserve">
+    <value>Daily</value>
+  </data>
+    <data name="Weekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+    <data name="AutomaticChecksRunWithTheScheduledCronTasksManualChecksAreAlwaysAvailable" xml:space="preserve">
+    <value>Automatic checks run with the scheduled cron tasks. Manual checks are always available.</value>
+  </data>
+    <data name="EmailNotificationsWillBeSentWhenAnEmailProviderIsAvailableYouCanSaveTheSettingsNow" xml:space="preserve">
+    <value>Email notifications will be sent when an email provider is available. You can save the settings now.</value>
+  </data>
+    <data name="EmailAddresses" xml:space="preserve">
+    <value>Email addresses</value>
+  </data>
+    <data name="EnterOneAddressPerLineOrSeparateAddressesWithCommasOrSemicolonsLeaveEmptyToDisableEma" xml:space="preserve">
+    <value>Enter one address per line, or separate addresses with commas or semicolons. Leave empty to disable email notifications.</value>
+  </data>
+    <data name="EmailNotificationThreshold" xml:space="preserve">
+    <value>Email notification threshold</value>
+  </data>
+    <data name="AllNewerVersions" xml:space="preserve">
+    <value>All newer versions</value>
+  </data>
+    <data name="OnlySecurityUpdates" xml:space="preserve">
+    <value>Only security updates</value>
+  </data>
+    <data name="PlainTextUseUrlForYourSiteSAddressTheSameTextIsUsedForAllUpdatesMatchingTheSelectedTh" xml:space="preserve">
+    <value>Plain text. Use {Url} for your site's address. The same text is used for all updates matching the selected threshold.</value>
+  </data>
+    <data name="UpdateSettingsSaved" xml:space="preserve">
+    <value>Update settings saved.</value>
+  </data>
+    <data name="VersionToInstall" xml:space="preserve">
+    <value>Version to install</value>
+  </data>
+    <data name="ConfigureYourAccount" xml:space="preserve">
+    <value>Configure your account</value>
+  </data>
+    <data name="Here" xml:space="preserve">
+    <value>here</value>
+  </data>
+    <data name="FilterByVersion" xml:space="preserve">
+    <value>Filter by version...</value>
+  </data>
+    <data name="DLMSSettings" xml:space="preserve">
+    <value>DLMS settings</value>
+  </data>
+    <data name="Interface" xml:space="preserve">
+    <value>Interface</value>
+  </data>
+    <data name="LibBootstrapIconsBootstrapIconsMinCss" xml:space="preserve">
+    <value>/lib/bootstrap-icons/bootstrap-icons.min.css</value>
+  </data>
+    <data name="Url" xml:space="preserve">
+    <value>URL</value>
+  </data>
+    <data name="BlockType" xml:space="preserve">
+    <value>Block type</value>
+  </data>
+    <data name="RSSFeedURL" xml:space="preserve">
+    <value>RSS feed URL</value>
+  </data>
+    <data name="ServerContentFile" xml:space="preserve">
+    <value>Server content file</value>
+  </data>
+    <data name="PathRelativeToTheServerSPublicContentDirectoryWwwroot" xml:space="preserve">
+    <value>Path relative to the server's public content directory (wwwroot).</value>
+  </data>
+    <data name="CSSClass" xml:space="preserve">
+    <value>CSS class</value>
+  </data>
+    <data name="CSSRole" xml:space="preserve">
+    <value>CSS role</value>
+  </data>
+    <data name="HTMLStyle" xml:space="preserve">
+    <value>HTML style:</value>
+  </data>
+    <data name="HttpsExampleComFeedXml" xml:space="preserve">
+    <value>https://example.com/feed.xml</value>
+  </data>
+    <data name="ReadmeMd" xml:space="preserve">
+    <value>readme.md</value>
+  </data>
+    <data name="FilterByUpdateTime" xml:space="preserve">
+    <value>Filter by update time...</value>
+  </data>
+    <data name="WhoCanRegisterAccounts" xml:space="preserve">
+    <value>Who can register accounts</value>
+  </data>
+    <data name="FilterByVersionNumber" xml:space="preserve">
+    <value>Filter by version number...</value>
+  </data>
+    <data name="AuthenticationService" xml:space="preserve">
+    <value>Authentication service</value>
+  </data>
+    <data name="ClientID" xml:space="preserve">
+    <value>Client ID</value>
+  </data>
+    <data name="ClientSecret" xml:space="preserve">
+    <value>Client secret</value>
+  </data>
+    <data name="RunCronEvery" xml:space="preserve">
+    <value>Run cron every</value>
+  </data>
+    <data name="NextEstimatedRunTime" xml:space="preserve">
+    <value>Next estimated run time</value>
+  </data>
+    <data name="RequiredLength" xml:space="preserve">
+    <value>Minimum password length</value>
+  </data>
+    <data name="RequiredUniqueChars" xml:space="preserve">
+    <value>Minimum unique characters</value>
+  </data>
+    <data name="RequireNonAlphanumeric" xml:space="preserve">
+    <value>Require a non-alphanumeric character</value>
+  </data>
+    <data name="RequireLowercase" xml:space="preserve">
+    <value>Require a lowercase letter</value>
+  </data>
+    <data name="RequireUppercase" xml:space="preserve">
+    <value>Require an uppercase letter</value>
+  </data>
+    <data name="RequireDigit" xml:space="preserve">
+    <value>Require a digit</value>
+  </data>
+    <data name="AllowedUserNameCharacters" xml:space="preserve">
+    <value>Allowed username characters</value>
+  </data>
+    <data name="RequireUniqueEmail" xml:space="preserve">
+    <value>Require a unique email address</value>
+  </data>
+    <data name="SignIn2" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+    <data name="RequireConfirmedEmail" xml:space="preserve">
+    <value>Require a confirmed email address</value>
+  </data>
+    <data name="RequireConfirmedPhoneNumber" xml:space="preserve">
+    <value>Require a confirmed phone number</value>
+  </data>
+    <data name="RequireConfirmedAccount" xml:space="preserve">
+    <value>Require a confirmed account</value>
+  </data>
+    <data name="Lockout" xml:space="preserve">
+    <value>Lockout</value>
+  </data>
+    <data name="AllowedForNewUsers" xml:space="preserve">
+    <value>Enable lockout for new users</value>
+  </data>
+    <data name="MaximumFailedAccessAttempts" xml:space="preserve">
+    <value>Maximum failed access attempts</value>
+  </data>
+    <data name="DefaultLockoutTimespanInMinutes" xml:space="preserve">
+    <value>Default lockout duration (minutes)</value>
+  </data>
+    <data name="StartTimeOptional" xml:space="preserve">
+    <value>Start time (optional)</value>
+  </data>
+    <data name="EndTimeOptional" xml:space="preserve">
+    <value>End time (optional)</value>
+  </data>
+    <data name="TaskStatus" xml:space="preserve">
+    <value>Task status</value>
+  </data>
+    <data name="LogAgentActions" xml:space="preserve">
+    <value>Log agent actions</value>
+  </data>
+    <data name="LogDeviceActions" xml:space="preserve">
+    <value>Log device actions</value>
+  </data>
+    <data name="LogScheduleActions" xml:space="preserve">
+    <value>Log schedule actions</value>
+  </data>
+    <data name="LogUserActions" xml:space="preserve">
+    <value>Log user actions</value>
+  </data>
+    <data name="LogSlowRESTRequestsToTheSystemLogWhenTheirDurationReachesThisManyMilliseconds" xml:space="preserve">
+    <value>Log slow REST requests to the system log when their duration reaches this many milliseconds.</value>
+  </data>
+    <data name="PerformanceSnapshotIntervalSecondsDefinesHowOftenPerformanceValuesAreSavedToTheDatabase" xml:space="preserve">
+    <value>Performance snapshot interval in seconds defines how often performance values are saved to the database.</value>
+  </data>
+    <data name="SiteVersion" xml:space="preserve">
+    <value>Site version</value>
+  </data>
+    <data name="SystemUpTime" xml:space="preserve">
+    <value>System uptime</value>
+  </data>
+    <data name="FilterByLocation" xml:space="preserve">
+    <value>Filter by location...</value>
+  </data>
+    <data name="SizeOfTheDatabaseConnectionPool" xml:space="preserve">
+    <value>Size of the database connection pool</value>
+  </data>
+    <data name="CreateTheDeviceImmediately" xml:space="preserve">
+    <value>Create the device immediately.</value>
+  </data>
+    <data name="ResendCount" xml:space="preserve">
+    <value>Resend count</value>
+  </data>
+    <data name="FilterByUpdatedTime" xml:space="preserve">
+    <value>Filter by updated time...</value>
+  </data>
+    <data name="FilterByDetectionTime" xml:space="preserve">
+    <value>Filter by detection time...</value>
+  </data>
+    <data name="Direction" xml:space="preserve">
+    <value>Direction</value>
+  </data>
+    <data name="Type2" xml:space="preserve">
+    <value>Type:</value>
+  </data>
+    <data name="DeviceTemplateType" xml:space="preserve">
+    <value>Device template type</value>
+  </data>
+    <data name="DeviceTemplateName" xml:space="preserve">
+    <value>Device template name</value>
+  </data>
+    <data name="AccessRights" xml:space="preserve">
+    <value>Access rights</value>
+  </data>
+    <data name="Text2" xml:space="preserve">
+    <value>   </value>
+  </data>
+    <data name="ExpirationTimes" xml:space="preserve">
+    <value>Expiration times</value>
+  </data>
+    <data name="GatewayIdentifier" xml:space="preserve">
+    <value>Gateway identifier</value>
+  </data>
+    <data name="FilterByMessage" xml:space="preserve">
+    <value>Filter by message...</value>
+  </data>
+    <data name="KeyStorage" xml:space="preserve">
+    <value>Key storage</value>
+  </data>
+    <data name="LocalEncryptedStorage" xml:space="preserve">
+    <value>Local encrypted storage</value>
+  </data>
+    <data name="KMIPServer" xml:space="preserve">
+    <value>KMIP server</value>
+  </data>
+    <data name="KMIPConnectionName" xml:space="preserve">
+    <value>KMIP connection name</value>
+  </data>
+    <data name="RemoteObjectIdentifier" xml:space="preserve">
+    <value>Remote object identifier</value>
+  </data>
+    <data name="TheKeyMetadataIsReadFromTheConfiguredKMIPServerMaterialIsNotCopiedIntoAMIStorage" xml:space="preserve">
+    <value>Key metadata is read from the configured KMIP server. Key material is not copied into AMI storage.</value>
+  </data>
+    <data name="KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState" xml:space="preserve">
+    <value>Key material is hidden. Import a new key to rotate it; use lifecycle actions to change its state.</value>
+  </data>
+    <data name="State" xml:space="preserve">
+    <value>State</value>
+  </data>
+    <data name="Algorithm" xml:space="preserve">
+    <value>Algorithm</value>
+  </data>
+    <data name="PermittedUsage" xml:space="preserve">
+    <value>Permitted usage</value>
+  </data>
+    <data name="ExternalIdentifier" xml:space="preserve">
+    <value>External identifier</value>
+  </data>
+    <data name="Activation" xml:space="preserve">
+    <value>Activation</value>
+  </data>
+    <data name="Deactivation" xml:space="preserve">
+    <value>Deactivation</value>
+  </data>
+    <data name="Lifecycle" xml:space="preserve">
+    <value>Lifecycle</value>
+  </data>
+    <data name="Loading2" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+    <data name="Id" xml:space="preserve">
+    <value>ID</value>
+  </data>
+    <data name="StorageID" xml:space="preserve">
+    <value>Storage ID</value>
+  </data>
+    <data name="LogType" xml:space="preserve">
+    <value>Log type</value>
+  </data>
+    <data name="Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+    <data name="Group" xml:space="preserve">
+    <value>Group</value>
+  </data>
+    <data name="TargetType" xml:space="preserve">
+    <value>Target type</value>
+  </data>
+    <data name="NoLogHistoryIsAvailableForThisModule" xml:space="preserve">
+    <value>No log history is available for this module.</value>
+  </data>
+    <data name="PreEstablished" xml:space="preserve">
+    <value>Pre-established</value>
+  </data>
+    <data name="Policy" xml:space="preserve">
+    <value>Policy</value>
+  </data>
+    <data name="Installation" xml:space="preserve">
+    <value>Installation</value>
+  </data>
+    <data name="Runtime" xml:space="preserve">
+    <value>Runtime</value>
+  </data>
+    <data name="FilterByLog" xml:space="preserve">
+    <value>Filter by log...</value>
+  </data>
+    <data name="Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+    <data name="FilterByAvailableVersion" xml:space="preserve">
+    <value>Filter by available version...</value>
+  </data>
+    <data name="FilterByEnabled" xml:space="preserve">
+    <value>Filter by enabled</value>
+  </data>
+    <data name="FilterByLatestVersion" xml:space="preserve">
+    <value>Filter by latest version...</value>
+  </data>
+    <data name="NotificationDelivery" xml:space="preserve">
+    <value>Notification delivery</value>
+  </data>
+    <data name="MaximumNotifications" xml:space="preserve">
+    <value>Maximum notifications</value>
+  </data>
+    <data name="CommunicationWindow" xml:space="preserve">
+    <value>Communication window</value>
+  </data>
+    <data name="FilterByReadTime" xml:space="preserve">
+    <value>Filter by read time...</value>
+  </data>
+    <data name="FilterByValue" xml:space="preserve">
+    <value>Filter by value...</value>
+  </data>
+    <data name="CommodityScaler" xml:space="preserve">
+    <value>Commodity scaler</value>
+  </data>
+    <data name="PriceScale" xml:space="preserve">
+    <value>Price scale</value>
+  </data>
+    <data name="ChargePerUnit" xml:space="preserve">
+    <value>Charge per unit</value>
+  </data>
+    <data name="FilterByExecutionTime" xml:space="preserve">
+    <value>Filter by execution time...</value>
+  </data>
+    <data name="ScriptCatalog" xml:space="preserve">
+    <value>Script catalog</value>
+  </data>
+    <data name="ManageScriptCatalogUpdates" xml:space="preserve">
+    <value>Manage script catalog updates</value>
+  </data>
+    <data name="Activities" xml:space="preserve">
+    <value>Activities</value>
+  </data>
+    <data name="FilterByType" xml:space="preserve">
+    <value>Filter by type...</value>
+  </data>
+    <data name="FilterByPath" xml:space="preserve">
+    <value>Filter by path...</value>
+  </data>
+    <data name="FilterByUserName" xml:space="preserve">
+    <value>Filter by user name...</value>
+  </data>
+    <data name="TimeZone" xml:space="preserve">
+    <value>Time zone</value>
+  </data>
+    <data name="FilterByDescription" xml:space="preserve">
+    <value>Filter by description...</value>
+  </data>
+    <data name="FilterByGivenName" xml:space="preserve">
+    <value>Filter by given name...</value>
+  </data>
+    <data name="FilterBySurname" xml:space="preserve">
+    <value>Filter by surname...</value>
+  </data>
+    <data name="FilterByEmail" xml:space="preserve">
+    <value>Filter by email...</value>
+  </data>
+    <data name="Condition" xml:space="preserve">
+    <value>Condition</value>
+  </data>
+    <data name="YourSiteIsOnMaintenanceMode" xml:space="preserve">
+    <value>Your site is in maintenance mode.</value>
+  </data>
+    <data name="GoOnLine" xml:space="preserve">
+    <value>Bring site online</value>
+  </data>
+    <data name="SecurityUpdateAvailable" xml:space="preserve">
+    <value>Security update available</value>
+  </data>
+    <data name="DatabaseSchemaUpdatesRequired" xml:space="preserve">
+    <value>Database schema updates required</value>
+  </data>
+    <data name="RemoveFromFavorites" xml:space="preserve">
+    <value>Remove from favorites</value>
+  </data>
+    <data name="AddToFavorites" xml:space="preserve">
+    <value>Add to favorites</value>
+  </data>
+    <data name="ModuleRemovalIsAlreadyPending" xml:space="preserve">
+    <value>Module removal is already pending.</value>
+  </data>
+    <data name="RemovingModules" xml:space="preserve">
+    <value>Removing modules…</value>
+  </data>
+    <data name="TheServerDidNotReturnModuleRemovalResults" xml:space="preserve">
+    <value>The server did not return module removal results.</value>
+  </data>
+    <data name="StoppedWaitingForRemovalRefreshTheModuleListToCheckTheResult" xml:space="preserve">
+    <value>Stopped waiting for removal. Refresh the module list to check the result.</value>
+  </data>
+    <data name="DeviceModelProfilePicture" xml:space="preserve">
+    <value>Device model profile picture</value>
+  </data>
+    <data name="ProfilePicture" xml:space="preserve">
+    <value>Profile picture</value>
+  </data>
+    <data name="TheReturnedComparisonDoesNotMatchTheSelectedScriptVersionCompareTheSourceAgain" xml:space="preserve">
+    <value>The returned comparison does not match the selected script version. Compare the source again.</value>
+  </data>
+    <data name="ScriptImported" xml:space="preserve">
+    <value>Script imported.</value>
+  </data>
+    <data name="ScriptSourceReplaced" xml:space="preserve">
+    <value>Script source replaced.</value>
+  </data>
+    <data name="CompareTheSourceAgainIfTheScriptOrCatalogHasChanged" xml:space="preserve">
+    <value>Compare the source again if the script or catalog has changed.</value>
+  </data>
+    <data name="SecurityUpdate" xml:space="preserve">
+    <value>Security update</value>
+  </data>
+    <data name="AlsoAvailable" xml:space="preserve">
+    <value>Also available</value>
+  </data>
+    <data name="UpdatingDatabaseSchema" xml:space="preserve">
+    <value>Updating database schema</value>
+  </data>
+    <data name="ConfigurationTablesUpdatedSuccessfully" xml:space="preserve">
+    <value>Configuration tables updated successfully.</value>
+  </data>
+    <data name="SomeTablesStillRequireAnUpdate" xml:space="preserve">
+    <value>Some tables still require an update.</value>
+  </data>
+    <data name="UnableToSaveUpdateSettings" xml:space="preserve">
+    <value>Unable to save update settings.</value>
+  </data>
+    <data name="SelectAnInstallableModuleVersion" xml:space="preserve">
+    <value>Select an installable module version.</value>
+  </data>
+    <data name="ModuleUpdatedRestartTheServerToApplyTheChange" xml:space="preserve">
+    <value>Module updated. Restart the server to apply the change.</value>
+  </data>
+    <data name="ModuleUpdated" xml:space="preserve">
+    <value>Module updated.</value>
+  </data>
+    <data name="TheAgentDownloadURLIsMissing" xml:space="preserve">
+    <value>The agent download URL is missing.</value>
+  </data>
+    <data name="Reader" xml:space="preserve">
+    <value>Reader</value>
+  </data>
+    <data name="PushEvents" xml:space="preserve">
+    <value>Push events</value>
+  </data>
+    <data name="RawNotifications" xml:space="preserve">
+    <value>Raw notifications</value>
+  </data>
+    <data name="AutoConnect" xml:space="preserve">
+    <value>Auto connect</value>
+  </data>
+    <data name="InvalidName" xml:space="preserve">
+    <value>Invalid name.</value>
+  </data>
+    <data name="Selected" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+    <data name="AgentID" xml:space="preserve">
+    <value>Agent ID</value>
+  </data>
+    <data name="ConfirmClose" xml:space="preserve">
+    <value>Confirm close</value>
+  </data>
+    <data name="FilterByDetected" xml:space="preserve">
+    <value>Filter by detected...</value>
+  </data>
+    <data name="InvalidExpirationTime" xml:space="preserve">
+    <value>Invalid expiration time.</value>
+  </data>
+    <data name="GatewayMustBeSelected" xml:space="preserve">
+    <value>Select a gateway.</value>
+  </data>
+    <data name="TheNumberOfRawNotificationWorkersMustBeGreaterThanZero" xml:space="preserve">
+    <value>The number of raw notification workers must be greater than zero.</value>
+  </data>
+    <data name="SelectARawNotificationParserScript" xml:space="preserve">
+    <value>Select a raw notification parser script.</value>
+  </data>
+    <data name="InvalidThreadsAmount" xml:space="preserve">
+    <value>Invalid thread count.</value>
+  </data>
+    <data name="InvalidAliveTime" xml:space="preserve">
+    <value>Invalid alive time.</value>
+  </data>
+    <data name="NoAppearanceIsSelected" xml:space="preserve">
+    <value>No appearance is selected.</value>
+  </data>
+    <data name="CSSURL" xml:space="preserve">
+    <value>CSS URL</value>
+  </data>
+    <data name="Priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+    <data name="PriorityControlsResourceOrdering" xml:space="preserve">
+    <value>Priority controls resource ordering.</value>
+  </data>
+    <data name="Preload" xml:space="preserve">
+    <value>Preload</value>
+  </data>
+    <data name="HigherPriorityThemesArePreferredWhenSeveralAreAvailable" xml:space="preserve">
+    <value>Themes with higher priority are preferred when several are available.</value>
+  </data>
+    <data name="PageVisibility" xml:space="preserve">
+    <value>Page visibility</value>
+  </data>
+    <data name="ShowOnListedPages" xml:space="preserve">
+    <value>Show on listed pages</value>
+  </data>
+    <data name="HideOnListedPages" xml:space="preserve">
+    <value>Hide on listed pages</value>
+  </data>
+    <data name="Pages" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+    <data name="OneExactPagePathPerLineUseForTheHomePageLeaveEmptyToShowOnAllPages" xml:space="preserve">
+    <value>One exact page path per line. Use / for the home page. Leave empty to show on all pages.</value>
+  </data>
+    <data name="ThePageListIsEmptyThisBlockIsShownOnAllPages" xml:space="preserve">
+    <value>The page list is empty. This block is shown on all pages.</value>
+  </data>
+    <data name="TheBlocksHaveBeenRegenerated" xml:space="preserve">
+    <value>The blocks have been regenerated.</value>
+  </data>
+    <data name="ConfirmDelete" xml:space="preserve">
+    <value>Confirm deletion</value>
+  </data>
+    <data name="NoAuthenticationConfigurationIsSelected" xml:space="preserve">
+    <value>No authentication configuration is selected.</value>
+  </data>
+    <data name="ConfigurationLayout" xml:space="preserve">
+    <value>Configuration layout</value>
+  </data>
+    <data name="ChooseTheOrderAndVisibilityOfConfigurationEntries" xml:space="preserve">
+    <value>Choose the order and visibility of configuration entries.</value>
+  </data>
+    <data name="ConfigurationMenuIsUnavailable" xml:space="preserve">
+    <value>The configuration menu is unavailable.</value>
+  </data>
+    <data name="Loading3" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+    <data name="RunCron" xml:space="preserve">
+    <value>Run cron</value>
+  </data>
+    <data name="HTTPProxy" xml:space="preserve">
+    <value>HTTP proxy</value>
+  </data>
+    <data name="AllowClientsToRetrieveFeedsAndMapTilesThroughThisServer" xml:space="preserve">
+    <value>Allow clients to retrieve feeds and map tiles through this server.</value>
+  </data>
+    <data name="AllowedServerOriginsOnePerLine" xml:space="preserve">
+    <value>Allowed server origins (one per line)</value>
+  </data>
+    <data name="IncludeTheSchemeAndOptionalPortForExampleHttpsGuruxFiAndHttpsTileOpenstreetmapOrgWild" xml:space="preserve">
+    <value>Include the scheme and optional port, for example https://gurux.fi and https://tile.openstreetmap.org. Wildcards and private networks are not allowed.</value>
+  </data>
+    <data name="FallbackCacheTimeoutSeconds0DisablesCaching" xml:space="preserve">
+    <value>Fallback cache timeout (seconds, 0 disables caching)</value>
+  </data>
+    <data name="RequestTimeoutSeconds" xml:space="preserve">
+    <value>Request timeout (seconds)</value>
+  </data>
+    <data name="MaximumResponseSizeBytes" xml:space="preserve">
+    <value>Maximum response size (bytes)</value>
+  </data>
+    <data name="ConfigurationIsUnavailable" xml:space="preserve">
+    <value>Configuration is unavailable.</value>
+  </data>
+    <data name="InvalidIdentifier" xml:space="preserve">
+    <value>Invalid identifier.</value>
+  </data>
+    <data name="NoLanguageIsSelected" xml:space="preserve">
+    <value>No language is selected.</value>
+  </data>
+    <data name="InvalidText" xml:space="preserve">
+    <value>Invalid text.</value>
+  </data>
+    <data name="LogTypes" xml:space="preserve">
+    <value>Log types</value>
+  </data>
+    <data name="Policies2" xml:space="preserve">
+    <value>Policies</value>
+  </data>
+    <data name="CronStarted" xml:space="preserve">
+    <value>Cron started.</value>
+  </data>
+    <data name="ServerNotifications" xml:space="preserve">
+    <value>Server notifications</value>
+  </data>
+    <data name="RemoveSystemLogs" xml:space="preserve">
+    <value>Remove system logs</value>
+  </data>
+    <data name="RemoveUsersWhoNewerLoggedIn" xml:space="preserve">
+    <value>Remove users who have never logged in</value>
+  </data>
+    <data name="RemoveUserLogs" xml:space="preserve">
+    <value>Remove user logs</value>
+  </data>
+    <data name="RemoveDeviceLogs" xml:space="preserve">
+    <value>Remove device logs</value>
+  </data>
+    <data name="RemoveAgentLogs" xml:space="preserve">
+    <value>Remove agent logs</value>
+  </data>
+    <data name="RemoveGatewayLogs" xml:space="preserve">
+    <value>Remove gateway logs</value>
+  </data>
+    <data name="RemoveScheduleLogs" xml:space="preserve">
+    <value>Remove schedule logs</value>
+  </data>
+    <data name="RemovePerformanceLogs" xml:space="preserve">
+    <value>Remove performance logs</value>
+  </data>
+    <data name="RemoveTasks" xml:space="preserve">
+    <value>Remove tasks</value>
+  </data>
+    <data name="Notify" xml:space="preserve">
+    <value>Notify</value>
+  </data>
+    <data name="Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+    <data name="SystemRestarted" xml:space="preserve">
+    <value>System restarted.</value>
+  </data>
+    <data name="TheNetworkMediaTypeNameIsMissing" xml:space="preserve">
+    <value>The network media type name is missing.</value>
+  </data>
+    <data name="TheSerialMediaTypeNameIsMissing" xml:space="preserve">
+    <value>The serial media type name is missing.</value>
+  </data>
+    <data name="InvalidPassword" xml:space="preserve">
+    <value>Invalid password.</value>
+  </data>
+    <data name="SelectedDeviceGroups" xml:space="preserve">
+    <value>Selected device groups</value>
+  </data>
+    <data name="SelectedObjects" xml:space="preserve">
+    <value>Selected objects</value>
+  </data>
+    <data name="SelectedAttributes" xml:space="preserve">
+    <value>Selected attributes</value>
+  </data>
+    <data name="TemplateType" xml:space="preserve">
+    <value>Template type</value>
+  </data>
+    <data name="AreYouSureYouWantToClearDeviceHistoryThisActionCannotBeUndone" xml:space="preserve">
+    <value>Are you sure you want to clear device history? This action cannot be undone.</value>
+  </data>
+    <data name="SelectedDevices" xml:space="preserve">
+    <value>Selected devices</value>
+  </data>
+    <data name="DeviceTemplateSettingsAreMissing" xml:space="preserve">
+    <value>Device template settings are missing.</value>
+  </data>
+    <data name="Profiles" xml:space="preserve">
+    <value>Profiles</value>
+  </data>
+    <data name="Ciphering" xml:space="preserve">
+    <value>Ciphering</value>
+  </data>
+    <data name="Advanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+    <data name="DeviceTemplateFileIsNotSelected" xml:space="preserve">
+    <value>No device template file is selected.</value>
+  </data>
+    <data name="DefaultValues" xml:space="preserve">
+    <value>Default values</value>
+  </data>
+    <data name="GatewayID" xml:space="preserve">
+    <value>Gateway ID</value>
+  </data>
+    <data name="SelectADLMSKeyRole" xml:space="preserve">
+    <value>Select a DLMS key role.</value>
+  </data>
+    <data name="SaveTheKeyManagementAndItsKMIPConnectionBeforeBindingARemoteObject" xml:space="preserve">
+    <value>Save the key management and its KMIP connection before binding a remote object.</value>
+  </data>
+    <data name="ARemoteObjectIdentifierIsRequired" xml:space="preserve">
+    <value>A remote object identifier is required.</value>
+  </data>
+    <data name="InvalidKeyType" xml:space="preserve">
+    <value>Invalid key type.</value>
+  </data>
+    <data name="KeyManagementID" xml:space="preserve">
+    <value>Key management ID</value>
+  </data>
+    <data name="FilterBySystemTitle" xml:space="preserve">
+    <value>Filter by system title...</value>
+  </data>
+    <data name="TheLogWasNotFoundOrIsNotAvailableToThisUser" xml:space="preserve">
+    <value>The log was not found or is not available to this user.</value>
+  </data>
+    <data name="LogEdit" xml:space="preserve">
+    <value>/Log/Edit/</value>
+  </data>
+    <data name="Source2" xml:space="preserve">
+    <value>?source=</value>
+  </data>
+    <data name="LogSourceIsRequired" xml:space="preserve">
+    <value>Log source is required.</value>
+  </data>
+    <data name="NoManufacturerIsSelected" xml:space="preserve">
+    <value>No manufacturer is selected.</value>
+  </data>
+    <data name="InvalidHostName" xml:space="preserve">
+    <value>Invalid host name.</value>
+  </data>
+    <data name="InvalidPort" xml:space="preserve">
+    <value>Invalid port.</value>
+  </data>
+    <data name="PreloadingIsEnabledByTheParentMenu" xml:space="preserve">
+    <value>Preloading is enabled by the parent menu.</value>
+  </data>
+    <data name="ComponentType" xml:space="preserve">
+    <value>Component type</value>
+  </data>
+    <data name="None" xml:space="preserve">
+    <value>None</value>
+  </data>
+    <data name="InvalidLink" xml:space="preserve">
+    <value>Invalid link.</value>
+  </data>
+    <data name="MenuKind" xml:space="preserve">
+    <value>Menu kind</value>
+  </data>
+    <data name="MenuLocation" xml:space="preserve">
+    <value>Menu location</value>
+  </data>
+    <data name="DefaultPlacement" xml:space="preserve">
+    <value>Default placement</value>
+  </data>
+    <data name="Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+    <data name="ApplyDefaults" xml:space="preserve">
+    <value>Apply defaults</value>
+  </data>
+    <data name="ApplyBuiltInDefaults" xml:space="preserve">
+    <value>Apply built-in defaults?</value>
+  </data>
+    <data name="SelectedItemsWillBeResetToDefaultsWithoutASelectionOnlyMissingDefaultsWillBeAdded" xml:space="preserve">
+    <value>Selected items will be reset to defaults. Without a selection, only missing defaults will be added.</value>
+  </data>
+    <data name="MenuDefaultsHaveBeenApplied" xml:space="preserve">
+    <value>Menu defaults have been applied.</value>
+  </data>
+    <data name="NoModuleIsSelected" xml:space="preserve">
+    <value>No module is selected.</value>
+  </data>
+    <data name="ModuleFileIsNotSelected" xml:space="preserve">
+    <value>No module file is selected.</value>
+  </data>
+    <data name="SettingsSaved" xml:space="preserve">
+    <value>Settings saved.</value>
+  </data>
+    <data name="TheSelectedVersionIsNotAvailableInTheCurrentReleaseChannel" xml:space="preserve">
+    <value>The selected version is not available in the current release channel.</value>
+  </data>
+    <data name="NoInstallableVersionAvailable" xml:space="preserve">
+    <value>No installable version is available.</value>
+  </data>
+    <data name="ThisModuleHasNoScheduleEditor" xml:space="preserve">
+    <value>This module has no schedule editor.</value>
+  </data>
+    <data name="TheScheduleEditorIsNotReadyToSave" xml:space="preserve">
+    <value>The schedule editor is not ready to save.</value>
+  </data>
+    <data name="SeparateEmailAddressesWithCommasOrSemicolonsLeaveEmptyToUseYourConfirmedAccountEmail" xml:space="preserve">
+    <value>Separate email addresses with commas or semicolons. Leave empty to use your confirmed account email.</value>
+  </data>
+    <data name="InvalidDestination" xml:space="preserve">
+    <value>Invalid destination.</value>
+  </data>
+    <data name="InvalidNotificationAction" xml:space="preserve">
+    <value>Invalid notification action.</value>
+  </data>
+    <data name="TheMaximumNotificationCountMustBePositive" xml:space="preserve">
+    <value>The maximum notification count must be positive.</value>
+  </data>
+    <data name="InvalidInterval" xml:space="preserve">
+    <value>Invalid interval.</value>
+  </data>
+    <data name="AreYouSureYouWantToRefreshNotifications" xml:space="preserve">
+    <value>Are you sure you want to refresh notifications?</value>
+  </data>
+    <data name="TheNotificationsHaveBeenRefreshed" xml:space="preserve">
+    <value>The notifications have been refreshed.</value>
+  </data>
+    <data name="General" xml:space="preserve">
+    <value>General</value>
+  </data>
+    <data name="UnitChargeActive" xml:space="preserve">
+    <value>Unit charge active</value>
+  </data>
+    <data name="UnitChargePassive" xml:space="preserve">
+    <value>Unit charge passive</value>
+  </data>
+    <data name="TheEnumValueIsMissing" xml:space="preserve">
+    <value>The enum value is missing.</value>
+  </data>
+    <data name="InvalidAction" xml:space="preserve">
+    <value>Invalid action.</value>
+  </data>
+    <data name="TheCommunicationWindowStartIsMissing" xml:space="preserve">
+    <value>The communication window start is missing.</value>
+  </data>
+    <data name="TheCommunicationWindowEndIsMissing" xml:space="preserve">
+    <value>The communication window end is missing.</value>
+  </data>
+    <data name="TheAttributeTemplateIsMissing" xml:space="preserve">
+    <value>The attribute template is missing.</value>
+  </data>
+    <data name="InvalidIndex" xml:space="preserve">
+    <value>Invalid index.</value>
+  </data>
+    <data name="AreYouSureYouWantToClearHistoryThisActionCannotBeUndone" xml:space="preserve">
+    <value>Are you sure you want to clear history? This action cannot be undone.</value>
+  </data>
+    <data name="InvalidAttributeIndex" xml:space="preserve">
+    <value>Invalid attribute index.</value>
+  </data>
+    <data name="InvalidObject" xml:space="preserve">
+    <value>Invalid object.</value>
+  </data>
+    <data name="InvalidIndex2" xml:space="preserve">
+    <value>Invalid index</value>
+  </data>
+    <data name="Reading" xml:space="preserve">
+    <value>Reading...</value>
+  </data>
+    <data name="ReadTasksAdded" xml:space="preserve">
+    <value>Read tasks added.</value>
+  </data>
+    <data name="AreYouSureYouWantToClearObject0HistoryThisActionCannotBeUndone" xml:space="preserve">
+    <value>Are you sure you want to clear the history of object {0}? This action cannot be undone.</value>
+  </data>
+    <data name="TaskOnProgress" xml:space="preserve">
+    <value>Task in progress...</value>
+  </data>
+    <data name="NoObjectIsSelected" xml:space="preserve">
+    <value>No object is selected.</value>
+  </data>
+    <data name="ActionTasksAdded" xml:space="preserve">
+    <value>Action tasks added.</value>
+  </data>
+    <data name="WriteTasksAdded" xml:space="preserve">
+    <value>Write tasks added.</value>
+  </data>
+    <data name="NothingToWrite" xml:space="preserve">
+    <value>Nothing to write.</value>
+  </data>
+    <data name="NoItemHasBeenSelected" xml:space="preserve">
+    <value>No item has been selected.</value>
+  </data>
+    <data name="TargetObjectHasNotBeenSelected" xml:space="preserve">
+    <value>No target object is selected.</value>
+  </data>
+    <data name="InvalidStartTime" xml:space="preserve">
+    <value>Invalid start time.</value>
+  </data>
+    <data name="NoScriptToExecute" xml:space="preserve">
+    <value>No script to execute.</value>
+  </data>
+    <data name="ScriptBuild0BuildTime1Ms" xml:space="preserve">
+    <value>Script build {0}. Build time: {1} ms.</value>
+  </data>
+    <data name="UsererrorId" xml:space="preserve">
+    <value>usererror-id</value>
+  </data>
+    <data name="NoUserIsSelected" xml:space="preserve">
+    <value>No user is selected.</value>
+  </data>
+    <data name="TheUserIDIsMissing" xml:space="preserve">
+    <value>The user ID is missing.</value>
+  </data>
+    <data name="DirectPermissions" xml:space="preserve">
+    <value>Direct permissions</value>
+  </data>
+    <data name="FilterPermissionsByName" xml:space="preserve">
+    <value>Filter permissions by name</value>
+  </data>
+    <data name="SelectVisible" xml:space="preserve">
+    <value>Select visible</value>
+  </data>
+    <data name="ClearVisible" xml:space="preserve">
+    <value>Clear visible</value>
+  </data>
+    <data name="FilterByUpdated" xml:space="preserve">
+    <value>Filter by updated...</value>
+  </data>
+    <data name="FilterByLastLogin" xml:space="preserve">
+    <value>Filter by last login...</value>
+  </data>
+    <data name="UsersRemoved" xml:space="preserve">
+    <value>Users removed.</value>
+  </data>
+    <data name="Visible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+    <data name="AllowColumnCustomization" xml:space="preserve">
+    <value>Allow column customization</value>
+  </data>
+    <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+    <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+    <data name="ShowAllData" xml:space="preserve">
+    <value>Show all data</value>
+  </data>
+    <data name="PageSize" xml:space="preserve">
+    <value>Page size</value>
+  </data>
+    <data name="SelectionMode" xml:space="preserve">
+    <value>Selection mode</value>
+  </data>
+    <data name="RetrievingView" xml:space="preserve">
+    <value>Retrieving view...</value>
+  </data>
+    <data name="SavingView" xml:space="preserve">
+    <value>Saving view...</value>
+  </data>
+    <data name="ViewGroup" xml:space="preserve">
+    <value>View group</value>
+  </data>
+    <data name="RetrievingViewGroup" xml:space="preserve">
+    <value>Retrieving view group...</value>
+  </data>
+    <data name="SavingViewGroup" xml:space="preserve">
+    <value>Saving view group...</value>
+  </data>
+    <data name="RetrievingViewGroups" xml:space="preserve">
+    <value>Retrieving view groups...</value>
+  </data>
+    <data name="RetrievingBlockGroups" xml:space="preserve">
+    <value>Retrieving block groups...</value>
+  </data>
+    <data name="ViewDefaultsHaveBeenApplied" xml:space="preserve">
+    <value>View defaults have been applied.</value>
+  </data>
+    <data name="Workflow0StartedAt1" xml:space="preserve">
+    <value>Workflow {0} started at {1}.</value>
+  </data>
+    <data name="Column" xml:space="preserve">
+    <value>Column</value>
+  </data>
+    <data name="SaveAsDefaultForAllUsers" xml:space="preserve">
+    <value>Save as default for all users</value>
+  </data>
+    <data name="CompareSource" xml:space="preserve">
+    <value>Compare source</value>
+  </data>
+    <data name="SecurityUpdateRequired" xml:space="preserve">
+    <value>Security update required</value>
+  </data>
+    <data name="MeterIDForDeploymentConfirmation" xml:space="preserve">
+    <value>Meter ID for deployment confirmation</value>
+  </data>
+    <data name="Deactivate" xml:space="preserve">
+    <value>Deactivate</value>
+  </data>
+    <data name="ConfirmInstalledOnMeter" xml:space="preserve">
+    <value>Confirm installed on meter</value>
+  </data>
+    <data name="MarkCompromised" xml:space="preserve">
+    <value>Mark compromised</value>
+  </data>
+    <data name="DestroyMaterial" xml:space="preserve">
+    <value>Destroy material</value>
+  </data>
+    <data name="Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+    <data name="ShowPrereleases" xml:space="preserve">
+    <value>Show prereleases</value>
+  </data>
+    <data name="ModuleData" xml:space="preserve">
+    <value>Module data</value>
+  </data>
+    <data name="AnUnhandledErrorHasOccurred" xml:space="preserve">
+    <value>An unhandled error has occurred.</value>
+  </data>
+    <data name="ThisIsThePrivacyPolicyPageOfOurApplicationYourDataIsImportantToUs" xml:space="preserve">
+    <value>This is the privacy policy page of our application. Your data is important to us.</value>
+  </data>
+    <data name="WeDoNotCollectOrShareAnyPersonalInformationWithoutYourConsent" xml:space="preserve">
+    <value>We do not collect or share any personal information without your consent.</value>
+  </data>
+    <data name="CreationTime2" xml:space="preserve">
+    <value>Creation time</value>
+  </data>
+    <data name="List" xml:space="preserve">
+    <value>List</value>
+  </data>
+    <data name="ConfigureYourAccountByFollowingTheStepsOutlined" xml:space="preserve">
+    <value>Configure your account by following the steps outlined</value>
+  </data>
+    <data name="NoSelectedDeviceGroups" xml:space="preserve">
+    <value>No selected device groups.</value>
+  </data>
+    <data name="NoSelectedObjects" xml:space="preserve">
+    <value>No selected objects.</value>
+  </data>
+    <data name="NoSelectedAttributes" xml:space="preserve">
+    <value>No selected attributes.</value>
+  </data>
+    <data name="NoSelectedDevices" xml:space="preserve">
+    <value>No selected devices.</value>
+  </data>
+    <data name="Name2" xml:space="preserve">
+    <value>Name:</value>
+  </data>
+    <data name="ChargePerUnitScalingType" xml:space="preserve">
+    <value>Charge per unit scaling type</value>
+  </data>
+    <data name="CommodityReferenceType" xml:space="preserve">
+    <value>Commodity reference type</value>
+  </data>
+    <data name="ChargeTables" xml:space="preserve">
+    <value>Charge tables</value>
+  </data>
+    <data name="CurrentTime" xml:space="preserve">
+    <value>Current time</value>
+  </data>
+    <data name="RetrievingScriptSource" xml:space="preserve">
+    <value>Retrieving script source</value>
+  </data>
+    <data name="UpdatingModule" xml:space="preserve">
+    <value>Updating module</value>
+  </data>
+    <data name="PerformanceIsDisabled" xml:space="preserve">
+    <value>Performance is disabled.</value>
+  </data>
+    <data name="PerformanceSnapshotIntervalSeconds" xml:space="preserve">
+    <value>Performance snapshot interval (seconds): </value>
+  </data>
+    <data name="NotImported" xml:space="preserve">
+    <value>Not imported</value>
+  </data>
+    <data name="ImportScript" xml:space="preserve">
+    <value>Import script</value>
+  </data>
+    <data name="ReplaceScriptSource" xml:space="preserve">
+    <value>Replace script source</value>
+  </data>
+    <data name="ImportingScript" xml:space="preserve">
+    <value>Importing script</value>
+  </data>
+    <data name="ReplacingScriptSource" xml:space="preserve">
+    <value>Replacing script source</value>
+  </data>
+    <data name="Updating" xml:space="preserve">
+    <value>Updating…</value>
+  </data>
+    <data name="UpdateTables" xml:space="preserve">
+    <value>Update tables</value>
+  </data>
+    <data name="Saving" xml:space="preserve">
+    <value>Saving…</value>
+  </data>
+    <data name="ActiveSystemErrors" xml:space="preserve">
+    <value>Active system errors</value>
+  </data>
+    <data name="UpdateSettingsAreUnavailable" xml:space="preserve">
+    <value>Update settings are unavailable.</value>
+  </data>
+    <data name="LatestIncludingPrereleases" xml:space="preserve">
+    <value>Latest (including prereleases)</value>
+  </data>
+    <data name="LatestStable" xml:space="preserve">
+    <value>Latest stable</value>
+  </data>
+    <data name="RequiresMigration" xml:space="preserve">
+    <value>Requires migration</value>
+  </data>
+    <data name="SiteIsOnMaintenanceMode" xml:space="preserve">
+    <value>The site is in maintenance mode.</value>
+  </data>
+    <data name="CatalogVersionFor0" xml:space="preserve">
+    <value>Catalog version for {0}</value>
+  </data>
+    <data name="LocalizationVersionFor0" xml:space="preserve">
+    <value>Localization version for {0}</value>
+  </data>
+    <data name="UnsavedChanges" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+    <data name="DiscardChanges" xml:space="preserve">
+    <value>Discard changes</value>
+  </data>
+    <data name="DiscardChangesQuestion" xml:space="preserve">
+    <value>You have unsaved changes. Do you want to leave this page and discard your changes?</value>
+  </data>
+    <data name="CannotRemoveDefaultRole" xml:space="preserve">
+    <value>The default role cannot be removed. Save another role as the default before removing it.</value>
+  </data>
+    <data name="AddMissingNotificationDefaults" xml:space="preserve">
+    <value>Add missing defaults</value>
+  </data>
+    <data name="ResetNotificationDefaults" xml:space="preserve">
+    <value>Reset to defaults</value>
+  </data>
+    <data name="ConfirmResetNotificationDefaults" xml:space="preserve">
+    <value>Restore automatic notification defaults? Other notification subscriptions will be preserved.</value>
+  </data>
+    <data name="Revoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+    <data name="ConfirmRevokePersonalAccessTokens" xml:space="preserve">
+    <value>Revoke the selected personal access tokens? They will no longer authenticate new requests.</value>
+  </data>
+    <data name="Private" xml:space="preserve">
+    <value>Private</value>
+  </data>
+    <data name="AccessVisibility" xml:space="preserve">
+    <value>Access visibility</value>
+  </data>
+    <data name="Inherit" xml:space="preserve">
+    <value>Inherit</value>
+  </data>
+    <data name="Internal" xml:space="preserve">
+    <value>Authenticated users</value>
+  </data>
+    <data name="Public" xml:space="preserve">
+    <value>Everyone</value>
+  </data>
+    <data name="ExtendExpiration" xml:space="preserve">
+    <value>Extend expiration</value>
+  </data>
+    <data name="CurrentExpiration" xml:space="preserve">
+    <value>Current expiration</value>
+  </data>
+    <data name="NewExpiration" xml:space="preserve">
+    <value>New expiration</value>
+  </data>
+    <data name="ExpirationMustBeLater" xml:space="preserve">
+    <value>Select a valid date and time later than the current expiration.</value>
+  </data>
+    <data name="SelectOneActiveToken" xml:space="preserve">
+    <value>Select one active personal access token to extend.</value>
+  </data>
+    <data name="TokenValueUnchanged" xml:space="preserve">
+    <value>The token stays the same. Agent settings do not need to be changed.</value>
+  </data>
+    <data name="CatalogUpdatesUnavailable" xml:space="preserve">
+    <value>Catalog updates are currently unavailable.</value>
+  </data>
+    <data name="PageNotFound" xml:space="preserve">
+    <value>Page not found</value>
+  </data>
+  <data name="PruneMaxItemsPerRun" xml:space="preserve">
+    <value>Max. items removed per run (0 = no limit)</value>
+  </data>
+  <data name="PruneNoRemovalLimit" xml:space="preserve">
+    <value>0 = no limit</value>
+  </data>
+    <data name="PruneRetentionPeriod" xml:space="preserve">
+    <value>Retention period</value>
+  </data>
+    <data name="PruneRetentionHelp" xml:space="preserve">
+    <value>Set how long data is kept before cleanup. A retention period of 0 disables cleanup for that category. The removal limit is the maximum number of items removed from each category in one run. Run uses the saved settings.</value>
+  </data>
+  <data name="StoredHistory" xml:space="preserve">
+    <value>Stored history</value>
+  </data>
+  <data name="Walkthroughs" xml:space="preserve">
+    <value>Walkthroughs</value>
+  </data>
+  <data name="GetStartedWithGuruxDlmsAmi" xml:space="preserve">
+    <value>Get Started with Gurux.DLMS.AMI</value>
+  </data>
+  <data name="GetStartedDescription" xml:space="preserve">
+    <value>Customize your workspace, learn the basics, and connect your first device.</value>
+  </data>
+  <data name="LearnTheFundamentals" xml:space="preserve">
+    <value>Learn the fundamentals</value>
+  </data>
+  <data name="ChooseYourTheme" xml:space="preserve">
+    <value>Choose your theme</value>
+  </data>
+  <data name="ChooseThemeDescription" xml:space="preserve">
+    <value>Choose a theme for your workspace. Open Themes, edit a theme, enable it and save. When several themes are enabled, the theme with the highest priority is used.</value>
+  </data>
+  <data name="BasicSettings" xml:space="preserve">
+    <value>Basic settings</value>
+  </data>
+  <data name="BasicSettingsDescription" xml:space="preserve">
+    <value>Choose your language and time zone in your user settings. Save your changes to apply them to your account.</value>
+  </data>
+  <data name="UserSettings" xml:space="preserve">
+    <value>User settings</value>
+  </data>
+  <data name="ApplicationSettings" xml:space="preserve">
+    <value>Application settings</value>
+  </data>
+  <data name="ApplicationSettingsDescription" xml:space="preserve">
+    <value>Review the server settings and configure the options needed for your installation.</value>
+  </data>
+  <data name="FundamentalsDescription" xml:space="preserve">
+    <value>Follow these steps to connect an agent, prepare device templates, add devices, and schedule their operations.</value>
+  </data>
+  <data name="FundamentalsAgentTitle" xml:space="preserve">
+    <value>1. Download an agent and create a PAT</value>
+  </data>
+  <data name="FundamentalsAgentDescription" xml:space="preserve">
+    <value>The agent connects Gurux.DLMS.AMI to your devices. It authenticates to the server with a personal access token (PAT).</value>
+  </data>
+  <data name="FundamentalsAgentDownload" xml:space="preserve">
+    <value>Open Configure your account and select Download the agent. Install it on a computer that can reach your devices.</value>
+  </data>
+  <data name="FundamentalsAgentToken" xml:space="preserve">
+    <value>On the same page, enter a token name and expiration time, then generate an access token. Copy the token when it is displayed.</value>
+  </data>
+  <data name="FundamentalsAgentConfigure" xml:space="preserve">
+    <value>Configure the agent with your AMI server address and the token, then start it. Open Agents to check that it has connected. You can review or revoke tokens in your user settings.</value>
+  </data>
+  <data name="FundamentalsImportTitle" xml:space="preserve">
+    <value>2. Import manufacturer settings or a custom device template</value>
+  </data>
+  <data name="FundamentalsImportDescription" xml:space="preserve">
+    <value>Prepare the device settings before adding a device. Use manufacturer settings or import your own Gurux device template.</value>
+  </data>
+  <data name="FundamentalsManufacturerImport" xml:space="preserve">
+    <value>Open Manufacturers, check for available settings, select the manufacturer settings you need, and choose Install.</value>
+  </data>
+  <data name="FundamentalsTemplateImport" xml:space="preserve">
+    <value>To use a custom template, open Add device template, select a .gxc file exported from Gurux.DLMS.Director, review the settings, give the template a name, and save it.</value>
+  </data>
+  <data name="ImportCustomDeviceTemplate" xml:space="preserve">
+    <value>Import custom device template</value>
+  </data>
+  <data name="FundamentalsTemplateTitle" xml:space="preserve">
+    <value>3. Create a device from a device template</value>
+  </data>
+  <data name="FundamentalsTemplateDescription" xml:space="preserve">
+    <value>A device template supplies the protocol settings and objects for a device.</value>
+  </data>
+  <data name="FundamentalsTemplateSelect" xml:space="preserve">
+    <value>Open Add device and select the manufacturer, model, version and device settings, or choose a custom device template.</value>
+  </data>
+  <data name="FundamentalsTemplateConnection" xml:space="preserve">
+    <value>Give the device a name and choose the agent and connection settings needed to reach it.</value>
+  </data>
+  <data name="FundamentalsTemplateSave" xml:space="preserve">
+    <value>Review the settings inherited from the template and save the device.</value>
+  </data>
+  <data name="CreateDeviceFromTemplate" xml:space="preserve">
+    <value>Create device from template</value>
+  </data>
+  <data name="FundamentalsDeviceTitle" xml:space="preserve">
+    <value>4. Add and configure a device</value>
+  </data>
+  <data name="FundamentalsDeviceDescription" xml:space="preserve">
+    <value>Configure each device with its own connection details and credentials, even when several devices share a template.</value>
+  </data>
+  <data name="FundamentalsDeviceSettings" xml:space="preserve">
+    <value>Open Add device, choose the appropriate device template, and enter the device name, agent, media and address information.</value>
+  </data>
+  <data name="FundamentalsDeviceSecurity" xml:space="preserve">
+    <value>Review the client and server addresses, authentication and security settings. Enter the credentials and keys required by the device.</value>
+  </data>
+  <data name="FundamentalsDeviceSave" xml:space="preserve">
+    <value>Save the device, open it from Devices, and read an object to check the connection. Review the device logs if the read fails.</value>
+  </data>
+  <data name="AddDevice" xml:space="preserve">
+    <value>Add device</value>
+  </data>
+  <data name="FundamentalsScheduleTitle" xml:space="preserve">
+    <value>5. Schedule device operations</value>
+  </data>
+  <data name="FundamentalsScheduleDescription" xml:space="preserve">
+    <value>Use a schedule to run device operations automatically.</value>
+  </data>
+  <data name="FundamentalsScheduleCreate" xml:space="preserve">
+    <value>Open Add schedule, give it a name, and set its execution time or recurrence.</value>
+  </data>
+  <data name="FundamentalsScheduleTargets" xml:space="preserve">
+    <value>Choose the devices and the operations or scripts that the schedule should run.</value>
+  </data>
+  <data name="FundamentalsScheduleSave" xml:space="preserve">
+    <value>Enable and save the schedule. Review the schedule logs after it runs to check the result.</value>
+  </data>
+  <data name="AddSchedule" xml:space="preserve">
+    <value>Add schedule</value>
+  </data>
+  <data name="NoCatalogUpdates" xml:space="preserve">
+    <value>No recent updates are available.</value>
+  </data>
+  <data name="CatalogUpdateSummary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="CatalogUpdateRelease" xml:space="preserve">
+    <value>Release</value>
+  </data>
+  <data name="HideWalkthroughCard" xml:space="preserve">
+    <value>Hide {0}</value>
+  </data>
+  <data name="WalkthroughPreferencesUnavailable" xml:space="preserve">
+    <value>Your hidden card preferences could not be loaded.</value>
+  </data>
+  <data name="WalkthroughHideFailed" xml:space="preserve">
+    <value>The card could not be hidden. Please try again.</value>
+  </data>
+  <data name="ProfileRangeStart" xml:space="preserve"><value>Start (inclusive)</value></data>
+  <data name="ProfileRangeEnd" xml:space="preserve"><value>End (exclusive)</value></data>
+  <data name="ProfileReadMissing" xml:space="preserve"><value>Read missing values</value></data>
+  <data name="ProfileLocalTime" xml:space="preserve"><value>Select the interval in local time. Recent values are checked again for delayed measurements.</value></data>
+  <data name="ProfileCoverage" xml:space="preserve"><value>Read coverage</value></data>
+  <data name="ProfileInvalidRange" xml:space="preserve"><value>Select a valid interval with the end after the start.</value></data>
+  <data name="ProfileNoReadNeeded" xml:space="preserve"><value>The selected interval is already covered.</value></data>
+  <data name="ProfileReadQueued" xml:space="preserve"><value>The profile read has been queued. Stored values will update when the read completes.</value></data>
+  <data name="ProfileCovered" xml:space="preserve"><value>Successfully read</value></data>
+  <data name="ProfileMissing" xml:space="preserve"><value>Not yet read</value></data>
+  <data name="ProfileRefresh" xml:space="preserve"><value>Recent intervals to check again</value></data>
+  <data name="ProfileEmpty" xml:space="preserve"><value>Successfully read with no rows</value></data>
+  <data name="ProfileUnavailable" xml:space="preserve"><value>No longer available from the meter</value></data>
+  <data name="AgentUpdatesTitle" xml:space="preserve">
+    <value>Agent updates</value>
+  </data>
+  <data name="NoAdditionalLanguagePackages" xml:space="preserve"><value>No additional language packages are currently available in the catalog.</value></data>
+  <data name="BuiltInLanguage" xml:space="preserve"><value>Built in</value></data>
+  <data name="ReadTasksQueued" xml:space="preserve"><value>Read tasks queued.</value></data>
+  <data name="ReadTasksInProgress" xml:space="preserve"><value>Read tasks in progress.</value></data>
+  <data name="ReadTasksProgress" xml:space="preserve"><value>{0} of {1} read tasks completed.</value></data>
+  <data name="ReadTasksFailed" xml:space="preserve"><value>Reading failed.</value></data>
+  <data name="ReadTasksUnavailable" xml:space="preserve"><value>Read task status is unavailable.</value></data>
+  <data name="TutorialVideos" xml:space="preserve"><value>Videos</value></data>
+  <data name="TutorialVideosDescription" xml:space="preserve"><value>Watch Gurux.DLMS.AMI tutorials.</value></data>
+  <data name="TutorialVideosUnavailable" xml:space="preserve"><value>Videos could not be loaded. Please try again.</value></data>
+  <data name="NoTutorialVideos" xml:space="preserve"><value>No tutorial videos are available.</value></data>
+  <data name="RetryTutorialVideos" xml:space="preserve"><value>Try again</value></data>
+  <data name="SlowRESTRequest" xml:space="preserve"><value>Slow REST Request</value></data>
+  <data name="AttributeReadOnce" xml:space="preserve">
+    <value>Read once (static)</value>
+  </data>
+  <data name="AttributeExpirationLessThanOneDay" xml:space="preserve">
+    <value>Enter an attribute expiration duration shorter than one day.</value>
   </data>
 </root>

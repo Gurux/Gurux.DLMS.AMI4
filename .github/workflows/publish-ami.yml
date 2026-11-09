@@ -1,0 +1,176 @@
+name: Publish AMI server release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/**'
+      - 'Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/**'
+      - 'Gurux.DLMS.AMI.Shared/**'
+      - 'Gurux.DLMS.AMI.Http/**'
+      - 'scripts/publish-ami.ps1'
+      - 'scripts/ami-appsettings.json'
+      - '.github/scripts/agent-release.ps1'
+      - '.github/scripts/agent-docker.ps1'
+      - '.github/scripts/test-ami-container.ps1'
+      - '.github/scripts/ami-compose-release.ps1'
+      - '.github/tests/ami-compose-release.tests.ps1'
+      - '.github/tests/ami-package.tests.ps1'
+      - '.github/workflows/publish-ami.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional four-part AMI server version'
+        required: false
+        type: string
+
+      rollback_compatible_from:
+        description: 'Audited DB rollback interval, e.g. [4.1.2611.1,4.1.2611.301]; blank requires maintenance'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ami-server-releases
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  publish:
+    if: github.repository == 'Gurux/Gurux.DLMS.AMI4' && github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      # UI APIs used by AMI are newer than the published UI NuGet package.
+      - uses: actions/checkout@v5
+        with:
+          repository: Gurux/Gurux.UI.Components
+          ref: ${{ vars.AMI_UI_COMPONENTS_REF || 'main' }}
+          path: _dependencies/ui
+          persist-credentials: false
+      - name: Check source release automation
+        shell: pwsh
+        run: .github/tests/source-release.tests.ps1
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test release and package rules
+        run: |
+          & .github/tests/agent-release.tests.ps1
+          & .github/tests/agent-docker.tests.ps1
+          & .github/tests/ami-package.tests.ps1
+          & .github/tests/ami-wasm.tests.ps1
+          & .github/tests/ami-compose-release.tests.ps1
+      - name: Reserve AMI server version
+        id: release
+        env:
+          CATALOG_TOKEN: ${{ secrets.CATALOG_DISPATCH_TOKEN }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: .github/scripts/agent-release.ps1 -Action Prepare -ProductId Gurux.DLMS.AMI -Directory artifacts/ami -RequestedVersion $env:REQUESTED_VERSION
+      - name: Package server and Blazor client
+        if: steps.release.outputs.published != 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          & scripts/publish-ami.ps1 -Version $env:RELEASE_VERSION -OutputDirectory artifacts/ami `
+            -UiSourceProject _dependencies/ui/Development/Gurux.UI.Components.csproj
+      - name: Create or resume GitHub Release
+        run: .github/scripts/agent-release.ps1 -Action Publish -ProductId Gurux.DLMS.AMI -Directory artifacts/ami
+      - name: Create version tag
+        run: .github/scripts/publish-source-release.ps1 -PackageId Gurux.DLMS.AMI -Version ${{ steps.release.outputs.version }} -Commit $env:GITHUB_SHA
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ami-server-release-manifest
+          path: artifacts/ami/release.json
+          if-no-files-found: error
+          overwrite: true
+
+  docker:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AMI_VERSION: ${{ needs.publish.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || 'guruxorg' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+      - name: Check existing AMI image
+        id: image
+        shell: pwsh
+        run: .github/scripts/agent-docker.ps1 -Action Inspect -Image guruxorg/dlms-ami -Version $env:AMI_VERSION -Commit $env:GITHUB_SHA
+      - name: Download and verify AMI ZIP
+        if: steps.image.outputs.exists != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/docker
+          gh release download "Gurux.DLMS.AMI/v$AMI_VERSION" --repo "$GITHUB_REPOSITORY" \
+            --pattern "Gurux.DLMS.AMI-$AMI_VERSION.zip*" --dir artifacts/docker
+          cd artifacts/docker
+          sha256sum --check "Gurux.DLMS.AMI-$AMI_VERSION.zip.sha256"
+          unzip -q "Gurux.DLMS.AMI-$AMI_VERSION.zip" -d app
+      - name: Build AMI image for HTTP testing
+        if: steps.image.outputs.exists != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: artifacts/docker
+          file: Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Dockerfile.release
+          platforms: linux/amd64
+          load: true
+          tags: guruxorg/dlms-ami:${{ needs.publish.outputs.version }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.publish.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/Gurux/Gurux.DLMS.AMI4
+            org.opencontainers.image.title=Gurux DLMS AMI
+      - name: Test AMI server HTTP startup
+        if: steps.image.outputs.exists != 'true'
+        shell: pwsh
+        run: .github/scripts/test-ami-container.ps1 -Image "guruxorg/dlms-ami:$env:AMI_VERSION" -ExpectedVersion $env:AMI_VERSION
+      - name: Push tested AMI version image
+        if: steps.image.outputs.exists != 'true'
+        shell: bash
+        run: docker push "guruxorg/dlms-ami:$AMI_VERSION"
+      - name: Publish immutable Compose metadata after registry verification
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLBACK_COMPATIBLE_FROM: ${{ inputs.rollback_compatible_from }}
+        run: .github/scripts/ami-compose-release.ps1 -Version $env:AMI_VERSION -Commit $env:GITHUB_SHA -RollbackCompatibleFrom $env:ROLLBACK_COMPATIBLE_FROM
+      - name: Promote latest without rollback
+        shell: pwsh
+        run: .github/scripts/agent-docker.ps1 -Action Latest -Image guruxorg/dlms-ami -Version $env:AMI_VERSION -Commit $env:GITHUB_SHA
+
+  catalog:
+    needs: [publish, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: ami-server-release-manifest
+          path: artifacts/ami
+      - name: Refresh AMI Catalog
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CATALOG_TOKEN: ${{ secrets.CATALOG_DISPATCH_TOKEN }}
+        run: .github/scripts/agent-release.ps1 -Action Notify -ProductId Gurux.DLMS.AMI -Directory artifacts/ami

@@ -1,34 +1,30 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
@@ -36,40 +32,48 @@ using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Data;
+using Gurux.DLMS.AMI.Server.Services;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <summary>
     /// This controller is used to handle users.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUserRepository _userRepository;
+        private readonly GXAccountRegistrationPolicy _registrationPolicy;
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public UserController(UserManager<ApplicationUser> userManager,
-            IHostApplicationLifetime applicationLifetime,
-            IUserRepository userRepository)
+        /// <summary>Creates the user API controller.</summary>
+        public UserController(IHostApplicationLifetime applicationLifetime,
+            IUserRepository userRepository,
+            GXAccountRegistrationPolicy registrationPolicy)
         {
+            _ = applicationLifetime;
             _userRepository = userRepository;
-            _userManager = userManager;
+            _registrationPolicy = registrationPolicy;
         }
+
         /// <summary>
         /// Get current user information.
         /// </summary>
         /// <returns>Current user information.</returns>
         [HttpGet]
-        [Authorize(Policy = GXUserPolicies.View)]
-        public async Task<ActionResult<GetUserResponse>> Get()
+        public async Task<ActionResult<GetUserResponse>> Get(CancellationToken cancellationToken = default)
         {
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                //Return empty user information when anonymous user.
+                return new GetUserResponse();
+            }
             return new GetUserResponse()
             {
-                Item = await _userRepository.ReadAsync(null)
+                Item = await _userRepository.ReadAsync(null, null, cancellationToken)
             };
         }
 
@@ -78,13 +82,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="id">User id.</param>
         /// <returns>User information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet("{id}")]
         [Authorize(Policy = GXUserPolicies.View)]
-        public async Task<ActionResult<GetUserResponse>> Get(string id)
+        public async Task<ActionResult<GetUserResponse>> Get(string id, CancellationToken cancellationToken = default)
         {
             return new GetUserResponse()
             {
-                Item = await _userRepository.ReadAsync(id)
+                Item = await _userRepository.ReadAsync(id, null, cancellationToken)
             };
         }
         /// <summary>
@@ -93,24 +98,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXUserPolicies.Add)]
-        public async Task<ActionResult<AddUserResponse>> Post(AddUser request)
+        public async Task<ActionResult<AddUserResponse>> Post(AddUser request, CancellationToken cancellationToken = default)
         {
-            if (request.Users.Length == 0)
+            if (request.Users?.Any() != true)
             {
                 return BadRequest("No users to add.");
             }
-            await _userRepository.UpdateAsync(request.Users);
+            if (request.Users.Any(user => string.IsNullOrEmpty(user.Id)) && !(await _registrationPolicy.ReadAsync(cancellationToken)).CanCreate(User))
+            {
+                return Forbid();
+            }
+            await _userRepository.UpsertAsync(request.Users, null, cancellationToken);
             return new AddUserResponse() { Users = request.Users };
         }
 
         /// <summary>
-        /// Get user profile picture.
+        /// Get the profile picture appearance identifier of the requested accessible user.
         /// </summary>
         [HttpGet("Picture")]
         [Authorize(Policy = GXUserPolicies.View)]
-        public async Task<ActionResult<string?>> Post(string userId)
+        public async Task<ActionResult<Guid?>> Post(string userId, CancellationToken cancellationToken = default)
         {
-            return (await _userManager.GetUserAsync(User)).ProfilePicture;
+            return (await _userRepository.ReadAsync(userId, null, cancellationToken)).ProfilePicture?.Id;
         }
 
         /// <summary>
@@ -122,16 +131,33 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListUsers request,
             CancellationToken cancellationToken)
         {
-            ListUsersResponse ret = new ListUsersResponse();
+            ListUsersResponse ret = new();
             await _userRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
+        /// <summary>Returns identifiers of non-removed users assigned to any requested accessible role.</summary>
+        /// <param name="roles">Role names to look up. Administrators can query any role; other callers can query their own roles.</param>
+        /// <returns>Distinct user identifiers, or a bad request when no valid role names are supplied.</returns>
+        [HttpPost("RoleUsers")]
+        [Authorize(Policy = GXUserPolicies.View)]
+        public async Task<ActionResult<List<string>>> GetUserIdsInRoleAsync([FromBody] string[] roles)
+        {
+            if (roles == null || roles.Length == 0 || roles.Any(string.IsNullOrWhiteSpace))
+            {
+                return BadRequest(Properties.Resources.ArrayIsEmpty);
+            }
+            return await _userRepository.GetUserIdsInRoleAsync(roles);
+        }
+
+        /// <summary>Handles the remove user request.</summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXUserPolicies.Delete)]
-        public async Task<ActionResult<RemoveUserResponse>> Post(RemoveUser request)
+        public async Task<ActionResult<RemoveUserResponse>> Post(RemoveUser request, CancellationToken cancellationToken = default)
         {
-            await _userRepository.DeleteAsync(request.Ids, request.Delete);
+            await _userRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveUserResponse();
         }
     }

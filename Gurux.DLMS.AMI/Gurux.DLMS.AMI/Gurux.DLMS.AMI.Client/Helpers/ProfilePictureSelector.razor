@@ -1,0 +1,128 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@inject HttpClient Http
+
+<div class="form-group">
+    <label><GXLocalizedText Value="@Properties.Resources.ProfilePicture" /></label>
+    @if (Disabled)
+    {
+        <span>@SelectedImage?.Name</span>
+    }
+    else
+    {
+        <GXDropdownSearch TValue="Guid?" Id="@Id" class="form-control"
+                        Value="@Value" ValueChanged="@ValueChanged" ValueExpression="@(ValueExpression ?? (() => Value))" ItemsProvider="@GetImages" Formatter="@FormatImage">
+            <Template Context="imageId">
+                @if (imageId.HasValue && _images.TryGetValue(imageId.Value, out var image))
+                {
+                    <GXImage Value="@image.Value" /> 
+                    @image.Name
+                }
+            </Template>
+        </GXDropdownSearch>
+        @if (Value.HasValue)
+        {
+            <button type="button" class="btn btn-secondary" @onclick="@(() => ValueChanged.InvokeAsync(null))"><GXLocalizedText Value="@Properties.Resources.Clear" /></button>
+        }
+    }
+    @if (SelectedImage is GXAppearance selectedImage)
+    {
+        <GXImage Value="@selectedImage.Value" />
+    }
+</div>
+
+@code {
+    /// <summary>Selected GXAppearance image identifier.</summary>
+    [Parameter]
+    public Guid? Value { get; set; }
+
+    /// <summary>Called when the selected identifier changes or is cleared.</summary>
+    [Parameter]
+    public EventCallback<Guid?> ValueChanged { get; set; }
+
+    /// <summary>Identifies the parent form field for validation.</summary>
+    [Parameter]
+    public System.Linq.Expressions.Expression<Func<Guid?>>? ValueExpression { get; set; }
+
+    /// <summary>Prevents editing while retaining the preview.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Stable selector identifier.</summary>
+    [Parameter]
+    public string Id { get; set; } = "profile-picture";
+
+    private readonly Dictionary<Guid, GXAppearance> _images = new();
+    private Guid? _loadedId;
+    private GXAppearance? SelectedImage => Value.HasValue ? _images.GetValueOrDefault(Value.Value) : null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var selected = Value;
+        if (selected == _loadedId)
+        {
+            return;
+        }
+        if (selected is Guid id && id != Guid.Empty && !_images.ContainsKey(id))
+        {
+            var result = await Http.GetAsJsonAsync<GetAppearanceResponse>($"api/Appearance?type={(int)ResourceType.Image}&id={id}");
+            if (result.Item is GXAppearance image && image.Id == id)
+            {
+                _images[id] = image;
+            }
+        }
+        if (Value == selected)
+        {
+            _loadedId = selected;
+        }
+    }
+
+    private string? FormatImage(Guid? id) => id.HasValue ? _images.GetValueOrDefault(id.Value)?.Name : null;
+
+    private async ValueTask<ItemsProviderResult<Guid?>> GetImages(GXItemsProviderRequest request)
+    {
+        var result = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", new ListAppearances
+        {
+            Filter = new GXAppearance { ResourceType = (byte)ResourceType.Image, Name = request.Filter ?? "" },
+            Index = request.StartIndex,
+            Count = request.Count,
+            OrderBy = nameof(GXAppearance.Name)
+        }, request.CancellationToken);
+        var images = result.Appearances?.ToList() ?? [];
+        foreach (var image in images)
+        {
+            _images[image.Id] = image;
+        }
+        return new ItemsProviderResult<Guid?>(images.Select(image => (Guid?)image.Id), ClientHelpers.ToVirtualizedCount(result.Count));
+    }
+}

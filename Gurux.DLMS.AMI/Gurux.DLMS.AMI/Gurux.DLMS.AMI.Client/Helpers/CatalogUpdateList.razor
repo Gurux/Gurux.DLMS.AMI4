@@ -1,0 +1,175 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Rest
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject HttpClient Http
+@inject IServiceProvider Services
+@implements IDisposable
+
+<div class="catalog-update-list @(ShowAsCards ? "catalog-update-list--cards" : null)" aria-busy="@_loading.ToString().ToLowerInvariant()">
+    @if (_loading)
+    {
+        <p role="status">@Properties.Resources.Loading</p>
+    }
+    else if (_preferencesError)
+    {
+        <p role="alert">@Properties.Resources.WalkthroughPreferencesUnavailable</p>
+    }
+    else if (_error)
+    {
+        <p role="alert">@Properties.Resources.CatalogUpdatesUnavailable</p>
+    }
+    else if (_items.Length == 0)
+    {
+        <p role="status">@Properties.Resources.NoCatalogUpdates</p>
+    }
+    else
+    {
+        <ul class="list-unstyled">
+            @foreach (var item in _items.Where(item => _preferences?.IsHidden(GXWalkthroughPreferences.ReleaseKey(item)) != true).Take(Math.Max(0, Limit)))
+            {
+                <li class="catalog-update-entry">
+                    @if (ShowAsCards)
+                    {
+                        <a class="catalog-update-card" href="@DetailsUrl(item)">
+                            <span class="catalog-update-icon" aria-hidden="true"><CatalogUpdateIcon Entry="item" /></span>
+                            <span class="catalog-card-name" title="@item.Name">@item.Name</span>
+                            <span class="catalog-updated-badge">@Properties.Resources.Updated</span>
+                        </a>
+                        <WalkthroughHideButton Title="@item.Name" Disabled="@_saving" OnHide="() => HideAsync(item)" />
+                    }
+                    else
+                    {
+                        <span class="catalog-update-icon" aria-hidden="true">
+                            <CatalogUpdateIcon Entry="item" />
+                        </span>
+                        <article>
+                            <div class="catalog-update-heading">
+                                @if (SafeUrl(item.ReleaseUrl) is { } url)
+                                {
+                                    <a href="@url">@item.Name</a>
+                                }
+                                else
+                                {
+                                    <span>@item.Name</span>
+                                }
+                                <span class="catalog-update-version">@item.Version</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <p class="catalog-update-description">@item.Description</p>
+                            }
+                        </article>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</div>
+@if (_saveError) { <p role="alert">@Properties.Resources.WalkthroughHideFailed</p> }
+
+@code {
+    /// <summary>Maximum number of recent releases to display.</summary>
+    [Parameter] public int Limit { get; set; } = 10;
+    /// <summary>Shows compact clickable cards that open the release details.</summary>
+    [Parameter] public bool ShowAsCards { get; set; }
+    /// <summary>Applies the user's dismissed release versions to a regular update list.</summary>
+    [Parameter] public bool FilterHidden { get; set; }
+    private GXWalkthroughPreferences? _preferences;
+    private readonly CancellationTokenSource _lifetime = new();
+    private GXCatalogUpdateEntry[] _items = [];
+    private bool _loading = true, _error, _preferencesError, _saveError, _saving, _disposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (ShowAsCards || FilterHidden)
+            {
+                _preferences = Services.GetRequiredService<GXWalkthroughPreferences>();
+                _preferences.Changed += PreferencesChanged;
+                try { await _preferences.LoadAsync(); }
+                catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException) { _preferencesError = true; throw; }
+            }
+            _items = await Http.GetFromJsonAsync<GXCatalogUpdateEntry[]>("api/Block/CatalogUpdates/Items", _lifetime.Token) ?? [];
+        }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException) { _error = true; }
+        finally { _loading = false; }
+    }
+
+    private void PreferencesChanged()
+    {
+        if (_disposed) {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            _loading = true;
+            _preferencesError = false;
+            try { await _preferences!.LoadAsync(); }
+            catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+            catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException) { _preferencesError = true; }
+            finally { _loading = false; if (!_disposed) {
+                StateHasChanged();
+            } }
+        });
+    }
+
+    private async Task HideAsync(GXCatalogUpdateEntry item)
+    {
+        if (_saving || _preferences == null) {
+            return;
+        }
+        _saving = true;
+        _saveError = false;
+        try { await _preferences.HideAsync(GXWalkthroughPreferences.ReleaseKey(item)); }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException) { _saveError = true; }
+        finally { _saving = false; }
+    }
+
+    private static string? SafeUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        uri.Scheme is "http" or "https" && string.IsNullOrEmpty(uri.UserInfo) ? uri.AbsoluteUri : null;
+
+    private static string DetailsUrl(GXCatalogUpdateEntry item) =>
+        "catalog-update?productId=" + Uri.EscapeDataString(item.ProductId) + "&version=" + Uri.EscapeDataString(item.Version);
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_preferences != null) {
+            _preferences.Changed -= PreferencesChanged;
+        }
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

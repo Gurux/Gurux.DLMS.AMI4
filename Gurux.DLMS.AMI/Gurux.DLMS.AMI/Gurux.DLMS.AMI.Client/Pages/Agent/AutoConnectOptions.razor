@@ -1,44 +1,40 @@
-@*
+﻿@*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Media;
 @using Gurux.DLMS.AMI.Client.Pages.Script
-@using Gurux.DLMS.AMI.Components.Accordion
-@using Gurux.DLMS.AMI.Components.Enums;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.Enums
 @using Gurux.Net;
 @using Gurux.Serial;
+@using Gurux.UI.Components.Accordion
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -52,18 +48,20 @@
 
 @inject HttpClient Http
 
+<GXHelpContext Topic="AutoConnectOptions" />
+
 @if (Settings != null)
 {
-    <EditForm Model="@Settings">
+    <EditForm EditContext="@(GXEditContexts.For(Owner?.Active ?? (object)Settings))">
         <DataAnnotationsValidator />
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
+                    <GXInputSwitch Text="@Properties.Resources.Enabled" @bind-Value="Settings.Enabled" />
                     <br />
                 </div>
-                <fieldset disabled="@(!Settings.Active)">
+                <fieldset disabled="@(!Settings.Enabled)">
                     @if (!IsSerialPort())
                     {
                         <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
@@ -74,50 +72,40 @@
                         <SerialSettings @bind-Settings="@Settings.MediaSettings"
                                         @ref=serialSettings></SerialSettings>
                     }
-                    <Accordion Id="content-type-authoring">
-                        <HeaderTemplate>
-                            <div>
-                                <h6><b>DLMS settings</b></h6>
-                                <label>
-                                    @(string.Format("{0}, Authentication: {1} {2}", (InterfaceType)Settings.Interface,
-                                        (Gurux.DLMS.Enums.Authentication)Settings.Authentication,
-                                        (Security)Settings.Security))
-                                </label>
-                            </div>
-                        </HeaderTemplate>
-                        <ChildContent>
-                            <div class="form-group">
-                                <label style="margin:auto">Interface</label>
-                                <select class="form-select" @bind="@Settings.Interface">
-                                    @foreach (var it in InterfaceList)
-                                    {
-                                        <option value="@Convert.ToInt32(it)">@it</option>
-                                    }
-                                </select>
+                <GXAccordion Id="content-type-authoring">
+                    <HeaderTemplate>
+                        <div>
+                            <h6><b>@Properties.Resources.DLMSSettings</b></h6>
+                            <label>
+                                @(string.Format("{0}, Authentication: {1} {2}", (InterfaceType)Settings.Interface,
+                                                                (Gurux.DLMS.Enums.Authentication)Settings.Authentication,
+                                                                (Security)Settings.Security))
+                            </label>
+                        </div>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        <div class="form-group">
+                            <label style="margin:auto">@Properties.Resources.Interface</label>
+                            <GXInputDropdown class="form-select" @bind-Value="Settings.Interface" RememberValue="false" Items="@(InterfaceList.Select(it => (int)it))" Formatter="@(value => ((InterfaceType)value).ToString())" />
                             </div>
                             <div class="form-group">
-                                <InputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
+                                <GXInputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
                                              @bind-Value="Settings.UseLogicalNameReferencing" />
                                 <br />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.ClientAddress</label>
-                                <InputNumber id="threads" class="form-control"
-                                             @bind-Value="Settings.ClientAddress" />
+                                <GXInputNumber RememberValue="false" id="threads" class="form-control"
+                                             @bind-Value="Settings.ClientAddress" Min="@GXNumberBounds.Minimum(Settings.ClientAddress)" Max="@GXNumberBounds.Maximum(Settings.ClientAddress)" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.ServerAddress</label>
-                                <InputNumber id="threads" class="form-control"
-                                             @bind-Value="Settings.ServerAddress" />
+                                <GXInputNumber RememberValue="false" id="threads" class="form-control"
+                                             @bind-Value="Settings.ServerAddress" Min="@GXNumberBounds.Minimum(Settings.ServerAddress)" Max="@GXNumberBounds.Maximum(Settings.ServerAddress)" />
                             </div>
                             <div class="form-group">
-                                <label style="margin:auto">Authentication</label>
-                                <select class="form-select" @bind="@Settings.Authentication">
-                                    @foreach (var it in Authentications)
-                                    {
-                                        <option value="@Convert.ToInt32(it)">@it</option>
-                                    }
-                                </select>
+                                <label style="margin:auto">@Properties.Resources.Authentication</label>
+                                <GXInputDropdown class="form-select" @bind-Value="Settings.Authentication" RememberValue="false" Items="@(Authentications.Select(it => (int)it))" Formatter="@(value => ((Enums.Authentication)value).ToString())" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.Password</label>
@@ -126,12 +114,7 @@
                             </div>
                             <div class="form-group">
                                 <label style="margin:auto">@Properties.Resources.Security</label>
-                                <select class="form-select" @bind="@Settings.Security">
-                                    @foreach (var it in Securities)
-                                    {
-                                        <option value="@Convert.ToInt32(it)">@it</option>
-                                    }
-                                </select>
+                                <GXInputDropdown class="form-select" @bind-Value="Settings.Security" RememberValue="false" Items="@(Securities.Select(it => (int)it))" Formatter="@(value => ((Enums.Security)value).ToString())" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.InvocationCounter</label>
@@ -140,28 +123,23 @@
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.TraceLevel</label>
-                                <select class="form-select" @bind="Settings.TraceLevel">
-                                    @foreach (var it in TraceLevels)
-                                    {
-                                        <option value="@it">@it</option>
-                                    }
-                                </select>
+                                <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(TraceLevels)" />
                             </div>
                         </ChildContent>
-                    </Accordion>
+                    </GXAccordion>
                     <div class="form-group">
                         <label>@Properties.Resources.IdentifyWaitTime</label>
-                        <InputIntegerTimeSpan id="identifyWaitTime" class="form-control"
+                        <GXInputTimeSpan RememberValue="false" id="identifyWaitTime" class="form-control"
                                               @bind-Value="Settings.IdentifyWaitTime" />
                         <ValidationMessage For="@(() => Settings.IdentifyWaitTime)" />
                     </div>
                     <div class="form-group">
-                        <InputSwitch Text="@Properties.Resources.PreEstablishedConnection"
+                        <GXInputSwitch Text="@Properties.Resources.PreEstablishedConnection"
                                      @bind-Value="Settings.PreEstablished" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.ConnectionUpTime</label>
-                        <InputNullableIntegerTimeSpan id="connectionUpTime" class="form-control"
+                        <GXInputTimeSpan RememberValue="false" id="connectionUpTime" class="form-control"
                                                       @bind-Value="Settings.ConnectionUpTime" />
                         <ValidationMessage For="@(() => Settings.ConnectionUpTime)" />
                     </div>
@@ -181,7 +159,7 @@
                         <ScriptMethodSelector Title="@Properties.Resources.GatewayIdentificationScript"
                                               Scripts="@Scripts"
                                               SelectionChanged="@GatewayIdentificationSelectionChanged"
-                                              ScriptMethod="@Settings.GatewayScriptMethod"></ScriptMethodSelector>
+                                              ScriptMethod="@LegacyGatewayScriptMethod"></ScriptMethodSelector>
                     </div>
                 </fieldset>
             </div>
@@ -190,9 +168,11 @@
 }
 
 @code {
+    [CascadingParameter] public Agent? Owner { get; set; }
+
     //Available scripts.
     [Parameter]
-    public GXScript[]? Scripts { get; set; }
+    public IEnumerable<GXScript>? Scripts { get; set; }
 
     [Parameter]
     public ListenerSettings? Settings { get; set; }
@@ -207,10 +187,10 @@
         }
         set
         {
-            _defaultDeviceTemplate = value;
+            _defaultDeviceTemplate = value ?? new GXDeviceTemplate(Properties.Resources.Nothing);
             if (Settings != null)
             {
-                if (value.Id == Guid.Empty)
+                if (value == null || value.Id == Guid.Empty)
                 {
                     Settings.DefaultDeviceTemplate = null;
                 }
@@ -253,24 +233,12 @@
         TraceLevel.Verbose
     };
 
-    private string? _serialPort;
 
     /// <summary>
     /// The serial port of the auto connect.
     /// </summary>
     [Parameter]
-    public string? SerialPort
-    {
-        get => _serialPort;
-        set
-        {
-            if (_serialPort != value)
-            {
-                _serialPort = value;
-                SerialPortChanged.InvokeAsync(value);
-            }
-        }
-    }
+    public string? SerialPort { get; set; }
 
     /// <summary>
     /// Is serial port used.
@@ -278,7 +246,7 @@
     /// <returns></returns>
     private bool IsSerialPort()
     {
-        return !string.IsNullOrEmpty(_serialPort);
+        return !string.IsNullOrEmpty(SerialPort);
     }
 
     /// <summary>
@@ -301,9 +269,10 @@
         }
     }
 
-    ///<summary>
-    ///Gateway identification script method has been changed.
-    ///</summary>
+    // Auto-connect listeners still use this legacy setting independently of gateway listeners.
+#pragma warning disable CS0618 // Preserve editing existing auto-connect gateway identification settings.
+    private Guid? LegacyGatewayScriptMethod => Settings?.GatewayScriptMethod;
+
     private void GatewayIdentificationSelectionChanged(Guid? guid)
     {
         if (Settings != null)
@@ -311,20 +280,24 @@
             Settings.GatewayScriptMethod = guid;
         }
     }
+#pragma warning restore CS0618
 
-    public void Validate(GXValidator sender)
+    public async System.Threading.Tasks.Task ValidateAsync(GXValidator sender)
     {
         OnValidate(sender);
-        _validator?.Validate();
+        if (_validator != null)
+        {
+            await _validator.ValidateAsync();
+        }
     }
 
     public void OnValidate(GXValidator sender)
     {
-        @if (Settings != null && Settings.Active)
+        @if (Settings != null && Settings.Enabled)
         {
             if (Settings.ExpirationTime < 0)
             {
-                sender.AddError(() => Settings.ExpirationTime, "Invalid expiration time.");
+                sender.AddError(() => Settings.ExpirationTime, Properties.Resources.InvalidExpirationTime);
             }
             if (Settings?.MediaType == typeof(GXNet).FullName)
             {
@@ -341,16 +314,15 @@
     {
         if (string.IsNullOrEmpty(Settings?.MediaType) && Settings != null)
         {
-            Settings.MediaType = typeof(GXNet).FullName;
+            Settings.MediaType = typeof(GXNet).FullName!;
         }
-        if (Settings != null && Settings?.DefaultDeviceTemplate != null &&
-            Settings?.DefaultDeviceTemplate.Value != Guid.Empty)
+        if (Settings?.DefaultDeviceTemplate is Guid templateId && templateId != Guid.Empty)
         {
             _defaultDeviceTemplate = new GXDeviceTemplate()
-                {
-                    Id = Settings.DefaultDeviceTemplate.Value,
-                    Name = Properties.Resources.Nothing
-                };
+            {
+                Id = templateId,
+                Name = Properties.Resources.Nothing
+            };
         }
     }
 }

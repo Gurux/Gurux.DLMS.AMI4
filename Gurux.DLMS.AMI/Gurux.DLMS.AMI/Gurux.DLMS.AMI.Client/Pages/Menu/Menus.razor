@@ -1,36 +1,41 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/menus"
+@page "/tabs"
+@page "/config/tab"
+@page "/config/tabs"
+
+@using MenuKind = Gurux.DLMS.AMI.Shared.DTOs.Enums.MenuKind
+@using Gurux.DLMS.AMI.Shared.DTOs.View
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -41,60 +46,84 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = "Admin, MenuManager")]
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.MenuManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
-            <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+<GXHelpContext Topic="Menus" />
 
-<GXTable @ref="table"
-         Context="menu"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         Filter="@Filter"
-         ShowAllUsers="@Header"
-         ShowRemoved="@Header"
-         Columns="@Columns"
-         OnSearch="@Updated">
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXMenuPolicies.Add" />
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXMenuPolicies.Delete" />
+        <GXMenuEntry Text="@Properties.Resources.ApplyDefaults" Id="Regenerate" OnClick="@OnRegenerate" Policy="@GXMenuPolicies.Edit" />
+    </ChildContent>
+</GXMenuControl>
+
+<GXViewTable ViewName="Menu.Menus" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXMenuPolicies.View })" TItem="GXMenu" @ref="table"
+             Active="Active"
+             Context="menu"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             ShowRemoved="@Header"
+             Columns="@Columns"
+             OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-        </th>
+        </GXFh>
+        <GXFh Id="Title"></GXFh>
+        <GXFh Id="Kind">
+            @if (RouteKind == MenuKind.All)
+            {
+                <GXInputDropdown class="form-select" Id="Menus-Kind" RememberValue="true"
+                                 Items="MenuKinds"
+                                 @bind-Value="SelectedKind" OnSelected="@((MenuKind _) => Updated())" />
+            }
+        </GXFh>
+        <GXFh Id="PublishTime"></GXFh>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.MenuManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
-        </AuthorizeView>
+        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXMenuPolicies.Edit"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXMenuPolicies.Delete"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <Th Name="Name" Target="@menu">@Properties.Resources.Name</Th>
-        <Th Name="Title" Target="@menu">@Properties.Resources.Title</Th>
-        <Th Name="PublishTime" Target="@menu">@Properties.Resources.Publish</Th>
+        <GXTh Name="Name" Target="@menu">@Properties.Resources.Name</GXTh>
+        <GXTh Name="Title" Target="@menu">@Properties.Resources.Title</GXTh>
+        <GXTh Name="Kind" Target="@menu"><GXLocalizedText Value="@Properties.Resources.MenuKind" /></GXTh>
+        <GXTh Name="PublishTime" Target="@menu">@Properties.Resources.Publish</GXTh>
     </HeaderContent>
     <ItemContent>
-        <Td Link="@("Config/Menu/Edit/" + menu.Id)"><span class=@(ClientHelpers.GetActiveDot(menu.Active))></span>@menu.Name</Td>
-        <td>@menu.Title</td>
-        <td>@menu.PublishTime</td>
+        <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath(EditorPath + "/Edit/" + menu.Id)"><span class=@(ClientHelpers.GetActiveDot(menu.Enabled))></span>@menu.Name</GXTd>
+        <GXTd Id="Title">@menu.Title</GXTd>
+        <GXTd Id="Kind"><GXLocalizedText Value="@menu.Kind.ToString()" /></GXTd>
+        <GXTd Id="PublishTime">@menu.PublishTime</GXTd>
     </ItemContent>
-</GXTable>
+</GXViewTable>
 <br />
-<Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+
+
+
+
 
 @code {
+    private static readonly GXViewColumn[] ViewColumnDefaults =
+    [
+        new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
+        new("Title") { Position = 1, Description = "Title", Visibility = (byte)Visibility.All },
+        new("Kind") { Position = 2, Description = Properties.Resources.MenuKind, Visibility = (byte)Visibility.All },
+        new("PublishTime") { Position = 3, Description = "Publish", Visibility = (byte)Visibility.All },
+    ];
+
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     /// <summary>
     /// Selected menu ID.
     /// </summary>
@@ -106,7 +135,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.Menus;
+            return Properties.Resources.Menus;
         }
     }
 
@@ -124,7 +153,7 @@
     {
         get
         {
-            return "oi oi-tablet";
+            return "menu";
         }
     }
 
@@ -159,6 +188,13 @@
     public string[]? Columns { get; set; }
 
     /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public GXMenu? Active { get; set; }
+
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -168,10 +204,33 @@
     /// Menu filter.
     /// </summary>
     private GXMenu filter = new GXMenu();
-    /// <summary>
-    /// User is verified before menu is removed.
-    /// </summary>
-    protected ConfirmBase? DeleteConfirmation;
+    private static readonly MenuKind[] MenuKinds = Enum.GetValues<MenuKind>().Where(kind => kind != MenuKind.Tabs).ToArray();
+    private MenuKind SelectedKind = MenuKind.All;
+    private MenuKind FilterKind => RouteKind == MenuKind.Tabs ? MenuKind.Tabs :
+        SelectedKind == MenuKind.Tabs ? MenuKind.All : SelectedKind;
+
+    private MenuKind RouteKind
+    {
+        get
+        {
+            var path = GXConfigurationRoutes.LegacyPath(NavigationManager.GetCurrentPagePath().Trim('/'));
+            return string.Equals(path, "tabs", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(path, "config/tab", StringComparison.OrdinalIgnoreCase) ? MenuKind.Tabs : MenuKind.All;
+        }
+    }
+
+    private string EditorPath => RouteKind == MenuKind.Tabs ? "/Config/Tab" : "/Config/Menu";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (filter.Kind != FilterKind)
+        {
+            filter.Kind = FilterKind;
+            await Updated();
+        }
+    }
+
+
     /// <summary>
     /// Table reference.
     /// </summary>
@@ -186,42 +245,42 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                NotificationService?.RemoveByKey("Pages/Menu/Menus.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Menu/Menus.Updated");
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
-        await Task.Delay(1);
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingMenus);
+            NotificationService?.RemoveByKey("Pages/Menu/Menus.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXMenu>>(this, nameof(IGXHubEvents.MenuUpdate), async (menus) =>
-            {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXMenuPolicies.Add ||
+                        it.Type == GXMenuPolicies.Edit ||
+                        it.Type == GXMenuPolicies.Delete)
+                    {
+                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        break;
+                    }
+                }
             });
-            Notifier.On<IEnumerable<GXMenu>>(this, nameof(IGXHubEvents.MenuDelete), async (menus) =>
-            {
-                await Updated();
-            });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
-            if (table != null && Id != null)
+            if (Id != null)
             {
                 //Get last selected item.
-                table.Active = new GXMenu() { Id = Id.Value };
+                Active = new GXMenu() { Id = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -230,20 +289,17 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Menu/Menus.OnInitializedAsync");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXMenu>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingMenus);
         try
         {
+            filter.Kind = FilterKind;
             if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
@@ -253,20 +309,30 @@
                 filter.Removed = null;
             }
             ListMenus req = new ListMenus()
-                {
-                    Index = request.StartIndex,
-                    Count = request.Count,
-                    Filter = filter,
-                    OrderBy = request.OrderBy,
-                    Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData
-                };
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
             if (Count != 0)
             {
                 req.Count = Count;
             }
+            if (FilterKind == MenuKind.All)
+            {
+                // Exclude tabs on the server so page sizes and total counts stay correct.
+                var tabs = await Http.PostAsJson<ListMenusResponse>("api/Menu/List", new ListMenus
+                {
+                    Filter = new GXMenu { Kind = MenuKind.Tabs, Removed = filter.Removed },
+                    AllUsers = request.ShowAllUserData
+                }, request.CancellationToken);
+                req.Exclude = tabs.Menus?.Select(menu => menu.Id).ToArray();
+            }
             var ret = await Http.PostAsJson<ListMenusResponse>("api/Menu/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXMenu>(ret.Menus, ret.Count);
+            return new ItemsProviderResult<GXMenu>((ret.Menus ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
         catch (TaskCanceledException)
         {
@@ -275,11 +341,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
         return default;
     }
@@ -291,11 +353,11 @@
     {
         try
         {
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Menu/Add");
+            ClientHelpers.NavigateTo(NavigationManager, EditorPath + "/Add");
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -306,12 +368,12 @@
     {
         try
         {
-            Notifier.ClearStatus();
+            NotificationService?.RemoveByKey("Pages/Menu/Menus.OnEdit");
             if (table?.Active == null)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Menu/Edit/" + table?.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, EditorPath + "/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -319,22 +381,29 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Menu/Menus.OnEdit");
         }
     }
 
     /// <summary>
     /// Remove selected menu.
     /// </summary>
-    public void OnRemove()
+    public async Task OnRemove()
     {
         try
         {
             if (table == null || !table.SingleOrDefault().Any())
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.AreYouSureYouWantToDeleteSelectedItems, "",
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = Properties.Resources.Remove,
+                    AllowDelete = true,
+                    Items = table?.SingleOrDefault()?.Select(s => s.Name).ToArray()
+                });
+            await OnDeleteConfirmation(confirmation);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -342,24 +411,24 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     /// <summary>
     /// Delete the selected menus.
     /// </summary>
-    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    public async Task OnDeleteConfirmation(AmiConfirmationResult args)
     {
         try
         {
             if (table != null && args.Confirm)
             {
                 RemoveMenu req = new RemoveMenu()
-                    {
-                        Delete = args.Delete,
-                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
-                    };
+                {
+                    Delete = args.Delete,
+                    Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                };
                 await Http.PostAsJson<RemoveMenuResponse>("api/Menu/Delete", req);
             }
         }
@@ -369,13 +438,73 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Regenerate menus.
+    /// </summary>
+    public async Task OnRegenerate()
+    {
+        try
+        {
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ApplyBuiltInDefaults, Properties.Resources.SelectedItemsWillBeResetToDefaultsWithoutASelectionOnlyMissingDefaultsWillBeAdded,
+                new AmiConfirmationOptions
+                {
+                    ConfirmText = "Apply defaults",
+                    AllowDelete = false
+                });
+            await OnRegenerateConfirmation(confirmation);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Refresh menus.
+    /// </summary>
+    public async Task OnRegenerateConfirmation(AmiConfirmationResult args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                using var progress = Progress?.ProgressStart(Properties.Resources.Regenerate);
+                RegenerateMenu req = new RegenerateMenu()
+                {
+                    Kind = FilterKind,
+                    Ids = table?.SingleOrDefault().Select(item => item.Id).ToArray()
+                };
+                await Http.PostAsJson<RegenerateMenuResponse>("api/Menu/Regenerate", req,
+                    progress?.CancellationToken ?? CancellationToken.None);
+                NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.MenuDefaultsHaveBeenApplied, string.Empty, Closable: true));
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        if (table != null)
+        {
+            GXNotificationRefresh.Remove(table);
+        }
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 }
 

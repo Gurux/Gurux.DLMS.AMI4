@@ -1,0 +1,81 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ModuleLoader Loader
+@inject AuthenticationStateProvider Authentication
+@implements IDisposable
+@foreach (var module in Loader.AddIns)
+{
+    @foreach (var page in module.Pages.Where(p => p.Navigation))
+    {
+        <div class="nav-item px-3"><NavLink class="nav-link" href="@($"addin/{module.Id}/{page.Route}")">@(page.Title ?? page.Route)</NavLink></div>
+    }
+}
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+    protected override async Task OnInitializedAsync()
+    {
+        Loader.Changed += Changed;
+        Authentication.AuthenticationStateChanged += AuthenticationChanged;
+        try
+        {
+            if (!Loader.IsInitialized)
+            {
+                await Loader.RefreshAsync(_lifetime.Token);
+            }
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (HttpRequestException)
+        {
+        }
+    }
+    private void Changed() => _ = InvokeAsync(StateHasChanged);
+    private void AuthenticationChanged(Task<AuthenticationState> state) => _ = InvokeAsync(async () =>
+    {
+        try
+        {
+            await Loader.RefreshAsync(_lifetime.Token);
+        }
+        catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (HttpRequestException)
+        {
+        }
+    });
+    public void Dispose()
+    {
+        Loader.Changed -= Changed;
+        Authentication.AuthenticationStateChanged -= AuthenticationChanged;
+        _lifetime.Cancel();
+    }
+}

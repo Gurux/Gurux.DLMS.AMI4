@@ -1,210 +1,143 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
+@page "/Gateway/{Id:guid?}"
+@page "/Gateway/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Globalization
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Gateway)]
+@inject IGXMenuService SharedMenuService
+@implements IDisposable
+@inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+<GXHelpContext Topic="Gateway" />
 
-@if (Active != null)
-{
-    <EditForm Model="@Active">
-        <DataAnnotationsValidator />
-        <GXValidator @ref="_gatewayValidator" OnValidate="OnValidate" />
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
-                </div>
-                <div class="form-group">
-                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
-                    <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name"
-                               class="form-control" />
-                    <ValidationMessage For="@(() => Active.Name)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Description</label>
-                    <InputText id="name" disabled="@IsDeleting" class="form-control"
-                               @bind-Value="Active.Description" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Identifier</label>
-                    <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Identifier" class="form-control"
-                               placeholder="Gateway identifier" />
-                    <ValidationMessage For="@(() => Active.Identifier)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Agent</label>
-                    <div class="form-control d-inline-flex">
-                        <input id="agent" readonly="readonly"
-                               value="@Active.Agent?.Name"
-                               class="form-control"
-                               placeholder=@Properties.Resources.Agent />
-                        &nbsp;
-                        @if (Active.Agent != null)
-                        {
-                            <a target="_blank" href="@("Agent/Edit/" + Active.Agent.Id)">
-                                @Properties.Resources.Manage
-                            </a>
-                        }
-                    </div>
-                </div>
-                @if (Active.Detected != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Detected</label>
-                        <GXDateTimeSelector id="detected" Disabled="true" class="form-control"
-                                            @bind-Value="Active.Detected" />
-                    </div>
-                    <div class="form-group">
-                        <CopyLabel Value="@Active.ConnectionInfo">@Properties.Resources.IpAddress</CopyLabel>
-                        <input id="connectionInfo" readonly="readonly"
-                               value="@Active.ConnectionInfo"
-                               class="form-control" />
-                    </div>
-                }
-                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
-                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
-                @if (action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </div>
-    </EditForm>
-}
-@code {
-    private bool DeleteTarget;
-    [CascadingParameter]
-    private GatewayTab? Parent { get; set; }
-
-    private GXGateway? _active;
-
-    private GXGateway? Active
-    {
-        get
-        {
-            if (Parent?.Active != null)
+<CascadingValue Value="this">
+    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+        <TabTextTemplate>
+            <GXImage Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            @if (_ready)
             {
-                return Parent.Active;
+                <TabHeader Name="@GXMenus.GatewayDetailsTab" Parameters="@TabParameters" />
             }
-            return _active;
-        }
-    }
+        </ChildContent>
+    </GXTabControl>
+</CascadingValue>
+<br />
+@code {
+    private bool _ready;
 
-    private GXValidator? _gatewayValidator;
+    private IDictionary<string, object> TabParameters => new Dictionary<string, object>
+    {
+        ["Active"] = Active,
+        ["Action"] = _action
+    };
 
-    /// <summary>
-    /// User action.
-    /// </summary>
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
+
     /// <summary>
-    /// Selected item.
+    /// Active page.
     /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
     [Parameter]
     public Guid? Id { get; set; }
 
-    public string? IsDeleting
-    {
-        get
-        {
-            if (action != CrudAction.Delete)
-            {
-                return null;
-            }
-            return "disabled";
-        }
-    }
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXGateway Active = new GXGateway(null);
 
     protected override async Task OnInitializedAsync()
     {
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            if (Active == null && Id != null)
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager);
+                    return;
+            }
+            Title += " " + Properties.Resources.Gateway;
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingGateway);
+            NotificationService?.RemoveByKey("Pages/Gateway/Gateway.OnInitializedAsync");
+            if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get gateway data.
                 var tmp = (await Http.GetAsJsonAsync<GetGatewayResponse>(string.Format("api/Gateway?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
-                    _active = tmp.Item;
+                    Active = tmp.Item;
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
+                    return;
                 }
             }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            action = ClientHelpers.GetAction(Action);
-            if (action == CrudAction.Delete)
-            {
-                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
-            }
-            else
-            {
-                Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
-            }
-            Notifier.AddMenuItem(new GXMenuItem( Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
-            Notifier.UpdateButtons();
+            SetEditorMenu();
+            _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -212,48 +145,30 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Gateway/Gateway.OnInitializedAsync");
         }
     }
 
-    /// <summary>
-    /// Validate the gateway content.
-    /// </summary>
-    /// <param name="sender"></param>
-    private void OnValidate(GXValidator sender)
-    {
-        if (Active != null)
-        {
-            if (string.IsNullOrEmpty(Active.Name))
-            {
-                sender.AddError(() => Active.Name, "Invalid name.");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Save Active.
-    /// </summary>
-    public async void OnSave()
+    private GXEditorMenu? _editorMenu;
+    public bool DeleteTarget { get; set; }
+    private void SetEditorMenu() { _editorMenu = new GXEditorMenu(SharedMenuService); _editorMenu.Set(Active, _action, OnSave, () => { OnCancel(); return Task.CompletedTask; }); }
+    public void Dispose() => _editorMenu?.Dispose();
+    public async Task OnSave()
     {
         try
         {
-            _gatewayValidator?.ClearErrors();
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_gatewayValidator != null && !_gatewayValidator.Validate())
+            if (_action != CrudAction.Delete && string.IsNullOrEmpty(Active.Name))
             {
+                _editorMenu?.AddValidationError(nameof(Active.Name), Properties.Resources.InvalidName);
                 return;
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingGateway);
+            NotificationService?.RemoveByKey("Pages/Gateway/GatewayGeneral.OnSave");
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveGatewayResponse>("api/Gateway/Delete",
                     new RemoveGateway()
@@ -266,11 +181,11 @@
             else
             {
                 string address;
-                if (action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
                     address = "api/Gateway/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (_action == CrudAction.Update)
                 {
                     address = "api/Gateway/Update";
                 }
@@ -283,7 +198,7 @@
                     Gateways = new GXGateway[] { Active }
                 });
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -291,20 +206,16 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex, "Pages/Gateway/GatewayGeneral.OnSave");
         }
         finally
         {
-            Notifier.ProgressEnd();
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
     }
-
-    /// <summary>
-    /// Cancel update.
-    /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 }
+

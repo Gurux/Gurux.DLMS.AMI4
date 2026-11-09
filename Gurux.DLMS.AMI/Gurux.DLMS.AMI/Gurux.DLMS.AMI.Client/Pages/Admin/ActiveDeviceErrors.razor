@@ -1,35 +1,32 @@
 @*
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
 *@
+
 @page "/activedeviceerrors"
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -41,17 +38,19 @@
 @using System.Diagnostics
 @using System.Text.Json
 
+@inject IServiceProvider Services
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-@implements IAmiComponent
+@implements IGXAmiComponent
 @implements IDisposable
-@attribute [Authorize(Roles = "Admin, User, DeviceErrorManager")]
+
+<GXHelpContext Topic="ActiveDeviceErrors" />
 
 @if (_errors != null)
 {
     @foreach (var it in _errors)
     {
         <StatusTile Title="@GetErrorTitle(@it.Level)" OnClose="@OnClose" Target="@it" Mode="@GetTraceLevel(it)">
+            <div class="small"><LogCreatorLabel Creator="@it.Creator" Resource="Device" /></div>
             @it.Message
         </StatusTile>
     }
@@ -60,9 +59,13 @@
     @ChildContent
 </CascadingValue>
 @code {
-    TraceLevel GetTraceLevel(GXDeviceError item)
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    TraceLevel GetTraceLevel(GXLog item)
     {
-        return (TraceLevel)item.Level;
+        return (TraceLevel)item.Level.GetValueOrDefault();
     }
 
     string GetErrorTitle(int? level)
@@ -75,7 +78,7 @@
     }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     /// <summary>
     /// Amount of the errors shown on the view.
@@ -83,14 +86,14 @@
     [Parameter]
     public int Count { get; set; } = 5;
 
-    GXDeviceError[]? _errors = null;
+    IEnumerable<GXLog>? _errors = null;
 
     /// <inheritdoc />
     public string Name
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.ActiveDeviceErrors;
+            return Properties.Resources.ActiveDeviceErrors;
         }
     }
 
@@ -108,7 +111,7 @@
     {
         get
         {
-            return "DeviceErrorsIcon";
+            return "device-errors";
         }
     }
 
@@ -120,35 +123,35 @@
         try
         {
             await GetActiveErrors();
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            NotificationService?.ReportError(ex);
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            if (Notifier == null)
+            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingActiveDeviceErrors);
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveDeviceErrors.OnInitializedAsync");
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.ClearDeviceErrors), async (devices) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.AddDeviceErrors), async (errors) =>
-            {
-                await Updated();
-            });
-            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.CloseDeviceErrors), async (errors) =>
-            {
-                await Updated();
+                foreach (var it in items)
+                {
+                    if (it.Type == GXDeviceLogPolicies.Add ||
+                        it.Type == GXDeviceLogPolicies.Clear ||
+                        it.Type == GXDeviceLogPolicies.Close)
+                    {
+                        _ = GXNotificationRefresh.RefreshViewAsync(this, items, Updated);
+                        break;
+                    }
+                }
             });
             await GetActiveErrors();
         }
@@ -158,11 +161,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveDeviceErrors.OnInitializedAsync");
         }
     }
 
@@ -173,13 +172,13 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            GXDeviceError filter = new GXDeviceError();
-            ListDeviceErrors req = new ListDeviceErrors() { Filter = filter };
+            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingActiveDeviceErrors);
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveDeviceErrors.GetActiveErrors");
+            GXLog filter = new GXLog();
+            ListLogs req = new ListLogs() { Filter = filter };
             req.Count = Count;
-            ListDeviceErrorsResponse ret = await Http.PostAsJson<ListDeviceErrorsResponse>("api/DeviceError/List", req);
-            _errors = ret.Errors;
+            ListLogsResponse ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=device-error", req);
+            _errors = ret.Logs;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -187,17 +186,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveDeviceErrors.GetActiveErrors");
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveListener(this);
+        GXNotificationRefresh.Remove(this);
+        Notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -209,14 +205,18 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            CloseDeviceError arg = new CloseDeviceError();
-            arg.Errors = new Guid[] { (sender as GXDeviceError).Id };
-            await Http.PostAsJson<CloseDeviceErrorResponse>("api/DeviceError/Close", arg);
-            List<GXDeviceError> list = new List<GXDeviceError>();
-            list.AddRange(_errors);
-            list.Remove(sender as GXDeviceError);
+            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingActiveDeviceError);
+            NotificationService?.RemoveByKey("Pages/Admin/ActiveDeviceErrors.OnClose");
+            CloseLog arg = new CloseLog();
+            if (sender is not GXLog log)
+            {
+                return;
+            }
+            arg.Ids = new Guid[] { log.PublicId };
+            await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=device-error", arg);
+            List<GXLog> list = new List<GXLog>();
+            list.AddRange(_errors ?? []);
+            list.Remove(log);
             _errors = list.ToArray();
             await InvokeAsync(StateHasChanged);
         }
@@ -226,11 +226,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex, "Pages/Admin/ActiveDeviceErrors.OnClose");
         }
     }
 
@@ -245,8 +241,8 @@
         {
             if (confirm)
             {
-                Notifier?.ProgressStart();
-                await Http.PostAsJson<ClearDeviceErrorsResponse>("api/DeviceError/Clear", new ClearDeviceErrors());
+                using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingActiveDeviceError);
+                await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=device-error", new ClearLog());
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -256,11 +252,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier?.ProgressEnd();
+            NotificationService?.ReportError(ex);
         }
     }
 }

@@ -1,4 +1,33 @@
-﻿@page "/Account/LoginWith2fa"
+﻿@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@page "/Account/LoginWith2fa"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -9,22 +38,22 @@
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWith2fa> Logger
 
-<PageTitle>Two-factor authentication</PageTitle>
+<PageTitle>@Gurux.DLMS.AMI.Properties.Resources.TwoFactorAuthentication</PageTitle>
 
-<h1>Two-factor authentication</h1>
+<h1>@Gurux.DLMS.AMI.Properties.Resources.TwoFactorAuthentication</h1>
 <hr />
 <StatusMessage Message="@message" />
-<p>Your login is protected with an authenticator app. Enter your authenticator code below.</p>
-<div class="row">
+<p>@Gurux.DLMS.AMI.Properties.Resources.YourLoginIsProtectedWithAnAuthenticatorAppEnterYourAuthenticatorCodeBelow</p>
+<div class="row mx-0">
     <div class="col-md-4">
-        <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post">
+        <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post">
             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
             <input type="hidden" name="RememberMe" value="@RememberMe" />
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.TwoFactorCode" id="Input.TwoFactorCode" class="form-control" autocomplete="off" />
-                <label for="Input.TwoFactorCode" class="form-label">Authenticator code</label>
+                <label for="Input.TwoFactorCode" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.AuthenticatorCode</label>
                 <ValidationMessage For="() => Input.TwoFactorCode" class="text-danger" />
             </div>
             <div class="checkbox mb-3">
@@ -34,14 +63,14 @@
                 </label>
             </div>
             <div>
-                <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.LogInText</button>
             </div>
         </EditForm>
     </div>
 </div>
 <p>
-    Don't have access to your authenticator device? You can
-    <a href="Account/LoginWithRecoveryCode?ReturnUrl=@ReturnUrl">log in with a recovery code</a>.
+    @Gurux.DLMS.AMI.Properties.Resources.DonTHaveAccessToYourAuthenticatorDeviceYouCan
+    <a href="Account/LoginWithRecoveryCode?ReturnUrl=@ReturnUrl">@Gurux.DLMS.AMI.Properties.Resources.LogInWithARecoveryCode</a>.
 </p>
 
 @code {
@@ -49,7 +78,7 @@
     private ApplicationUser user = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -59,9 +88,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Input ??= new();
         // Ensure the user has gone through the username & password screen first
         user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
-            throw new InvalidOperationException("Unable to load two-factor authentication user.");
+            throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.UnableToLoadTwoFactorAuthenticationUser);
     }
 
     private async Task OnValidSubmitAsync()
@@ -83,19 +113,19 @@
         else
         {
             Logger.LogWarning("Invalid authenticator code entered for user with ID '{UserId}'.", userId);
-            message = "Error: Invalid authenticator code.";
+            message = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidAuthenticatorCode;
         }
     }
 
     private sealed class InputModel
     {
         [Required]
-        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [StringLength(7, ErrorMessageResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources), ErrorMessageResourceName = nameof(Gurux.DLMS.AMI.Properties.Resources.The0MustBeAtLeast2AndAtMax1CharactersLong), MinimumLength = 6)]
         [DataType(DataType.Text)]
-        [Display(Name = "Authenticator code")]
+        [Display(Name = nameof(Gurux.DLMS.AMI.Properties.Resources.AuthenticatorCode), ResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources))]
         public string? TwoFactorCode { get; set; }
 
-        [Display(Name = "Remember this machine")]
+        [Display(Name = nameof(Gurux.DLMS.AMI.Properties.Resources.RememberThisMachine), ResourceType = typeof(Gurux.DLMS.AMI.Properties.Resources))]
         public bool RememberMachine { get; set; }
     }
 }

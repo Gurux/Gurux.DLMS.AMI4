@@ -1,35 +1,33 @@
-﻿//
 // --------------------------------------------------------------------------
-//  Gurux Ltd
+// Gurux Ltd
 //
+// Copyright (c) Gurux Ltd.
 //
+// This file is part of Gurux Device Framework.
 //
-// Filename:        $HeadURL$
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
 //
-// Version:         $Revision$,
-//                  $Date$
-//                  $Author$
+// This software is available under either of the following licenses:
 //
-// Copyright (c) Gurux Ltd
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
 //
-//---------------------------------------------------------------------------
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
 //
-//  DESCRIPTION
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
 //
-// This file is a part of Gurux Device Framework.
+// Commercial licensing: https://www.gurux.fi/
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
-// and/or modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU General Public License for more details.
-//
-// This code is licensed under the GNU General Public License v2.
-// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
-//---------------------------------------------------------------------------
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.Rest;
+using Gurux.DLMS.AMI.Client.Shared.KeyManagement;
+using Gurux.DLMS.AMI.Server.Services.KeyManagement;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -40,32 +38,41 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <summary>
     /// This controller is used to handle the key management keys.
     /// </summary>
+    /// <remarks>
+    /// Constructor.
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class KeyManagementController : ControllerBase
+    public class KeyManagementController(IKeyManagementRepository keyManagementRepository) : ControllerBase
     {
-        private readonly IKeyManagementRepository _keyManagementRepository;
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public KeyManagementController(IKeyManagementRepository keyManagementRepository)
-        {
-            _keyManagementRepository = keyManagementRepository;
-        }
+        private readonly IKeyManagementRepository _keyManagementRepository = keyManagementRepository;
 
         /// <summary>
         /// Get key management information.
         /// </summary>
         /// <param name="id">KeyManagement id.</param>
         /// <returns>KeyManagement information.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpGet]
         [Authorize(Policy = GXKeyManagementPolicies.View)]
-        public async Task<ActionResult<GetKeyManagementResponse>> Get(Guid id)
+        public async Task<ActionResult<GetKeyManagementResponse>> Get(Guid id, CancellationToken cancellationToken = default)
         {
             return new GetKeyManagementResponse()
             {
-                Item = await _keyManagementRepository.ReadAsync(id)
+                Item = await _keyManagementRepository.ReadAsync(id, null, cancellationToken)
             };
+        }
+
+        /// <summary>Acquires material for one explicitly authorized key operation.</summary>
+        [HttpPost("Acquire")]
+        [Authorize(Policy = GXKeyPermissions.Use)]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult<GXKeyMaterial>> Acquire(
+            GXAcquireKeyRequest request,
+            [FromServices] GXKeyAcquisitionService service,
+            CancellationToken cancellationToken = default)
+        {
+            return await service.AcquireAsync(User, request, cancellationToken);
         }
 
         /// <summary>
@@ -77,7 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListKeyManagements request,
             CancellationToken cancellationToken)
         {
-            ListKeyManagementsResponse ret = new ListKeyManagementsResponse();
+            ListKeyManagementsResponse ret = new();
             await _keyManagementRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -87,29 +94,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Add")]
         [HttpPost("Update")]
         [Authorize(Policy = GXKeyManagementPolicies.Add)]
-        public async Task<ActionResult<UpdateKeyManagementResponse>> Post(UpdateKeyManagement request)
+        public async Task<ActionResult<UpdateKeyManagementResponse>> Post(UpdateKeyManagement request,
+            CancellationToken cancellationToken = default)
         {
-            if (request.KeyManagements == null || request.KeyManagements.Count == 0)
+            UpdateKeyManagementResponse ret = new()
             {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            UpdateKeyManagementResponse ret = new UpdateKeyManagementResponse();
-            ret.Ids = await _keyManagementRepository.UpdateAsync(request.KeyManagements);
+                Ids = await _keyManagementRepository.UpsertAsync(request.KeyManagements, null, cancellationToken)
+            };
             return ret;
         }
 
+        /// <summary>
+        /// Deletes specified keys from the key management system.
+        /// </summary>
+        /// <param name="request">The request containing the identifiers of the keys to be deleted and a flag indicating whether to perform
+        /// the deletion.</param>
+        /// <returns>A response indicating the result of the key deletion operation.</returns>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
         [HttpPost("Delete")]
         [Authorize(Policy = GXKeyManagementPolicies.Delete)]
-        public async Task<ActionResult<RemoveKeyManagementResponse>> Post(RemoveKeyManagement request)
+        public async Task<ActionResult<RemoveKeyManagementResponse>> Post(RemoveKeyManagement request, CancellationToken cancellationToken = default)
         {
-            if (request.Ids == null || request.Ids.Length == 0)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _keyManagementRepository.DeleteAsync(request.Ids, request.Delete);
+            await _keyManagementRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveKeyManagementResponse();
         }
     }
