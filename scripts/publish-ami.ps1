@@ -102,6 +102,9 @@ function Assert-AmiPackageLayout {
         @(Get-ChildItem -LiteralPath (Join-Path $Directory 'wwwroot/_framework') -File).Count -eq 0) {
         throw 'AMI release is missing the Blazor client framework assets.'
     }
+    if (-not (Test-Path -LiteralPath (Join-Path $Directory 'wwwroot/lib/bootstrap/dist/css/bootstrap.min.css') -PathType Leaf)) {
+        throw 'AMI release is missing Bootstrap CSS required by navigation and tabs.'
+    }
     if (@(Get-ChildItem -LiteralPath $Directory -Recurse -File -Filter 'appsettings.Development*.json').Count) {
         throw 'Development settings must not be included in an AMI release.'
     }

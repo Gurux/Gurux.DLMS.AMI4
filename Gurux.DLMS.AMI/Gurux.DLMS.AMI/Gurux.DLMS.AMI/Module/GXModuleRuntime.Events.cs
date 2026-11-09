@@ -6,13 +6,19 @@ namespace Gurux.DLMS.AMI.Server.Module;
 
 public sealed partial class GXModuleRuntime
 {
-    private readonly AmiEventHub eventHub = host.GetService<AmiEventHub>() ??
-        new AmiEventHub(error => logger.LogError(error, "Module event subscriber failed."));
+    private readonly (AmiEventHub Hub, bool Owned) eventHubLifetime = CreateEventHub(host, logger);
+    private AmiEventHub eventHub => eventHubLifetime.Hub;
+
+    private static (AmiEventHub Hub, bool Owned) CreateEventHub(IServiceProvider host, ILogger<GXModuleRuntime> logger)
+    {
+        var shared = host.GetService<AmiEventHub>();
+        return (shared ?? new AmiEventHub(error => logger.LogError(error, "Module event subscriber failed.")), shared == null);
+    }
 
     /// <summary>Host event publisher shared with module-owned subscriptions.</summary>
     public IGXAmiEvents Events => eventHub;
 
-    private Task DisposeOwnedEventsAsync() => host.GetService<AmiEventHub>() == null
+    private Task DisposeOwnedEventsAsync() => eventHubLifetime.Owned
         ? eventHub.DisposeAsync().AsTask() : Task.CompletedTask;
 
     private IGXAmiEvents CreateModuleEvents(Entry owner) => new ModuleEvents(this, owner);

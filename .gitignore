@@ -256,3 +256,10 @@ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/appsettings.Development.json
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Modules
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests
 /Gurux.DLMS.AMI.Tests
+
+# Bootstrap CSS is a vendored runtime asset, not generated dist output.
+!/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/
+/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/*
+!/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/css/
+/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/css/*
+!/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css

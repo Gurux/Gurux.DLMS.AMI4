@@ -68,6 +68,11 @@ try {
             if ($startup.StatusCode -ne 200 -or $startup.RawContentLength -eq 0) { throw "Missing image startup resource: $($resource.name)" }
         }
     }
+    $bootstrap = Invoke-WebRequest -Uri "$baseUrl/lib/bootstrap/dist/css/bootstrap.min.css" -TimeoutSec 5
+    if ($bootstrap.StatusCode -ne 200 -or $bootstrap.Headers['Content-Type'] -notmatch 'text/css' -or
+        $bootstrap.Content -notmatch '\.nav-tabs') {
+        throw 'AMI container did not serve Bootstrap tab styles as CSS.'
+    }
     $framework = Invoke-WebRequest -Uri ($url -replace '/Account/Login$', '/_framework/blazor.web.js') -TimeoutSec 5
     if ($framework.StatusCode -ne 200 -or $framework.RawContentLength -eq 0) { throw 'AMI container did not serve the Blazor framework.' }
     & docker exec $name sh -c 'test "$(id -u)" != 0 && test -w /data && test -d /app/wwwroot/_framework'

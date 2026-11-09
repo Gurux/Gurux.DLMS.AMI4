@@ -42,6 +42,9 @@ try {
     Reject { Assert-AmiPackageLayout -Directory $fixture }
     New-Item -ItemType Directory -Path (Join-Path $fixture 'wwwroot/_framework') -Force | Out-Null
     'fixture' | Set-Content -LiteralPath (Join-Path $fixture 'wwwroot/_framework/client.wasm')
+    Reject { Assert-AmiPackageLayout -Directory $fixture }
+    New-Item -ItemType Directory -Path (Join-Path $fixture 'wwwroot/lib/bootstrap/dist/css') -Force | Out-Null
+    '.nav{display:flex;list-style:none}' | Set-Content (Join-Path $fixture 'wwwroot/lib/bootstrap/dist/css/bootstrap.min.css')
     Assert-AmiPackageLayout -Directory $fixture
     'private development config' | Set-Content -LiteralPath (Join-Path $fixture 'appsettings.Development.json')
     Reject { Assert-AmiPackageLayout -Directory $fixture }

@@ -53,14 +53,12 @@
 
 <GXHelpContext Topic="UserGroups" />
 
-<AuthorizeView Policy="@GXUserGroupPolicies.View">
-    <GXMenuControl RightCorner="true">
-        <ChildContent>
-            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
-            <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" />
-        </ChildContent>
-    </GXMenuControl>
-</AuthorizeView>
+<GXMenuControl RightCorner="true">
+    <ChildContent>
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXUserGroupPolicies.Add" />
+        <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXUserGroupPolicies.Delete" />
+    </ChildContent>
+</GXMenuControl>
 
 <GXViewTable ViewName="User.UserGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXUserGroupPolicies.View })"
              TItem="GXUserGroup" @ref="table"

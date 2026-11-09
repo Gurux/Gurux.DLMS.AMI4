@@ -52,7 +52,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="..\Gurux.DLMS.AMI.Client\Pages\_Imports.razor" Link="_Imports.razor" />
+        <None Include="..\Gurux.DLMS.AMI.Client\_Imports.razor" Link="_Imports.razor" />
     </ItemGroup>
     <ItemGroup>
         <Using Include="Gurux.DLMS.AMI.Http" />
