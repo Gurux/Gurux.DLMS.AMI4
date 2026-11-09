@@ -209,6 +209,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [Filter(FilterType.Contains)]
         public List<GXScriptMethod>? Methods { get; set; }
 
+        /// <summary>Assembly dependencies of the last successful compilation; maintained by the server.</summary>
+        [Description("Assembly dependencies of the last successful compilation; maintained by the server.")]
+        [DataMember, ForeignKey(typeof(GXScriptDependency))]
+        public List<GXScriptDependency>? CompilationDependencies { get; set; }
+
         /// <summary>Script groups containing this script.</summary>
         [Description("Script groups containing this script.")]
         [DataMember]

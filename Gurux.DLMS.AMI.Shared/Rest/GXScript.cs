@@ -88,7 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXScript.Language), nameof(GXScript.SourceCode), nameof(GXScript.CatalogVersion),
             nameof(GXScript.CatalogSha256), nameof(GXScript.CatalogSourceCode), nameof(GXScript.Namespaces),
             nameof(GXScript.ServerSide), nameof(GXScript.ByteAssembly), nameof(GXScript.TraceLevel),
-            nameof(GXScript.ConcurrencyStamp))]
+            nameof(GXScript.ConcurrencyStamp), nameof(GXScript.CompilationDependencies))]
         public GXScript? Filter { get; set; }
 
         /// <summary>Gets or sets inclusive date and time ranges for properties of the filter type.</summary>
@@ -109,6 +109,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [Description("Admin user can access scripts from all users.")]
         public bool AllUsers { get; set; }
+
+        /// <summary>Return only scripts whose compiled dependencies differ from the server libraries.</summary>
+        [DataMember]
+        [Description("Return only scripts whose compiled dependencies differ from the server libraries.")]
+        public bool RebuildRequired { get; set; }
 
         /// <summary>Additional related information to include in the response. Reserved for future use.</summary>
         /// <remarks>
