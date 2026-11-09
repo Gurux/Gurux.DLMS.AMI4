@@ -27,7 +27,8 @@
 
 param(
     [Parameter(Mandatory)][string]$Package,
-    [Parameter(Mandatory)][string]$Version
+    [Parameter(Mandatory)][string]$Version,
+    [string]$PublicKeyPath = (Join-Path $PSScriptRoot '../../Gurux.DLMS.AMI.Agent/agent-release-public.pem')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,6 +40,17 @@ $key = [Security.Cryptography.RSA]::Create()
 try {
     $key.ImportFromPem($env:AGENT_RELEASE_SIGNING_KEY_PEM)
     if ($key.KeySize -lt 2048) { throw 'Release signing key must be at least 2048 bits.' }
+    $publicPem = [IO.File]::ReadAllText($PublicKeyPath)
+    if ($publicPem -notmatch '-----BEGIN PUBLIC KEY-----' -or $publicPem -match 'PRIVATE KEY') {
+        throw 'The bundled release key must contain only a public PEM key.'
+    }
+    $publicKey = [Security.Cryptography.RSA]::Create()
+    try {
+        $publicKey.ImportFromPem($publicPem)
+        if ([Convert]::ToBase64String($key.ExportSubjectPublicKeyInfo()) -cne [Convert]::ToBase64String($publicKey.ExportSubjectPublicKeyInfo())) {
+            throw 'Release signing key does not match the bundled agent public key.'
+        }
+    } finally { $publicKey.Dispose() }
     $hash = (Get-FileHash -LiteralPath $Package -Algorithm SHA256).Hash.ToLowerInvariant()
     $payload = [Text.Encoding]::UTF8.GetBytes("$Version`n$hash`n")
     $signature = $key.SignData($payload, [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pss)

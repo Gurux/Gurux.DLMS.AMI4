@@ -98,9 +98,6 @@ function Assert-AgentPublishedAssets {
     param($Release, $Manifest)
     $names = @($Manifest.package, $Manifest.checksum)
     if ($Manifest.releaseManifest) { $names += $Manifest.releaseManifest }
-    if ($Manifest.compatibilityManifest) {
-        $names += $Manifest.compatibilityManifest
-    }
     if ($Manifest.wasmPackage) { $names += @($Manifest.wasmPackage, $Manifest.wasmChecksum) }
     foreach ($name in $names) {
         if (@($Release.assets | Where-Object { $_.name -ceq $name -and $_.state -eq 'uploaded' -and $_.size -gt 0 }).Count -ne 1) {
@@ -138,21 +135,6 @@ function Publish-AgentRelease {
             $metadata.sha256 -cne (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant() -or
             [string]::IsNullOrWhiteSpace($metadata.signature)) { throw 'Signed release manifest does not describe this package.' }
         $additional += $signedManifest
-    }
-    if ($Manifest.compatibilityManifest) {
-        $compatibilityPath = Join-Path $Directory $Manifest.compatibilityManifest
-        if (-not (Test-Path -LiteralPath $compatibilityPath -PathType Leaf)) {
-            throw 'Missing agent compatibility metadata.'
-        }
-        $compatibility = Get-Content -LiteralPath $compatibilityPath -Raw | ConvertFrom-Json
-        if ($compatibility.schemaVersion -ne 1 -or $compatibility.id -cne 'Gurux.DLMS.AMI.Agent' -or
-            $compatibility.version -cne $Manifest.version -or $compatibility.targetFramework -cne 'net10.0' -or
-            @($compatibility.references).Count -ne 1 -or
-            $compatibility.references[0].name -cne 'Gurux.DLMS.AMI.Script.dll' -or
-            $compatibility.references[0].version -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-            throw 'Agent compatibility metadata does not describe this release.'
-        }
-        $additional += $compatibilityPath
     }
     foreach ($file in @($package, $checksum, (Join-Path $Directory 'notes.md'))) {
         if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing release asset: $file" }
@@ -229,10 +211,6 @@ function Initialize-AgentRelease {
     if ($ProductId -eq 'Gurux.DLMS.AMI.Agent' -and (-not $published -or @($existing.assets | Where-Object { $_.name -ceq "$ProductId-$version.zip.manifest.json" }).Count -gt 0)) {
         $manifest.releaseManifest = "$ProductId-$version.zip.manifest.json"
     }
-    if ($ProductId -eq 'Gurux.DLMS.AMI.Agent' -and
-        (-not $published -or @($existing.assets | Where-Object { $_.name -ceq "$ProductId-$version.compatibility.json" }).Count -gt 0)) {
-        $manifest.compatibilityManifest = "$ProductId-$version.compatibility.json"
-    }
     if ($ProductId -eq 'Gurux.DLMS.AMI' -and (-not $published -or @($existing.assets | Where-Object { $_.name -ceq "Gurux.DLMS.AMI.Wasm-$version.zip" }).Count -gt 0)) {
         $manifest.wasmPackage = "Gurux.DLMS.AMI.Wasm-$version.zip"
         $manifest.wasmChecksum = "Gurux.DLMS.AMI.Wasm-$version.zip.sha256"
@@ -251,7 +229,7 @@ function Initialize-AgentRelease {
         Sort-Object { [version]$_.Substring($prefix.Length) } -Descending | Select-Object -First 1)
     $range = if ($previous.Count) { "$($previous[0])..$sha" } else { $sha }
     $paths = if ($ProductId -eq 'Gurux.DLMS.AMI') { @('Gurux.DLMS.AMI', 'Gurux.DLMS.AMI.Shared', 'Gurux.DLMS.AMI.Http') }
-             else { @('Gurux.DLMS.AMI.Agent', 'Gurux.DLMS.AMI.Shared', 'Gurux.DLMS.AMI.Http') }
+             else { @('Gurux.DLMS.AMI.Agent', 'Gurux.DLMS.AMI.Script', 'Gurux.DLMS.AMI.Shared', 'Gurux.DLMS.AMI.Http') }
     $changes = @(git log '--format=- %s (%h)' $range -- @paths)
     if ($LASTEXITCODE -ne 0) { throw 'Could not create agent changelog.' }
     @("$ProductId $version", '', "Requires .NET 10. Run with: dotnet $ProductId.dll", '', "Commit: $sha", '', 'Changes:', $changes) |

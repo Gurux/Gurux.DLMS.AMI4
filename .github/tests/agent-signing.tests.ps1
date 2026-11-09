@@ -29,6 +29,7 @@ $ErrorActionPreference = 'Stop'
 $root = Join-Path ([IO.Path]::GetTempPath()) ('agent-signing-' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($root) | Out-Null
 $package = Join-Path $root 'agent.zip'
+$publicKey = Join-Path $root 'release-public.pem'
 $savedKey = $env:AGENT_RELEASE_SIGNING_KEY_PEM
 $rsa = [Security.Cryptography.RSA]::Create(2048)
 try {
@@ -38,7 +39,20 @@ try {
     try { & "$PSScriptRoot/../scripts/sign-agent-package.ps1" -Package $package -Version '1.2.3' } catch { $rejected = $true }
     if (-not $rejected -or (Test-Path "$package.manifest.json")) { throw 'Missing signing key did not fail closed.' }
     $env:AGENT_RELEASE_SIGNING_KEY_PEM = $rsa.ExportPkcs8PrivateKeyPem()
-    & "$PSScriptRoot/../scripts/sign-agent-package.ps1" -Package $package -Version '1.2.3'
+    $rejected = $false
+    try { & "$PSScriptRoot/../scripts/sign-agent-package.ps1" -Package $package -Version '1.2.3' -PublicKeyPath $publicKey } catch { $rejected = $true }
+    if (-not $rejected -or (Test-Path "$package.manifest.json")) { throw 'Missing bundled public-key file did not fail closed.' }
+    [IO.File]::WriteAllText($publicKey, $rsa.ExportPkcs8PrivateKeyPem())
+    $rejected = $false
+    try { & "$PSScriptRoot/../scripts/sign-agent-package.ps1" -Package $package -Version '1.2.3' -PublicKeyPath $publicKey } catch { $rejected = $true }
+    if (-not $rejected -or (Test-Path "$package.manifest.json")) { throw 'Private PEM was accepted as a bundled public key.' }
+    $other = [Security.Cryptography.RSA]::Create(2048)
+    try { [IO.File]::WriteAllText($publicKey, $other.ExportSubjectPublicKeyInfoPem()) } finally { $other.Dispose() }
+    $rejected = $false
+    try { & "$PSScriptRoot/../scripts/sign-agent-package.ps1" -Package $package -Version '1.2.3' -PublicKeyPath $publicKey } catch { $rejected = $true }
+    if (-not $rejected -or (Test-Path "$package.manifest.json")) { throw 'Mismatched bundled public key did not fail closed.' }
+    [IO.File]::WriteAllText($publicKey, $rsa.ExportSubjectPublicKeyInfoPem())
+    & "$PSScriptRoot/../scripts/sign-agent-package.ps1" -Package $package -Version '1.2.3' -PublicKeyPath $publicKey
     $manifest = Get-Content "$package.manifest.json" -Raw | ConvertFrom-Json
     $payload = [Text.Encoding]::UTF8.GetBytes("$($manifest.version)`n$($manifest.sha256)`n")
     if (-not $rsa.VerifyData($payload, [Convert]::FromBase64String($manifest.signature),
@@ -46,10 +60,10 @@ try {
     if ($manifest.sha256 -cne (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()) { throw 'Digest invalid.' }
     [IO.File]::WriteAllText($package, 'tampered')
     if ($manifest.sha256 -ceq (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()) { throw 'Tampering was not detected.' }
-    Write-Host 'PASS release signing, missing-key rejection and tamper detection.'
+    Write-Host 'PASS release signing, missing/mismatched/public-only key validation and tamper detection.'
 } finally {
     $rsa.Dispose()
     $env:AGENT_RELEASE_SIGNING_KEY_PEM = $savedKey
-    foreach ($file in @($package, "$package.manifest.json")) { if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file } }
+    foreach ($file in @($package, "$package.manifest.json", $publicKey)) { if (Test-Path -LiteralPath $file) { Remove-Item -LiteralPath $file } }
     Remove-Item -LiteralPath $root
 }

@@ -6,6 +6,8 @@ on:
     paths:
       - 'Gurux.DLMS.AMI.Agent/**'
       - 'Gurux.DLMS.AMI.Shared/**'
+      - 'Gurux.DLMS.AMI.Script/**'
+      - 'Tests/AgentScriptCompilation/**'
       - 'Gurux.DLMS.AMI.Http/**'
       - 'Tests/AgentProfileHistory/**'
       - 'Tests/AgentMaintenance/**'
@@ -17,8 +19,7 @@ on:
       - '.github/tests/agent-package.tests.ps1'
       - '.github/tests/agent-updater-payload.tests.ps1'
       - '.github/scripts/agent-release.ps1'
-      - '.github/scripts/agent-compatibility.ps1'
-      - '.github/tests/agent-compatibility.tests.ps1'
+      - '.github/tests/agent-release-no-dependencies.tests.ps1'
       - '.github/scripts/sign-agent-package.ps1'
       - '.github/tests/agent-release.tests.ps1'
       - '.github/tests/agent-signing.tests.ps1'
@@ -82,7 +83,7 @@ jobs:
       - name: Test release automation and maintenance behavior
         run: |
           & .github/tests/agent-release.tests.ps1
-          & .github/tests/agent-compatibility.tests.ps1
+          & .github/tests/agent-release-no-dependencies.tests.ps1
           & .github/tests/agent-package.tests.ps1
           & .github/tests/agent-signing.tests.ps1
           & .github/tests/agent-install.tests.ps1
@@ -102,6 +103,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Agent raw delivery checks failed.' }
           dotnet run --project Gurux.DLMS.AMI.Agent/Tests/AgentScriptExecution/AgentScriptExecution.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent script execution checks failed.' }
+          dotnet run --project Tests/AgentScriptCompilation/AgentScriptCompilation.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw 'Agent script compilation checks failed.' }
       - name: Reserve version and check for an already published release
         id: release
         env:
@@ -125,8 +128,6 @@ jobs:
             "-p:UpdaterPayloadDirectory=$updaterPayload" `
             '-p:IncludeSourceRevisionInInformationalVersion=false'
           if ($LASTEXITCODE -ne 0) { throw 'Agent publish failed.' }
-          & .github/scripts/agent-compatibility.ps1 -PublishDirectory $publishDir -Version $release.version `
-            -OutputFile (Join-Path artifacts/agent $release.compatibilityManifest)
           $archive = "Gurux.DLMS.AMI.Agent/bin/Release/$($release.package)"
           if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) { throw 'Agent ZIP was not generated.' }
           $productVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $publishDir 'Gurux.DLMS.AMI.Agent.dll')).ProductVersion
