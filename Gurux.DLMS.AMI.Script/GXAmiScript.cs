@@ -442,7 +442,7 @@ namespace Gurux.DLMS.AMI.Script
         }
 
         /// <summary>
-        /// Emits a script assembly using references from assemblies currently loaded in the application domain.
+        /// Emits a script assembly using managed references available to the current host.
         /// </summary>
         /// <remarks>
         /// References are collected from loaded, non-dynamic assemblies with a file location.
@@ -463,14 +463,8 @@ namespace Gurux.DLMS.AMI.Script
             List<MethodDeclarationSyntax>? methods)
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(script);
-            List<MetadataReference> references = [];
-            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                if (!assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
-                {
-                    references.Add(MetadataReference.CreateFromFile(assembly.Location));
-                }
-            }
+            var references = GXScriptCompiler.GetReferencePaths()
+                .Select(path => MetadataReference.CreateFromFile(path)).ToArray();
             Compilation compilation;
             if (scriptLanguage == ScriptLanguage.CSharp)
             {
@@ -593,7 +587,9 @@ namespace Gurux.DLMS.AMI.Script
                 MethodInfo? entryPoint = amiMacroType.GetMethod(args.MethodName) ?? throw new ArgumentException(string.Format("Invalid method name {0}.", args.MethodName));
                 if (entryPoint.ReturnType == typeof(void) &&
                     entryPoint.GetCustomAttribute<System.Runtime.CompilerServices.AsyncStateMachineAttribute>() != null)
+                    {
                     throw new InvalidOperationException("Async void script methods cannot be tracked. Return Task instead.");
+                }
                 object? Invoke()
                 {
                     token.ThrowIfCancellationRequested();
