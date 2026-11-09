@@ -163,7 +163,11 @@
         {
             _settings = JsonSerializer.Deserialize<ManufacturerSettings>(Parent.Parent.Active.Settings);
         }
-        InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(async () =>
+        {
+            await Updated();
+            StateHasChanged();
+        });
     }
 
     /// <summary>

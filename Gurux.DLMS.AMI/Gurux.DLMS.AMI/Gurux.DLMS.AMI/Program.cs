@@ -368,6 +368,7 @@ namespace Gurux.DLMS.AMI
             });
 
             var app = builder.Build();
+            app.UseForwardedHeaders();
             app.MapGroup("/account").MapIdentityApi<ApplicationUser>()
                 .Add(IdentityComponentsEndpointRouteBuilderExtensions.PreferIdentityConfirmationPage);
             app.UseRouting();

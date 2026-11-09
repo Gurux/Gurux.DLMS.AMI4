@@ -89,15 +89,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="http">HttpContext.</param>
         public static string? GetRemoteIpAddress(HttpRequest req, HttpContext http)
         {
-            string? ip = req.Headers["X-Forwarded-For"]
-                            .FirstOrDefault()?
-                            .Split(',')[0]
-                            .Trim();
-            if (string.IsNullOrEmpty(ip))
-            {
-                ip = http.Connection.RemoteIpAddress?.ToString();
-            }
-            return ip;
+            // ForwardedHeadersMiddleware validates the immediate proxy and updates this
+            // address. Reading raw headers here would bypass that trust boundary.
+            return http.Connection.RemoteIpAddress?.ToString();
         }
 
         /// <summary>

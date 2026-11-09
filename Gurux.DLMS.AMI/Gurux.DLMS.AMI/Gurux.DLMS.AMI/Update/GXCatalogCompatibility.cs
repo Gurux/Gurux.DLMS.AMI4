@@ -65,8 +65,9 @@ internal static class GXCatalogCompatibility
 
     internal static bool IsCompatible(CatalogProductType type, GXUpdateRelease release, IReadOnlyDictionary<string, Version> assemblies)
     {
-        // Agents execute in their own process and compile scripts against their own libraries.
-        return type == CatalogProductType.Agent || IsCompatible(release, assemblies);
+        // Applications replace the host; agents execute with their own libraries.
+        // Deployment compatibility is enforced separately by the deployment controller.
+        return type is CatalogProductType.Agent or CatalogProductType.Application || IsCompatible(release, assemblies);
     }
 
     internal static string HostAssemblyFingerprint() => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(

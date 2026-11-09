@@ -27,6 +27,7 @@
 // --------------------------------------------------------------------------
 *@
 
+@using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -151,7 +152,7 @@
                 }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
             });
             MenuService.Clear();
-            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+            MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave), EnableStyle.Modified));
             MenuService.AddMenuItems(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
@@ -171,7 +172,7 @@
     /// <summary>
     /// Save values.
     /// </summary>
-    private async void OnSave()
+    private async Task OnSave()
     {
         using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingPrune);
         NotificationService?.RemoveByKey("Pages/Config/Prune.OnSave");
@@ -185,6 +186,7 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
+            MenuService.EditContext?.MarkAsUnmodified();
             ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)
