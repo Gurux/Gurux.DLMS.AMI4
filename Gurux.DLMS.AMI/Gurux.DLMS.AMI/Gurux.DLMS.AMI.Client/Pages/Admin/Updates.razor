@@ -45,7 +45,7 @@
 
 <div class="available-updates" aria-busy="@(_loading || _checking || _updatingDatabase)">
     <h1>@Properties.Resources.AvailableUpdates</h1>
-    <StaticDeployment @key="(nameof(StaticDeployment), _snapshot?.Checked)" />
+    <StaticDeployment @key="_deploymentRefreshVersion" />
     @if (_snapshot?.Core.SecurityUpdateRequired == true)
     {
         <p role="alert" class="alert alert-warning">@Properties.Resources.ThereIsASecurityUpdateAvailableForYourVersionOfGuruxDLMSAMIToEnsureTheSecurityOfYourS</p>
@@ -130,6 +130,7 @@
     private const string CheckErrorKey = "Pages/Admin/Updates.Check";
     private readonly CancellationTokenSource _lifetime = new();
     private GXAvailableUpdatesResponse? _snapshot;
+    private int _deploymentRefreshVersion;
 
     private List<GXConfigurationTableChange> _schemaChanges = new();
     private bool _schemaLoaded;
@@ -270,7 +271,17 @@
             var snapshot = await Http.GetFromJsonAsync<GXAvailableUpdatesResponse>("api/Update/List", cancellation.Token);
             if (!_disposed && requestVersion == _requestVersion)
             {
-                _snapshot = snapshot ?? throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+                if (snapshot == null)
+                {
+                    throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+                }
+                // The first snapshot must not recreate deployment controls after a release is selected.
+                // Subsequent catalog checks still refresh the deployment component.
+                if (_snapshot != null && _snapshot.Checked != snapshot.Checked)
+                {
+                    ++_deploymentRefreshVersion;
+                }
+                _snapshot = snapshot;
             }
         }
         catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
@@ -318,7 +329,17 @@
             var snapshot = await response.Content.ReadFromJsonAsync<GXAvailableUpdatesResponse>(cancellationToken: cancellation.Token);
             if (!_disposed && requestVersion == _requestVersion)
             {
-                _snapshot = snapshot ?? throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+                if (snapshot == null)
+                {
+                    throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+                }
+                // The first snapshot must not recreate deployment controls after a release is selected.
+                // Subsequent catalog checks still refresh the deployment component.
+                if (_snapshot != null && _snapshot.Checked != snapshot.Checked)
+                {
+                    ++_deploymentRefreshVersion;
+                }
+                _snapshot = snapshot;
             }
         }
         catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
