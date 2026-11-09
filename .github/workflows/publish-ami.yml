@@ -8,6 +8,8 @@ on:
       - 'Gurux.DLMS.AMI.Module/**'
       - 'Tests/Module/**'
       - 'Gurux.DLMS.AMI.Http/**'
+      - '.github/scripts/check-ami-release-version.ps1'
+      - '.github/tests/ami-release-version.tests.ps1'
       - '.github/workflows/publish-ami.yml'
   push:
     branches: [main]
@@ -26,6 +28,8 @@ on:
       - '.github/scripts/ami-compose-release.ps1'
       - '.github/tests/ami-compose-release.tests.ps1'
       - '.github/tests/ami-package.tests.ps1'
+      - '.github/scripts/check-ami-release-version.ps1'
+      - '.github/tests/ami-release-version.tests.ps1'
       - '.github/workflows/publish-ami.yml'
   workflow_dispatch:
     inputs:
@@ -122,6 +126,7 @@ jobs:
           & .github/tests/agent-docker.tests.ps1
           & .github/tests/ami-package.tests.ps1
           & .github/tests/ami-wasm.tests.ps1
+          & .github/tests/ami-release-version.tests.ps1
           & .github/tests/ami-compose-release.tests.ps1
       - name: Reserve AMI server version
         id: release
@@ -136,6 +141,11 @@ jobs:
         run: |
           & scripts/publish-ami.ps1 -Version $env:BUILD_BUILDNUMBER -OutputDirectory artifacts/ami `
             -UiSourceProject _dependencies/ui/Development/Gurux.UI.Components.csproj
+      - name: Verify version.json in release packages
+        if: steps.release.outputs.published != 'true'
+        env:
+          BUILD_BUILDNUMBER: ${{ steps.release.outputs.version }}
+        run: .github/scripts/check-ami-release-version.ps1 -Directory artifacts/ami -Version $env:BUILD_BUILDNUMBER
       - name: Create or resume GitHub Release
         run: .github/scripts/agent-release.ps1 -Action Publish -ProductId Gurux.DLMS.AMI -Directory artifacts/ami
       - name: Create version tag

@@ -43,7 +43,7 @@
 
 <PageTitle>@Properties.Resources.AvailableUpdates</PageTitle>
 
-<div class="available-updates" aria-busy="@(_loading || _checking || _updatingDatabase)">
+<div class="available-updates" aria-busy="@((_loading || _checking || _updatingDatabase) ? "true" : "false")">
     <h1>@Properties.Resources.AvailableUpdates</h1>
     <StaticDeployment @key="_deploymentRefreshVersion" />
     @if (_snapshot?.Core.SecurityUpdateRequired == true)
