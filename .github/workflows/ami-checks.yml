@@ -6,6 +6,7 @@ on:
       - 'Gurux.DLMS.AMI/**'
       - 'Gurux.DLMS.AMI.Shared/**'
       - 'Gurux.DLMS.AMI.Module/**'
+      - 'Tests/Module/**'
       - 'Gurux.DLMS.AMI.Http/**'
       - 'Gurux.DLMS.AMI.Tests/**'
       - '.github/workflows/ami-checks.yml'
@@ -15,6 +16,7 @@ on:
       - 'Gurux.DLMS.AMI/**'
       - 'Gurux.DLMS.AMI.Shared/**'
       - 'Gurux.DLMS.AMI.Module/**'
+      - 'Tests/Module/**'
       - 'Gurux.DLMS.AMI.Http/**'
       - 'Gurux.DLMS.AMI.Tests/**'
       - '.github/workflows/ami-checks.yml'
@@ -52,10 +54,10 @@ jobs:
       - name: Run project-local Module tests and contract-major guard
         shell: pwsh
         run: >-
-          dotnet test Gurux.DLMS.AMI.Module/Test/Module.Tests.slnx
+          dotnet test Tests/Module/Module.Tests.slnx
           --configuration Release -m:1 -p:GeneratePackageOnBuild=false
           -p:GuruxDlmsUiComponentsSourceProject=${{ github.workspace }}/_dependencies/dlms-ui/Development/Gurux.DLMS.UI.Components.csproj
-          --logger trx --results-directory Gurux.DLMS.AMI.Module/TestResults
+          --logger trx --results-directory Tests/Module/TestResults
       - name: Run server and client regression checks
         shell: pwsh
         run: >-
@@ -67,6 +69,6 @@ jobs:
           name: ami-test-results
           path: |
             Gurux.DLMS.AMI.Tests/TestResults/*.trx
-            Gurux.DLMS.AMI.Module/TestResults/*.trx
+            Tests/Module/TestResults/*.trx
           if-no-files-found: ignore
           retention-days: 7

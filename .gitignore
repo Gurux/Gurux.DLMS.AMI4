@@ -238,8 +238,6 @@ Gurux.DLMS.AMI.Agent/Properties/launchSettings.json
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/ReadTaskNotifications/
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/CosemValues/
 /artifacts
-/Gurux.DLMS.AMI.Tests
-/Gurux.DLMS.AMI.Module/Test
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/AmiNotifier/
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/LogFiltering/
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/PolicyNameCache/
@@ -248,10 +246,6 @@ Gurux.DLMS.AMI.Agent/Properties/launchSettings.json
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/CosemHelp/
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/AgentVersionSelection/
 
-!/Gurux.DLMS.AMI.Module/Test/
-/Gurux.DLMS.AMI.Module/Test/*
-!/Gurux.DLMS.AMI.Module/Test/Help/
-/Gurux.DLMS.AMI.Module/Test
 
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/HelpPanel/
 
@@ -261,3 +255,4 @@ Gurux.DLMS.AMI.Agent/Properties/launchSettings.json
 Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/appsettings.Development.json
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Modules
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests
+/Gurux.DLMS.AMI.Tests
