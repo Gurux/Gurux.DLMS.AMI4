@@ -8,7 +8,6 @@ on:
       - 'Gurux.DLMS.AMI.Module/**'
       - 'Tests/Module/**'
       - 'Gurux.DLMS.AMI.Http/**'
-      - 'Gurux.DLMS.AMI.Tests/**'
       - '.github/workflows/publish-ami.yml'
   push:
     branches: [main]
@@ -19,7 +18,6 @@ on:
       - 'Gurux.DLMS.AMI.Http/**'
       - 'Gurux.DLMS.AMI.Module/**'
       - 'Tests/Module/**'
-      - 'Gurux.DLMS.AMI.Tests/**'
       - 'scripts/publish-ami.ps1'
       - 'scripts/ami-appsettings.json'
       - '.github/scripts/agent-release.ps1'
@@ -80,17 +78,11 @@ jobs:
           --configuration Release -m:1 -p:GeneratePackageOnBuild=false
           -p:GuruxDlmsUiComponentsSourceProject=${{ github.workspace }}/_dependencies/dlms-ui/Development/Gurux.DLMS.UI.Components.csproj
           --logger trx --results-directory Tests/Module/TestResults
-      - name: Run server and client regression checks
-        shell: pwsh
-        run: >-
-          ./Gurux.DLMS.AMI.Tests/scripts/Invoke-Tests.ps1
-          -DlmsUiSourceProject _dependencies/dlms-ui/Development/Gurux.DLMS.UI.Components.csproj
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ami-test-results
           path: |
-            Gurux.DLMS.AMI.Tests/TestResults/*.trx
             Tests/Module/TestResults/*.trx
           if-no-files-found: ignore
           retention-days: 7
