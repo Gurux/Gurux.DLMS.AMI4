@@ -19,7 +19,8 @@ public sealed class LegacyBinaryCompatibilityTests
         var reference = reader.AssemblyReferences.Select(reader.GetAssemblyReference)
             .Single(value => reader.GetString(value.Name) == "Gurux.DLMS.AMI.Module");
         Assert.AreEqual(new Version(4, 1, 2611, 502), reference.Version);
-        Assert.AreEqual(5, typeof(GXAmiModuleBase).Assembly.GetName().Version!.Major);
+        Assert.AreNotEqual(reference.Version.Major, typeof(GXAmiModuleBase).Assembly.GetName().Version!.Major,
+            "The incompatible fixture must target a different contract major than the host, including local builds.");
         var error = Assert.ThrowsExactly<AmiModuleDependencyException>(() => GXSharedAssemblyCompatibility.ValidateReferences(path));
         StringAssert.Contains(error.Message, "matching major");
         StringAssert.Contains(error.Message, "4.1.2611.502");
