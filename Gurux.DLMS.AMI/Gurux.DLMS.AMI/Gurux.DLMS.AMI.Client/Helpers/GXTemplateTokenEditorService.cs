@@ -27,6 +27,7 @@
 
 using System.Net.Http.Json;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Module;
 using Gurux.UI.Components.TemplateToken;
 

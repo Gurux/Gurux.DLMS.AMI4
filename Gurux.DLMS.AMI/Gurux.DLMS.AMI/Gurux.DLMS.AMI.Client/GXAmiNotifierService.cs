@@ -26,6 +26,7 @@
 // --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -101,7 +102,8 @@ namespace Gurux.DLMS.AMI.Client
 
         private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
         {
-            if (!_disposed) {
+            if (!_disposed)
+            {
                 OnPageChanged?.Invoke();
             }
         }
@@ -163,7 +165,8 @@ namespace Gurux.DLMS.AMI.Client
 
         private ValueTask OnLocationChanging(LocationChangingContext context)
         {
-            if (!_disposed) {
+            if (!_disposed)
+            {
                 OnPageChanging?.Invoke(context);
             }
             return ValueTask.CompletedTask;
@@ -658,7 +661,8 @@ namespace Gurux.DLMS.AMI.Client
                 _logger.LogError(ex, "Unable to start the notification connection.");
                 var failed = hubConnection;
                 hubConnection = null;
-                if (failed != null) {
+                if (failed != null)
+                {
                     await failed.DisposeAsync();
                 }
             }

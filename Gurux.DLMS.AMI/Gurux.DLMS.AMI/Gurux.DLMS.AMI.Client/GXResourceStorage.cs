@@ -28,7 +28,6 @@
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Components;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -40,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Menu;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Client.Internal;
+using Gurux.DLMS.AMI.Http;
 
 namespace Gurux.DLMS.AMI.Client
 {

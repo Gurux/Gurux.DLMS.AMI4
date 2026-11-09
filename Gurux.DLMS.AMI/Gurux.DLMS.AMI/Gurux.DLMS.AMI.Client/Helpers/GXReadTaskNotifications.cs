@@ -27,6 +27,7 @@
 
 using System.Collections.Concurrent;
 using System.Security.Claims;
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.UI.Components;
@@ -62,7 +63,8 @@ public sealed class GXReadTaskNotifications : IDisposable
     public void Track(IEnumerable<Guid>? taskIds)
     {
         var ids = taskIds?.Where(id => id != Guid.Empty).Distinct().ToArray() ?? [];
-        if (_disposed || ids.Length == 0) {
+        if (_disposed || ids.Length == 0)
+        {
             return;
         }
         var item = new GXNotificationItem(NotificationLevel.Information, Properties.Resources.ReadTasksQueued,
@@ -82,18 +84,20 @@ public sealed class GXReadTaskNotifications : IDisposable
             {
                 cancellation.Token.ThrowIfCancellationRequested();
                 // Respect an explicitly dismissed notification.
-                if (!_notifications.Notifications.Any(n => n.Id == item.Id)) {
+                if (!_notifications.Notifications.Any(n => n.Id == item.Id))
+                {
                     break;
                 }
                 var response = await _http.PostAsJson<ListTasksResponse>("api/Task/List",
                     new ListTasks { Included = ids, Count = ids.Length }, cancellation.Token);
                 cancellation.Token.ThrowIfCancellationRequested();
-                if (!_notifications.Notifications.Any(n => n.Id == item.Id)) {
+                if (!_notifications.Notifications.Any(n => n.Id == item.Id))
+                {
                     break;
                 }
                 var tasks = (response.Tasks ?? []).Where(t => ids.Contains(t.Id)).GroupBy(t => t.Id).Select(g => g.First()).ToArray();
                 if (tasks.Length != ids.Length)
-                    {
+                {
                     throw new InvalidOperationException(Properties.Resources.ReadTasksUnavailable);
                 }
                 int completed = tasks.Count(t => t.Ready != null);
@@ -102,7 +106,7 @@ public sealed class GXReadTaskNotifications : IDisposable
                     var errors = tasks.Select(t => !string.IsNullOrWhiteSpace(t.Error) ? t.Error : t.Result)
                         .Where(error => !string.IsNullOrWhiteSpace(error)).Distinct().ToArray();
                     if (errors.Length != 0)
-                        {
+                    {
                         _notifications.Add(item with { Level = NotificationLevel.Error, Title = Properties.Resources.ReadTasksFailed, Description = string.Join(Environment.NewLine, errors) });
                     }
                     else
@@ -125,7 +129,7 @@ public sealed class GXReadTaskNotifications : IDisposable
         catch (Exception error)
         {
             if (!_disposed && !cancellation.IsCancellationRequested)
-                {
+            {
                 _notifications.Add(item with { Level = NotificationLevel.Error, Title = Properties.Resources.ReadTasksUnavailable, Description = error.Message });
             }
         }
@@ -144,7 +148,8 @@ public sealed class GXReadTaskNotifications : IDisposable
         {
             var oldUser = (await previous).User;
             var newUser = (await state).User;
-            if (ReferenceEquals(state, _authenticationState) && UserKey(oldUser) != UserKey(newUser)) {
+            if (ReferenceEquals(state, _authenticationState) && UserKey(oldUser) != UserKey(newUser))
+            {
                 Clear();
             }
         }
@@ -156,17 +161,21 @@ public sealed class GXReadTaskNotifications : IDisposable
     private void Clear()
     {
         foreach (var cancellation in _running.Values)
-            {
-            try { cancellation.Cancel(); } catch (ObjectDisposedException) { }
+        {
+            try
+            { cancellation.Cancel(); }
+            catch (ObjectDisposedException) { }
         }
-        foreach (var id in _owned.Keys) {
+        foreach (var id in _owned.Keys)
+        {
             _notifications.Remove(id);
         }
         _owned.Clear();
     }
     public void Dispose()
     {
-        if (_disposed) {
+        if (_disposed)
+        {
             return;
         }
         _disposed = true;

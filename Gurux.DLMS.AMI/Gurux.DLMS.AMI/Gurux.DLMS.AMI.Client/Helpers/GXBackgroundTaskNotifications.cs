@@ -27,6 +27,7 @@
 
 using System.Text.Json;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
@@ -92,7 +93,7 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
         {
             var runId = await start(cancellation.Token);
             if (runId is null || runId == Guid.Empty)
-                {
+            {
                 throw new InvalidOperationException("The update check did not return an execution ID.");
             }
             lock (_gate)
@@ -102,13 +103,13 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
                 _pending.Remove(item.Id);
                 var tracked = new Pending(taskId, item with { Key = "background-task:" + runId.Value.ToString("D") });
                 if (!_active.TryAdd(runId.Value, tracked))
-                    {
+                {
                     throw new InvalidOperationException("The update check returned an execution ID that is already being tracked.");
                 }
                 // Keep the same notification identity when associating the server's run ID.
                 _notifications.Add(tracked.Item);
                 if (_completed.TryGetValue(runId.Value, out var completed) && completed.TaskId == taskId)
-                    {
+                {
                     Finish(completed);
                 }
             }
@@ -130,7 +131,7 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
         foreach (var item in items.Where(i => i.Type == GXConfigurationPolicies.Cron && i.Id == GXCronNotifications.Completed))
         {
             if (string.IsNullOrWhiteSpace(item.Settings))
-                {
+            {
                 continue;
             }
             GXBackgroundTaskStatus? status;
@@ -140,13 +141,13 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
             if (status == null || status.RunId == Guid.Empty ||
                 status.TaskId is not ("update.manufacturers" or "update.modules" or "update.agents") ||
                 status.State is not (BackgroundTaskState.Succeeded or BackgroundTaskState.Failed or BackgroundTaskState.Cancelled))
-                {
+            {
                 continue;
             }
             lock (_gate)
             {
                 if (_disposed)
-                    {
+                {
                     return;
                 }
                 // Completion can arrive before the HTTP response containing the execution ID.
@@ -155,7 +156,7 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
                 {
                     _completionOrder.Enqueue(status.RunId);
                     while (_completionOrder.Count > 256)
-                        {
+                    {
                         _completed.Remove(_completionOrder.Dequeue());
                     }
                 }
@@ -167,13 +168,13 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
     private void Finish(GXBackgroundTaskStatus status)
     {
         if (!_active.TryGetValue(status.RunId, out var tracked) || tracked.TaskId != status.TaskId)
-            {
+        {
             return;
         }
         _active.Remove(status.RunId);
         _notifications.Remove(tracked.Item.Id);
         if (status.State == BackgroundTaskState.Succeeded)
-            {
+        {
             return;
         }
         var description = status.State == BackgroundTaskState.Cancelled
@@ -192,12 +193,12 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
         lock (_gate)
         {
             if (_disposed)
-                {
+            {
                 return;
             }
             _disposed = true;
             foreach (var item in _pending.Values.Concat(_active.Values.Select(p => p.Item)))
-                {
+            {
                 _notifications.Remove(item.Id);
             }
             _active.Clear();

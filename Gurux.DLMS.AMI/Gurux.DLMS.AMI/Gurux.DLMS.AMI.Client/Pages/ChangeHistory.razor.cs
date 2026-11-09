@@ -25,6 +25,7 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.History;
 using Gurux.DLMS.AMI.Shared.Rest;

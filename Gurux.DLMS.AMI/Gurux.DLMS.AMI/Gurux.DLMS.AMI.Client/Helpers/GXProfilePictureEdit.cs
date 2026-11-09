@@ -26,6 +26,7 @@
 // --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared.Enums;
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
@@ -59,15 +60,20 @@ public sealed class GXProfilePictureEdit
             {
                 var image = new GXAppearance
                 {
-                    Name = "profile-picture-" + Guid.NewGuid().ToString("N"), ResourceType = (byte)ResourceType.Image,
-                    Value = pending.Value, OriginalFileName = pending.OriginalFileName,
-                    Enabled = true, Preload = false, AccessVisibility = ResourceVisibility.Private,
+                    Name = "profile-picture-" + Guid.NewGuid().ToString("N"),
+                    ResourceType = (byte)ResourceType.Image,
+                    Value = pending.Value,
+                    OriginalFileName = pending.OriginalFileName,
+                    Enabled = true,
+                    Preload = false,
+                    AccessVisibility = ResourceVisibility.Private,
                     Creator = string.IsNullOrEmpty(ownerId) ? null : new Gurux.DLMS.AMI.Shared.DTOs.Authentication.GXUser { Id = ownerId }
                 };
                 var response = await http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Add",
                     new UpdateAppearance { Appearances = [image] });
                 var id = response.Ids?.SingleOrDefault() ?? Guid.Empty;
-                if (id == Guid.Empty) {
+                if (id == Guid.Empty)
+                {
                     throw new InvalidOperationException(Properties.Resources.InvalidTarget);
                 }
                 added = id;
@@ -81,7 +87,8 @@ public sealed class GXProfilePictureEdit
             assign(pending);
             if (added is Guid id)
             {
-                try { await DeleteAsync(http, id); }
+                try
+                { await DeleteAsync(http, id); }
                 catch (Exception cleanup) { reportCleanupError(cleanup); }
             }
             throw;
@@ -92,7 +99,8 @@ public sealed class GXProfilePictureEdit
             try
             {
                 var previousImage = await http.GetAsJsonAsync<GetAppearanceResponse>($"api/Appearance?type={(int)ResourceType.Image}&id={oldId}");
-                if (previousImage.Item?.AccessVisibility is ResourceVisibility.Private or ResourceVisibility.Inherit) {
+                if (previousImage.Item?.AccessVisibility is ResourceVisibility.Private or ResourceVisibility.Inherit)
+                {
                     await DeleteAsync(http, oldId);
                 }
             }
