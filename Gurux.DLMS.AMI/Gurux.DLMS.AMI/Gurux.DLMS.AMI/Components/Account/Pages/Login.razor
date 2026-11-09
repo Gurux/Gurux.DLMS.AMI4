@@ -34,6 +34,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Gurux.DLMS.AMI.Data
 @using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Services
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
@@ -82,18 +83,24 @@
                     <button type="submit" class="w-100 btn btn-lg btn-primary">@Gurux.DLMS.AMI.Properties.Resources.LogInText</button>
                 </div>
                 <div>
-                    <p>
-                        <a href="Account/ForgotPassword">@Gurux.DLMS.AMI.Properties.Resources.ForgotYourPassword</a>
-                    </p>
+                    @if (ModuleServices.IsAvailable<IGXAmiEmailSender>())
+                    {
+                        <p>
+                            <a href="Account/ForgotPassword">@Gurux.DLMS.AMI.Properties.Resources.ForgotYourPassword</a>
+                        </p>
+                    }
                     @if (publicRegistrationAllowed)
                     {
                     <p>
                         <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">@Gurux.DLMS.AMI.Properties.Resources.RegisterAsANewUser</a>
                     </p>
                     }
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">@Gurux.DLMS.AMI.Properties.Resources.ResendEmailConfirmation</a>
-                    </p>
+                    @if (ModuleServices.IsAvailable<IGXAmiEmailSender>())
+                    {
+                        <p>
+                            <a href="Account/ResendEmailConfirmation">@Gurux.DLMS.AMI.Properties.Resources.ResendEmailConfirmation</a>
+                        </p>
+                    }
                 </div>
             </EditForm>
         </section>
