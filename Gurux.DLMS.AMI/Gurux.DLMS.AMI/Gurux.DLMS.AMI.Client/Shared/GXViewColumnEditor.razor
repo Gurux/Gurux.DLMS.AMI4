@@ -42,6 +42,7 @@
         <th><GXLocalizedText Value="@Properties.Resources.Visibility" /></th>
     </HeaderContent>
     <ItemContent Context="column">
+        @{ var selectedVisibility = Editor.Visibility.GetValueOrDefault(column.Name, Visibility.All); }
         <td>
             <label class="form-check mb-0">
                 <input type="checkbox" class="form-check-input" disabled="@Busy"
@@ -51,7 +52,7 @@
             </label>
         </td>
         <td>
-            <GXInputDropdown TValue="Visibility" class="form-select form-select-sm w-auto" Disabled="@Busy" aria-label="@(Caption(column) + " visibility")" @bind-Value:get="Editor.Visibility.GetValueOrDefault(column.Name, Visibility.All)" @bind-Value:set="(Visibility value) => Editor.SetVisibilityAsync(column.Name, value)" Items="@(Enum.GetValues<Visibility>())" RememberValue="false"><Template Context="visibility"><GXLocalizedText Value="@visibility.ToString()" /></Template></GXInputDropdown>
+            <GXInputDropdown TValue="Visibility" class="form-select form-select-sm w-auto" Disabled="@Busy" aria-label="@(Caption(column) + " visibility")" @bind-Value:get="selectedVisibility" @bind-Value:set="(Visibility value) => Editor.SetVisibilityAsync(column.Name, value)" Items="@(Enum.GetValues<Visibility>())" RememberValue="false"><Template Context="visibility"><GXLocalizedText Value="@visibility.ToString()" /></Template></GXInputDropdown>
         </td>
     </ItemContent>
 </GXTable>

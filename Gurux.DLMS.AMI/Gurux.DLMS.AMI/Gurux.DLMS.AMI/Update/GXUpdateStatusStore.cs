@@ -190,10 +190,12 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
             if (!string.IsNullOrWhiteSpace(configuration?.Settings))
             {
                 var settings = JsonNode.Parse(configuration.Settings);
-                // A host/runtime upgrade invalidates the old DLL compatibility approval.
-                if (settings?["HostAssemblyFingerprint"]?.GetValue<string>() == GXCatalogCompatibility.HostAssemblyFingerprint())
+                snapshot = settings?["Snapshot"]?.Deserialize<GXAvailableUpdatesResponse>();
+                // Only module compatibility depends on the installed host DLLs.
+                // Application releases replace the host and remain valid after upgrades.
+                if (snapshot != null && settings?["HostAssemblyFingerprint"]?.GetValue<string>() != GXCatalogCompatibility.HostAssemblyFingerprint())
                 {
-                    snapshot = settings?["Snapshot"]?.Deserialize<GXAvailableUpdatesResponse>();
+                    snapshot.Modules = [];
                 }
             }
         }
@@ -202,7 +204,7 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
             Core = Core(null),
             DeviceProfiles = [new GXAvailableUpdate { Id = options.ManufacturerProductId, Name = "Device profiles", Status = GXUpdateStatus.Unknown }]
         };
-        snapshot.Checked = checkedAt;
+        snapshot.Checked ??= checkedAt;
         snapshot.Core.InstalledVersion = CoreVersion();
         snapshot.Core.Status = Status(snapshot.Core.InstalledVersion, snapshot.Core.AvailableVersion);
         var cached = snapshot.Modules.ToDictionary(m => m.Id, StringComparer.OrdinalIgnoreCase);
