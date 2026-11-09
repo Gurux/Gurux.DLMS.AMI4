@@ -33,7 +33,7 @@ namespace Gurux.DLMS.AMI.Module;
 public interface IGXAmiDiagnosticsSource
 {
     /// <summary>Snapshot persistence interval in seconds; zero or negative disables collection.</summary>
-    int PerformanceInterval { get; }
+    int PerformanceSnapshotIntervalSeconds { get; }
     /// <summary>Occurs when the configured persistence interval changes.</summary>
     event Action<int>? IntervalChanged;
     /// <summary>Reports target, the Shared CrudAction byte value, and elapsed time. Contains no request bodies or secrets.</summary>
