@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <!-- Module UI assemblies are loaded after publication. Their references to shared
+       components and contracts are not visible to the host's trimming analysis. -->
+  <assembly fullname="Gurux.UI.Components" preserve="all" />
+  <assembly fullname="Gurux.DLMS.UI.Components" preserve="all" />
+  <assembly fullname="Gurux.DLMS.AMI.Module" preserve="all" />
+  <assembly fullname="Gurux.DLMS.AMI.Shared" preserve="all" />
+</linker>
