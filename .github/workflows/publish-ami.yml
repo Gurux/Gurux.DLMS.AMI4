@@ -1,6 +1,15 @@
 name: Publish AMI server release
 
 on:
+  pull_request:
+    paths:
+      - 'Gurux.DLMS.AMI/**'
+      - 'Gurux.DLMS.AMI.Shared/**'
+      - 'Gurux.DLMS.AMI.Module/**'
+      - 'Tests/Module/**'
+      - 'Gurux.DLMS.AMI.Http/**'
+      - 'Gurux.DLMS.AMI.Tests/**'
+      - '.github/workflows/publish-ami.yml'
   push:
     branches: [main]
     paths:
@@ -8,6 +17,9 @@ on:
       - 'Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/**'
       - 'Gurux.DLMS.AMI.Shared/**'
       - 'Gurux.DLMS.AMI.Http/**'
+      - 'Gurux.DLMS.AMI.Module/**'
+      - 'Tests/Module/**'
+      - 'Gurux.DLMS.AMI.Tests/**'
       - 'scripts/publish-ami.ps1'
       - 'scripts/ami-appsettings.json'
       - '.github/scripts/agent-release.ps1'
@@ -33,13 +45,59 @@ permissions:
   contents: write
 
 concurrency:
-  group: ami-server-releases
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('ami-server-pr-{0}', github.event.pull_request.number) || 'ami-server-releases' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
   queue: max
 
 jobs:
+  checks:
+    permissions:
+      contents: read
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          repository: Gurux/Gurux.DLMS.UI.Components
+          ref: ${{ vars.AMI_DLMS_UI_COMPONENTS_REF || 'main' }}
+          path: _dependencies/dlms-ui
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate Module public API compatibility
+        shell: pwsh
+        run: >-
+          dotnet pack Gurux.DLMS.AMI.Module/Gurux.DLMS.AMI.Module.csproj
+          --configuration Release -p:GeneratePackageOnBuild=false
+      - name: Run project-local Module tests and contract-major guard
+        shell: pwsh
+        run: >-
+          dotnet test Tests/Module/Module.Tests.slnx
+          --configuration Release -m:1 -p:GeneratePackageOnBuild=false
+          -p:GuruxDlmsUiComponentsSourceProject=${{ github.workspace }}/_dependencies/dlms-ui/Development/Gurux.DLMS.UI.Components.csproj
+          --logger trx --results-directory Tests/Module/TestResults
+      - name: Run server and client regression checks
+        shell: pwsh
+        run: >-
+          ./Gurux.DLMS.AMI.Tests/scripts/Invoke-Tests.ps1
+          -DlmsUiSourceProject _dependencies/dlms-ui/Development/Gurux.DLMS.UI.Components.csproj
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ami-test-results
+          path: |
+            Gurux.DLMS.AMI.Tests/TestResults/*.trx
+            Tests/Module/TestResults/*.trx
+          if-no-files-found: ignore
+          retention-days: 7
+
   publish:
-    if: github.repository == 'Gurux/Gurux.DLMS.AMI4' && github.ref == 'refs/heads/main'
+    needs: checks
+    if: github.event_name != 'pull_request' && github.repository == 'Gurux/Gurux.DLMS.AMI4' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
     timeout-minutes: 45
     outputs:

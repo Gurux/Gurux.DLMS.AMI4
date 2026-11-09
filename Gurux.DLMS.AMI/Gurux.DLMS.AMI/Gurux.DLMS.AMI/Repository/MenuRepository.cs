@@ -1385,7 +1385,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 // Repair the former built-in requirement as well as newly seeded menus.
                 // Leave customized policy sets and non-system overrides untouched.
                 var storedMenu = await connection.SingleOrDefaultAsync<GXMenu>(
-                    GXSelectArgs.Select<GXMenu>(m => m.SystemDefined, m => m.Id == menu.Id));
+                    GXSelectArgs.Select<GXMenu>(m => m.SystemDefined!, m => m.Id == menu.Id));
                 var policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXMenuLink), general.Id);
                 if (storedMenu?.SystemDefined == true && policies.SequenceEqual([GXWorkflowGroupPolicies.View]))
                 {
