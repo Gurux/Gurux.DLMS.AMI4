@@ -379,6 +379,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             var menu = await connection.SingleOrDefaultAsync<GXMenu>(arg, cancellationToken);
             if (menu == null)
             {
+                if (User?.Identity?.IsAuthenticated == true && !User.IsInRole(GXRoles.Admin))
+                {
+                    // A menu outside the user's groups is unavailable, just like a
+                    // menu rejected by its resource policies below.
+                    return new GXMenu();
+                }
                 throw new ArgumentException(Properties.Resources.MenuNotFound);
             }
             menu.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXMenu), menu.Id, cancellationToken);
