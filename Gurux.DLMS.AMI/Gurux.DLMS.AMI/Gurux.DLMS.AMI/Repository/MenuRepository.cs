@@ -230,8 +230,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else if (User.Identity?.IsAuthenticated == true)
             {
-                string? userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetMenusByUser(s => "*", userId, null, request?.Filter?.Removed, request?.Exclude, request?.Included);
+                arg = GXSelectArgs.SelectAll<GXMenu>();
+                if (request?.Filter?.Removed == null)
+                {
+                    arg.Where.And<GXMenu>(m => m.Removed == null);
+                }
+                if (request?.Exclude?.Any() == true)
+                {
+                    arg.Where.And<GXMenu>(m => !request.Exclude.Contains(m.Id));
+                }
+                if (request?.Included?.Any() == true)
+                {
+                    arg.Where.And<GXMenu>(m => request.Included.Contains(m.Id));
+                }
             }
             else
             {
@@ -271,7 +282,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 foreach (var candidate in await connection.SelectAsync<GXMenu>(GXSelectArgs.Select<GXMenu>(m => m.Id), cancellationToken))
                 {
                     candidate.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXMenu), candidate.Id, cancellationToken);
-                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, candidate.Policies, cancellationToken))
+                    if (await CanViewAsync(connection, candidate, cancellationToken))
                     {
                         allowed.Add(candidate.Id);
                     }
@@ -327,6 +338,38 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return menus;
         }
 
+        // Group assignments restrict access; an ungrouped menu needs an explicit policy.
+        internal async Task<bool> CanViewAsync(GXDbConnection connection, GXMenu menu, CancellationToken cancellationToken = default)
+        {
+            if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, menu.Policies, cancellationToken))
+            {
+                return false;
+            }
+            if (User.IsInRole(GXRoles.Admin))
+            {
+                return true;
+            }
+            var groups = GXSelectArgs.Select<GXMenuGroup>(g => g.Id, g => g.Removed == null);
+            groups.Joins.AddInnerJoin<GXMenuGroup, GXMenuGroupMenu>(g => g.Id, m => m.MenuGroupId);
+            groups.Where.And<GXMenuGroupMenu>(m => m.MenuId == menu.Id && m.Removed == null);
+            if (!(await connection.SelectAsync<GXMenuGroup>(groups, cancellationToken)).Any())
+            {
+                return menu.Policies?.Any(p => !string.IsNullOrWhiteSpace(p)) == true;
+            }
+            var userId = ServerHelpers.GetUserId(User, false);
+            if (userId == null || User.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+            groups.Joins.AddInnerJoin<GXMenuGroup, GXUserGroupMenuGroup>(g => g.Id, m => m.MenuGroupId);
+            groups.Joins.AddInnerJoin<GXUserGroupMenuGroup, GXUserGroup>(m => m.UserGroupId, g => g.Id);
+            groups.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(g => g.Id, m => m.UserGroupId);
+            groups.Where.And<GXUserGroupMenuGroup>(m => m.Removed == null);
+            groups.Where.And<GXUserGroup>(g => g.Removed == null);
+            groups.Where.And<GXUserGroupUser>(m => m.UserId == userId && m.Removed == null);
+            return (await connection.SelectAsync<GXMenuGroup>(groups, cancellationToken)).Any();
+        }
+
         /// <inheritdoc />
         public async Task<GXMenu> ReadAsync(string name, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default)
         {
@@ -373,9 +416,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXMenu> ReadAsync(Guid id, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default)
         {
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
-            var arg = User?.Identity?.IsAuthenticated == true && !User.IsInRole(GXRoles.Admin)
-                ? GXQuery.GetMenusByUser(q => "*", ServerHelpers.GetUserId(User), id)
-                : GXSelectArgs.SelectAll<GXMenu>(m => m.Id == id && m.Removed == null);
+            var arg = GXSelectArgs.SelectAll<GXMenu>(m => m.Id == id && m.Removed == null);
             var menu = await connection.SingleOrDefaultAsync<GXMenu>(arg, cancellationToken);
             if (menu == null)
             {
@@ -389,7 +430,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             menu.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXMenu), menu.Id, cancellationToken);
 
-            if (menu == null || !await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, menu.Policies, cancellationToken))
+            if (!await CanViewAsync(connection, menu, cancellationToken))
             {
                 return new GXMenu();
             }
