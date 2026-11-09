@@ -10,10 +10,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..\..</DockerfileContext>
-    <GuruxServiceSourceProject Condition="'$(GuruxServiceSourceProject)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\GXCom\Gurux.Service\Development\Gurux.Service.csproj</GuruxServiceSourceProject>
-    <UseGuruxServiceSource Condition="'$(UseGuruxServiceSource)' == '' and Exists('$(GuruxServiceSourceProject)')">true</UseGuruxServiceSource>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Gurux.Service" Version="3.0.2611.501" />
     <ProjectReference Include="..\Gurux.DLMS.AMI.Client\Gurux.DLMS.AMI.Client.csproj" />
