@@ -338,6 +338,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return menus;
         }
 
+        internal static void ValidateAudience(GXMenu menu)
+        {
+            menu.MenuGroups ??= [];
+            if (menu.MenuGroups.Count == 0 && menu.Policies?.Any(p => !string.IsNullOrWhiteSpace(p)) != true)
+            {
+                throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+            }
+        }
+
         // Group assignments restrict access; an ungrouped menu needs an explicit policy.
         internal async Task<bool> CanViewAsync(GXDbConnection connection, GXMenu menu, CancellationToken cancellationToken = default)
         {
@@ -520,18 +529,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException(Properties.Resources.InvalidTitle);
                     }
-                    if (menu.MenuGroups == null || menu.MenuGroups.Count == 0)
-                    {
-                        ListMenuGroups request = new()
-                        {
-                            Filter = new GXMenuGroup()
-                        };
-                        menu.MenuGroups = [.. await _menuGroupRepository.ListAsync(request, null, CancellationToken.None)];
-                        if (menu.MenuGroups.Count == 0)
-                        {
-                            throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
-                        }
-                    }
+                    ValidateAudience(menu);
                     if (menu.Id == Guid.Empty)
                     {
                         menu.Creator = creator;
