@@ -16,7 +16,7 @@
         <UseGuruxUpdaterSource Condition="'$(UseGuruxUpdaterSource)' == '' and Exists('$(GuruxUpdaterSourceProject)')">true</UseGuruxUpdaterSource>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.1.2611.605" />
+        <PackageReference Include="Gurux.DLMS.AMI.Module" Version="5.0.2611.901" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
