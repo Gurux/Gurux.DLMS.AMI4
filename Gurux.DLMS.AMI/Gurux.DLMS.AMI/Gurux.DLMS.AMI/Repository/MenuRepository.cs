@@ -1235,7 +1235,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddContentTabMenu(connection, group, GXMenus.ConfigurationLanguageTab,
                 ("Language", "Language", "language", null), ("Localize", "Localize", "localized-resource", null));
             await AddContentTabMenu(connection, group, GXMenus.AccessControlTab,
-                ("Roles", "Roles", null, null), ("Policies", "Policies", null, null));
+                ("Roles", "Roles", null, GXRolePolicies.View), ("Policies", "Policies", null, GXPolicyPolicies.View));
             await AddContentTabMenu(connection, group, GXMenus.LogTypeDetailsTab,
                 ("GeneralInformation", "GeneralInformation", null, null), ("Policies", "Policies", null, null));
             await AddContentTabMenu(connection, group, GXMenus.NotificationTab,
@@ -2073,6 +2073,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     link.CreationTime = DateTimeOffset.UtcNow;
                     await connection.InsertAsync(transaction, GXInsertArgs.Insert(link), cancellationToken);
                     await GXResourcePolicyStorage.SaveAsync(connection, typeof(GXMenuLink), link.Id, link.Policies, cancellationToken, transaction);
+                }
+            }
+            // Built-in menus belong to the Users group. Older installations created
+            // this group without memberships, leaving ordinary users with no navigation.
+            // Preserve configured memberships, including explicitly removed mappings.
+            if (ids.Length == 0 && (existingGroup != null || targets.Count != 0))
+            {
+                var memberships = await connection.SelectAsync<GXUserGroupMenuGroup>(transaction,
+                    GXSelectArgs.SelectAll<GXUserGroupMenuGroup>(m => m.MenuGroupId == group.Id), cancellationToken);
+                if (memberships.Count == 0)
+                {
+                    var userGroups = await connection.SelectAsync<GXUserGroup>(transaction,
+                        GXSelectArgs.Select<GXUserGroup>(g => g.Id, g => g.Default == true && g.Removed == null), cancellationToken);
+                    foreach (var userGroup in userGroups)
+                    {
+                        await connection.InsertAsync(transaction, GXInsertArgs.Insert(new GXUserGroupMenuGroup
+                        {
+                            MenuGroupId = group.Id,
+                            UserGroupId = userGroup.Id,
+                            CreationTime = DateTimeOffset.UtcNow
+                        }), cancellationToken);
+                    }
                 }
             }
             transaction.Commit();

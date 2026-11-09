@@ -172,7 +172,7 @@
     /// <summary>
     /// Save values.
     /// </summary>
-    private async void OnSave()
+    private async Task OnSave()
     {
         using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAccount);
         NotificationService?.RemoveByKey("Pages/Config/Account.OnSave");
@@ -186,6 +186,7 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
+            MenuService.EditContext?.MarkAsUnmodified();
             ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (Exception ex)

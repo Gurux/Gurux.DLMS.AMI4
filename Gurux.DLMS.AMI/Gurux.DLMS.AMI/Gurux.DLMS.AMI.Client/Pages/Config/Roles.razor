@@ -49,6 +49,8 @@
 @inject NavigationManager NavigationManager
 @inject IGXMenuService SharedMenuService
 @inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAuthorizationService AuthorizationService
 @inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 
@@ -56,32 +58,58 @@
 
 <PageTitle>@Properties.Resources.AccessControl</PageTitle>
 <h1>@Properties.Resources.AccessControl</h1>
-<GXTabControl PersistSelectionInUrl="true" RouteGroup="config/access-control" Active="@ActiveTab" InitialTab="@(_policyTabSelected ? 1 : 0)" SelectionChanged="OnTabChanged">
-    <ChildContent>
-        <TabHeader Name="@GXMenus.AccessControlTab">
-            <ContentForLink Context="link">
-                @switch (link.Url)
-                {
-                    case "Roles":
-                        <GXMenuControl RightCorner="true">
-                            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="OnAdd" Policy="@GXRolePolicies.Add" />
-                            <GXMenuEntry Text="@Properties.Resources.Edit" Id="Edit" OnClick="OnEdit" Policy="@GXRolePolicies.Edit" />
-                            <GXMenuEntry Text="@Properties.Resources.Remove" Id="Remove" OnClick="OnRemove" Policy="@GXRolePolicies.Delete" />
-                            <GXMenuEntry Text="@Properties.Resources.ApplyDefaults" Id="Regenerate" OnClick="OnRegenerate" Policy="@GXRolePolicies.Edit" />
-                        </GXMenuControl>
-                        <RoleEditor @ref="_roleEditor" Roles="@_roles" Edit="true" PermissionCatalog="@_permissions" OnChanged="RolesChanged"
-                                    SelectionMode="Gurux.UI.Components.Table.SelectionMode.Multiple"></RoleEditor>
-                        break;
-                    case "Policies":
-                        <PolicyList />
-                        break;
-                }
-            </ContentForLink>
-        </TabHeader>
-    </ChildContent>
-</GXTabControl>
+<section data-testid="access-control" aria-busy="@(_initialized ? "false" : "true")">
+@if (_canViewRoles || _canViewPolicies)
+{
+    <GXTabControl PersistSelectionInUrl="true" RouteGroup="config/access-control" Active="@ActiveTab" InitialTab="@(_policyTabSelected ? 1 : 0)" SelectionChanged="OnTabChanged">
+        <ChildContent>
+            <TabHeader Name="@GXMenus.AccessControlTab" LinkFilter="CanViewTab">
+                <ContentForLink Context="link">
+                    @switch (link.Url)
+                    {
+                        case "Roles":
+                            <GXMenuControl RightCorner="true">
+                                <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="OnAdd" Policy="@GXRolePolicies.Add" />
+                                <GXMenuEntry Text="@Properties.Resources.Edit" Id="Edit" OnClick="OnEdit" Policy="@GXRolePolicies.Edit" />
+                                <GXMenuEntry Text="@Properties.Resources.Remove" Id="Remove" OnClick="OnRemove" Policy="@GXRolePolicies.Delete" />
+                                <GXMenuEntry Text="@Properties.Resources.ApplyDefaults" Id="Regenerate" OnClick="OnRegenerate" Policy="@GXRolePolicies.Edit" />
+                            </GXMenuControl>
+                            <RoleEditor @ref="_roleEditor" Roles="@_roles" Edit="true" PermissionCatalog="@_permissions" OnChanged="RolesChanged"
+                                        SelectionMode="Gurux.UI.Components.Table.SelectionMode.Multiple"></RoleEditor>
+                            break;
+                        case "Policies":
+                            <PolicyList />
+                            break;
+                    }
+                </ContentForLink>
+            </TabHeader>
+        </ChildContent>
+    </GXTabControl>
+}
+else if (_initialized)
+{
+    <p role="status" data-testid="access-control-denied">@Properties.Resources.NotAuthorized</p>
+}
+</section>
 
 @code {
+    private bool _canViewRoles;
+    private bool _canViewPolicies;
+    private bool _initialized;
+
+    private bool CanViewTab(GXMenuLink link)
+    {
+        if (string.Equals(link.Url, "Roles", StringComparison.OrdinalIgnoreCase))
+        {
+            return _canViewRoles;
+        }
+        if (string.Equals(link.Url, "Policies", StringComparison.OrdinalIgnoreCase))
+        {
+            return _canViewPolicies;
+        }
+        return true;
+    }
+
     [Parameter] public string? Tab { get; set; }
     private string ActiveTab => GXTabRoutes.Active(NavigationManager, "config/access-control", 0,
         new Uri(NavigationManager.Uri).AbsolutePath.TrimEnd('/').EndsWith("/policy", StringComparison.OrdinalIgnoreCase) ? "Policies" : "Roles") ?? "Roles";
@@ -231,7 +259,7 @@
     private void OnTabChanged(Gurux.UI.Components.Tab.GXTabPage page)
     {
         _policyTabSelected = string.Equals(page.Path, "Policies", StringComparison.OrdinalIgnoreCase);
-        if (!_policyTabSelected && _roles.Count == 0)
+        if (!_policyTabSelected && _canViewRoles && _roles.Count == 0)
         {
             _ = InvokeAsync(Updated);
         }
@@ -245,6 +273,11 @@
     {
         try
         {
+            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+            if (!(await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded)
+            {
+                return false;
+            }
             using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingRoles);
             NotificationService?.RemoveByKey("Pages/Config/Roles.Updated");
             _permissions = await Http.GetAsJsonAsync<GXPermission[]>("api/Permission") ?? Array.Empty<GXPermission>();
@@ -289,6 +322,9 @@
 
         try
         {
+            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+            _canViewRoles = (await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded;
+            _canViewPolicies = (await AuthorizationService.AuthorizeAsync(user, GXPolicyPolicies.View)).Succeeded;
             NotificationService?.RemoveByKey("Pages/Config/Roles.OnInitializedAsync");
             Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
@@ -303,12 +339,19 @@
                     }
                 }
             });
-            EditorMenu.Set(_roles, CrudAction.Update, OnSave, OnCancel);
-            await Updated();
+            if (_canViewRoles)
+            {
+                EditorMenu.Set(_roles, CrudAction.Update, OnSave, OnCancel);
+                await Updated();
+            }
         }
         catch (Exception ex)
         {
             NotificationService?.ReportError(ex, "Pages/Config/Roles.OnInitializedAsync");
+        }
+        finally
+        {
+            _initialized = true;
         }
     }
 

@@ -3,7 +3,23 @@
     "Type": "SQLite",
     "Settings": "Data Source=ami.db;Foreign Keys=True"
   },
-  "Server": { "Address": "http://localhost:8080" },
-  "Logging": { "LogLevel": { "Default": "Information", "Microsoft.AspNetCore": "Warning" } },
-  "AllowedHosts": "*"
+  "Server": {
+    "Address": "http://localhost:8080"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "Gurux.DLMS.AMI.Components.Account.Pages.Register": "Information",
+      "Gurux.DLMS.AMI.Server.Midlewares.GXApplicationUserManager": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ImageStorage": {
+    "RootPath": "",
+    "MaxFileSize": 10485760
+  },
+  "Crypto": {
+    "Key": "47757275784C746447757275784C746447757275784C746447757275784C7464"
+  }
 }

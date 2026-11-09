@@ -238,6 +238,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListBlocksResponse? response,
             CancellationToken cancellationToken = default)
         {
+            if (response != null)
+            {
+                response.Blocks = [];
+                response.Count = 0;
+            }
             //All users can see the blocks that are shared with them. Admin can see all the blocks.
             GXSelectArgs arg;
             if (User?.IsInRole(GXRoles.Admin) == true)

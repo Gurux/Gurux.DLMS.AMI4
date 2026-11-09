@@ -31,13 +31,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Server.Cron;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Update;
 using Gurux.Updater.Enums;
-using Gurux.Updater.Services;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {

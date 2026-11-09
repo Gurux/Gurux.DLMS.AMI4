@@ -298,7 +298,7 @@ internal sealed class GXResourceCache(ILogger logger)
                         var body = await response.Content.ReadAsStringAsync();
                         if (!validate(body))
                         {
-                            throw new JsonException("Invalid menu representation.");
+                            throw new JsonException("Invalid resource representation.");
                         }
 
                         if (!isCurrent())
