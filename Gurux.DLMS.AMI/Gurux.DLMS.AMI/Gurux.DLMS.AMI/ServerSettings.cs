@@ -43,6 +43,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.DTOs.Menu;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
@@ -54,6 +55,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.UrlAlias;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.View;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.DB;
 using Gurux.Service.Orm;
 using Gurux.Service.Orm.Common;
@@ -666,6 +668,21 @@ namespace Gurux.DLMS.AMI.Server
                     await using var statusTransaction = await connection.BeginTransactionAsync();
                     await EnumTypeRepository.EnsureAgentStatusesAsync(connection, statusTransaction);
                     await statusTransaction.CommitAsync();
+                    //TODO: remove later.
+                    var args = GXSelectArgs.Select<GXKeyManagementKey>(q => GXSql.Count(q), w => w.State == KeyState.PreActive && w.Removed == null);
+                    bool preaction = connection.SingleOrDefault<int>(args) != 0;
+                    if (preaction)
+                    {
+                        var value = new GXKeyManagementKey
+                        {
+                            State = Shared.Enums.KeyState.Active
+                        };
+                        var update = GXUpdateArgs.Update(value, q => q.State!);
+                        update.Where.And<GXKeyManagementKey>(q =>
+                            q.State == Shared.Enums.KeyState.PreActive &&
+                            q.Removed == null);
+                        await connection.UpdateAsync(update);
+                    }
                 }
                 await MenuRepository.EnsureConfigurationMenuAsync(connection);
             }
