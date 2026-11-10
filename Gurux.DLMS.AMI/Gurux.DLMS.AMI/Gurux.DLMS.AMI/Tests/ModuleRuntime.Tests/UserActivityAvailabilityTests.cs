@@ -79,6 +79,24 @@ public class UserActivityAvailabilityTests
         Assert.AreEqual(1, calls);
     }
 
+    [TestMethod]
+    [DataRow("/api/PasswordChange")]
+    [DataRow("/api/PasswordChange/00000000-0000-0000-0000-000000000001/Work")]
+    public async Task PasswordMaterialRoutesBypassActivityBodyLogging(string path)
+    {
+        var dispatcher = DispatchProxy.Create<IGXAmiModuleServices, OptionalDispatcher>();
+        ((OptionalDispatcher)(object)dispatcher).Available = true;
+        using var diagnostics = Diagnostics();
+        var calls = 0;
+        var middleware = Middleware(dispatcher, diagnostics, _ => { calls++; return Task.CompletedTask; });
+        var context = Context();
+        context.Request.Path = path;
+        context.Request.Method = "POST";
+        await middleware.Invoke(context);
+        Assert.AreEqual(1, calls);
+        Assert.AreEqual("no-store", context.Response.Headers.CacheControl.ToString());
+    }
+
     private static DefaultHttpContext Context() => new()
     {
         User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "user")], "test")),
