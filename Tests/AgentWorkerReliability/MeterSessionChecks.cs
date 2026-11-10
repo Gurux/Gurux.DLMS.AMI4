@@ -49,7 +49,7 @@ internal static class MeterSessionChecks
         var failures = new List<string>();
         foreach (var (name, test) in new (string, Func<System.Threading.Tasks.Task>)[]
         {
-            ("IEC timeout units", TimeoutUnits), ("receive cancellation", ReceiveCancellation), ("receive total timeout and retry cancellation", WaitBudget),
+            ("failed password change stops ordinary work", PasswordFailureStopsSession), ("IEC timeout units", TimeoutUnits), ("receive cancellation", ReceiveCancellation), ("receive total timeout and retry cancellation", WaitBudget),
             ("owned media cleanup", FailedSetupCleanup), ("same-session follow-up tasks", FollowUpTasks), ("poller handoff to connected meter", PollerHandoff), ("incoming sessions close when empty", IncomingEmpty), ("tasks handed off during failed setup", HandoffDuringFailedSetup), ("infinite receive cancellation", InfiniteReceiveCancellation), ("IP-identified gateway drains tasks", IpIdentifiedGateway), ("completion retry never repeats meter write", WriteCompletionRetry)
         })
         {
@@ -120,6 +120,45 @@ internal static class MeterSessionChecks
         await host.Worker.ReadMeter(new() { Tasks = [Item(id)] });
         Check(ProbeMedia.Last!.Closes > 0 && ProbeMedia.Last.Disposals == 1, "Opened transport was not closed/disposed after invalid settings.");
     }
+    private static async System.Threading.Tasks.Task PasswordFailureStopsSession()
+    {
+        var id = Guid.NewGuid();
+        var operation = Guid.NewGuid();
+        var password = Item(id);
+        password.TaskType = Gurux.DLMS.AMI.Shared.Enums.TaskType.Write;
+        password.Data = JsonSerializer.Serialize(new { PasswordChangeId = operation });
+        var ordinary = Item(id);
+        ordinary.TaskType = Gurux.DLMS.AMI.Shared.Enums.TaskType.Write;
+        ordinary.Object = new GXObject { Template = new GXObjectTemplate { ObjectType = 1, LogicalName = "0.0.96.1.0.255" } };
+        ordinary.Index = 2;
+        ordinary.Data = Gurux.DLMS.GXDLMSTranslator.ValueToXml((byte)42);
+        var device = Device(id);
+        var settings = JsonSerializer.Deserialize<GXDLMSSettings>(device.Settings!)!;
+        settings.Authentication = 1;
+        device.Settings = JsonSerializer.Serialize(settings);
+        await using var host = new Host((request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/Work"))
+            {
+                return System.Threading.Tasks.Task.FromResult(Json(new
+                {
+                    Id = operation, State = "Queued", Device = device, AssociationLogicalName = "0.0.40.0.0.255",
+                    CurrentPassword = new byte[] { 1 }, NewPassword = new byte[] { 2 }
+                }));
+            }
+            if (path.EndsWith("/Writing"))
+            {
+                throw new IOException("sensitive-response-placeholder");
+            }
+            return System.Threading.Tasks.Task.FromResult(Json(new { }));
+        });
+        await host.Worker.ReadMeter(new() { Tasks = [password, ordinary] });
+        Check(ProbeMedia.Last!.Writes == 0, "An ordinary task ran after a failed password operation.");
+        Check(ordinary.Ready != null && !string.IsNullOrEmpty(ordinary.Result), "The blocked ordinary task was abandoned.");
+        Check(!password.Result!.Contains("sensitive-response-placeholder"), "A password operation copied an arbitrary response into its task report.");
+    }
+
     private static async System.Threading.Tasks.Task FollowUpTasks()
     {
         var id = Guid.NewGuid(); var first = Item(id); var second = Item(id); int polls = 0, deviceFetches = 0;

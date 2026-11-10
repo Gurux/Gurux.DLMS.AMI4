@@ -42,6 +42,11 @@ if (args is ["--identity-probe", var address, var agentId])
     return;
 }
 
+if (args is ["password-change"])
+{
+    await PasswordChangeChecks.RunAsync();
+    return;
+}
 var application = typeof(Settings).Assembly;
 if (args is ["identify-by-data"]) { await IdentifyByDataChecks.RunAsync(); return; }
 if (args is ["identify-by-ip"]) { await IdentifyByIpChecks.RunAsync(); return; }
@@ -84,3 +89,4 @@ await CompletionResilienceChecks.RunAsync();
 await CompletionMonitoringChecks.RunAsync();
 HostResilienceChecks.Run();
 await PushDeviceKeyChecks.RunAsync();
+await PasswordChangeChecks.RunAsync();

@@ -240,6 +240,7 @@ namespace Gurux.DLMS.AMI
             builder.Services.AddScoped<Client.Shared.KeyManagement.IKeyIdentityResolver, Server.Services.KeyManagement.GXKeyIdentityResolver>();
             builder.Services.AddScoped<Server.Services.KeyManagement.GXKeyAcquisitionService>();
             builder.Services.AddScoped<Server.Services.KeyManagement.GXDeviceSettingsService>();
+            builder.Services.AddScoped<Server.Services.KeyManagement.GXPasswordChangeService>();
             builder.Services.AddControllersWithViews().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;

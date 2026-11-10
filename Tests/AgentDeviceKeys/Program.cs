@@ -42,6 +42,15 @@ if (client.Password != null || client.Ciphering.BlockCipherKey != null || client
     {
     throw new Exception("Missing settings reused stale/default secrets.");
 }
+var create = typeof(GXAgentWorker).GetMethod("CreateDeviceClient", BindingFlags.Static | BindingFlags.NonPublic)!;
+var operational = new GXDLMSSettings { Authentication = (byte)Authentication.Low, Password = [49, 50, 51, 52] };
+var defaultTemplate = new GXDLMSSettings { Authentication = (byte)Authentication.None, ClientAddress = 16, UseLogicalNameReferencing = true };
+var association = (GXDLMSSecureClient)create.Invoke(null, [operational, defaultTemplate, 1])!;
+if (association.Authentication != Authentication.Low || !association.Password.SequenceEqual(operational.Password) ||
+    !association.AARQRequest().Any(frame => frame.AsSpan().IndexOf(operational.Password) >= 0))
+{
+    throw new Exception("The association must send the device's LLS password even when template authentication differs.");
+}
 Console.WriteLine("PASS settings-based password/encrypted frames, replacement and missing-key clearing without key-management HTTP.");
 
 sealed class RejectKeys : HttpMessageHandler

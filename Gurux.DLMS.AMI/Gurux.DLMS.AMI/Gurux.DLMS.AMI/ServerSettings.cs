@@ -33,6 +33,7 @@ using Gurux.DLMS.AMI.Server.Controllers;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Server.Services;
+using Gurux.DLMS.AMI.Server.Services.KeyManagement;
 using Gurux.DLMS.AMI.Server.Triggers;
 
 using Gurux.DLMS.AMI.Services.Database;
@@ -572,6 +573,8 @@ namespace Gurux.DLMS.AMI.Server
                         }
                         manager.CreateTable<GXLanguage>(t, true, false);
                         manager.CreateTable<GXEnumType>(t, true, false);
+                        manager.CreateTable<Server.Services.KeyManagement.GXPasswordChangeRecord>(t, false, false);
+                        manager.CreateTable<Server.Services.KeyManagement.GXPasswordChangeLock>(t, false, false);
                         manager.CreateTable<GXLog>(t, true, false);
                         manager.CreateTable<GXLogType>(t, true, false);
                         manager.CreateTable<GXPersistedGrants>(t, true, false);
@@ -644,7 +647,7 @@ namespace Gurux.DLMS.AMI.Server
                     }
                     //Check that all tables exists.
                     TypeHelper.GetTypesFromNamespace(typeof(GXUser).Assembly, "Gurux.DLMS.AMI.Shared.DTOs")
-                        .Concat([typeof(GXKeyAudit), typeof(GXKeyDeployment)])
+                        .Concat([typeof(GXKeyAudit), typeof(GXKeyDeployment), typeof(GXPasswordChangeRecord), typeof(GXPasswordChangeLock)])
                         .ToList().ForEach(type =>
                     {
                         bool isUnique = type.GetInterfaces().Any(it =>
@@ -676,38 +679,27 @@ namespace Gurux.DLMS.AMI.Server
         {
             if (connection != null)
             {
-                GXSchemaManager manager = new(connection);
                 IDbTransaction transaction = connection.BeginTransaction();
                 try
                 {
-                    //Check that all tables exists.
-                    TypeHelper.GetTypesFromNamespace(typeof(GXUser).Assembly, "Gurux.DLMS.AMI.Shared.DTOs")
-                        .Concat([typeof(GXKeyAudit), typeof(GXKeyDeployment)])
-                        .ToList().ForEach(type =>
+                    GXSchemaManager manager = new(connection);
+                    foreach (var type in TypeHelper.GetTypesFromNamespace(typeof(GXUser).Assembly, "Gurux.DLMS.AMI.Shared.DTOs")
+                        .Concat([typeof(GXKeyAudit), typeof(GXKeyDeployment), typeof(GXPasswordChangeRecord), typeof(GXPasswordChangeLock)]))
                     {
-                        bool isUnique = type.GetInterfaces().Any(it =>
-                            it.IsGenericType &&
-                            it.GetGenericTypeDefinition() == typeof(IUnique<>));
+                        bool isUnique = type.GetInterfaces().Any(item => item.IsGenericType && item.GetGenericTypeDefinition() == typeof(IUnique<>));
                         if (isUnique || type == typeof(GXViewPolicy) || type == typeof(GXViewColumnPolicy) || type == typeof(GXNotificationSource))
                         {
                             if (!manager.TableExist(transaction, type))
                             {
-                                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
-                                {
-                                    logger.LogInformation("Creating table {Value0}.", type.Name);
-                                }
+                                logger.LogInformation("Creating table {Table}.", type.Name);
                                 manager.CreateTable(transaction, type, true, false);
                             }
-                            else
+                            else if (manager.GetTableChanges(transaction, type).Length != 0)
                             {
-                                var pending = manager.GetTableChanges(transaction, type);
-                                if (pending.Length != 0)
-                                {
-                                    manager.UpdateTable(transaction, type);
-                                }
+                                manager.UpdateTable(transaction, type);
                             }
                         }
-                    });
+                    }
                     ChangeHistoryTypeRepository.EnsureDefaultsAsync(connection, transaction).GetAwaiter().GetResult();
                     EnumTypeRepository.EnsureAgentStatusesAsync(connection, transaction).GetAwaiter().GetResult();
                     transaction.Commit();

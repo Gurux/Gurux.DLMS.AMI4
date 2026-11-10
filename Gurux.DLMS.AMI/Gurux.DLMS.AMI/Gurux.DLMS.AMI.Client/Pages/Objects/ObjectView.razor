@@ -52,7 +52,7 @@
 {
     var objectHelp = GXDLMSObjectHelpCatalog.GetRequest(_cosem.Target);
     <CascadingValue TValue="string" Name="@GXHelpContext.ScopeName" Value="@((string)null!)" IsFixed="true">
-        <GXHelpContext Topic="@objectHelp.Topic" Version="@objectHelp.Version" Culture="@objectHelp.Culture" />
+        <GXHelpContext Topic="@objectHelp.Topic" Version="@objectHelp.Version" Culture="@System.Globalization.CultureInfo.CurrentUICulture.Name" />
     </CascadingValue>
     <CascadingValue Value="this">
         <EditForm EditContext="@GXEditContexts.For(Active)">

@@ -69,13 +69,21 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Device</label>
-                    <GXDropdownSearch class="form-control"
-                                    Id="KeyManagement.device"
-                                    Formatter="@((GXDevice e) => e.Name)"
-                                    RememberValue="true"
-                                    @bind-Value="Device"
-                                    ItemsProvider="@GetItems">
-                    </GXDropdownSearch>
+                    @if (Active.Id != Guid.Empty)
+                    {
+                        <input id="KeyManagement.device" class="form-control" value="@Device.Name" readonly />
+                    }
+                    else
+                    {
+                        <GXDropdownSearch class="form-control"
+                                          Id="KeyManagement.device"
+                                          Formatter="@((GXDevice e) => e.Name)"
+                                          RememberValue="false"
+                                          Disabled="@(Action == CrudAction.Delete)"
+                                          @bind-Value="Device"
+                                          ItemsProvider="@GetItems">
+                        </GXDropdownSearch>
+                    }
                 </div>
                 <KeyManagementKeys Parent="this"></KeyManagementKeys>
                 <div class="form-group">
@@ -118,6 +126,8 @@
     private IGXNotificationService? NotificationService;
 
 
+    private readonly GXDevice _defaultDevice = new() { Id = Guid.Empty, Name = Properties.Resources.Default };
+
     private GXDevice Device
     {
         get
@@ -125,7 +135,7 @@
             if (Active?.Device == null)
             {
                 //Return empty device.
-                return new GXDevice() { Name = Properties.Resources.Default };
+                return _defaultDevice;
             }
             return Active.Device;
         }
@@ -133,7 +143,7 @@
         {
             if (Active != null)
             {
-                Active.Device = value;
+                Active.Device = value == null || value.Id == Guid.Empty ? null : value;
             }
         }
     }
@@ -173,11 +183,17 @@
         };
         var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
         List<GXDevice> list = new();
-        //Add empty device.
-        list.Add(new GXDevice() { Name = Properties.Resources.Default });
+        // Preserve the bound instance: selector refreshes must never replace a saved
+        // device with the default or a newly deserialized instance of the same device.
+        list.Add(_defaultDevice);
+        var selected = Active?.Device;
+        if (selected != null)
+        {
+            list.Add(selected);
+        }
         if (ret.Devices != null)
         {
-            list.AddRange(ret.Devices);
+            list.AddRange(ret.Devices.Where(device => device.Id != Guid.Empty && device.Id != selected?.Id));
         }
         return new ItemsProviderResult<GXDevice>(list, ClientHelpers.ToVirtualizedCount(ret.Count));
     }

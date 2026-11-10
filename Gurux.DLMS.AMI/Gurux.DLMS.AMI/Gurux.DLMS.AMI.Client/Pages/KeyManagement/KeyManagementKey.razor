@@ -81,7 +81,11 @@
                         <ValidationMessage For="@(() => Active.Key)" />
                         @if (Active.Id != Guid.Empty)
                         {
-                            <p>@Properties.Resources.KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState</p>
+                            <p>@Properties.Resources.KeyMaterialIsHidden</p>
+                            @if (Active.KeyType == KeyManagementType.LLSPassword)
+                            {
+                                <p>@Properties.Resources.UseChangePasswordInTheKeyList</p>
+                            }
                             <dl>
                                 <dt>@Properties.Resources.State</dt>
                                 <dd>@Active.State</dd>
@@ -209,20 +213,7 @@
             }
             _original = ClientHelpers.Clone<GXKeyManagementKey>(Active);
 
-            //Remove added key types.
-            foreach (var it in Parent.KeyManagement.Keys)
-            {
-                //Remove already added key types when adding a new key.
-                if (Parent.KeyAction == CrudAction.Create ||
-                //Remove key type if not selected key type.
-                Active.KeyType != it.KeyType)
-                {
-                    if (it.KeyType != null)
-                    {
-                        KeyTypes.Remove(it.KeyType.Value);
-                    }
-                }
-            }
+            // Roles can have multiple immutable versions; lifecycle selects the current key.
             if (Parent.KeyAction == CrudAction.Create)
             {
                 if (Active.KeyType == null)

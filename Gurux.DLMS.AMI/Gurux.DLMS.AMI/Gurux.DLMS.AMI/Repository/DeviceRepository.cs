@@ -887,6 +887,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (keys.Count != 0)
                 {
                     //Management keys must update after the devices are added for the DB.
+                    var createdIds = newDevices.Select(d => d.Id).ToHashSet();
+                    using var installedKeys = new GXDeviceKeyImportScope(keys
+                        .Where(k => k.Device != null && createdIds.Contains(k.Device.Id))
+                        .SelectMany(k => k.Keys ?? []));
                     await _keyManagementRepository.UpsertAsync(keys);
                 }
             }

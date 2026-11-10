@@ -34,7 +34,6 @@
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 @using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
-@using System.Net.Http.Json
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -53,6 +52,16 @@
 @implements IDisposable
 
 <GXHelpContext Topic="KeyManagementKeys" />
+@if (_showPasswordChange && KeyManagement?.Device is { } passwordDevice)
+{
+    <AuthorizeView Policy="@GXKeyPermissions.Lifecycle" Context="passwordChanges">
+        <GXDialog Title="Change meter password" Save="false" ManageFocus="true"
+                  OkButtonTitle="Change password on meter" CancelButtonTitle="@Properties.Resources.Cancel"
+                  OnOk="ChangePasswordAsync" OnCancel="ClosePasswordChange">
+            <PasswordChanges @ref="_passwordChanges" ManagementId="@KeyManagement.Id" DeviceId="@passwordDevice.Id" Changed="PasswordChangedAsync" />
+        </GXDialog>
+    </AuthorizeView>
+}
 
 <PageTitle>@Properties.Resources.KeyManagementKeys</PageTitle>
 
@@ -61,11 +70,6 @@
         <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
     </ChildContent>
 </GXMenuControl>
-@if (KeyManagement?.Device == null)
-{
-    <label>@Gurux.DLMS.AMI.Client.Properties.Resources.MeterIDForDeploymentConfirmation <InputText @bind-Value="deploymentDeviceId" /></label>
-}
-
 @if (KeyAction != CrudAction.None)
 {
     @*Show key.*@
@@ -85,13 +89,16 @@
     </FilterContent>
     <MenuContent>
         <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXKeyManagementPolicies.Edit"></GXContextMenuItem>
+        @if (CanChangePassword)
+        {
+            <GXContextMenuItem Text="Change password" Id="change-password" OnClick="OpenPasswordChange" Policy="@GXKeyPermissions.Lifecycle" />
+        }
         <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXKeyManagementPolicies.Delete"></GXContextMenuItem>
     </MenuContent>
     <HeaderContent>
         <GXTh Id="KeyType" Name="KeyType" Target="@item">@Properties.Resources.KeyManagementKeyType</GXTh>
         <GXTh Id="State">@Properties.Resources.State</GXTh>
         <GXTh Id="Keystorage">@Properties.Resources.KeyStorage</GXTh>
-        <GXTh Id="Lifecycle">@Properties.Resources.Lifecycle</GXTh>
         <GXTh Id="CreationTime" Name="CreationTime" Target="@item" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</GXTh>
         <GXTh Id="Updated" Name="Updated" Target="@item">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
@@ -102,30 +109,6 @@
         </GXTd>
         <GXTd Id="State">@(item.State?.ToString() ?? Properties.Resources.RequiresMigration)</GXTd>
         <GXTd Id="Keystorage">@(item.ProviderId ?? KeyManagement?.ProviderId ?? "local")</GXTd>
-        <GXTd Id="Lifecycle">
-            <AuthorizeView Policy="@GXKeyPermissions.Lifecycle">
-                @if (item.Id != Guid.Empty)
-                {
-                    @if (item.State == KeyState.PreActive)
-                    {
-                        <button type="button" @onclick="() => ChangeState(item, KeyState.Active)">@Gurux.DLMS.AMI.Client.Properties.Resources.Activate</button>
-                    }
-                    @if (item.State == KeyState.Active)
-                    {
-                        <button type="button" @onclick="() => ChangeState(item, KeyState.Deactivated)">@Gurux.DLMS.AMI.Client.Properties.Resources.Deactivate</button>
-                        <button type="button" @onclick="() => ConfirmDeployed(item)">@Gurux.DLMS.AMI.Client.Properties.Resources.ConfirmInstalledOnMeter</button>
-                    }
-                    @if (item.State is KeyState.PreActive or KeyState.Active or KeyState.Deactivated)
-                    {
-                        <button type="button" @onclick="() => ChangeState(item, KeyState.Compromised)">@Gurux.DLMS.AMI.Client.Properties.Resources.MarkCompromised</button>
-                    }
-                    @if (item.State is KeyState.PreActive or KeyState.Deactivated or KeyState.Compromised)
-                    {
-                        <button type="button" @onclick="() => ChangeState(item, item.State == KeyState.Compromised ? KeyState.DestroyedCompromised : KeyState.Destroyed)">@Gurux.DLMS.AMI.Client.Properties.Resources.DestroyMaterial</button>
-                    }
-                }
-            </AuthorizeView>
-        </GXTd>
         <GXTd Id="CreationTime">@item.CreationTime</GXTd>
         <GXTd Id="Updated">@item.Updated</GXTd>
     </ItemContent>
@@ -139,46 +122,53 @@
         new("KeyType") { Position = 0, Description = "KeyManagementKeyType", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("State") { Position = 1, Description = "State", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Keystorage") { Position = 2, Description = Properties.Resources.KeyStorage, Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
-        new("Lifecycle") { Position = 3, Description = "Lifecycle", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
-        new("CreationTime") { Position = 4, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
-        new("Updated") { Position = 5, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("CreationTime") { Position = 3, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
+        new("Updated") { Position = 4, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private string deploymentDeviceId = "";
-    private async Task ChangeState(GXKeyManagementKey item, KeyState target)
+    private async Task PasswordChangedAsync()
     {
-        try
+        var management = KeyManagement;
+        if (management == null)
         {
-            using var response = await Http.PostAsJsonAsync("api/extensions/KeyManagement/Transition", new GXTransitionKeyRequest { KeyId = item.Id, Target = target, ExpectedStamp = item.ConcurrencyStamp });
-            response.EnsureSuccessStatusCode();
-            var updated = await response.Content.ReadFromJsonAsync<GXKeyManagementKey>() ?? throw new InvalidOperationException("Missing key metadata.");
-            int index = KeyManagement!.Keys!.FindIndex(k => k.Id == item.Id);
-            if (index >= 0)
-            {
-                KeyManagement.Keys[index] = updated;
-            }
-        
-            await Updated();
+            return;
         }
-        catch (Exception ex)
+        // Refresh version metadata without overwriting unsaved general fields or imports.
+        var response = await Http.GetAsJsonAsync<GetKeyManagementResponse>($"api/KeyManagement?id={management.Id}");
+        if (response.Item != null && KeyManagement?.Id == management.Id)
         {
-            NotificationService?.ReportError(ex);
+            var unsaved = management.Keys?.Where(k => k.Id == Guid.Empty).ToArray() ?? [];
+            management.Keys = [.. response.Item.Keys ?? [], .. unsaved];
+            await Updated();
         }
     }
 
-    private async Task ConfirmDeployed(GXKeyManagementKey item)
+    private bool _showPasswordChange;
+    private PasswordChanges? _passwordChanges;
+
+    private Task ChangePasswordAsync() => _passwordChanges?.ChangeAsync() ?? Task.CompletedTask;
+
+    private bool CanChangePassword => KeyManagement is { Id: var id, Device: { Id: var deviceId }, Removed: null } &&
+        id != Guid.Empty && deviceId != Guid.Empty &&
+        (string.IsNullOrEmpty(KeyManagement.ProviderId) || KeyManagement.ProviderId == "local") &&
+        KeyManagement.Keys?.Any(key => key.Id != Guid.Empty && key.KeyType == KeyManagementType.LLSPassword &&
+            key.Removed == null && string.IsNullOrEmpty(key.ExternalId) &&
+            (string.IsNullOrEmpty(key.ProviderId) || key.ProviderId == "local")) == true;
+
+    private void OpenPasswordChange()
     {
-        try
+        if (CanChangePassword)
         {
-            Guid deviceId = KeyManagement?.Device?.Id ?? (Guid.TryParse(deploymentDeviceId, out var parsed) ? parsed : throw new ArgumentException("Enter the meter ID whose installation has been confirmed."));
-            using var response = await Http.PostAsync($"api/extensions/KeyManagement/ConfirmDeployment/{deviceId}/{item.Id}", null);
-            response.EnsureSuccessStatusCode();
-        }
-        catch (Exception ex)
-        {
-            NotificationService?.ReportError(ex);
+            _showPasswordChange = true;
         }
     }
+
+    private void ClosePasswordChange()
+    {
+        _showPasswordChange = false;
+        _passwordChanges = null;
+    }
+
     private IGXNotifier? Notifier;
 
     private IGXNotificationService? NotificationService;

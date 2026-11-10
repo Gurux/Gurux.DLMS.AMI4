@@ -317,6 +317,7 @@
             return;
         }
         _checking = true;
+        var previousCheck = _snapshot?.Checked;
         var requestVersion = ++_requestVersion;
         StateHasChanged();
         using var progress = Progress?.ProgressStart(Properties.Resources.CheckingUpdates);
@@ -329,7 +330,7 @@
             var snapshot = await response.Content.ReadFromJsonAsync<GXAvailableUpdatesResponse>(cancellationToken: cancellation.Token);
             if (!_disposed && requestVersion == _requestVersion)
             {
-                if (snapshot == null)
+                if (snapshot?.Checked == null || (previousCheck.HasValue && snapshot.Checked <= previousCheck))
                 {
                     throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
                 }
@@ -344,6 +345,10 @@
         }
         catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
         {
+            if (!_disposed)
+            {
+                NotificationService?.Add(new GXNotificationItem(NotificationLevel.Warning, Properties.Resources.UpdateInformationUnavailable, CheckErrorKey));
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

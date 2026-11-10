@@ -25,7 +25,6 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-using Gurux.DLMS.UI.Components.Help;
 using Gurux.UI.Components;
 using Gurux.UI.Components.Help;
 
@@ -40,7 +39,7 @@ public static class GXHelpRegistration
     /// <remarks>Version and culture are included in the Help URL so direct documentation links retain the requested subject.</remarks>
     public static IServiceCollection AddAmiHelp(this IServiceCollection services)
     {
-        services.AddGXDLMSHelp();
+        services.AddScoped<IGXHelpProvider, GXCosemHelpProvider>();
         services.AddScoped<IGXHelpProvider, GXModuleHelpProvider>();
         services.AddScoped(sp =>
         {

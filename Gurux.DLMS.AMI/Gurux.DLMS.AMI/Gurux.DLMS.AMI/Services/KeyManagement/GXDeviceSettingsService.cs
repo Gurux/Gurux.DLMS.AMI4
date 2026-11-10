@@ -35,11 +35,15 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Server.Services.KeyManagement;
 
 /// <summary>Releases operational settings through Device responses after server-side authorization.</summary>
-public sealed class GXDeviceSettingsService(IDeviceRepository devices, IKeyManagementRepository keys, GXKeyAcquisitionService acquisition)
+public sealed class GXDeviceSettingsService(IDeviceRepository devices, IKeyManagementRepository keys, GXKeyAcquisitionService acquisition, GXPasswordChangeService? passwordChanges = null)
 {
     /// <summary>Reads the caller-visible meter and fills secrets needed for its reading association.</summary>
     public async Task<GXDevice> ReadAsync(ClaimsPrincipal principal, Guid id, bool notification, CancellationToken token, byte[]? systemTitle = null)
     {
+        if (!notification && passwordChanges != null)
+        {
+            await passwordChanges.EnsureOrdinaryConnectionAllowedAsync(id, token);
+        }
         var device = await devices.ReadAsync(id, null, token);
         var managers = GXDeviceSettingsKeys.CanUse(principal)
             ? await keys.ListAsync(new ListKeyManagements { Filter = new GXKeyManagement { Device = new GXDevice { Id = id } }, Select = ["KeyManagementKey"] }, null, token)

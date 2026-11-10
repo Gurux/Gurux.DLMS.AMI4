@@ -68,7 +68,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         public async Task Invoke(HttpContext context)
         {
             if (context.Request.Path.StartsWithSegments("/api/extensions/KeyManagement", StringComparison.OrdinalIgnoreCase) ||
-                context.Request.Path.StartsWithSegments("/api/KeyLifecycle", StringComparison.OrdinalIgnoreCase) ||
+                context.Request.Path.StartsWithSegments("/api/PasswordChange", StringComparison.OrdinalIgnoreCase) ||
                 context.Request.Path.StartsWithSegments("/api/KeyManagement", StringComparison.OrdinalIgnoreCase))
             {
                 // These routes can carry imported secrets or one-exchange material.

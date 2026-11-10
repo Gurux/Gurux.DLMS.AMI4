@@ -4355,11 +4355,18 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Key material is hidden. Import a new key to rotate it; use lifecycle actions to change its state..
+        ///   Looks up a localized string similar to Key material is hidden..
         /// </summary>
-        internal static string KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState {
+        internal static string KeyMaterialIsHidden {
             get {
-                return ResourceManager.GetString("KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState", resourceCulture);
+                return ResourceManager.GetString("KeyMaterialIsHidden", resourceCulture);
+            }
+        }
+
+        /// <summary>Looks up the instruction for opening the meter-password dialog.</summary>
+        internal static string UseChangePasswordInTheKeyList {
+            get {
+                return ResourceManager.GetString("UseChangePasswordInTheKeyList", resourceCulture);
             }
         }
         

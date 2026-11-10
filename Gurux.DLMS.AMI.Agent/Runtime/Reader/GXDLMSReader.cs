@@ -65,6 +65,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             get => _media ?? throw new ObjectDisposedException(nameof(GXDLMSReader));
             set => _media = value;
         }
+        internal bool PacketTracingEnabled => _consoleTrace != TraceLevel.Off || _deviceTrace != TraceLevel.Off;
         readonly TraceLevel _consoleTrace;
         readonly TraceLevel _deviceTrace;
         private GXDLMSSecureClient? _client;
@@ -1079,9 +1080,21 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             return reply.Value;
         }
 
-        /// <summary>
-        /// Disconnect.
-        /// </summary>
+        /// <summary>Opens a fresh association to prove the new LLS password before server activation.</summary>
+        internal async Task ReconnectWithPasswordAsync(byte[] password)
+        {
+            if (_consoleTrace != TraceLevel.Off || _deviceTrace != TraceLevel.Off)
+            {
+                throw new InvalidOperationException("Password changes require packet tracing to be disabled.");
+            }
+            CancellationToken.ThrowIfCancellationRequested();
+            Disconnect();
+            Media.Open();
+            Client.Password = password.ToArray();
+            await InitializeConnection(false, false, null);
+        }
+
+        /// <summary>Disconnects the association and optionally closes the transport.</summary>
         public void Disconnect(bool closeConnection = true)
         {
             if (_media != null && _client != null)

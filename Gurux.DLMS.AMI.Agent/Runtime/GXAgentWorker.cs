@@ -463,6 +463,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             catch (Exception error)
             {
+                error = IsPasswordChange(task, out _) ? PasswordChangeError() : error;
                 GXTaskFailure.Record(task, dev, error.Message);
                 await ReportDeviceException(dev, error, "Failed to " + task.TaskType + ". " + GXTaskFailure.Describe(task, dev) + ".");
             }
@@ -470,6 +471,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
 
         private async System.Threading.Tasks.Task ExecuteTasksCore(GXDevice dev, GXDLMSReader reader, GXDLMSSecureClient cl, GXTask task, CancellationToken token)
         {
+            if (IsPasswordChange(task, out _))
+            {
+                await ExecutePasswordChangeAsync(dev, reader, cl, task, token);
+                return;
+            }
             GXDLMSObject obj;
             if (task.Object != null && task.Object.Template != null)
             {
@@ -709,18 +715,37 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             bool autoConnect = false,
             ListenerSettings? listenerSettings = null)
         {
+            using var passwordChange = new PasswordChangeLease();
             var options = RuntimeOptions;
             GXDLMSSecureClient cl;
             IGXMedia? media = action.Media;
             int pos;
             GXDLMSReader? reader = null;
-            IEnumerable<GXTask> tasks = action.Tasks;
+            IEnumerable<GXTask> tasks = action.Tasks.OrderBy(t => IsPasswordChange(t, out _) ? 0 : 1).ToArray();
             GXTask firstTask = tasks.First();
             GXDevice dev;
             GetDeviceResponse? ret;
             try
             {
-                ret = await client.GetAsJsonAsync<GetDeviceResponse>(string.Format("/api/Device/?Id={0}&includeKeys=true", firstTask.TargetDevice), cancellationToken: action.CancellationToken);
+                if (IsPasswordChange(firstTask, out _))
+                {
+                    if (media != null)
+                    {
+                        throw new NotSupportedException("Password changes require an agent-owned outbound connection.");
+                    }
+                    passwordChange.Work = await PasswordWorkAsync(firstTask, action.CancellationToken);
+                }
+                if (passwordChange.Work != null && passwordChange.Work.State != "Verified")
+                {
+                    var passwordSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.Device.GXDLMSSettings>(passwordChange.Work.Device.Settings!)!;
+                    passwordSettings.Password = passwordChange.Work.State == "Writing" ? passwordChange.Work.NewPassword : passwordChange.Work.CurrentPassword;
+                    passwordChange.Work.Device.Settings = JsonSerializer.Serialize(passwordSettings);
+                    ret = new GetDeviceResponse { Item = passwordChange.Work.Device };
+                }
+                else
+                {
+                    ret = await client.GetAsJsonAsync<GetDeviceResponse>(string.Format("/api/Device/?Id={0}&includeKeys=true", firstTask.TargetDevice), cancellationToken: action.CancellationToken);
+                }
                 dev = ret.Item ?? throw new KeyNotFoundException("Device was not returned.");
             }
             catch (OperationCanceledException)
@@ -729,6 +754,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             catch (Exception ex)
             {
+                ex = IsPasswordChange(firstTask, out _) ? PasswordChangeError() : ex;
                 //Remove all tasks if meter reading fails.
                 foreach (GXTask task in tasks)
                 {
@@ -885,10 +911,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             deviceAddress = (int)settings.PhysicalAddress;
                         }
                     }
-                    TraceLevel consoleTrace = options.TraceLevel;
-                    TraceLevel deviceTrace = dev.TraceLevel.GetValueOrDefault(TraceLevel.Off);
-                    cl = new GXDLMSSecureClient(templateSettings.UseLogicalNameReferencing, templateSettings.ClientAddress, deviceAddress,
-                        (Authentication)templateSettings.Authentication, null, (InterfaceType)settings.InterfaceType);
+                    TraceLevel consoleTrace = passwordChange.Work == null ? options.TraceLevel : TraceLevel.Off;
+                    TraceLevel deviceTrace = passwordChange.Work == null ? dev.TraceLevel.GetValueOrDefault(TraceLevel.Off) : TraceLevel.Off;
+                    cl = CreateDeviceClient(settings, templateSettings, deviceAddress);
                     if (cl.InterfaceType == InterfaceType.HDLC || cl.InterfaceType == InterfaceType.HdlcWithModeE)
                     {
                         cl.HdlcSettings.MaxInfoTX = templateSettings.MaxInfoTX;
@@ -900,7 +925,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     {
                         cl.ServerAddressSize = 4;
                     }
-                    GXDLMSReader.ApplyDeviceKeys(cl, settings);
                     GXDLMSReader.ApplyDateTimeSettings(cl, templateSettings);
                     cl.Standard = (Standard)templateSettings.Standard;
                     cl.Ciphering.SystemTitle = settings.ClientSystemTitle;
@@ -922,14 +946,22 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         cl.ServerSystemTitle = null;
                     }
                     cl.Ciphering.InvocationCounter = settings.InvocationCounter;
-                    cl.Ciphering.Security = (Security)templateSettings.Security;
-                    cl.Ciphering.SecuritySuite = (Gurux.DLMS.Objects.Enums.SecuritySuite)templateSettings.SecuritySuite;
-                    cl.Ciphering.Signing = (Gurux.DLMS.Enums.Signing)templateSettings.Signing;
                     reader = new GXDLMSReader(cl, media, _logger,
-                        consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev, client)
+                        consoleTrace, deviceTrace, passwordChange.Work == null ? dev.WaitTime : Math.Clamp(dev.WaitTime, 1, 120),
+                        passwordChange.Work == null ? dev.ResendCount : 1, dev, client)
                     { CancellationToken = action.CancellationToken };
-                    await reader.InitializeConnection(settings.PreEstablished, settings.IgnoreSNRMWithPreEstablished,
-                        settings.FrameCounter);
+                    try
+                    {
+                        await reader.InitializeConnection(settings.PreEstablished, settings.IgnoreSNRMWithPreEstablished,
+                            settings.FrameCounter);
+                    }
+                    catch (GXDLMSException error) when (passwordChange.Work?.State == "Writing" &&
+                        passwordChange.Work.CurrentPassword.Length != 0 && error.Diagnostic == (byte)SourceDiagnostic.AuthenticationFailure)
+                    {
+                        // A recorded intent can precede the physical write. Only an explicit
+                        // authentication rejection permits trying the still-current password.
+                        await reader.ReconnectWithPasswordAsync(passwordChange.Work.CurrentPassword);
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -937,6 +969,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
                 catch (Exception ex)
                 {
+                    ex = passwordChange.Work != null ? PasswordChangeError() : ex;
                     var failed = await SealMeterSessionAsync(session);
                     foreach (GXTask task in failed)
                     {
@@ -968,6 +1001,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     finally { runtimeMetrics.TaskFinished(taskStarted, taskOutcome); }
                     task.Ready = DateTimeOffset.UtcNow;
                     await ReportDone([task]);
+                    if (IsPasswordChange(task, out _) && !string.IsNullOrEmpty(task.Result))
+                    {
+                        var blocked = await SealMeterSessionAsync(session);
+                        foreach (var pending in blocked)
+                        {
+                            GXTaskFailure.Record(pending, dev, "Password verification is pending. Retry the password operation before ordinary meter work.");
+                            pending.Ready = DateTimeOffset.UtcNow;
+                        }
+                        await ReportDone(blocked);
+                        return dev;
+                    }
                     await CheckConnectedMeterTasksAsync(dev.Id, session, action, listenerSettings != null);
                 }
             }
@@ -1001,6 +1045,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
             }
             return dev;
+        }
+
+        private static GXDLMSSecureClient CreateDeviceClient(AMI.Shared.DTOs.Device.GXDLMSSettings settings,
+            AMI.Shared.DTOs.Device.GXDLMSSettings templateSettings, int deviceAddress)
+        {
+            var client = new GXDLMSSecureClient(templateSettings.UseLogicalNameReferencing, templateSettings.ClientAddress,
+                deviceAddress, (Authentication)settings.Authentication, null, (InterfaceType)settings.InterfaceType);
+            GXDLMSReader.ApplyDeviceKeys(client, settings);
+            client.Ciphering.Security = (Security)settings.Security;
+            client.Ciphering.SecuritySuite = (Gurux.DLMS.Objects.Enums.SecuritySuite)settings.SecuritySuite;
+            client.Ciphering.Signing = (Gurux.DLMS.Enums.Signing)settings.Signing;
+            return client;
         }
 
         /// <summary>
@@ -1222,7 +1278,16 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     {
                         await System.Threading.Tasks.Task.Delay(maintenanceRetry ? 60000 : 1000, cancellationToken);
                     }
-                    await hub.StartAsync(cancellationToken);
+                    // Registration or refresh can fail after the transport has connected.
+                    // Retry those operations without starting an already connected hub.
+                    if (hub.State == HubConnectionState.Disconnected)
+                    {
+                        await hub.StartAsync(cancellationToken);
+                    }
+                    if (hub.State != HubConnectionState.Connected)
+                    {
+                        continue;
+                    }
                     await HubConnectionReconnected(hub.ConnectionId);
                     return;
                 }

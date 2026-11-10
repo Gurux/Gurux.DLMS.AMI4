@@ -476,6 +476,16 @@ Modules can add their own tabs to management pages and editors. Their titles and
 | <a id="key-management"></a>General information | Edit the key management information and settings. |
 | <a id="key-management.groups"></a>Key management groups | Choose the groups this entry belongs to. |
 
+Select the **Device** when creating key management. Once saved, the device binding is read-only.
+
+Open the key list's context menu and choose **Change password**, directly below **Edit**, to open the **Change meter password** dialog. This command is available for saved, device-specific local key management containing an LLS password. Password-change controls are loaded only when the dialog opens. Closing the dialog discards an unsent password draft.
+
+The dialog writes the new password to the meter through the agent and verifies a fresh connection before the new version becomes active. The old password is retained encrypted as a separate key version and is deactivated after successful verification. The dialog also shows operation status, retry/cancellation actions and recovery history. State shown in the key list is version metadata managed by this verified workflow.
+
+1. With change history recording enabled, **ChangeHistory** records key identifiers, state changes, the actor and the time of the change. Passwords and key material are excluded from the history.
+2. **Restore password used before this change** uses the retained old key version on the server without displaying its password. Recovery creates a fresh key version from the retained material; the agent writes it to the meter and verifies a new connection before activation.
+3. Recovery requires the user's **recovery permission** and explicit confirmation. The user does not need to enter the old password. Destroyed or compromised password versions cannot be restored.
+
 ### Key management group editor
 
 | Tab | Purpose |

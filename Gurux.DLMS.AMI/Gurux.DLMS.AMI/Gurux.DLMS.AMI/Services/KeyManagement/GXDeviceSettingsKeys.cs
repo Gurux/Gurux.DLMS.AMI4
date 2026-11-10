@@ -48,13 +48,12 @@ public static class GXDeviceSettingsKeys
     public static async Task PopulateAsync(ClaimsPrincipal principal, GXDevice device, IEnumerable<GXKeyManagement> managers,
         bool notification, Func<GXKeyManagementKey, GXKeyPurpose, CancellationToken, Task<byte[]>> acquire, CancellationToken token = default, byte[]? systemTitle = null)
     {
-        var settings = JsonSerializer.Deserialize<DeviceSettings>(device.Settings ?? "null") ?? new();
+        var settings = JsonSerializer.Deserialize<DeviceSettings>(string.IsNullOrWhiteSpace(device.Settings) ? device.Template?.Settings ?? "null" : device.Settings) ?? new();
         settings.Password = settings.BlockCipherKey = settings.AuthenticationKey = settings.BroadcastKey = null;
         device.Settings = JsonSerializer.Serialize(settings);
         if (!CanUse(principal)) {
             return;
         }
-        var template = JsonSerializer.Deserialize<DeviceSettings>(device.Template?.Settings ?? "null") ?? settings;
         var contexts = managers.Where(m => m.Removed == null).ToArray();
         byte[]? title = systemTitle ?? settings.DeviceSystemTitle;
         if (title is { Length: > 0 })
@@ -65,7 +64,7 @@ public static class GXDeviceSettingsKeys
                 settings.DeviceSystemTitle = title.ToArray();
             }
         }
-        var keys = contexts.SelectMany(m => m.Keys ?? []).Where(k => k.Removed == null).ToArray();
+        var keys = contexts.SelectMany(m => m.Keys ?? []).Where(k => k.Removed == null && k.State == Gurux.DLMS.AMI.Shared.Enums.KeyState.Active).ToArray();
         GXKeyManagementKey? Select(KeyManagementType role, bool required)
         {
             var matches = keys.Where(k => k.KeyType == role).ToArray();
@@ -100,7 +99,7 @@ public static class GXDeviceSettingsKeys
         }
         else
         {
-            var authentication = (Gurux.DLMS.Enums.Authentication)template.Authentication;
+            var authentication = (Gurux.DLMS.Enums.Authentication)settings.Authentication;
             if (authentication == Gurux.DLMS.Enums.Authentication.Low)
                 {
                 settings.Password = await Get(KeyManagementType.LLSPassword, GXKeyPurpose.Password, true);
@@ -109,9 +108,9 @@ public static class GXDeviceSettingsKeys
                 {
                 settings.Password = await Get(KeyManagementType.HLSPassword, GXKeyPurpose.Password, true);
             }
-            if (template.Security != 0 || authentication == Gurux.DLMS.Enums.Authentication.HighGMAC)
+            if (settings.Security != 0 || authentication == Gurux.DLMS.Enums.Authentication.HighGMAC)
             {
-                bool gmac = template.Security is 0 or (byte)Gurux.DLMS.Enums.Security.Authentication;
+                bool gmac = settings.Security is 0 or (byte)Gurux.DLMS.Enums.Security.Authentication;
                 settings.BlockCipherKey = await Get(KeyManagementType.BlockCipher, gmac ? GXKeyPurpose.MacGenerate : GXKeyPurpose.Encrypt, true);
                 settings.AuthenticationKey = await Get(KeyManagementType.Authentication, GXKeyPurpose.MacGenerate, true);
             }

@@ -113,10 +113,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 List<GXAppearance> list = connection.Select<GXAppearance>(arg);
                 foreach (var image in list)
                 {
-                    if (GXAppearanceAccess.IsOwnerOnly(image)) {
+                    if (GXAppearanceAccess.IsOwnerOnly(image))
+                    {
                         GXAppearanceAccess.RequirePrivateOwner(User, image);
                     }
-                    else {
+                    else
+                    {
                         await _authorizationService.EnsureAnyPolicyAsync(User, GXAppearancePolicies.Delete);
                     }
                 }
@@ -377,7 +379,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         (columns != null && !ServerHelpers.Contains(columns, nameof(GXAppearance.AccessVisibility))))
                         ? old.AccessVisibility : appearance.AccessVisibility ?? ResourceVisibility.Private;
                     if (visibility == null || !Enum.IsDefined(visibility.Value))
-                        {
+                    {
                         throw new ArgumentException("Invalid resource visibility.");
                     }
                     appearance.AccessVisibility = visibility;
@@ -385,12 +387,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (old != null && GXAppearanceAccess.IsOwnerOnly(old))
                     {
                         GXAppearanceAccess.RequirePrivateOwner(User, old);
-                        if (!privateAfter) {
+                        if (!privateAfter)
+                        {
                             await _authorizationService.EnsureAnyPolicyAsync(User, GXAppearancePolicies.Edit);
                         }
                     }
                     else if (old != null || !privateAfter)
-                        {
+                    {
                         await _authorizationService.EnsureAnyPolicyAsync(User, old == null ? GXAppearancePolicies.Add : GXAppearancePolicies.Edit);
                     }
 
@@ -425,7 +428,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             var image = _imageStorage.Decode(appearance.Value, requireImage: true);
                             if (appearance.ResourceType != (byte)ResourceType.Image || image == null || image.Value.ContentType == "image/svg+xml" ||
                                 image.Value.Bytes.Length > 1_000_000 || GXImageStorage.OriginalName(appearance.OriginalFileName) == null)
-                                {
+                            {
                                 throw new ArgumentException("Select a raster image file no larger than 1 MB.");
                             }
                         }
@@ -449,12 +452,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             {
                                 var ownerId = appearance.Creator.Id;
                                 if (await connection.SingleOrDefaultAsync<GXUser>(transaction, GXSelectArgs.Select<GXUser>(u => u.Id!, u => u.Id == ownerId && u.Removed == null), cancellationToken) == null)
-                                    {
+                                {
                                     throw new ArgumentException("The image owner is unavailable.");
                                 }
                                 appearance.Creator = new GXUser { Id = ownerId };
                             }
-                            else {
+                            else
+                            {
                                 appearance.Creator = creator;
                             }
                             appearance.CreationTime = now;
@@ -799,6 +803,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             defaults.Add(AddImage("trigger", "bi-lightning"));
             defaults.Add(AddImage("views", "bi-layout-text-window"));
             defaults.Add(AddImage("workflow", "bi-diagram-3"));
+            defaults.Add(AddImage("change-password", "bi-key"));
+
             //Add flags for countries.
             defaults.Add(AddImage("fi", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"fi\" viewBox=\"0 0 24 16\">\r\n  <rect width=\"24\" height=\"16\" fill=\"white\"/>\r\n  <rect x=\"6\" width=\"4\" height=\"16\" fill=\"#003580\"/>\r\n  <rect y=\"6\" width=\"24\" height=\"4\" fill=\"#003580\"/>\r\n</svg>"));
             defaults.Add(AddImage("fr", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"fr\" viewBox=\"0 0 24 16\">\r\n  <rect width=\"8\" height=\"16\" fill=\"#0055A4\"/>\r\n  <rect x=\"8\" width=\"8\" height=\"16\" fill=\"white\"/>\r\n  <rect x=\"16\" width=\"8\" height=\"16\" fill=\"#EF4135\"/>\r\n</svg>"));
@@ -806,10 +812,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             defaults.Add(AddImage("it", "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 16\">\r\n    <rect width=\"8\" height=\"16\" fill=\"#008C45\"/>\r\n    <rect x=\"8\" width=\"8\" height=\"16\" fill=\"white\"/>\r\n    <rect x=\"16\" width=\"8\" height=\"16\" fill=\"#CD212A\"/>\r\n</svg>\r\n"));
             defaults.Add(AddImage("sv", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"sv\" viewBox=\"0 0 24 16\">\r\n  <rect width=\"24\" height=\"16\" fill=\"#0057B7\"/>\r\n  <rect x=\"6\" width=\"4\" height=\"16\" fill=\"#FFCC00\"/>\r\n  <rect y=\"6\" width=\"24\" height=\"4\" fill=\"#FFCC00\"/>\r\n</svg>"));
             defaults.Add(AddImage("en", "<svg xmlns=\"http://www.w3.org/2000/svg\"\r\n     width=\"60\" height=\"30\" viewBox=\"0 0 60 30\">\r\n    <clipPath id=\"clip\">\r\n        <path d=\"M0,0 v30 h60 v-30 z\"/>\r\n    </clipPath>\r\n    <g clip-path=\"url(#clip)\">\r\n        <rect width=\"60\" height=\"30\" fill=\"#012169\"/>\r\n        <path d=\"M0,0 L60,30 M60,0 L0,30\" stroke=\"#fff\" stroke-width=\"6\"/>\r\n        <path d=\"M0,0 L60,30 M60,0 L0,30\" stroke=\"#C8102E\" stroke-width=\"4\"/>\r\n        <path d=\"M30,0 V30 M0,15 H60\" stroke=\"#fff\" stroke-width=\"10\"/>\r\n        <path d=\"M30,0 V30 M0,15 H60\" stroke=\"#C8102E\" stroke-width=\"6\"/>\r\n    </g>\r\n</svg>\r\n"));
-            defaults.Add(AddImage("ee", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"ee\" viewBox=\"0 0 24 16\">\r\n    <rect width=\"24\" height=\"16\" fill=\"white\"/>\r\n    <rect width=\"24\" height=\"5.33\" fill=\"#0072CE\"/>\r\n    <rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"black\"/>\r\n</svg>"));
-
-            defaults.Add(AddImage("et", defaults.Single(a => a.Name == "ee").Value));
-
+            defaults.Add(AddImage("et", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"ee\" viewBox=\"0 0 24 16\">\r\n    <rect width=\"24\" height=\"16\" fill=\"white\"/>\r\n    <rect width=\"24\" height=\"5.33\" fill=\"#0072CE\"/>\r\n    <rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"black\"/>\r\n</svg>"));
             // Keep the first definition, matching the original initialization order.
             var result = defaults.DistinctBy(a => a.Name, StringComparer.Ordinal).ToList();
             foreach (var appearance in result)
@@ -823,7 +826,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <summary>Create only missing built-in appearances.</summary>
         public async Task EnsureDefaultsAsync(int? type, CancellationToken cancellationToken = default)
-            {
+        {
             await GXHistoryMutation.RunAllAsync<GXAppearance>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices,
         async () =>
         {
@@ -880,7 +883,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             throw new ArgumentException($"Appearance '{id}' has no matching built-in default.", nameof(selectedIds));
                         }
                         selectedNames.Add(selected.Name);
-                        if (GXAppearanceAccess.IsOwnerOnly(selected)) {
+                        if (GXAppearanceAccess.IsOwnerOnly(selected))
+                        {
                             GXAppearanceAccess.RequirePrivateOwner(User, selected);
                         }
                     }

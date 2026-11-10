@@ -751,6 +751,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                     it.State = KeyState.PreActive;
                     it.ActivationDate = it.DeactivationDate = it.CompromiseDate = it.DestroyDate = null;
+                    if (GXDeviceKeyImportScope.IsInstalled(it))
+                    {
+                        // These values describe the credentials currently installed on the meter.
+                        // Ordinary imports and rotations still start in PreActive.
+                        GXKeyPolicy.ValidateTransition(it.State.Value, KeyState.Active);
+                        it.State = KeyState.Active;
+                        it.ActivationDate = DateTimeOffset.UtcNow;
+                    }
                     GXKeyPolicy.ValidateRegistration(it);
                     string? provider = it.ProviderId ?? keyManagement.ProviderId;
                     if (string.IsNullOrEmpty(provider) || provider == "local")

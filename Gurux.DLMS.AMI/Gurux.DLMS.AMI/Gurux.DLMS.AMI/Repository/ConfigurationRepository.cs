@@ -32,6 +32,7 @@ using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Internal;
+using Gurux.DLMS.AMI.Server.Services.KeyManagement;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -356,29 +357,26 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXConfigurationTableChange> changed = [];
             try
             {
-                //Check that all tables exists.
-                TypeHelper.GetTypesFromNamespace(typeof(GXUser).Assembly, "Gurux.DLMS.AMI.Shared.DTOs").ToList().ForEach(type =>
+                foreach (var type in TypeHelper.GetTypesFromNamespace(typeof(GXUser).Assembly, "Gurux.DLMS.AMI.Shared.DTOs")
+                    .Concat([typeof(GXPasswordChangeRecord), typeof(GXPasswordChangeLock)])
+                    .Where(type => type.GetInterfaces().Any(item => item.IsGenericType && item.GetGenericTypeDefinition() == typeof(IUnique<>)) ||
+                        type == typeof(Gurux.DLMS.AMI.Shared.DTOs.View.GXViewPolicy) ||
+                        type == typeof(Gurux.DLMS.AMI.Shared.DTOs.View.GXViewColumnPolicy) ||
+                        type == typeof(Gurux.DLMS.AMI.Shared.DTOs.Notification.GXNotificationSource)))
                 {
-                    bool isUnique = type.GetInterfaces().Any(it =>
-                        it.IsGenericType &&
-                        it.GetGenericTypeDefinition() == typeof(IUnique<>));
-                    if (isUnique || type == typeof(Gurux.DLMS.AMI.Shared.DTOs.View.GXViewPolicy) ||
-                        type == typeof(Gurux.DLMS.AMI.Shared.DTOs.View.GXViewColumnPolicy))
+                    if (!manager.TableExist(transaction, type))
                     {
-                        if (!manager.TableExist(transaction, type))
+                        changed.Add(new GXConfigurationTableChange { TableName = type.Name, Changes = ["Table is missing"] });
+                    }
+                    else
+                    {
+                        var pending = manager.GetTableChanges(transaction, type);
+                        if (pending.Length > 0)
                         {
-                            changed.Add(new GXConfigurationTableChange { TableName = type.Name, Changes = ["Table is missing"] });
-                        }
-                        else
-                        {
-                            var pending = manager.GetTableChanges(transaction, type);
-                            if (pending.Length > 0)
-                            {
-                                changed.Add(new GXConfigurationTableChange { TableName = type.Name, Changes = pending });
-                            }
+                            changed.Add(new GXConfigurationTableChange { TableName = type.Name, Changes = pending });
                         }
                     }
-                });
+                }
                 transaction.Commit();
             }
             catch (Exception)
