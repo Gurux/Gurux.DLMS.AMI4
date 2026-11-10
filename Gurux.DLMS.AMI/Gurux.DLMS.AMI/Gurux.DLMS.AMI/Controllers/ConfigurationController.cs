@@ -225,6 +225,9 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             await SchemaUpdateLock.WaitAsync(cancellationToken);
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                await using var connection = await database.GetConnectionAsync(cancellationToken);
+                ServerSettings.UpdateDatabase(connection, logger);
                 var remaining = await _configurationRepository.GetTableChangesAsync(cancellationToken);
                 var users = await _serviceProvider.GetRequiredService<IUserRepository>()
                     .GetUserIdsInRoleAsync([GXRoles.Admin]);
