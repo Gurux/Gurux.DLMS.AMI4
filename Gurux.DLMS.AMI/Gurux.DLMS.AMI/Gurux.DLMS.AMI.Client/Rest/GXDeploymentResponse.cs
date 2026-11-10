@@ -30,6 +30,7 @@ namespace Gurux.DLMS.AMI.Client.Rest;
 /// <summary>Server-owned static installation and its durable update outcome.</summary>
 public sealed class GXDeploymentResponse
 {
+    public string HostingEnvironment { get; set; } = "Other";
     public string Mode { get; set; } = "static";
     public string? RequestId { get; set; }
     public string? Version { get; set; }

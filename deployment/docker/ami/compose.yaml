@@ -1,0 +1,42 @@
+name: ${COMPOSE_PROJECT_NAME:-gurux-ami}
+services:
+  updater:
+    image: ${UPDATER_IMAGE:-guruxorg/dlms-ami-updater:latest}
+    restart: unless-stopped
+    environment:
+      GURUX_APPLICATION: ami
+      GURUX_PLATFORM: ${GURUX_PLATFORM:-linux/amd64}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-gurux-ami}
+      UPDATER_IMAGE: ${UPDATER_IMAGE:-guruxorg/dlms-ami-updater:latest}
+      AMI_URL: ${AMI_URL:?Set AMI_URL to the public HTTPS address}
+      AMI_IMAGE: ${AMI_IMAGE:-guruxorg/dlms-ami:latest}
+      AMI_PORT: ${AMI_PORT:-8080}
+    volumes:
+      - .:/project
+      - /var/run/docker.sock:/var/run/docker.sock
+      - updater-state:/state
+      - updater-queue:/state/queue
+  ami:
+    image: ${AMI_IMAGE:-guruxorg/dlms-ami:latest}
+    restart: unless-stopped
+    depends_on:
+      updater:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${AMI_PORT:-8080}:8080"
+    environment:
+      Server__Address: ${AMI_URL:?Set AMI_URL to the public HTTPS address}
+      Updater__Deployment__Mode: compose
+      Updater__Deployment__Root: /run/gurux-updater
+      Updater__Deployment__RequestKeyFile: /run/gurux-updater/request.key
+      Updater__Deployment__Platform: ${GURUX_PLATFORM:-linux/amd64}
+    volumes:
+      - ami-data:/data
+      - ami-modules:/app/Modules
+      - updater-state:/run/gurux-updater:ro
+      - updater-queue:/run/gurux-updater/queue
+volumes:
+  updater-state:
+  updater-queue:
+  ami-data:
+  ami-modules:

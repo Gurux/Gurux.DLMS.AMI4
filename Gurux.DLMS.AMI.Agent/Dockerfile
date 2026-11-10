@@ -29,7 +29,7 @@
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
 WORKDIR /app
 # Registration and local script compilation write beneath the application directory.
-RUN chown app:app /app
+RUN mkdir -p /data && chown app:app /app /data
 USER $APP_UID
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -37,6 +37,7 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj", "Gurux.DLMS.AMI.Agent/"]
 COPY ["Gurux.DLMS.AMI.Shared/Gurux.DLMS.AMI.Shared.csproj", "Gurux.DLMS.AMI.Shared/"]
+COPY ["Gurux.DLMS.AMI.Script/Gurux.DLMS.AMI.Script.csproj", "Gurux.DLMS.AMI.Script/"]
 COPY ["Gurux.DLMS.AMI.Script/Gurux.DLMS.AMI.Script.csproj", "Gurux.DLMS.AMI.Script/"]
 RUN --mount=type=cache,id=ami-nuget,target=/root/.nuget/packages,sharing=locked \
     dotnet restore "Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj" -p:Configuration=$BUILD_CONFIGURATION

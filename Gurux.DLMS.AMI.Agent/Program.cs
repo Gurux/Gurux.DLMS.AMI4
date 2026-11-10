@@ -170,6 +170,12 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
+        if (args is ["--health-check"])
+        {
+            var root = Environment.GetEnvironmentVariable("Updater__DeploymentRoot") ?? "/run/gurux-updater";
+            var version = AgentRuntimeVersion.Resolve(AppContext.BaseDirectory, null, FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion) ?? "";
+            return GXAgentContainerHealth.IsHealthy(root, version) ? 0 : 1;
+        }
         try
         { return await RunAsync(args); }
         catch (Exception error) { Console.Error.WriteLine($"Agent failed: {error.Message}"); return 1; }
@@ -179,6 +185,7 @@ internal static class Program
     {
         using var cancellation = new CancellationTokenSource();
         using var notifications = new GXAgentHostNotifications();
+        Task? containerHeartbeat = null;
         GXAgentInstanceLock? settingsLock = null, identityLock = null;
         ConsoleCancelEventHandler cancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += cancel;
@@ -201,6 +208,12 @@ internal static class Program
             }
             var updaterOptions = GXAgentUpdaterOptions.Read(config);
             settingsFile = updaterOptions.SettingsPath;
+            if (!string.IsNullOrWhiteSpace(updaterOptions.DeploymentRoot))
+            {
+                containerHeartbeat = GXAgentContainerHealth.RunAsync(updaterOptions.DeploymentRoot, version ?? "",
+                    () => worker?.State == GXAgentWorkerState.Running && worker.ConnectionState == GXAgentConnectionState.Connected, cancellation.Token);
+            }
+
             settingsLock = GXAgentInstanceLock.Acquire(settingsFile);
             GXAgentSettingsStore.ProtectExisting(settingsFile);
             var completionOptions = GXCompletionOutboxOptions.Read(config);
@@ -223,8 +236,16 @@ internal static class Program
                 : null;
             if (string.IsNullOrWhiteSpace(settingsJson) || args.Contains("Configure"))
             {
-                await RegisterAgent(Services(), notifications, new GXAgentWorker(),
-                    new GXAgentOptions { Address = commandLine.Host ?? "https://localhost:8001", Version = version }, cancellation.Token);
+                var configured = ReadConfiguredAgent(config, version);
+                if (configured != null)
+                {
+                    await RegisterConfiguredAgentAsync(Services(), notifications, configured, config["Agent:Name"] ?? "Docker agent", cancellation.Token);
+                }
+                else
+                {
+                    await RegisterAgent(Services(), notifications, new GXAgentWorker(),
+                        new GXAgentOptions { Address = commandLine.Host ?? "https://localhost:8001", Version = version }, cancellation.Token);
+                }
                 settingsJson = await File.ReadAllTextAsync(settingsFile, cancellation.Token);
             }
             var options = JsonSerializer.Deserialize<GXAgentOptions>(settingsJson!)
@@ -252,6 +273,7 @@ internal static class Program
             }
             async Task StartRuntimeAsync()
             {
+                GXAgentContainerHealth.Resume();
                 int failedAttempts = 0;
                 while (true)
                 {
@@ -332,6 +354,16 @@ internal static class Program
                     {
                     continue;
                 }
+                if (!string.IsNullOrWhiteSpace(updaterOptions.DeploymentRoot))
+                {
+                    var requestId = (updater as GXAgentUpdateService)?.ContainerRequestId
+                        ?? throw new InvalidOperationException("Container updater did not provide a request identity.");
+                    _logger.LogInformation("Agent is drained and waiting for its container replacement");
+                    await GXAgentContainerUpdate.WaitForFailureAsync(updaterOptions.DeploymentRoot, requestId, cancellation.Token);
+                    updaterOptions.RetryAfter = DateTimeOffset.UtcNow.AddMinutes(5);
+                    await StartRuntimeAsync();
+                    continue;
+                }
                 _logger.LogInformation("Application update handed to Gurux.Updater; exiting current agent");
                 return 0;
             }
@@ -352,10 +384,67 @@ internal static class Program
         }
         finally
         {
+            cancellation.Cancel();
+            if (containerHeartbeat != null)
+            {
+                try { await containerHeartbeat; }
+                catch (OperationCanceledException) { }
+                catch (Exception error) { _logger?.LogWarning(error, "Container health reporting stopped"); }
+            }
             Console.CancelKeyPress -= cancel;
             try
             { await DisconnectAfterDrainAsync(); }
             finally { identityLock?.Dispose(); settingsLock?.Dispose(); }
+        }
+    }
+
+    internal static GXAgentOptions? ReadConfiguredAgent(IConfiguration config, string? version)
+    {
+        var token = config["Agent:Token"];
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return null;
+        }
+        var options = new GXAgentOptions { Address = config["Agent:Address"] ?? "https://ami.gurux.fi", Token = token, Version = version };
+        if (!string.IsNullOrWhiteSpace(config["Agent:Id"]))
+        {
+            options.Id = Guid.Parse(config["Agent:Id"]!);
+        }
+        options.Validate(requireAgentId: false);
+        return options;
+    }
+
+    private static async Task RegisterConfiguredAgentAsync(IServiceCollection services, IGXAgentHostNotifications notifications,
+        GXAgentOptions options, string name, CancellationToken token)
+    {
+        if (options.Id != Guid.Empty)
+        {
+            await SaveSettingsAsync(options, token);
+            return;
+        }
+        var target = new GXAgentWorker();
+        ServiceProvider? provider = null;
+        try
+        {
+            provider = await InitializeWorkerAsync(target, services, options, notifications);
+            var id = await target.AddAgentAsync(name, token);
+            if (id == Guid.Empty)
+            {
+                throw new InvalidOperationException("Agent registration returned an empty identifier.");
+            }
+            options = target.Configuration.ToOptions();
+            options.Id = id;
+            await SaveSettingsAsync(options, token);
+        }
+        finally
+        {
+            using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await target.StopAsync(shutdown.Token);
+            await target.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
+            if (provider != null)
+            {
+                await provider.DisposeAsync();
+            }
         }
     }
 

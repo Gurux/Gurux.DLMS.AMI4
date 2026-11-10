@@ -1,0 +1,69 @@
+name: AMI container updater
+on:
+  pull_request:
+    paths:
+      - 'Gurux.DLMS.AMI.ContainerUpdater/**'
+      - 'Gurux.DLMS.AMI.Agent/**'
+      - 'Gurux.DLMS.AMI.Script/**'
+      - 'Tests/ContainerUpdater/**'
+      - 'deployment/docker/**'
+      - '.github/scripts/agent-compose-release.ps1'
+      - '.github/tests/agent-compose-release.tests.ps1'
+      - '.github/workflows/container-updater.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Gurux.DLMS.AMI.ContainerUpdater/**'
+      - 'Gurux.DLMS.AMI.Agent/**'
+      - 'Gurux.DLMS.AMI.Script/**'
+      - 'Tests/ContainerUpdater/**'
+      - 'deployment/docker/**'
+      - '.github/scripts/agent-compose-release.ps1'
+      - '.github/tests/agent-compose-release.tests.ps1'
+      - '.github/workflows/container-updater.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Check updater and agent handoff
+        run: dotnet run --project Tests/ContainerUpdater/ContainerUpdater.Tests.csproj -c Release
+      - name: Build isolated smoke-test images
+        run: |
+          docker build -f Gurux.DLMS.AMI.ContainerUpdater/Dockerfile -t gurux-ami-updater-test:local .
+          docker build -f Gurux.DLMS.AMI.Agent/Dockerfile -t gurux-ami-agent-test:local .
+          docker build -f Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Dockerfile -t gurux-ami-server-test:local .
+      - name: Verify automatic AMI and agent installation
+        run: python3 Tests/ContainerUpdater/docker_smoke.py
+      - name: Verify immutable agent image metadata
+        shell: pwsh
+        run: .github/tests/agent-compose-release.tests.ps1
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || 'guruxorg' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Gurux.DLMS.AMI.ContainerUpdater/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            guruxorg/dlms-ami-updater:${{ github.sha }}
+            guruxorg/dlms-ami-updater:latest
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/Gurux/Gurux.DLMS.AMI4

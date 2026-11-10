@@ -397,6 +397,7 @@ internal static class ReliabilityChecks
                 return Json(new
             {
                 Scripts = new[] { new Gurux.DLMS.AMI.Shared.DTOs.Script.GXScript { Id = scriptId, ByteAssembly = assembly,
+                    CompilationDependencies = Gurux.DLMS.AMI.Script.GXScriptCompiler.ReadDependencies(assembly),
                     Methods = [new() { Id = methodId, Name = "Identify", IsAsynchronous = true }] } }
             });
             }

@@ -301,7 +301,7 @@ internal static class MeterSessionChecks
             if (request.RequestUri!.AbsolutePath == "/api/Script/List") {
                 return System.Threading.Tasks.Task.FromResult(Json(new ListScriptsResponse
             {
-                Scripts = [new() { Id = Guid.NewGuid(), ByteAssembly = assembly, Methods = [new() { Id = method, Name = "Identify" }] }]
+                Scripts = [new() { Id = Guid.NewGuid(), ByteAssembly = assembly, CompilationDependencies = Gurux.DLMS.AMI.Script.GXScriptCompiler.ReadDependencies(assembly), Methods = [new() { Id = method, Name = "Identify" }] }]
             }));
             }
             if (request.RequestUri.AbsolutePath == "/api/Task/Next") {

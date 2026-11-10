@@ -147,44 +147,29 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         }
 
         private async Task AddSystemErrorAsync(ILogger<GXExceptionHandler> logger,
-            IServiceProvider serviceProvider,
-            Exception ex)
+            HttpContext context, Exception ex)
         {
-            if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
-            {
-                logger.LogError("{Message}", ex.ToString());
-            }
             try
             {
-                //Add error to system log.
                 GXLog error = new(TraceLevel.Error)
                 {
                     Message = ex.Message,
-                };
-                if (ex is Microsoft.Data.SqlClient.SqlException s)
-                {
-                    error.StackTrace = s.Data["SQL"]?.ToString();
-                }
-                await using var connection = await _dbFactory.GetConnectionAsync();
-                var admin = (await ServerSettings.GetDefaultAdminUserAsync(connection));
-                if (admin != null)
-                {
-                    await serviceProvider.RunAsUserAsync(admin, async services =>
+                    StackTrace = ex.ToString(),
+                    Data = System.Text.Json.JsonSerializer.Serialize(new
                     {
-                        ILogRepository? repository = services.GetService<ILogRepository>()?.ForSource("system");
-                        if (repository != null)
-                        {
-                            await repository.AddAsync("unauthorized", [error]);
-                        }
-                    });
-                }
+                        Path = context.Request.Path.Value,
+                        TraceId = context.TraceIdentifier
+                    })
+                };
+                // Server diagnostics must not depend on an administrator account,
+                // the request user's permissions, or a failed repository scope.
+                await using var connection = await _dbFactory.GetConnectionAsync();
+                await GXLogStore.InsertAsync(connection, "system", [error]);
             }
-            catch (Exception ex2)
+            catch (Exception logError)
             {
-                if (logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Error))
-                {
-                    logger.LogError("{Message}", ex2.ToString());
-                }
+                logger.LogError(logError, "Could not persist the system error for {Path}, trace {TraceId}",
+                    context.Request.Path, context.TraceIdentifier);
             }
         }
 
@@ -258,7 +243,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             else if (exception is not GXAmiForbiddenException and not UnauthorizedAccessException and not GXAmiNotFoundException and not Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)
             {
-                await AddSystemErrorAsync(logger, serviceProvider, exception);
+                await AddSystemErrorAsync(logger, context, exception);
             }
             return problem;
         }

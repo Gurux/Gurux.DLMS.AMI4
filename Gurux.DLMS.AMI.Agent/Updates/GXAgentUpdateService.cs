@@ -1,3 +1,4 @@
+using System.Text.Json;
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -40,6 +41,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
     private readonly Func<HttpClient> downloadClient;
     private readonly SemaphoreSlim prepareGate = new(1, 1);
     public GXPreparedAgentUpdate? PendingUpdate { get; private set; }
+    internal string? ContainerRequestId { get; private set; }
     internal Func<ProcessStartInfo, CancellationToken, Task> StartProcess { get; set; } = StartProcessAsync;
 
     public GXAgentUpdateService(GXAgentUpdaterOptions options, ILogger<GXAgentUpdateService> logger, Func<HttpClient>? downloadClient = null)
@@ -104,6 +106,27 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
         catch (Exception error) when (error is ArgumentException or CryptographicException)
         { throw new InvalidOperationException("Configure Updater:PublicKeyPem with the trusted release signing public key.", error); }
+        if (!string.IsNullOrWhiteSpace(options.DeploymentRoot))
+        {
+            var heartbeat = Path.Combine(options.DeploymentRoot, "agent-heartbeat");
+            if (!Path.IsPathFullyQualified(options.DeploymentRoot) || string.IsNullOrWhiteSpace(options.RequestKeyFile) ||
+                !Path.IsPathFullyQualified(options.RequestKeyFile) || !File.Exists(options.RequestKeyFile) ||
+                !File.Exists(heartbeat) || DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeat) >= TimeSpan.FromSeconds(30))
+            {
+                throw new InvalidOperationException("The independent container updater is not ready.");
+            }
+            var retry = GXAgentContainerUpdate.RetryAfter(options.DeploymentRoot);
+            if (retry > DateTimeOffset.UtcNow)
+            {
+                options.RetryAfter = retry;
+                throw new InvalidOperationException("A previous container update failed; waiting before retrying.");
+            }
+            if (Under(options.StagingDirectory, options.InstallationDirectory))
+            {
+                throw new InvalidOperationException("Container update verification must use persistent staging outside the application.");
+            }
+            return;
+        }
         if (string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase) ||
             !OperatingSystem.IsWindows() && File.Exists("/.dockerenv"))
             {
@@ -158,6 +181,10 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
             deadline.CancelAfter(options.DownloadTimeout);
             var transferToken = deadline.Token;
+            if (!string.IsNullOrWhiteSpace(options.DeploymentRoot))
+            {
+                await ValidateContainerReleaseAsync(version, transferToken);
+            }
             Exception? last = null;
             foreach (var address in urls)
             {
@@ -268,6 +295,45 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         if (actual != version.Split('+')[0])
             {
             throw new InvalidDataException("Agent package version does not match the requested version.");
+        }
+    }
+
+    private async Task ValidateContainerReleaseAsync(string version, CancellationToken token)
+    {
+        var tag = Uri.EscapeDataString("Gurux.DLMS.AMI.Agent/v" + version);
+        var uri = new Uri($"https://github.com/Gurux/Gurux.DLMS.AMI4/releases/download/{tag}/Gurux.DLMS.AMI.Agent-{version}.compose.json");
+        using var http = downloadClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI.Agent/1.0");
+        using var metadata = new MemoryStream();
+        await DownloadAsync(http, uri, metadata, 65536, token);
+        metadata.Position = 0;
+        using var document = await System.Text.Json.JsonDocument.ParseAsync(metadata, cancellationToken: token);
+        var root = document.RootElement;
+        if (root.GetProperty("schemaVersion").GetInt32() != 1 || root.GetProperty("version").GetString() != version)
+        {
+            throw new InvalidDataException("Agent container metadata does not match the requested release.");
+        }
+        var compose = root.GetProperty("compose").Deserialize<Gurux.Updater.Model.GXComposeRelease>()
+            ?? throw new InvalidDataException("Agent release has no container metadata.");
+        var platform = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.Arm64 => "linux/arm64",
+            System.Runtime.InteropServices.Architecture.Arm => "linux/arm/v7",
+            _ => "linux/amd64"
+        };
+        var current = AgentRuntimeVersion.Resolve(AppContext.BaseDirectory, null,
+            FileVersionInfo.GetVersionInfo(typeof(GXAgentUpdateService).Assembly.Location).ProductVersion) ?? "0.0.0";
+        Gurux.Updater.Services.GXComposeDeploymentService.ValidateRelease(new Gurux.Updater.Model.GXDeploymentOptions
+        {
+            Compose = new Gurux.Updater.Model.GXComposeOptions
+            {
+                Services = new() { ["agent"] = "agent" }, AllowedImageRepositories = new() { "guruxorg/dlms-ami-agent" },
+                Platform = platform, WasmRole = "agent"
+            }
+        }, new Gurux.Updater.Model.GXUpdateRelease { Version = version, Compose = compose }, current);
+        if (compose.ContainsWasm)
+        {
+            throw new InvalidDataException("An agent image cannot declare an AMI browser deployment.");
         }
     }
 
@@ -420,6 +486,17 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
 
     public async Task LaunchAsync(int processId, CancellationToken token)
     {
+        if (!string.IsNullOrWhiteSpace(options.DeploymentRoot))
+        {
+            ValidateConfiguration();
+            var pending = PendingUpdate ?? throw new InvalidOperationException("No verified update is staged.");
+            GXAgentContainerHealth.MarkDrained();
+            var current = AgentRuntimeVersion.Resolve(AppContext.BaseDirectory, null,
+                FileVersionInfo.GetVersionInfo(typeof(GXAgentUpdateService).Assembly.Location).ProductVersion) ?? "";
+            await GXAgentContainerHealth.WriteAsync(options.DeploymentRoot, current, false, token);
+            ContainerRequestId = await GXAgentContainerUpdate.QueueAsync(options.DeploymentRoot, options.RequestKeyFile!, pending.Version, token);
+            return;
+        }
         var info = CreateStartInfo(processId);
         await StartProcess(info, token);
     }

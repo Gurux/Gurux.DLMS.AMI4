@@ -581,6 +581,10 @@ For toaster messages, enable a notification subscription and select its events. 
 | <a id="logs.change-history"></a>Change history | Review recorded changes to application data. |
 | <a id="updates"></a>Available updates | Review available application or resource updates. |
 
+For Docker installations, use [automatic AMI/agent Compose updater setup](deployment/docker/README.md). The updater starts with the application; no separate host updater installation is required.
+
+For Linux systemd installations, see [server updates from the user interface](deployment/systemd/README.md) for the independent Gurux updater setup.
+
 ### Update tabs
 
 | Tab | Purpose |

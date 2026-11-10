@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><PackageReference Include="Gurux.Updater.Net" Version="1.0.2611.601" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="ContainerUpdater.Tests" /></ItemGroup>
+</Project>

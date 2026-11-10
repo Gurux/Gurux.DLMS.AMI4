@@ -263,3 +263,8 @@ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/appsettings.Development.json
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/css/
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/css/*
 !/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css
+
+# Automatic Compose updater installation state (host-local files).
+/deployment/docker/**/.env
+/deployment/docker/**/compose.override.yaml
+/deployment/docker/**/compose.override.yaml.*.tmp

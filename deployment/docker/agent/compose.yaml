@@ -1,0 +1,52 @@
+name: ${COMPOSE_PROJECT_NAME:-gurux-ami-agent}
+services:
+  updater:
+    image: ${UPDATER_IMAGE:-guruxorg/dlms-ami-updater:latest}
+    restart: unless-stopped
+    environment:
+      GURUX_APPLICATION: agent
+      GURUX_PLATFORM: ${GURUX_PLATFORM:-linux/amd64}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-gurux-ami-agent}
+      UPDATER_IMAGE: ${UPDATER_IMAGE:-guruxorg/dlms-ami-updater:latest}
+      AMI_URL: ${AMI_URL:?Set AMI_URL to the server address}
+      AGENT_IMAGE: ${AGENT_IMAGE:-guruxorg/dlms-ami-agent:latest}
+      AGENT_TOKEN: ${AGENT_TOKEN:?Set AGENT_TOKEN to the agent PAT}
+      AGENT_NAME: ${AGENT_NAME:-Docker agent}
+      AGENT_ID: ${AGENT_ID:-}
+    volumes:
+      - .:/project
+      - /var/run/docker.sock:/var/run/docker.sock
+      - updater-state:/state
+      - updater-queue:/state/queue
+      - agent-data:/agent-data
+  agent:
+    image: ${AGENT_IMAGE:-guruxorg/dlms-ami-agent:latest}
+    restart: unless-stopped
+    depends_on:
+      updater:
+        condition: service_healthy
+    environment:
+      Agent__Address: ${AMI_URL:?Set AMI_URL to the server address}
+      Agent__Token: ${AGENT_TOKEN:?Set AGENT_TOKEN to the agent PAT}
+      Agent__Name: ${AGENT_NAME:-Docker agent}
+      Agent__Id: ${AGENT_ID:-}
+      Agent__SettingsPath: /data/settings.json
+      Updater__DeploymentRoot: /run/gurux-updater
+      Updater__RequestKeyFile: /run/gurux-updater/request.key
+      Updater__StagingDirectory: /data/update-staging
+      HOME: /data
+      XDG_DATA_HOME: /data
+    volumes:
+      - agent-data:/data
+      - updater-state:/run/gurux-updater:ro
+      - updater-queue:/run/gurux-updater/queue
+    healthcheck:
+      test: ["CMD", "dotnet", "Gurux.DLMS.AMI.Agent.dll", "--health-check"]
+      interval: 10s
+      timeout: 8s
+      start_period: 60s
+      retries: 3
+volumes:
+  updater-state:
+  updater-queue:
+  agent-data:

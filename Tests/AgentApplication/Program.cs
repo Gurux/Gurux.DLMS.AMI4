@@ -48,6 +48,7 @@ if (args is ["identify-by-ip"]) { await IdentifyByIpChecks.RunAsync(); return; }
 if (args is ["unit"]) { await TaskFailureChecks.RunAsync();
 await BasicUnitChecks.RunAsync(); return; }
 if (args is ["completion-monitoring"]) { await CompletionMonitoringChecks.RunAsync(); return; }
+if (args is ["updater"]) { await UpdaterChecks.RunAsync(); return; }
 if (args is ["authentication"]) { await AuthenticationChecks.RunAsync(); return; }
 var failures = new List<string>();
 if (typeof(GXAgentWorker).Assembly != application) {

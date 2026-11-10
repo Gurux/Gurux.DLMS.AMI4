@@ -49,7 +49,7 @@ permissions:
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('ami-server-pr-{0}', github.event.pull_request.number) || 'ami-server-releases' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-  queue: max
+  queue: ${{ github.event_name == 'pull_request' && 'single' || 'max' }}
 
 jobs:
   checks:

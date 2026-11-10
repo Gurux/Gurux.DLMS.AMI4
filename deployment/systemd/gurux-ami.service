@@ -1,0 +1,23 @@
+[Unit]
+Description=Gurux DLMS AMI backend
+After=network.target
+
+[Service]
+Type=simple
+User=gurux-ami
+Group=gurux-ami
+UMask=0027
+WorkingDirectory=/var/lib/gurux-ami
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:8080
+Environment=AMI_SETTINGS_FILE=/etc/gurux-ami/ami-settings.json
+Environment=HOME=/var/lib/gurux-ami
+Environment=XDG_DATA_HOME=/var/lib/gurux-ami
+# Persistent content root keeps Modules and relative data paths outside releases.
+ExecStart=/usr/bin/dotnet /srv/gurux-ami/current/Gurux.DLMS.AMI.dll --contentRoot /var/lib/gurux-ami --webroot /srv/gurux-ami/current/wwwroot
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

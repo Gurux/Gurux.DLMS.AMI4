@@ -39,14 +39,15 @@
 {
     <section aria-labelledby="static-deployment-title" aria-busy="@_status.Busy">
         <h2 id="static-deployment-title">@Text(_status.IncludesBackend ? "Title" : "Interface")</h2>
-        <p>@Text("WasmVersion"): @(_status.CurrentVersion ?? "—")</p>
+        <p>@Text("Environment"): @Text("Environment" + _status.HostingEnvironment)</p>
+        <p>@Text(_status.IncludesBackend ? "InstalledVersion" : "WasmVersion"): @(_status.CurrentVersion ?? "—")</p>
         <p>@Text("ApiVersion"): @_status.ApiVersion</p>
         <p>@Text("AvailableVersion"): @(_available ?? "—")</p>
         @if (_releases.Length != 0)
         {
             <GXInputDropdown TValue="string" class="form-select" aria-label="AMI version" @bind-Value="_available" Disabled="@(_status.Busy || _starting)" Items="@_releases.Select(release => release.Version)" RememberValue="false" />
         }
-        @if (_status.Mode == "compose") { <p>@Text("ExpectedOutage")</p> }
+        @if (_status.IncludesBackend) { <p>@Text("ExpectedOutage")</p> }
         @if (_maintenanceRequired) { <p role="alert">@Text("StateMaintenanceRequired")</p> }
         @if (_status.AgentAvailable && UpdateAvailable && !_maintenanceRequired)
         {
@@ -68,6 +69,15 @@
         {
             <button type="button" class="btn btn-secondary" @onclick="Reload">@Text("Reload")</button>
         }
+    </section>
+}
+
+else if (_status?.HostingEnvironment is "Systemd" or "Linux" or "Container")
+{
+    <section aria-labelledby="deployment-setup-title">
+        <h2 id="deployment-setup-title">@Text("SetupTitle")</h2>
+        <p>@Text("Environment"): @Text("Environment" + _status.HostingEnvironment)</p>
+        <p role="status">@Text(_status.HostingEnvironment == "Container" ? "ContainerSetup" : "SystemdSetup")</p>
     </section>
 }
 

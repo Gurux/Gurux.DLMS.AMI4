@@ -1,0 +1,18 @@
+[Unit]
+Description=Gurux AMI independent deployment agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=gurux-ami
+UMask=0027
+WorkingDirectory=/opt/gurux-updater
+ExecStart=/usr/bin/dotnet /opt/gurux-updater/Gurux.Updater.Tool.dll deployment-agent --config /etc/gurux-ami/updater.json
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=180
+
+[Install]
+WantedBy=multi-user.target

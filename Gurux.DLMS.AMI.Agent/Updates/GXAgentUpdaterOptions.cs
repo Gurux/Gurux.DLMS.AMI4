@@ -31,6 +31,8 @@ namespace Gurux.DLMS.AMI.Agent;
 
 internal sealed class GXAgentUpdaterOptions
 {
+    public string? DeploymentRoot { get; set; }
+    public string? RequestKeyFile { get; set; }
     public string Executable { get; set; } = "";
     public string? ServiceName { get; set; }
     public string? ApplicationPath { get; set; }
@@ -54,6 +56,8 @@ internal sealed class GXAgentUpdaterOptions
 
     internal static GXAgentUpdaterOptions Read(IConfiguration config) => new()
     {
+        DeploymentRoot = config["Updater:DeploymentRoot"],
+        RequestKeyFile = config["Updater:RequestKeyFile"],
         Executable = string.IsNullOrWhiteSpace(config["Updater:Executable"]) ? Environment.GetEnvironmentVariable("GURUX_UPDATER_PATH") ?? "" : config["Updater:Executable"]!,
         ServiceName = config["Updater:ServiceName"],
         ApplicationPath = config["Updater:ApplicationPath"],

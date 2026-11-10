@@ -1,0 +1,28 @@
+{
+  "Database": {
+    "Type": "SQLite",
+    "Settings": "Data Source=/var/lib/gurux-ami/ami.db;Foreign Keys=True"
+  },
+  "Server": {
+    "Address": "https://ami.example.com"
+  },
+  "ImageStorage": {
+    "RootPath": "/var/lib/gurux-ami/images"
+  },
+  "Updater": {
+    "CatalogUrl": "https://gurux.github.io/Gurux.AMI.Catalog/catalog.json",
+    "Deployment": {
+      "Root": "/srv/gurux-ami",
+      "ProductId": "Gurux.DLMS.AMI",
+      "IncludeBackend": true,
+      "Mode": "static"
+    }
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "ami.example.com"
+}

@@ -24,6 +24,7 @@ on:
       - '.github/scripts/sign-agent-package.ps1'
       - '.github/tests/agent-release.tests.ps1'
       - '.github/tests/agent-signing.tests.ps1'
+      - '.github/scripts/agent-compose-release.ps1'
       - '.github/scripts/agent-docker.ps1'
       - '.github/tests/agent-docker.tests.ps1'
       - '.github/workflows/publish-agent.yml'
@@ -31,6 +32,10 @@ on:
     inputs:
       version:
         description: 'Optional four-part version; blank allocates from agent release tags'
+        required: false
+        type: string
+      rollback_compatible_from:
+        description: 'Audited bounded agent-state rollback interval; blank requires maintenance'
         required: false
         type: string
 
@@ -223,6 +228,13 @@ jobs:
       - name: Update latest without rolling back a newer version
         shell: pwsh
         run: .github/scripts/agent-docker.ps1 -Action Latest -Version $env:AGENT_VERSION -Commit $env:GITHUB_SHA
+
+      - name: Publish immutable agent Compose descriptor
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROLLBACK_RANGE: ${{ inputs.rollback_compatible_from }}
+        run: .github/scripts/agent-compose-release.ps1 -Version $env:AGENT_VERSION -Commit $env:GITHUB_SHA -RollbackCompatibleFrom $env:ROLLBACK_RANGE
 
   catalog:
     needs: [publish, docker]

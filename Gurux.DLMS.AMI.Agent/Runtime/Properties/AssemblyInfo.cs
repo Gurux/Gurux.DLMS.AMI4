@@ -33,3 +33,5 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("AgentUpdate.Checks")]
 [assembly: InternalsVisibleTo("AgentContracts.Checks")]
 [assembly: InternalsVisibleTo("AgentProfileHistory")]
+
+[assembly: InternalsVisibleTo("ContainerUpdater.Tests")]

@@ -164,7 +164,7 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
                 finally { System.IO.File.Delete(readyTemporary); }
             });
         }
-        return Accepted(new GXDeploymentResponse { Configured = true, IncludesBackend = IncludeBackend, Mode = Compose ? "compose" : "static", AgentAvailable = true, Busy = true, State = "Queued", RequestId = requestId, Version = request.Version, ApiVersion = ApiVersion });
+        return Accepted(new GXDeploymentResponse { HostingEnvironment = GXDeploymentEnvironment.Detect(), Configured = true, IncludesBackend = IncludeBackend, Mode = Compose ? "compose" : "static", AgentAvailable = true, Busy = true, State = "Queued", RequestId = requestId, Version = request.Version, ApiVersion = ApiVersion });
     }
     sealed record Release(string Version, bool Blocked = false);
     async Task<List<Release>> ReleasesAsync(CancellationToken token)
@@ -200,7 +200,7 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
     }
     async Task<GXDeploymentResponse> SnapshotAsync(CancellationToken token, string? requestId = null)
     {
-        var result = new GXDeploymentResponse { Configured = Configured, IncludesBackend = IncludeBackend, ApiVersion = ApiVersion, Mode = Compose ? "compose" : "static" };
+        var result = new GXDeploymentResponse { HostingEnvironment = GXDeploymentEnvironment.Detect(), Configured = Configured, IncludesBackend = IncludeBackend, ApiVersion = ApiVersion, Mode = Compose ? "compose" : "static" };
         if (!Configured) {
             return result;
         }

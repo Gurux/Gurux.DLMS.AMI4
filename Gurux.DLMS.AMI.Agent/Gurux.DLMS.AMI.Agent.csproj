@@ -35,9 +35,10 @@
         </Content>
     </ItemGroup>
     <ItemGroup>
+        <PackageReference Include="Gurux.Updater.Net" Version="1.0.2611.601" />
         <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
         <PackageReference Include="Gurux.DLMS.AMI.Http" Version="4.1.2611.501" />
-        <ProjectReference Include="../Gurux.DLMS.AMI.Shared/Gurux.DLMS.AMI.Shared.csproj" />
+        <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.1.2611.901" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
         <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.14" />

@@ -29,4 +29,13 @@
   <data name="StateFailed"><value>Update failed</value></data>
   <data name="StateSucceeded"><value>Update completed</value></data>
   <data name="RestorePrevious"><value>Restore previous version</value></data>
+  <data name="Environment"><value>Hosting environment</value></data>
+  <data name="EnvironmentSystemd"><value>Linux systemd service</value></data>
+  <data name="EnvironmentContainer"><value>Container</value></data>
+  <data name="EnvironmentLinux"><value>Linux</value></data>
+  <data name="EnvironmentOther"><value>Other</value></data>
+  <data name="InstalledVersion"><value>Installed AMI version</value></data>
+  <data name="SetupTitle"><value>AMI server updates</value></data>
+  <data name="SystemdSetup"><value>Server updates are not configured. Ask the server administrator to install and configure the independent Linux updater.</value></data>
+  <data name="ContainerSetup"><value>Container updates are not configured. Ask the server administrator to configure the external container updater.</value></data>
 </root>

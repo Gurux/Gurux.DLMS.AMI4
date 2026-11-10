@@ -63,10 +63,12 @@
             <ValidationSummary class="text-danger" role="alert" />
             <div class="mb-3">
                 <label for="profile-picture">@Gurux.DLMS.AMI.Properties.Resources.ProfilePicture</label>
-                <Gurux.UI.Components.GXInputDropdown id="profile-picture" class="form-select"
-                                                   RememberValue="false" @bind-Value="Input.ProfilePictureIndex"
-                                                   Items="@Enumerable.Range(0, profilePictureOptions.Length)"
-                                                   Formatter="FormatProfilePicture" />
+                <InputSelect id="profile-picture" class="form-select" @bind-Value="Input.ProfilePictureIndex">
+                    @for (var index = 0; index < profilePictureOptions.Length; ++index)
+                    {
+                        <option value="@index">@FormatProfilePicture(index)</option>
+                    }
+                </InputSelect>
                 <InputText type="hidden" @bind-Value="Input.ProfilePictureOptions" />
                 @if (images.FirstOrDefault(image => image.Id == Input.ProfilePictureId) is { } selectedPicture)
                 {
