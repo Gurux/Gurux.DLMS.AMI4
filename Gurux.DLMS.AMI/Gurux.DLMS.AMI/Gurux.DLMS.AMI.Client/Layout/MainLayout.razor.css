@@ -379,3 +379,15 @@ main {
         display: none !important;
     }
 }
+
+.top-row.auth > a.user-profile-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    overflow: visible;
+    color: inherit;
+}

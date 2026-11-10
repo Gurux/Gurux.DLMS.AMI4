@@ -36,14 +36,19 @@
 @inject NavigationManager Navigation
 @implements IDisposable
 
-@if (!string.IsNullOrEmpty(_value))
-{
-    <GXImage Value="@_value" Width="32" Height="32" />
-}
-else
-{
-    <GXImage Id="User" Width="32" Height="32" />
-}
+<span class="user-profile-avatar">
+    @if (!string.IsNullOrEmpty(_value))
+    {
+        <GXImage Value="@_value" Width="32" Height="32" />
+    }
+    else
+    {
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+            <circle cx="16" cy="10" r="5" />
+            <path d="M5 29v-3a11 11 0 0 1 22 0v3" />
+        </svg>
+    }
+</span>
 
 @code {
     private string? _value;
