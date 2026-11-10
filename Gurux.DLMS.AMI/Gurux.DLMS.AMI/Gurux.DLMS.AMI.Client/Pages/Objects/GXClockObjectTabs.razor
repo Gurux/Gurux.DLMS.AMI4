@@ -1,0 +1,147 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.UI.Components
+@using System.Globalization
+@using Gurux.DLMS
+@using Gurux.DLMS.Objects
+@using Gurux.DLMS.UI.Components
+@using Gurux.DLMS.UI.Components.Objects
+@inherits GXDLMSObjectTabs
+
+@if (Target is GXDLMSClock)
+{
+    <section class="gx-object-tabs">
+        <GXTabControl @key="Target" NavigateOnSelection="false">
+            <GXTabPage Text="Data">@Data</GXTabPage>
+            <GXTabPage Text="Attributes">
+                <div class="attribute-read-actions">
+                    <GXButton type="button" Disabled="@(!ReadsEnabled || !SelectedAttributes.Any(CanRead))" OnClick="ReadSelectedAsync">Read</GXButton>
+                    <GXButton type="button" Disabled="@(!ReadsEnabled)" OnClick="ReadAllAsync">Read all</GXButton>
+                    <GXButton type="button" Disabled="@(!ReadsEnabled)" OnClick="RefreshValuesAsync">Refresh values</GXButton>
+                    <GXInputSwitch TValue="bool" Inline="true" Save="false" Text="Read automatically on object selection" Value="AutoRead" ValueChanged="SetAutoReadAsync" />
+                </div>
+                <div class="rights-scroll">
+                    <table><thead><tr><th>Read</th><th>Index</th><th>Description</th><th>Value</th><th>Access rights</th></tr></thead><tbody>
+                    @for (var index = 1; index <= AttributeCount; ++index)
+                    {
+                        var attributeIndex = index;
+                        <tr><td><GXInputSwitch TValue="bool" Inline="true" Save="false" Value="@SelectedAttributes.Contains(index)" Disabled="@(!CanRead(index))" ValueChanged="value => SelectAttributeAsync(attributeIndex, value)" aria-label="@($"Read {AttributeName(index)}")" /></td>
+                            <td>@index</td><td>@AttributeName(index)</td>
+                            <td>
+                                @if (index == 2)
+                                {
+                                    <GXAttributeField @ref="_timeField" Edit="@Edit" Index="2" Label="Time:" Enabled="@CanEditClockAttribute(2)" InputKind="datetime" />
+                                    <GXButton type="button" Disabled="@(!CanEditClockAttribute(2))" OnClick="ConfirmCurrentTime">Current Time</GXButton>
+                                }
+                                else if (index == 3)
+                                {
+                                    <GXAttributeField @ref="_timeZoneField" Edit="@Edit" Index="3" Label="Time Zone:" Enabled="@CanEditClockAttribute(3)" />
+                                    <GXButton type="button" Disabled="@(!CanEditClockAttribute(3))" OnClick="ConfirmCurrentTimeZone">Current time zone</GXButton>
+                                }
+                                else
+                                {
+                                    @AttributeValue(index)
+                                }
+                            </td>
+                            <td>@AttributeAccess(index)</td></tr>
+                    }
+                    </tbody></table>
+                </div>
+            </GXTabPage>
+            <GXTabPage Text="Access rights">
+                <div class="rights-scroll">
+                    <table><thead><tr><th>Attribute Index</th><th>Description</th><th>Access rights</th><th>Access selector</th><th>Static</th><th>Type</th><th>UIType</th></tr></thead>
+                        <tbody>
+                            @for (var index = 1; index <= AttributeCount; ++index)
+                            {
+                                <tr><td>@index</td><td>@AttributeName(index)</td><td>@AttributeAccess(index)</td><td>@Target.GetAccessSelector(index)</td>
+                                    <td>@Target.GetStatic(index)</td><td>@Target.GetDataType(index)</td><td>@Target.GetUIDataType(index)</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </GXTabPage>
+            @if (MethodCount > 0)
+            {
+                <GXTabPage Text="Method access rights">
+                    <div class="rights-scroll">
+                        <table><thead><tr><th>Method Index</th><th>Description</th><th>Method access</th></tr></thead>
+                            <tbody>
+                                @for (var index = 1; index <= MethodCount; ++index)
+                                {
+                                    <tr><td>@index</td><td>@MethodName(index)</td><td>@MethodAccess(index)</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </GXTabPage>
+            }
+        </GXTabControl>
+    </section>
+}
+else
+{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    [Parameter] public bool WritesEnabled { get; set; }
+    private GXAttributeField? _timeField;
+    private GXAttributeField? _timeZoneField;
+    private GXDLMSObjectEditState Edit => GXDLMSObjectEditState.For(Target);
+
+    private bool CanEditClockAttribute(int index) => Target is GXDLMSClock && WritesEnabled &&
+        GXDLMSObjectAccess.CanWrite(Target, index, Association) &&
+        (index != 3 || Convert.ToInt32(Edit.AttributeValue(3), CultureInfo.InvariantCulture) != short.MinValue);
+
+    private void ConfirmCurrentTime()
+    {
+        if (_timeField == null || !ReferenceEquals(_timeField.Edit.Target, Target) || !CanEditClockAttribute(2))
+        {
+            return;
+        }
+        _timeField.BeginEdit();
+        _timeField.Draft = new GXDateTime(DateTime.Now).ToFormatMeterString(CultureInfo.InvariantCulture);
+    }
+
+    private void ConfirmCurrentTimeZone()
+    {
+        if (_timeZoneField == null || !ReferenceEquals(_timeZoneField.Edit.Target, Target) || !CanEditClockAttribute(3))
+        {
+            return;
+        }
+        _timeZoneField.BeginEdit();
+        _timeZoneField.Draft = (-(int)TimeZoneInfo.Local.BaseUtcOffset.TotalMinutes).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private string AttributeName(int index) => ((IGXDLMSBase)Target).GetNames()[index - 1];
+    private string MethodName(int index) => ((IGXDLMSBase)Target).GetMethodNames()[index - 1];
+    private string AttributeValue(int index) => Edit.AttributeText(index);
+}

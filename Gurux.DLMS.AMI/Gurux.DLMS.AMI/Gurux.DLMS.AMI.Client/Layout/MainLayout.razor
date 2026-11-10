@@ -113,7 +113,7 @@
             <div class="top-row px-4 auth">
                 <LayoutNavigationMenus Location="MenuLocation.Top" />
                 <FavoriteTile />
-                <GXBreadcrumb SegmentLabelMap="@_maps" HiddenSegments="@(new[] { "Edit", "Remove" })" class="me-auto" />
+                <GXBreadcrumb Items="@GetDeviceObjectBreadcrumbs()" SegmentLabelMap="@_maps" HiddenSegments="@(new[] { "Edit", "Remove" })" class="me-auto" />
                 <GXMenuBar MenuId="@GXEditorMenu.MenuId" ProtectedMenuIds="@ProtectedMenus"
                            PreserveCommandsOnNavigation="@GXTabRoutes.IsTabNavigation"
                            WarnOnUnsavedChanges="true"
@@ -150,7 +150,9 @@
                                     </div>
                                 }
                                 <ModuleWrapper></ModuleWrapper>
-                                @Body
+                                <CascadingValue Value="this" IsFixed="true">
+                                    @Body
+                                </CascadingValue>
                             </article>
                         </ChildContent>
                     </GXErrorBoundary>
@@ -206,6 +208,44 @@
              Display="Gurux.DLMS.AMI.Module.Enums.AmiViewDisplay.Append" />
 
 @code {
+    private string? _deviceBreadcrumbPath;
+    private string? _deviceBreadcrumbName;
+    private string? _objectBreadcrumbName;
+
+    public Task UpdateDeviceObjectBreadcrumbNamesAsync(string path, string? deviceName, string? objectName)
+    {
+        _deviceBreadcrumbPath = path;
+        _deviceBreadcrumbName = deviceName;
+        _objectBreadcrumbName = objectName;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private IEnumerable<GXBreadcrumb.BreadcrumbItem>? GetDeviceObjectBreadcrumbs()
+    {
+        var path = NavigationManager.GetCurrentPagePath();
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 3 ||
+            !string.Equals(segments[0], "Device", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(segments[1], "Objects", StringComparison.OrdinalIgnoreCase) ||
+            !Guid.TryParse(segments[2], out var deviceId))
+        {
+            return null;
+        }
+        var objectUrl = GXDeviceObjectRoutes.Objects(deviceId);
+        if (segments.Length >= 4 && Guid.TryParse(segments[3], out var objectId))
+        {
+            objectUrl = GXDeviceObjectRoutes.Object(deviceId, objectId);
+        }
+        var deviceName = _deviceBreadcrumbPath == path ? _deviceBreadcrumbName : null;
+        var objectName = _deviceBreadcrumbPath == path ? _objectBreadcrumbName : null;
+        return new[]
+        {
+            new GXBreadcrumb.BreadcrumbItem("Home", NavigationManager.BaseUri, false, true),
+            new GXBreadcrumb.BreadcrumbItem(deviceName ?? "Device", NavigationManager.GetCurrentPagePath($"/Device/{deviceId}"), false, deviceName == null),
+            new GXBreadcrumb.BreadcrumbItem(objectName ?? "Object", NavigationManager.GetCurrentPagePath(objectUrl), false, objectName == null)
+        };
+    }
+
     private static readonly Guid?[] ProtectedMenus = [GXEditorMenu.MenuId, null];
     private bool _showAbout;
     private void OpenAbout() => _showAbout = true;

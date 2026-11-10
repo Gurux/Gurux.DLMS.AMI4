@@ -25,13 +25,16 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
+using System.Security.Claims;
+using Gurux.DLMS.AMI.Db;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Data;
 using Gurux.DLMS.AMI.Server.Services;
 
 namespace Gurux.DLMS.AMI.Server.Repository
@@ -110,6 +113,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             await _userRepository.UpsertAsync(request.Users, null, cancellationToken);
             return new AddUserResponse() { Users = request.Users };
+        }
+
+        /// <summary>Get the signed-in user's profile picture without user-management permissions.</summary>
+        [HttpGet("Picture/Current")]
+        [Authorize]
+        public async Task<ActionResult<Guid?>> GetCurrentPictureAsync(
+            [FromServices] IDbConnectionFactory dbFactory, CancellationToken cancellationToken = default)
+        {
+            var owner = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (User.Identity?.IsAuthenticated != true || string.IsNullOrEmpty(owner))
+            {
+                return Unauthorized();
+            }
+            await using var connection = await dbFactory.GetConnectionAsync(cancellationToken);
+            var query = GXSelectArgs.Select<GXUser>(item => new { item.Id, item.ProfilePicture },
+                item => item.Id == owner && item.Removed == null);
+            query.Joins.AddLeftJoin<GXUser, GXAppearance>(item => item.ProfilePicture!, image => image.Id);
+            query.Columns.Add<GXAppearance>(image => image.Id);
+            var profile = await connection.SingleOrDefaultAsync<GXUser>(query, cancellationToken);
+            // Explicit JSON null lets the client use its default avatar without a deserialization error.
+            return new JsonResult(profile?.ProfilePicture?.Id);
         }
 
         /// <summary>

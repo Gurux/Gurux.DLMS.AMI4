@@ -42,22 +42,11 @@ else if (_device != null)
             <p><a href="@NavigationManager.GetCurrentPagePath(GXDeviceObjectRoutes.Object(DeviceId, ObjectId.Value))">@Properties.Resources.Objects</a></p>
         }
         <ObjectView @key="(DeviceId, ObjectId, AttributeId)" Model="_model" Device="_device" Id="_model.Id" Action="Edit" SelectedAttributeId="_selectedAttributeId" />
-        @if (AttributeId == null)
-        {
-            <nav aria-label="@Properties.Resources.Attributes">
-                <h2>@Properties.Resources.Attributes</h2>
-                <ul>
-                    @foreach (var attribute in (_model.Attributes ?? []).Where(a => a.Template != null).OrderBy(a => a.Template!.Index))
-                    {
-                        <li><a href="@NavigationManager.GetCurrentPagePath(GXDeviceObjectRoutes.Attribute(DeviceId, ObjectId.Value, attribute.Id))">@(attribute.Template!.Index) — @(attribute.Template.Name)</a></li>
-                    }
-                </ul>
-            </nav>
-        }
     }
 }
 
 @code {
+    [CascadingParameter] public Gurux.DLMS.AMI.Client.Layout.MainLayout? Layout { get; set; }
     [Parameter] public Guid DeviceId { get; set; }
     [Parameter] public Guid? ObjectId { get; set; }
     [Parameter] public Guid? AttributeId { get; set; }
@@ -72,6 +61,7 @@ else if (_device != null)
         _request?.Cancel();
         _request?.Dispose();
         var request = _request = new CancellationTokenSource();
+        var breadcrumbPath = NavigationManager.GetCurrentPagePath();
         _loading = true;
         _notFound = _error = false;
         _device = null;
@@ -137,6 +127,11 @@ else if (_device != null)
             if (ReferenceEquals(_request, request))
             {
                 _loading = false;
+                if (Layout != null && !request.IsCancellationRequested)
+                {
+                    await Layout.UpdateDeviceObjectBreadcrumbNamesAsync(breadcrumbPath,
+                        _device?.Name, _model?.Template?.Name);
+                }
             }
         }
     }

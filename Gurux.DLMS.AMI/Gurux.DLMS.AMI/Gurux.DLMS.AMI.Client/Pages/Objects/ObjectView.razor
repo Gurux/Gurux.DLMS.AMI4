@@ -75,18 +75,25 @@
             }
             else
             {
-                <ModuleViews Area="AmiViewArea.Object" Display="AmiViewDisplay.Replace" Target="Active" Parameters="ViewParameters">
-                    @if (_cosem.Target is GXDLMSProfileGeneric && BufferAttribute is { } buffer)
-                    {
-                        <GXProfileBufferHistory @ref="_history" AttributeId="buffer.Id" CanRead="@(Template == null && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))" />
-                    }
-                    <div class="@(_cosem.Target is GXDLMSProfileGeneric ? "cosem-profile-settings" : null)">
-                    <GXDLMSObjectView Target="@_cosem.Target" Client="@_cosem.Client"
-                                      ReadOnly="@(Template != null || string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))"
-                                      ActionsEnabled="@(Template == null && !_sending)" ImmediateWriteEnabled="@(Template == null && !_sending)"
-                                      OnChanged="OnCosemChanged" OnActionRequested="OnActionRequested" OnWriteRequested="OnWriteRequested" />
-                    </div>
-                </ModuleViews>
+                <GXClockObjectTabs Target="@_cosem.Target"
+                                  ReadsEnabled="@(Template == null && !_sending && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))"
+                                  OnReadRequested="OnAttributeReadRequested"
+                                  WritesEnabled="@(Template == null && !_sending && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))">
+                    <Data>
+                        <ModuleViews Area="AmiViewArea.Object" Display="AmiViewDisplay.Replace" Target="Active" Parameters="ViewParameters">
+                            @if (_cosem.Target is GXDLMSProfileGeneric && BufferAttribute is { } buffer)
+                            {
+                                <GXProfileBufferHistory @ref="_history" AttributeId="buffer.Id" CanRead="@(Template == null && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))" />
+                            }
+                            <div class="@(_cosem.Target is GXDLMSProfileGeneric ? "cosem-profile-settings" : null)">
+                            <GXDLMSObjectView Target="@_cosem.Target" Client="@_cosem.Client"
+                                              ReadOnly="@(Template != null || string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))"
+                                              ActionsEnabled="@(Template == null && !_sending)" ImmediateWriteEnabled="@(Template == null && !_sending)"
+                                              OnChanged="OnCosemChanged" OnActionRequested="OnActionRequested" OnWriteRequested="OnWriteRequested" />
+                            </div>
+                        </ModuleViews>
+                    </Data>
+                </GXClockObjectTabs>
             }
             @ChildContent
         </EditForm>
@@ -191,7 +198,7 @@
                 _attributeEdit.Changed -= SelectedAttributeChanged;
             }
             _cosem = new GXObjectCosem(Active);
-            if (SelectedAttributeId != null)
+            if (SelectedAttributeId != null || _cosem.Target is GXDLMSClock)
             {
                 _attributeEdit = GXDLMSObjectEditState.For(_cosem.Target);
                 _attributeEdit.Changed += SelectedAttributeChanged;
@@ -258,6 +265,15 @@
             return;
         }
         await GenerateTasksAsync(_cosem.Action(request), Properties.Resources.ActionTasksAdded);
+    }
+
+    private Task OnAttributeReadRequested(int[] indexes)
+    {
+        if (_cosem == null || Template != null || _sending || string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))
+        {
+            return Task.CompletedTask;
+        }
+        return GenerateTasksAsync(_cosem.Read(indexes), Properties.Resources.ReadTasksAdded);
     }
 
     private Task OnWriteRequested(GXDLMSWriteRequest request)

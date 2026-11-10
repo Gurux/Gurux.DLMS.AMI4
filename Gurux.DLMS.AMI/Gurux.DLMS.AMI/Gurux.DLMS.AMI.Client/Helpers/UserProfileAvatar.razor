@@ -42,7 +42,7 @@
 }
 else
 {
-    <GXImage Id="User" />
+    <GXImage Id="User" Width="32" Height="32" />
 }
 
 @code {
@@ -78,11 +78,11 @@ else
                 StateHasChanged();
                 return;
             }
-            var id = await Http.GetFromJsonAsync<Guid?>("api/User/Picture?userId=" + Uri.EscapeDataString(owner));
+            var id = await Http.GetFromJsonAsync<Guid?>("api/User/Picture/Current");
             if (_disposed || revision != _revision) {
                 return;
             }
-            if (_owner == owner && _picture == id) {
+            if (_owner == owner && _picture == id && (!id.HasValue || !string.IsNullOrEmpty(_value))) {
                 return;
             }
             string? value = null;

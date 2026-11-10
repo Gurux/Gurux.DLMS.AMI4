@@ -193,14 +193,23 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                target != navigationManager.Uri &&
                HttpUtility.ParseQueryString(new Uri(target).Query).GetValues("returnUrl") == null)
             {
+                var currentUri = new Uri(navigationManager.Uri);
+                var returnUrl = currentUri.PathAndQuery + currentUri.Fragment;
+                var values = HttpUtility.ParseQueryString(currentUri.Query).GetValues("returnUrl");
+                if (values is { Length: 1 } &&
+                    TryGetLocalUrl(navigationManager, values[0], out var existingReturnUrl) &&
+                    existingReturnUrl != navigationManager.Uri)
+                {
+                    returnUrl = values[0]!;
+                }
                 url = navigationManager.GetUriWithQueryParameters(target,
-                    new Dictionary<string, object?> { ["returnUrl"] = new Uri(navigationManager.Uri).PathAndQuery + new Uri(navigationManager.Uri).Fragment });
+                    new Dictionary<string, object?> { ["returnUrl"] = returnUrl });
             }
             return url;
         }
 
         /// <summary>
-        /// Navigate to the given URL, carrying the current URL as returnUrl.
+        /// Navigate to the given URL, carrying the existing returnUrl or the current URL.
         /// </summary>
         /// <param name="navigationManager">Navigation manager.</param>
         /// <param name="url">Destination URL. An existing returnUrl is preserved.</param>
