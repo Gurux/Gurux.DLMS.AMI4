@@ -45,12 +45,12 @@ public sealed class GXDeviceSettingsService(IDeviceRepository devices, IKeyManag
             await passwordChanges.EnsureOrdinaryConnectionAllowedAsync(id, token);
         }
         var device = await devices.ReadAsync(id, null, token);
-        var managers = GXDeviceSettingsKeys.CanUse(principal)
+        var managers = GXDeviceSettingsKeys.CanUse(principal, allowLegacyDeviceView: true)
             ? await keys.ListAsync(new ListKeyManagements { Filter = new GXKeyManagement { Device = new GXDevice { Id = id } }, Select = ["KeyManagementKey"] }, null, token)
             : [];
         await GXDeviceSettingsKeys.PopulateAsync(principal, device, managers, notification, async (key, purpose, ct) =>
         {
-            var result = await acquisition.AcquireAsync(principal, new GXAcquireKeyRequest { KeyId = key.Id, Purpose = purpose }, ct);
+            var result = await acquisition.AcquireDeviceKeyAsync(principal, new GXAcquireKeyRequest { KeyId = key.Id, Purpose = purpose }, ct);
             if (result.Metadata.Id != key.Id || result.Metadata.KeyType != key.KeyType || result.Metadata.ConcurrencyStamp != key.ConcurrencyStamp)
                 {
                 throw new InvalidOperationException("Device key changed while preparing settings.");

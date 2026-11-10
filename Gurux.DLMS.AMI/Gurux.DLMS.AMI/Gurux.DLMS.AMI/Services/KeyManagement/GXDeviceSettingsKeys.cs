@@ -40,9 +40,10 @@ namespace Gurux.DLMS.AMI.Server.Services.KeyManagement;
 /// <summary>Populates only the device-setting secrets needed for the authorized transport.</summary>
 public static class GXDeviceSettingsKeys
 {
-    /// <summary>Whether the current caller can receive operational key material.</summary>
-    public static bool CanUse(ClaimsPrincipal principal) => principal.Identity?.IsAuthenticated == true &&
-        (principal.HasClaim("Permission", GXKeyPermissions.Use) || principal.IsInRole(GXRoles.Admin) || principal.HasClaim("Permission", GXRoles.Admin));
+    /// <summary>Whether the caller may use keys, optionally accepting legacy view-only agent scopes for device settings.</summary>
+    public static bool CanUse(ClaimsPrincipal principal, bool allowLegacyDeviceView = false) => principal.Identity?.IsAuthenticated == true &&
+        (principal.HasClaim("Permission", GXKeyPermissions.Use) || principal.IsInRole(GXRoles.Admin) || principal.HasClaim("Permission", GXRoles.Admin) ||
+            allowLegacyDeviceView && principal.HasClaim("Permission", GXKeyManagementPolicies.View));
 
     /// <summary>Produces a response snapshot; never writes operational secrets to stored device settings.</summary>
     public static async Task PopulateAsync(ClaimsPrincipal principal, GXDevice device, IEnumerable<GXKeyManagement> managers,
@@ -51,7 +52,8 @@ public static class GXDeviceSettingsKeys
         var settings = JsonSerializer.Deserialize<DeviceSettings>(string.IsNullOrWhiteSpace(device.Settings) ? device.Template?.Settings ?? "null" : device.Settings) ?? new();
         settings.Password = settings.BlockCipherKey = settings.AuthenticationKey = settings.BroadcastKey = null;
         device.Settings = JsonSerializer.Serialize(settings);
-        if (!CanUse(principal)) {
+        // Temporary compatibility for existing agent tokens issued before key-management.use was a default scope.
+        if (!CanUse(principal, allowLegacyDeviceView: true)) {
             return;
         }
         var contexts = managers.Where(m => m.Removed == null).ToArray();

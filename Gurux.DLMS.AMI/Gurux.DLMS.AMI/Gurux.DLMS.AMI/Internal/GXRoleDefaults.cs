@@ -26,6 +26,7 @@
 // --------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Client.Shared.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Server.Internal
@@ -87,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXAttributePolicies.Edit,
             GXScriptPolicies.View,
             GXScriptLogPolicies.Add,
-            GXKeyManagementPolicies.View,
+            GXKeyManagementPolicies.View, GXKeyPermissions.Use,
             GXGatewayPolicies.View, GXGatewayPolicies.Add, GXGatewayPolicies.Edit,
             GXGatewayGroupPolicies.View,
             GXGatewayLogPolicies.Add

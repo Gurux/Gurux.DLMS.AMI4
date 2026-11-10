@@ -44,11 +44,21 @@ public sealed class GXKeyAcquisitionService(IDbConnectionFactory factory, IKeyMa
     IGXAmiCryptoService crypto, GXModuleRuntime runtime)
 {
     /// <summary>Returns material for one authorized operation and writes a metadata-only audit.</summary>
-    public async Task<GXKeyMaterial> AcquireAsync(ClaimsPrincipal principal, GXAcquireKeyRequest request, CancellationToken token = default)
+    public Task<GXKeyMaterial> AcquireAsync(ClaimsPrincipal principal, GXAcquireKeyRequest request, CancellationToken token = default)
+    {
+        return AcquireCoreAsync(principal, request, false, token);
+    }
+
+    /// <summary>Temporary view-scope compatibility for keys selected by the device settings service.</summary>
+    internal Task<GXKeyMaterial> AcquireDeviceKeyAsync(ClaimsPrincipal principal, GXAcquireKeyRequest request, CancellationToken token = default)
+    {
+        return AcquireCoreAsync(principal, request, true, token);
+    }
+
+    private async Task<GXKeyMaterial> AcquireCoreAsync(ClaimsPrincipal principal, GXAcquireKeyRequest request, bool allowLegacyDeviceView, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (principal.Identity?.IsAuthenticated != true ||
-            !(principal.HasClaim("Permission", GXKeyPermissions.Use) || principal.IsInRole(GXRoles.Admin) || principal.HasClaim("Permission", GXRoles.Admin)))
+        if (!GXDeviceSettingsKeys.CanUse(principal, allowLegacyDeviceView))
             {
             throw new UnauthorizedAccessException("Key use permission is required.");
         }
