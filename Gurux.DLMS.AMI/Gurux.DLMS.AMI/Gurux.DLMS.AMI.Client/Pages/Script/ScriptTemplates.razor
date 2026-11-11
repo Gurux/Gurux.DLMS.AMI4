@@ -171,8 +171,9 @@
             _lifetime.Token, progressScope?.CancellationToken ?? CancellationToken.None);
         try
         {
-            await Services.GetRequiredService<GXBackgroundTaskNotifications>()
-                .CheckScriptsAsync(checkCancellation.Token);
+            var checks = Services.GetRequiredService<GXBackgroundTaskNotifications>();
+            var runId = await checks.CheckScriptsAsync(checkCancellation.Token);
+            await checks.WaitForCompletionAsync(runId, "update", checkCancellation.Token);
             await RefreshCheckedAsync();
         }
         catch (AccessTokenNotAvailableException error)

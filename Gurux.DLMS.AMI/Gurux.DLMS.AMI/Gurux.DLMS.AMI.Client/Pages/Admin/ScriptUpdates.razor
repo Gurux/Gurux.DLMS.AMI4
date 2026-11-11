@@ -150,7 +150,7 @@
             {
                 <div class="form-group">
                     <label for="script-import-name">@Properties.Resources.ScriptName</label>
-                    <input id="script-import-name" class="form-control" disabled="@_busy" @bind="_importName" />
+                    <input id="script-import-name" class="form-control" readonly value="@_importName" />
                 </div>
             }
             @if (_preview.Customized)

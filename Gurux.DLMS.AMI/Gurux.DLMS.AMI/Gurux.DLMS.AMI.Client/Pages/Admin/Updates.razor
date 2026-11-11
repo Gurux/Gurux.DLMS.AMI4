@@ -30,6 +30,7 @@
 @using Gurux.DLMS.AMI.Shared.DTOs.View
 @using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
 @using Gurux.DLMS.AMI.Shared.Rest
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 @using Microsoft.AspNetCore.Authorization
@@ -328,6 +329,29 @@
             using var response = await Http.PostAsJsonAsync("api/Update/Check", new { }, cancellation.Token);
             response.EnsureSuccessStatusCode();
             var snapshot = await response.Content.ReadFromJsonAsync<GXAvailableUpdatesResponse>(cancellationToken: cancellation.Token);
+            if (snapshot?.RunId is Guid runId && runId != Guid.Empty)
+            {
+                // The check endpoint queues work and returns the previous snapshot.
+                // Poll the execution so completion also works without a hub connection.
+                while (true)
+                {
+                    var status = await Http.GetFromJsonAsync<GXBackgroundTaskStatus>($"api/BackgroundTask/Status/{runId:D}", cancellation.Token);
+                    if (status == null || status.RunId != runId || status.TaskId != "update")
+                    {
+                        throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+                    }
+                    if (status.State == BackgroundTaskState.Succeeded)
+                    {
+                        break;
+                    }
+                    if (status.State is BackgroundTaskState.Failed or BackgroundTaskState.Cancelled)
+                    {
+                        throw new InvalidOperationException(status.Error ?? Properties.Resources.UpdateInformationUnavailable);
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellation.Token);
+                }
+                snapshot = await Http.GetFromJsonAsync<GXAvailableUpdatesResponse>("api/Update/List", cancellation.Token);
+            }
             if (!_disposed && requestVersion == _requestVersion)
             {
                 if (snapshot?.Checked == null || (previousCheck.HasValue && snapshot.Checked <= previousCheck))

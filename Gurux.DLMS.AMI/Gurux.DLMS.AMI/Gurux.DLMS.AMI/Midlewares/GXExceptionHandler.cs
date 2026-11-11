@@ -62,7 +62,11 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             Exception exception,
             CancellationToken cancellationToken)
         {
-            if (exception is GXAmiNotFoundException)
+            if (exception is BadHttpRequestException)
+            {
+                _logger.LogWarning(exception, "Invalid HTTP request at {Path}", context.Request.Path);
+            }
+            else if (exception is GXAmiNotFoundException)
             {
                 _logger.LogWarning("AMI resource was not found at {Path}", context.Request.Path);
             }
@@ -185,6 +189,11 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
 
             switch (exception)
             {
+                case BadHttpRequestException ex:
+                    problem.Title = "Invalid HTTP request";
+                    problem.Detail = "The HTTP request is invalid or incomplete.";
+                    problem.Status = ex.StatusCode;
+                    break;
                 case Gurux.DLMS.AMI.Module.AmiModuleUnavailableException ex:
                     problem.Title = "Module unavailable";
                     problem.Detail = ex.Message;
@@ -241,7 +250,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             {
                 await AddUserErrorAsync(logger, serviceProvider, context.User, exception);
             }
-            else if (exception is not GXAmiForbiddenException and not UnauthorizedAccessException and not GXAmiNotFoundException and not Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)
+            else if (exception is not BadHttpRequestException and not GXAmiForbiddenException and not UnauthorizedAccessException and not GXAmiNotFoundException and not Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)
             {
                 await AddSystemErrorAsync(logger, context, exception);
             }

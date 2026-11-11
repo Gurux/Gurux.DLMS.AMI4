@@ -82,6 +82,33 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
         "update", Properties.Resources.Scripts, GXProgress.CheckingNewVersions,
         async ct => (await _http.PostAsJson<GXAvailableUpdatesResponse>("api/Update/Check", new { }, ct)).RunId, token);
 
+    /// <summary>Waits for a queued check, including when hub notifications are unavailable.</summary>
+    public async Task WaitForCompletionAsync(Guid runId, string taskId, CancellationToken token = default)
+    {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
+        while (true)
+        {
+            var status = await _http.GetAsJsonAsync<GXBackgroundTaskStatus>($"api/BackgroundTask/Status/{runId:D}", cancellation.Token);
+            if (status == null || status.RunId != runId || status.TaskId != taskId)
+            {
+                throw new InvalidOperationException(Properties.Resources.UpdateInformationUnavailable);
+            }
+            if (status.State is BackgroundTaskState.Succeeded or BackgroundTaskState.Failed or BackgroundTaskState.Cancelled)
+            {
+                lock (_gate)
+                {
+                    Finish(status);
+                }
+                if (status.State != BackgroundTaskState.Succeeded)
+                {
+                    throw new InvalidOperationException(status.Error ?? Properties.Resources.UpdateInformationUnavailable);
+                }
+                return;
+            }
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellation.Token);
+        }
+    }
+
     private async Task<Guid> StartAsync(string taskId, string title, string message,
         Func<CancellationToken, Task<Guid?>> start, CancellationToken token)
     {

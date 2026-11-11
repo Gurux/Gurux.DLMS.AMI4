@@ -53,7 +53,7 @@ public static class GXAmiManualHelpCatalog
         ("key-management", ["key-management", "key-managements"]),
         ("appearance", ["appearance", "theme", "themes", "image", "images", "icon", "icons", "icon-pack", "colors", "texts", "links"]),
         ("users-and-accounts", ["user", "users", "account", "accounts", "policy", "role", "personal-access-token"]),
-        ("configuration", ["config", "configuration", "configurations", "language", "languages", "cron", "authentication", "authentications"]),
+        ("config", ["config", "configuration", "configurations", "language", "languages", "cron", "authentication", "authentications"]),
         ("notifications", ["notification", "notifications"]),
         ("objects-and-target-selection", ["object", "objects", "target-selection"]),
         ("logs-and-updates", ["log", "logs", "system-log", "task", "tasks", "update", "updates", "localization-updates"])
