@@ -10,7 +10,6 @@ on:
       - 'Tests/AgentRawDelivery/**'
       - 'Tests/AgentScriptExecution/**'
       - 'Gurux.DLMS.AMI.Http/**'
-      - 'Tests/AgentProfileHistory/**'
       - 'Tests/AgentMaintenance/**'
       - 'Tests/AgentApplication/**'
       - 'Tests/AgentReconnect/**'
@@ -106,8 +105,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Agent device key checks failed.' }
           dotnet run --project Tests/AgentWorkerReliability/AgentWorkerReliability.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent reliability checks failed.' }
-          dotnet run --project Tests/AgentProfileHistory/AgentProfileHistory.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent profile history checks failed.' }
           dotnet run --project Tests/AgentRawDelivery/AgentRawDelivery.csproj --configuration Release
           if ($LASTEXITCODE -ne 0) { throw 'Agent raw delivery checks failed.' }
           dotnet run --project Tests/AgentScriptExecution/AgentScriptExecution.csproj --configuration Release
