@@ -67,7 +67,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         }
         public async Task Invoke(HttpContext context)
         {
-            if (context.Request.Path.StartsWithSegments("/api/extensions/KeyManagement", StringComparison.OrdinalIgnoreCase) ||
+            if (context.Request.Path.StartsWithSegments("/api/modules/KeyManagement", StringComparison.OrdinalIgnoreCase) ||
                 context.Request.Path.StartsWithSegments("/api/PasswordChange", StringComparison.OrdinalIgnoreCase) ||
                 context.Request.Path.StartsWithSegments("/api/KeyManagement", StringComparison.OrdinalIgnoreCase))
             {

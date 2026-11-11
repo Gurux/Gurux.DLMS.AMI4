@@ -27,292 +27,170 @@
 // --------------------------------------------------------------------------
 *@
 
+@page "/Extension"
 @page "/extensions"
-
-@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.DTOs.Enums
-
-@using Gurux.UI.Components.Enums
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS.AMI.Shared
-@using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Module
-@using System.Text.Json
 @using Gurux.DLMS.AMI.Module.Enums
+@using Gurux.UI.Components.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject ModuleLoader Loader
 @implements IDisposable
 @implements IGXAmiComponent
 
 @if (Title)
 {
+    <PageTitle>@Properties.Resources.Extensions</PageTitle>
     <h1>@Properties.Resources.Extensions</h1>
 }
 
-<GXTable TItem="GXModule" @ref="table"
-         @bind-Active="Active"
-         Context="module"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Single"
-         Filter="@Filter"
-         ShowRemoved="false"
-         ShowAllUsers="false"
-         OnSearch="@Updated">
+<GXTable TItem="GXModule" @ref="table" Active="Active" ActiveChanged="OpenModule"
+         Context="module" ItemsProvider="GetItems" SelectionMode="SelectionMode.Single"
+         Filter="Filter" ShowRemoved="false" ShowAllUsers="false" OnSearch="Updated">
     <FilterContent>
         <th>
-            @*Image*@
-        </th>
-        <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value) ?? string.Empty)" />
+                   @onchange="@(e => nameFilter = Convert.ToString(e.Value))" />
         </th>
+        <th></th>
     </FilterContent>
     <HeaderContent>
-        <th width="1%"></th>
-        <GXTh Name="Name" Target="@module" SortMode="SortMode.Descending">@Properties.Resources.Name</GXTh>
-        <th>@Properties.Resources.Description</th>
+        <GXTh Name="Name" Target="@module">@Properties.Resources.Name</GXTh>
+        <GXTh Name="Version" Target="@module">@Properties.Resources.Version</GXTh>
     </HeaderContent>
     <ItemContent>
-        <td class="img-cell">
-            <GXImage Id="@module.Id"></GXImage>
-        </td>
-        <GXTd Link="@NavigationManager.GetCurrentPagePath("/Extension/Edit/" + module.Id)">
-            <span class=@(ClientHelpers.GetActiveDot(module.Enabled))>
-            </span><span class="@module.Id" aria-hidden="true"></span>@module.Id
-        </GXTd>
-        <td>
-            @module.Description
-        </td>
+        <GXTd Link="@GetLink(module.Id)">@module.Name</GXTd>
+        <GXTd>@module.Version</GXTd>
     </ItemContent>
 </GXTable>
-<br />
+
 @code {
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
-
-    [Parameter]
-    public Gurux.DLMS.AMI.Client.Pages.Module.ModuleManage? Parent { get; set; }
-
-    /// <summary>
-    /// Selected module ID.
-    /// </summary>
-    [Parameter]
-    public string? Id { get; set; }
-
-    /// <inheritdoc />
-    public string Name
-    {
-        get
-        {
-            return Properties.Resources.Extensions;
-        }
-    }
-
-    /// <inheritdoc />
-    public Type? ConfigurationUI
-    {
-        get
-        {
-            return null;
-        }
-    }
-
-    /// <inheritdoc />
-    public string? Icon
-    {
-        get
-        {
-            return "extensions";
-        }
-    }
-
-    /// <summary>
-    /// Amount of the modules shown on the view.
-    /// </summary>
-    [Parameter]
-    public int Count { get; set; } = 0;
-
-    [Parameter]
-    public GXModule? Active { get; set; }
-
-    /// <summary>
-    /// Is filter shown.
-    /// </summary>
-    [Parameter]
-    public bool Filter { get; set; } = true;
-
-    /// <summary>
-    /// Is header shown.
-    /// </summary>
-    [Parameter]
-    public bool Header { get; set; } = true;
-
-    /// <summary>
-    /// Is edit allowed.
-    /// </summary>
-    [Parameter]
-    public bool CanEdit { get; set; } = true;
-
-    /// <summary>
-    /// Available columns.
-    /// </summary>
-    [Parameter]
-    public string[]? Columns { get; set; }
-
-    /// <summary>
-    /// Is title shown.
-    /// </summary>
-    [Parameter]
-    public bool Title { get; set; } = true;
-
-    /// <summary>
-    /// Module filter. Show only installed and activated modules.
-    /// </summary>
-    private GXModule filter = new GXModule()
-    {
-        Enabled = true,
-
-        Status = (ModuleStatus.Installed | ModuleStatus.CustomBuild)
-    };
-
-    /// <summary>
-    /// Table reference.
-    /// </summary>
+    [Parameter] public Gurux.DLMS.AMI.Client.Pages.Module.ModuleManage? Parent { get; set; }
+    [Parameter] public string? Id { get; set; }
+    [Parameter] public int Count { get; set; }
+    [Parameter] public GXModule? Active { get; set; }
+    [Parameter] public bool Filter { get; set; } = true;
+    [Parameter] public bool Header { get; set; } = true;
+    [Parameter] public bool CanEdit { get; set; } = true;
+    [Parameter] public string[]? Columns { get; set; }
+    [Parameter] public bool Title { get; set; } = true;
+    public string Name => Properties.Resources.Extensions;
+    public Type? ConfigurationUI => null;
+    public string? Icon => "extensions";
     protected GXTable<GXModule>? table;
+    private IGXNotifier? notifier;
+    private IGXProgress? progress;
+    private IGXNotificationService? notifications;
+    private AuthenticationStateProvider? authentication;
+    private readonly CancellationTokenSource lifetime = new();
+    private Dictionary<string, string> links = new(StringComparer.OrdinalIgnoreCase);
+    private string? nameFilter;
+    private long generation;
+    private bool disposed;
 
-    /// <summary>
-    /// Module settings.
-    /// </summary>
-    private ModuleSettings? _settings;
+    protected override void OnInitialized()
+    {
+        notifier = Services.GetService<IGXNotifier>();
+        progress = Services.GetService<IGXProgress>();
+        notifications = Services.GetService<IGXNotificationService>();
+        authentication = Services.GetService<AuthenticationStateProvider>();
+        if (authentication != null)
+        {
+            authentication.AuthenticationStateChanged += AuthenticationChanged;
+        }
+        notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+        {
+            if (items.Any(i => i.Type == GXModulePolicies.Add || i.Type == GXModulePolicies.Edit || i.Type == GXModulePolicies.Delete))
+            {
+                _ = InvokeAsync(Updated);
+            }
+        });
+    }
 
-    /// <summary>
-    /// Update table.
-    /// </summary>
+    private void AuthenticationChanged(Task<AuthenticationState> state)
+    {
+        Interlocked.Increment(ref generation);
+        links.Clear();
+        _ = InvokeAsync(Updated);
+    }
+
     protected async Task Updated()
     {
         try
         {
-            if (table != null)
-            {
-                NotificationService?.RemoveByKey("Extensions.Updated");
-                await table.RefreshDataAsync(true);
-            }
+            if (!disposed && table != null) { await table.RefreshDataAsync(true); }
         }
-        catch (Exception ex)
-        {
-            NotificationService?.ReportError(ex, "Extensions.Updated");
-        }
-    }
-
-    protected override void OnInitialized()
-    {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
-        {
-            return;
-        }
-
-        try
-        {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            NotificationService?.RemoveByKey("Extensions.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
-            {
-                foreach (var it in items)
-                {
-                    if (it.Type == GXModulePolicies.Add ||
-                            it.Type == GXModulePolicies.Delete ||
-                            it.Type == GXModulePolicies.Edit)
-                    {
-                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
-                        break;
-                    }
-                }
-            });
-            if (Id != null)
-            {
-                //Get last selected item.
-                Active = new GXModule() { Id = Id };
-            }
-            //Get configuration data.
-            if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
-            {
-                _settings = JsonSerializer.Deserialize<ModuleSettings>(Parent.Parent.Active.Settings);
-            }
-            else
-            {
-                _settings = new ModuleSettings();
-            }
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            NotificationService?.ReportError(ex, "Extensions.OnInitialized");
-        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception error) { ReportError(error); }
     }
 
     private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
-        //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingExtensions);
+        var current = Interlocked.Increment(ref generation);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken, lifetime.Token);
+        using var scope = progress?.ProgressStart(GXProgress.RetrievingExtensions);
         try
         {
-            ListModules req = new ListModules()
+            // ModuleController filters descriptors by the current user's module access and UI policies.
+            // Runtime manifests describe installed modules; Active and Enabled exclude inactive deployments.
+            var manifests = await Http.GetFromJsonAsync<AmiModuleManifest[]>("api/Module/Runtime", cancellation.Token) ?? [];
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (current != generation || disposed) { throw new OperationCanceledException(); }
+            var available = new List<GXModule>();
+            var nextLinks = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var manifest in manifests.Where(m => m.Enabled && m.State == AmiModuleState.Active))
             {
-                Index = 0,
-                Count = 0,
-                Filter = filter,
-                OrderBy = request.OrderBy,
-                Descending = request.Descending,
-                AllUsers = request.ShowAllUserData
-            };
-
-            if (!Loader.IsInitialized)
-            {
-                await Loader.RefreshAsync(request.CancellationToken);
+                var page = manifest.Pages.FirstOrDefault(p => p.Navigation && !string.IsNullOrWhiteSpace(p.Route));
+                var view = manifest.Views.FirstOrDefault(v => v.Area == AmiViewArea.Extension && v.Key == null);
+                var moduleId = Uri.EscapeDataString(manifest.Id);
+                string? link = page != null ? "/addin/" + moduleId + "/" + Uri.EscapeDataString(page.Route) : null;
+                if (link == null && view != null) { link = "/Extension/" + moduleId; }
+                page ??= manifest.Pages.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.Route));
+                if (link == null && page != null) { link = "/addin/" + moduleId + "/" + Uri.EscapeDataString(page.Route); }
+                if (link == null) { continue; }
+                nextLinks[manifest.Id] = link;
+                available.Add(new GXModule { Id = manifest.Id, Name = string.IsNullOrWhiteSpace(manifest.Name) ? manifest.Id : manifest.Name, Version = manifest.Version, Enabled = true });
             }
-            //Get modules that declare an extension view.
-            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
-            if (ret.Modules != null)
+            links = nextLinks;
+            notifications?.RemoveByKey("Extensions.Load");
+            var filtered = available.Where(m =>
+                (string.IsNullOrWhiteSpace(nameFilter) || (m.Name ?? m.Id).Contains(nameFilter, StringComparison.CurrentCultureIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(request.Filter) || (m.Name ?? m.Id).Contains(request.Filter, StringComparison.CurrentCultureIgnoreCase) || m.Id.Contains(request.Filter, StringComparison.OrdinalIgnoreCase)));
+            Func<GXModule, string?> sort = request.OrderBy == "Version" ? m => m.Version : m => m.Name;
+            var ordered = (request.Descending ? filtered.OrderByDescending(sort, StringComparer.CurrentCultureIgnoreCase) : filtered.OrderBy(sort, StringComparer.CurrentCultureIgnoreCase))
+                .ThenBy(m => m.Id, StringComparer.OrdinalIgnoreCase).ToArray();
+            var count = Count > 0 ? Count : request.Count;
+            return new ItemsProviderResult<GXModule>(count > 0 ? ordered.Skip(request.StartIndex).Take(count) : ordered.Skip(request.StartIndex), ordered.Length);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (AccessTokenNotAvailableException error) { error.Redirect(); throw; }
+        catch (Exception error)
+        {
+            if (current != generation || cancellation.IsCancellationRequested || disposed)
             {
-                var available = Loader.AddIns.Where(m => m.Views.Any(v => v.Area == AmiViewArea.Extension)).Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var modules = ret.Modules.Where(m => available.Contains(m.Id)).ToArray();
-                return new ItemsProviderResult<GXModule>(modules.Skip(request.StartIndex).Take(Count != 0 ? Count : request.Count), modules.Length);
+                throw new OperationCanceledException("The module list request was superseded.", error, cancellation.Token);
             }
+            links.Clear();
+            ReportError(error);
+            return new ItemsProviderResult<GXModule>([], 0);
         }
-        catch (TaskCanceledException)
-        {
-            //Let the table component handle this.
-            throw;
-        }
-        catch (Exception ex)
-        {
-            NotificationService?.ReportError(ex);
-        }
-        return default;
     }
+
+    private string? GetLink(string id) => links.GetValueOrDefault(id);
+    private void OpenModule(GXModule? module)
+    {
+        Active = module;
+        if (module != null && GetLink(module.Id) is string link) { NavigationManager.NavigateTo(link); }
+    }
+    private void ReportError(Exception error) => notifications?.Add(new GXNotificationItem(NotificationLevel.Error, Properties.Resources.Extensions, error.Message, "Extensions.Load", true));
 
     public void Dispose()
     {
-        if (table != null)
-        {
-            GXNotificationRefresh.Remove(table);
-        }
-        GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        disposed = true;
+        lifetime.Cancel();
+        if (authentication != null) { authentication.AuthenticationStateChanged -= AuthenticationChanged; }
+        notifier?.RemoveListener(this);
     }
 }

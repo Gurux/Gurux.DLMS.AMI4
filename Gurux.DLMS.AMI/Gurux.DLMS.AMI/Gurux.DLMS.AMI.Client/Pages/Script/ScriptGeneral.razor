@@ -62,7 +62,7 @@
                             <br />
                         </div>
                         <div class="form-group">
-                            <Microsoft.AspNetCore.Components.Forms.InputCheckbox @bind-Value="Active.ServerSide" />
+                            <Microsoft.AspNetCore.Components.Forms.InputCheckbox @bind-Value="Active.ServerSide" disabled="@IsCatalogScript" />
                             <label>@Properties.Resources.ServerSide</label>
                         </div>
                         <div class="form-group">
@@ -82,7 +82,26 @@
                                 <a href="/updates">@Properties.Resources.ManageScriptCatalogUpdates</a>
                             </div>
                         }
-                        <ScriptEditor @bind-SourceCode="Active.SourceCode" @bind-SourceCode:event="ScriptChanged" />
+                        @if (IsCatalogScript)
+                        {
+                            <p>@Properties.Resources.CatalogScriptReadOnly</p>
+                            <div class="form-group">
+                                <label for="catalog-script-source">@Properties.Resources.Script</label>
+                                <textarea id="catalog-script-source" class="form-control" rows="15" readonly>@Active.SourceCode</textarea>
+                            </div>
+                            @if (Action != CrudAction.Delete)
+                            {
+                                <AuthorizeView Policy="@GXScriptPolicies.Add" Context="copyAuthorization">
+                                    <button type="button" class="btn btn-secondary edit-script-copy" @onclick="EditCopy">
+                                        @Properties.Resources.EditCopy
+                                    </button>
+                                </AuthorizeView>
+                            }
+                        }
+                        else
+                        {
+                            <ScriptEditor @bind-SourceCode="Active.SourceCode" @bind-SourceCode:event="ScriptChanged" IsDeleting="@(Action == CrudAction.Delete)" />
+                        }
                         <button class="btn button" @onclick="OnValidate">
                             <div class="oi oi-flash"></div>
                             &nbsp;Validate
@@ -117,6 +136,16 @@
 }
 @code {
     protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
+
+    private bool IsCatalogScript => !string.IsNullOrWhiteSpace(Active?.CatalogId);
+
+    private void EditCopy()
+    {
+        if (Active != null)
+        {
+            ClientHelpers.NavigateTo(NavigationManager, "/config/Script/Add?copyFrom=" + Active.Id);
+        }
+    }
 
     private IGXProgress? Progress;
     private IGXNotificationService? NotificationService;

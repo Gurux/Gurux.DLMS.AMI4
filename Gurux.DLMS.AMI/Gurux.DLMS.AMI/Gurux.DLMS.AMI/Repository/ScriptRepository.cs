@@ -417,6 +417,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        private static void ValidateCatalogScriptUpdate(GXScript saved, GXScript script)
+        {
+            // Trust persisted provenance, including when the request omits CatalogId.
+            if (!string.IsNullOrEmpty(saved.CatalogId) &&
+                (script.SourceCode != saved.SourceCode || script.Namespaces != saved.Namespaces ||
+                script.Language != saved.Language || script.ServerSide != saved.ServerSide))
+            {
+                throw new ArgumentException("Catalog script code is read-only. Create an independent copy to edit it.", nameof(script));
+            }
+        }
+
         /// <summary>
         /// This method checks is script source code modified.
         /// </summary>
@@ -434,7 +445,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //Remove time is not checked because adming can revert the script.
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScript>(q => q.Id == script.Id);
             GXScript? saved = await connection.SingleOrDefaultAsync<GXScript>(arg) ?? throw new GXAmiForbiddenException(script.Id.ToString());
-            // Ordinary editor saves may change user source, but cannot forge or reset its publisher provenance.
+            ValidateCatalogScriptUpdate(saved, script);
+            // Ordinary editor saves cannot forge or reset publisher provenance.
             script.CatalogId = saved.CatalogId;
             script.CatalogVersion = saved.CatalogVersion;
             script.CatalogSha256 = saved.CatalogSha256;

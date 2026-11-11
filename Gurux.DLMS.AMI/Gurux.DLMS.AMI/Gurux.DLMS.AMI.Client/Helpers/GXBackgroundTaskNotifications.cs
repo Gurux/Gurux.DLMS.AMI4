@@ -26,6 +26,7 @@
 // --------------------------------------------------------------------------
 
 using System.Text.Json;
+using Gurux.DLMS.AMI.Client.Rest;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Shared;
@@ -75,6 +76,11 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
     public Task<Guid> CheckAgentsAsync(CancellationToken token = default) => StartAsync(
         "update.agents", Properties.Resources.Agents, GXProgress.CheckingNewVersions,
         async ct => (await _http.PostAsJson<CheckModuleResponse>("api/Agent/Check", new CheckModule(), ct)).RunId, token);
+
+    /// <summary>Refreshes script catalog metadata without applying source changes.</summary>
+    public Task<Guid> CheckScriptsAsync(CancellationToken token = default) => StartAsync(
+        "update", Properties.Resources.Scripts, GXProgress.CheckingNewVersions,
+        async ct => (await _http.PostAsJson<GXAvailableUpdatesResponse>("api/Update/Check", new { }, ct)).RunId, token);
 
     private async Task<Guid> StartAsync(string taskId, string title, string message,
         Func<CancellationToken, Task<Guid?>> start, CancellationToken token)
@@ -139,7 +145,7 @@ public sealed class GXBackgroundTaskNotifications : IDisposable
             { status = JsonSerializer.Deserialize<GXBackgroundTaskStatus>(item.Settings); }
             catch (JsonException) { continue; }
             if (status == null || status.RunId == Guid.Empty ||
-                status.TaskId is not ("update.manufacturers" or "update.modules" or "update.agents") ||
+                status.TaskId is not ("update" or "update.manufacturers" or "update.modules" or "update.agents") ||
                 status.State is not (BackgroundTaskState.Succeeded or BackgroundTaskState.Failed or BackgroundTaskState.Cancelled))
             {
                 continue;

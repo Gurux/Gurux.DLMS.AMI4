@@ -39,8 +39,10 @@ public static class GXHelpRegistration
     /// <remarks>Version and culture are included in the Help URL so direct documentation links retain the requested subject.</remarks>
     public static IServiceCollection AddAmiHelp(this IServiceCollection services)
     {
+        services.AddScoped<IGXHelpLinkLoader, GXAmiHelpLinkLoader>();
         services.AddScoped<IGXHelpProvider, GXCosemHelpProvider>();
         services.AddScoped<IGXHelpProvider, GXModuleHelpProvider>();
+        services.AddScoped<IGXHelpProvider, GXAmiManualHelpProvider>();
         services.AddScoped(sp =>
         {
             var help = new GXHelpService(sp.GetServices<IGXHelpProvider>())

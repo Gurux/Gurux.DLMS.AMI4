@@ -25,7 +25,6 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
@@ -42,7 +41,6 @@ using Gurux.Service.Orm.Enums;
 using Gurux.UI.Components;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text.Json;
@@ -804,6 +802,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             defaults.Add(AddImage("views", "bi-layout-text-window"));
             defaults.Add(AddImage("workflow", "bi-diagram-3"));
             defaults.Add(AddImage("change-password", "bi-key"));
+            defaults.Add(AddImage("extension", "bi-puzzle-fill"));
 
             //Add flags for countries.
             defaults.Add(AddImage("fi", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"fi\" viewBox=\"0 0 24 16\">\r\n  <rect width=\"24\" height=\"16\" fill=\"white\"/>\r\n  <rect x=\"6\" width=\"4\" height=\"16\" fill=\"#003580\"/>\r\n  <rect y=\"6\" width=\"24\" height=\"4\" fill=\"#003580\"/>\r\n</svg>"));

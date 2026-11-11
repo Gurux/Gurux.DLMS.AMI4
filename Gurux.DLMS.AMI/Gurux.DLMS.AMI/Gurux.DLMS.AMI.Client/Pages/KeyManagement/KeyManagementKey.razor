@@ -323,7 +323,7 @@
             {
                 if (Parent.KeyManagement.ProviderId == "KmipClient")
                 {
-                    using var response = await Http.PostAsJsonAsync("api/extensions/KeyManagement/ImportExternal", new GXImportExternalKeyRequest { ManagementId = Parent.KeyManagement.Id, ObjectId = Active.ExternalId!, Role = Active.KeyType!.Value });
+                    using var response = await Http.PostAsJsonAsync("api/modules/KeyManagement/ImportExternal", new GXImportExternalKeyRequest { ManagementId = Parent.KeyManagement.Id, ObjectId = Active.ExternalId!, Role = Active.KeyType!.Value });
                     response.EnsureSuccessStatusCode();
                     var imported = await response.Content.ReadFromJsonAsync<GXKeyManagementKey>() ?? throw new InvalidOperationException("Missing imported key metadata.");
                     Parent.KeyManagement.Keys.Add(imported);

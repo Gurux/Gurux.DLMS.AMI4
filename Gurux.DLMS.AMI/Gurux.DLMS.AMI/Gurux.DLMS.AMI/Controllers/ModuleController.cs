@@ -25,7 +25,6 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Services.Database;
 using Gurux.DLMS.AMI.Client;
 using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Client.Shared;
@@ -33,15 +32,12 @@ using Gurux.DLMS.AMI.Client.Shared.Enums;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Module.Enums;
 using Gurux.DLMS.AMI.Server.Cron;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Db;
 

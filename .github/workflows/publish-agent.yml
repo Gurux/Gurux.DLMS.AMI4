@@ -16,8 +16,8 @@ on:
       - 'Tests/AgentDeviceKeys/**'
       - 'Tests/AgentWorkerReliability/**'
       - '.github/scripts/prepare-agent-updater.ps1'
-      - '.github/tests/agent-install.tests.ps1'
       - '.github/tests/agent-package.tests.ps1'
+      - '.github/tests/agent-launchers.tests.ps1'
       - '.github/tests/agent-updater-payload.tests.ps1'
       - '.github/scripts/agent-release.ps1'
       - '.github/tests/agent-release-no-dependencies.tests.ps1'
@@ -49,7 +49,7 @@ concurrency:
   queue: max
 
 jobs:
-  installer-linux:
+  package-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -57,15 +57,15 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - name: Test offline installer and payload preparation on Linux
+      - name: Test package, launchers and payload preparation on Linux
         shell: pwsh
         run: |
-          & .github/tests/agent-install.tests.ps1
           & .github/tests/agent-updater-payload.tests.ps1
           & .github/tests/agent-package.tests.ps1
+          & .github/tests/agent-launchers.tests.ps1
 
   publish:
-    needs: installer-linux
+    needs: package-linux
     if: github.repository == 'Gurux/Gurux.DLMS.AMI4' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
     timeout-minutes: 45
@@ -91,8 +91,8 @@ jobs:
           & .github/tests/agent-release.tests.ps1
           & .github/tests/agent-release-no-dependencies.tests.ps1
           & .github/tests/agent-package.tests.ps1
+          & .github/tests/agent-launchers.tests.ps1
           & .github/tests/agent-signing.tests.ps1
-          & .github/tests/agent-install.tests.ps1
           & .github/tests/agent-updater-payload.tests.ps1
           & .github/tests/agent-docker.tests.ps1
           dotnet run --project Tests/AgentMaintenance/AgentMaintenance.csproj --configuration Release
@@ -139,13 +139,16 @@ jobs:
           $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $archive).Path)
           try {
             foreach ($name in @('Gurux.DLMS.AMI.Agent.dll', 'Gurux.DLMS.AMI.Shared.dll',
-                'Gurux.DLMS.AMI.Http.dll', 'Gurux.DLMS.AMI.Agent.deps.json', 'Gurux.DLMS.AMI.Agent.runtimeconfig.json', 'appsettings.default.json', 'agent-release-public.pem', 'Install-Agent.ps1',
-                'setup/updater/Gurux.Updater.Tool.dll', 'setup/updater/Gurux.Updater.Tool.deps.json',
-                'setup/updater/Gurux.Updater.Tool.runtimeconfig.json', 'setup/updater/updater-payload.json')) {
-              if (-not $zip.GetEntry($name)) { throw "Agent ZIP is missing $name" }
+                'Gurux.DLMS.AMI.Http.dll', 'Gurux.DLMS.AMI.Agent.deps.json', 'Gurux.DLMS.AMI.Agent.runtimeconfig.json', 'appsettings.default.json', 'agent-release-public.pem')) {
+              if (-not $zip.GetEntry("gx-agent/agent/$name")) { throw "Agent ZIP is missing gx-agent/agent/$name" }
             }
-            if ($zip.GetEntry('Gurux.DLMS.AMI.Agent.Worker.dll') -or $zip.GetEntry('Gurux.DLMS.AMI.Agent.Shared.dll')) { throw 'Agent ZIP contains obsolete split application DLLs.' }
-            if ($zip.GetEntry('settings.json') -or $zip.GetEntry('appsettings.json')) { throw 'Agent deployment/registration settings must not be shipped.' }
+            foreach ($name in @('start.sh', 'start.bat',
+                'gurux-updater/Gurux.Updater.Tool.dll', 'gurux-updater/Gurux.Updater.Tool.deps.json',
+                'gurux-updater/Gurux.Updater.Tool.runtimeconfig.json', 'gurux-updater/updater-payload.json')) {
+              if (-not $zip.GetEntry("gx-agent/$name")) { throw "Agent ZIP is missing gx-agent/$name" }
+            }
+            if ($zip.GetEntry('gx-agent/agent/Gurux.DLMS.AMI.Agent.Worker.dll') -or $zip.GetEntry('gx-agent/agent/Gurux.DLMS.AMI.Agent.Shared.dll')) { throw 'Agent ZIP contains obsolete split application DLLs.' }
+            if ($zip.GetEntry('gx-agent/agent/settings.json') -or $zip.GetEntry('gx-agent/agent/appsettings.json')) { throw 'Agent deployment/registration settings must not be shipped.' }
           } finally { $zip.Dispose() }
           Copy-Item -LiteralPath $archive -Destination (Join-Path artifacts/agent $release.package)
           $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -201,6 +204,16 @@ jobs:
           cd artifacts/docker
           sha256sum --check "Gurux.DLMS.AMI.Agent-$AGENT_VERSION.zip.sha256"
           unzip -q "Gurux.DLMS.AMI.Agent-$AGENT_VERSION.zip" -d app
+          if [ -d app/gx-agent/agent ]; then
+            mv app/gx-agent/agent agent-app
+            rm -r app/gx-agent
+            rmdir app
+            mv agent-app app
+          elif [ -d app/gx-agent ]; then
+            mv app/gx-agent agent-app
+            rmdir app
+            mv agent-app app
+          fi
       - name: Build agent image for testing
         if: steps.image.outputs.exists != 'true'
         uses: docker/build-push-action@v7

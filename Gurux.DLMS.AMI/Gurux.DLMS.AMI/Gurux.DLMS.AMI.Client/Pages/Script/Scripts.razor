@@ -57,10 +57,16 @@
     <PageTitle>@Properties.Resources.Scripts</PageTitle>
 }
 
+@if (_hasScripts == true)
+{
+    <ScriptRebuild HasScripts="true" />
+}
+
 <GXMenuControl RightCorner="true">
     <ChildContent>
         <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXScriptPolicies.Add" />
         <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXScriptPolicies.Delete" />
+        <GXMenuEntry Text="@Properties.Resources.PublishToCommunity" Id="publish-community" OnClick="@OnPublishCommunity" Policy="@GXScriptPolicies.Add" />
     </ChildContent>
 </GXMenuControl>
 
@@ -96,6 +102,7 @@
     <MenuContent>
         <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit" Policy="@GXScriptPolicies.Edit"></GXContextMenuItem>
         <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove" Policy="@GXScriptPolicies.Delete"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.PublishToCommunity" Id="publish-community" OnClick="@OnPublishCommunity" Policy="@GXScriptPolicies.Add" />
     </MenuContent>
     <HeaderContent>
         <GXTh Id="Name" Name="Name" Target="@script">@Properties.Resources.Name</GXTh>
@@ -121,6 +128,7 @@
     private IGXNotifier? Notifier;
     private IGXProgress? Progress;
     private IGXNotificationService? NotificationService;
+    private bool publishingCommunity;
 
     /// <summary>
     /// Selected script ID.
@@ -303,6 +311,7 @@
             {
                 _hasScripts = hasScripts;
                 await HasScriptsChanged.InvokeAsync(hasScripts);
+                await InvokeAsync(StateHasChanged);
             }
             return new ItemsProviderResult<GXScript>((ret.Scripts ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
         }
@@ -389,7 +398,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error, ex.Message, string.Empty));
         }
     }
 
@@ -416,8 +425,38 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error, ex.Message, string.Empty));
         }
+    }
+
+    /// <summary>Confirms anonymous publication of one saved script before sending it for review.</summary>
+    public async Task OnPublishCommunity()
+    {
+        if (publishingCommunity) { return; }
+        publishingCommunity = true;
+        const string key = "Pages/Script/Scripts.PublishCommunity";
+        try
+        {
+            NotificationService?.RemoveByKey(key);
+            var selected = table?.SingleOrDefault().ToArray() ?? [];
+            if (selected.Length != 1)
+            {
+                throw new InvalidOperationException(selected.Length == 0 ? Properties.Resources.NoItemIsSelected : Properties.Resources.SelectOneScript);
+            }
+            // Capture the confirmed ID; later selection changes must not change the submitted script.
+            var script = selected[0];
+            var result = await Confirmation.ConfirmAsync(Properties.Resources.PublishToCommunity, Properties.Resources.PublishCommunityConfirmation,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.PublishToCommunity, Items = [script.Name] });
+            if (!result.Confirm) { return; }
+            using var progress = Progress?.ProgressStart(Properties.Resources.PublishToCommunity);
+            await Services.GetRequiredService<GXScriptCommunityNotifications>().PublishAsync(script.Id);
+        }
+        catch (AccessTokenNotAvailableException exception) { exception.Redirect(); }
+        catch (Exception ex)
+        {
+            NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error, Properties.Resources.PublishToCommunity, ex.Message, key, true, NotificationScope.Global));
+        }
+        finally { publishingCommunity = false; }
     }
 
     public void Dispose()

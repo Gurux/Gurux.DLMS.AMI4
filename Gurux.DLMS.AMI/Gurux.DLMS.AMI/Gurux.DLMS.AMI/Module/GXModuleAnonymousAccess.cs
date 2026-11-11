@@ -41,7 +41,7 @@ internal static class GXModuleAnonymousAccess
         {
             return false;
         }
-        var key = method.ToUpperInvariant() + " /api/extensions/" + moduleId + "/" + endpoint.Pattern.Trim('/');
+        var key = method.ToUpperInvariant() + " /api/modules/" + moduleId + "/" + endpoint.Pattern.Trim('/');
         return configuration.GetSection("Modules:AnonymousEndpoints").GetChildren()
             .Any(item => string.Equals(item.Value, key, StringComparison.Ordinal));
     }

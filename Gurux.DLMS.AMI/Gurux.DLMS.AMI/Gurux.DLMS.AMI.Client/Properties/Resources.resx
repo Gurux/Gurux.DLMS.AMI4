@@ -3126,4 +3126,52 @@
   <data name="AttributeExpirationLessThanOneDay" xml:space="preserve">
     <value>Enter an attribute expiration duration shorter than one day.</value>
   </data>
+  <data name="EditCopy" xml:space="preserve">
+    <value>Edit a copy</value>
+  </data>
+  <data name="CatalogScriptReadOnly" xml:space="preserve">
+    <value>This script is managed by the catalog. Create a copy to change its source code.</value>
+  </data>
+  <data name="KeyMaterialIsHidden" xml:space="preserve">
+    <value>Key material is hidden.</value>
+  </data>
+  <data name="UseChangePasswordInTheKeyList" xml:space="preserve">
+    <value>Use Change password in the key list to change the meter password.</value>
+  </data>
+  <data name="Templates" xml:space="preserve">
+    <value>Templates</value>
+  </data>
+  <data name="PublishToCommunity" xml:space="preserve">
+    <value>Publish to community</value>
+  </data>
+  <data name="PublishCommunityConfirmation" xml:space="preserve">
+    <value>The selected script will be sent to ami.gurux.fi for review and published anonymously under GPL-2.0-only if approved. Review may take some time. You will be notified when the script is approved or rejected.</value>
+  </data>
+  <data name="CommunityReviewPending" xml:space="preserve">
+    <value>The script has been sent for review. You will be notified when it is approved or rejected.</value>
+  </data>
+  <data name="CommunityScriptApproved" xml:space="preserve">
+    <value>The script was approved for anonymous community publication. Catalog version: {0}.</value>
+  </data>
+  <data name="CommunityScriptRejected" xml:space="preserve">
+    <value>The script was rejected for community publication.</value>
+  </data>
+  <data name="CommunityPublishFailed" xml:space="preserve">
+    <value>The submission could not be tracked. It may have reached the review service. Contact the administrator before retrying.</value>
+  </data>
+  <data name="SelectOneScript" xml:space="preserve">
+    <value>Select one script to publish.</value>
+  </data>
+  <data name="CommunityApprovedTitle" xml:space="preserve">
+    <value>Community publication approved</value>
+  </data>
+  <data name="CommunityRejectedTitle" xml:space="preserve">
+    <value>Community publication rejected</value>
+  </data>
+  <data name="CommunityFailedTitle" xml:space="preserve">
+    <value>Community submission could not be tracked</value>
+  </data>
+  <data name="CommunityPendingTitle" xml:space="preserve">
+    <value>Awaiting community review</value>
+  </data>
 </root>

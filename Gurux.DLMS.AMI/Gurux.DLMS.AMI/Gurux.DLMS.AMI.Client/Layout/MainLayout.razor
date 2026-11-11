@@ -72,6 +72,11 @@
 </HeadContent>
 
 <AmiHelpPanel />
+<AuthorizeView>
+    <Authorized Context="communityUser">
+        <ScriptCommunityNotifications @key="communityUser.User.FindFirst(ClaimTypes.NameIdentifier)?.Value" />
+    </Authorized>
+</AuthorizeView>
 <div class="page">
     <header class="layout-header">
         @foreach (var block in GetBlocks(BlockLocation.Header))

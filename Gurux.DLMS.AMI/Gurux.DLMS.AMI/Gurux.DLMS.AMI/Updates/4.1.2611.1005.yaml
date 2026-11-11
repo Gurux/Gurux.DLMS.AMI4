@@ -1,0 +1,17 @@
+version: 4.1.2611.1005
+links:
+  - menu: NavMenu
+    url: /Extension
+    titleResource: Extensions
+    icon: extension
+    before: /Config
+  - menu: ScriptTab
+    url: Templates
+    titleResource: Templates
+    icon: script
+    policy: updates.admin
+    component: Gurux.DLMS.AMI.Client.Pages.Script.ScriptTemplates
+appearances:
+  - name: extension
+    resourceType: Image
+    value: bi-puzzle-fill

@@ -154,6 +154,7 @@ namespace Gurux.DLMS.AMI
             builder.Services.AddScoped<Gurux.UI.Components.IGXProgress, Gurux.UI.Components.GXProgressService>();
             builder.Services.AddScoped<Gurux.UI.Components.IGXNotificationService, Gurux.UI.Components.GXNotificationService>();
             builder.Services.AddScoped<GXBackgroundTaskNotifications>();
+            builder.Services.AddScoped<GXScriptCommunityNotifications>();
             builder.Services.AddScoped<Gurux.UI.Components.IGXMenuService, Gurux.UI.Components.GXMenuService>();
             builder.Services.AddCascadingAuthenticationState();
             builder.Services.AddScoped<IdentityUserAccessor>();
@@ -287,6 +288,16 @@ namespace Gurux.DLMS.AMI
             builder.Services.AddScoped<GXCatalogStore>();
             builder.Services.AddScoped<GXScriptCatalogStore>();
             builder.Services.AddScoped<GXScriptCatalogService>();
+            builder.Services.AddScoped<IGXScriptCommunityStore, GXScriptCommunityStore>();
+            builder.Services.AddScoped<GXScriptCommunityService>();
+            builder.Services.AddHostedService<GXScriptCommunityWorker>();
+            builder.Services.AddHttpClient("ScriptCommunity", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(20);
+            }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false, Credentials = null
+            });
             builder.Services.AddScoped<GXUpdateStatusStore>();
             builder.Services.AddScoped<GXUpdateSettingsStore>();
             builder.Services.AddScoped<GXUpdateEmailNotifier>();
@@ -299,6 +310,12 @@ namespace Gurux.DLMS.AMI
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI/4");
             });
             builder.Services.AddHttpClient("ModulePackages");
+            builder.Services.AddHttpClient("AmiManual", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI/4");
+            }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+            builder.Services.AddSingleton(services => GXAmiManualHelpCatalog.CreateReader(services.GetRequiredService<IHttpClientFactory>()));
             builder.Services.AddHttpClient("ManufacturerUpdates");
             builder.Services.AddAmiHttpProxy(builder.Configuration.GetSection("HttpProxyLimits"));
             builder.Services.AddScoped<GXUpdater>();
@@ -425,6 +442,7 @@ namespace Gurux.DLMS.AMI
             await using (var logMigration = await app.Services.GetRequiredService<IDbConnectionFactory>().GetConnectionAsync())
             {
                 await GXLogStore.EnsureBuiltinTypesAsync(logMigration);
+                await GXApplicationUpdates.ApplyAsync(logMigration, typeof(Program).Assembly.GetName().Version!);
             }
             // Register the reverse proxy routes
             app.Run();

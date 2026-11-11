@@ -1,0 +1,10 @@
+{
+  "root": "/srv/gurux-ami",
+  "catalogUrl": "https://gurux.github.io/Gurux.AMI.Catalog/catalog.json",
+  "productId": "Gurux.DLMS.AMI",
+  "includeBackend": true,
+  "serviceName": "gurux-ami.service",
+  "backendAssembly": "Gurux.DLMS.AMI.dll",
+  "checkTimeoutSeconds": 120,
+  "mode": "static"
+}

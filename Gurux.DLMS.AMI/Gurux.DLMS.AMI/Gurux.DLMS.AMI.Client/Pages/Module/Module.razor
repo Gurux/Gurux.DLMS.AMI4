@@ -156,7 +156,9 @@
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Id + " " + Properties.Resources.Module;
+            Title += string.Equals(Action, "Add", StringComparison.OrdinalIgnoreCase)
+                ? " " + Properties.Resources.Module
+                : " " + Id + " " + Properties.Resources.Module;
             using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModule);
             NotificationService?.RemoveByKey("Pages/Module/Module.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)

@@ -39,15 +39,16 @@ namespace Gurux.DLMS.AMI.Server.Controllers;
 [Authorize]
 public sealed class CosemHelpController : ControllerBase
 {
-    /// <summary>Returns only the article body. The shared library owns topic validation and language fallback.</summary>
+    /// <summary>Returns the localized official HTML address for a known COSEM topic.</summary>
     [HttpGet("Cosem")]
-    public async Task<ActionResult<GXHelpContent>> Get(string topic, string? culture = null, CancellationToken cancellationToken = default)
+    public ActionResult<GXHelpContent> Get(string topic, string? culture = null, CancellationToken cancellationToken = default)
     {
-        var markdown = await GXDLMSObjectHelpCatalog.LoadAsync(new GXHelpRequest(topic, Culture: culture), cancellationToken);
-        if (markdown == null)
+        cancellationToken.ThrowIfCancellationRequested();
+        var address = GXDLMSObjectHelpCatalog.GetAddress(new GXHelpRequest(topic, Culture: culture));
+        if (address == null)
         {
             return NotFound();
         }
-        return new GXHelpContent(HelpKind.Markdown, markdown);
+        return new GXHelpContent(HelpKind.Link, address.AbsoluteUri);
     }
 }

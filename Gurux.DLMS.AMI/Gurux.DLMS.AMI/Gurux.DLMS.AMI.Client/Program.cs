@@ -78,6 +78,7 @@ namespace Gurux.DLMS.AMI.Client
             builder.Services.AddScoped<IGXProgress, GXProgressService>();
             builder.Services.AddScoped<IGXNotificationService, GXNotificationService>();
             builder.Services.AddScoped<GXBackgroundTaskNotifications>();
+            builder.Services.AddScoped<GXScriptCommunityNotifications>();
             builder.Services.AddScoped<IGXMenuService, GXMenuService>();
             builder.Services.AddSingleton<IGXToasterService>(new GXToasterService());
             builder.Services.AddScoped<GXAmiNotifierService>();

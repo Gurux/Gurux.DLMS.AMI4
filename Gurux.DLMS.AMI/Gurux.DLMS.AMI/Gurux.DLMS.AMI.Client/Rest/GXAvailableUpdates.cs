@@ -33,6 +33,10 @@ namespace Gurux.DLMS.AMI.Client.Rest;
 public sealed class GXAvailableRelease
 {
     public string Version { get; set; } = "";
+    /// <summary>Whether this release can be installed on the current host.</summary>
+    public bool Compatible { get; set; } = true;
+    /// <summary>Explains the host/version requirement when a script release is incompatible.</summary>
+    public string? CompatibilityMessage { get; set; }
     public bool Prerelease { get; set; }
     public bool IsSecurityUpdate { get; set; }
     public DateTimeOffset? PublishedAt { get; set; }

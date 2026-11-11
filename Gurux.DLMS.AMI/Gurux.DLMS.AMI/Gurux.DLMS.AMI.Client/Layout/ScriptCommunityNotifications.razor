@@ -1,0 +1,42 @@
+@using Gurux.DLMS.AMI.Client.Helpers
+@inject GXScriptCommunityNotifications Notifications
+@implements IDisposable
+
+@code {
+    private readonly CancellationTokenSource lifetime = new();
+
+    protected override void OnInitialized()
+    {
+        _ = PollAsync();
+    }
+
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        try
+        {
+            do
+            {
+                try
+                {
+                    await Notifications.RefreshAsync(lifetime.Token);
+                }
+                catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
+                catch (Exception)
+                {
+                    // An unavailable AMI server must not discard reviews or flood the user with polling errors.
+                    // The durable outcomes will be fetched again after reconnection.
+                }
+            }
+            while (await timer.WaitForNextTickAsync(lifetime.Token));
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+    }
+
+    public void Dispose()
+    {
+        lifetime.Cancel();
+        Notifications.Reset();
+        lifetime.Dispose();
+    }
+}

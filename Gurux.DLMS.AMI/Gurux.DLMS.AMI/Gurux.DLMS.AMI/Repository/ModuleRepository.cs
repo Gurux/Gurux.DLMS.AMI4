@@ -512,7 +512,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (saveProperties)
                     {
                     module.SetSettings(AmiModuleSettingsStorage.PreserveState(
-                        _serviceProvider.GetRequiredService<GXModuleRuntime>().NormalizeSettings(module.Id, module.GetSettings()), mod.GetSettings()));
+                        _serviceProvider.GetRequiredService<GXModuleRuntime>().NormalizeSettings(module.Id,
+                            AmiModuleSettingsStorage.PreserveSchemaVersion(module.GetSettings(), mod.GetSettings())), mod.GetSettings()));
                 }
                 GXUpdateArgs args = GXUpdateArgs.Update(module, columns);
                 module.Updated = DateTime.Now;

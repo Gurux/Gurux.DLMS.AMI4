@@ -44,6 +44,8 @@ try {
         $publish = Join-Path $scratch $case.Payload
         New-Item -ItemType Directory -Path $publish -Force | Out-Null
         [IO.File]::WriteAllText((Join-Path $publish 'payload.txt'), $case.Payload)
+        New-Item -ItemType Directory -Path (Join-Path $publish 'setup/updater') -Force | Out-Null
+        [IO.File]::WriteAllBytes((Join-Path $publish 'setup/updater/payload.bin'), [byte[]]@(0, 128, 255))
         dotnet msbuild $project -nologo -verbosity:quiet -target:ZipPublish `
             "-property:Configuration=$configuration" "-property:Version=$version" `
             "-property:RuntimeIdentifier=$($case.Rid)" "-property:PublishDir=$publish/"
@@ -54,13 +56,19 @@ try {
         if (-not (Test-Path -LiteralPath $package -PathType Leaf)) { throw "Missing distinct package: $($case.Name)" }
         $zip = [IO.Compression.ZipFile]::OpenRead($package)
         try {
-            $reader = [IO.StreamReader]::new($zip.GetEntry('payload.txt').Open())
+            if (@($zip.Entries | Where-Object { -not $_.FullName.StartsWith('gx-agent/') }).Count -ne 0) { throw 'Agent ZIP entries must be inside gx-agent/.' }
+            $reader = [IO.StreamReader]::new($zip.GetEntry('gx-agent/agent/payload.txt').Open())
             try {
                 if ($reader.ReadToEnd() -cne $case.Payload) { throw "Package was overwritten by another platform: $($case.Name)" }
             } finally { $reader.Dispose() }
+            foreach ($launcher in @('start.sh', 'start.bat')) {
+                if ($null -eq $zip.GetEntry("gx-agent/$launcher")) { throw "Missing root launcher: $launcher" }
+            }
+            $nested = $zip.GetEntry('gx-agent/gurux-updater/payload.bin')
+            if ($null -eq $nested -or $nested.Length -ne 3) { throw 'Nested updater payload was not preserved.' }
         } finally { $zip.Dispose() }
     }
-    Write-Host 'PASS portable and RID-specific ZIP names preserve all three package payloads.'
+    Write-Host 'PASS portable and RID-specific ZIPs preserve gx-agent/ layout and nested payloads.'
 } finally {
     $binRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot 'bin')) + [IO.Path]::DirectorySeparatorChar
     $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar

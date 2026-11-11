@@ -82,29 +82,27 @@ public sealed class GXScriptCatalogService(GXScriptCatalogStore catalog, IDbConn
     {
         var manifest = JsonSerializer.Deserialize<Gurux.Updater.Model.GXScriptManifest>(release.ManifestJson)
             ?? throw new InvalidDataException("Missing script manifest.");
-        var directory = Path.Combine(Path.GetTempPath(), "gurux-script-" + Guid.NewGuid().ToString("N"));
-        var path = Path.Combine(directory, "template.cs");
+        Gurux.Updater.Services.GXScriptService.Validate(manifest);
+        using var http = clients.CreateClient("ScriptCatalog");
+        var reader = new Gurux.Updater.Services.GXCatalogSourceReader(http, allowLoopbackHttp: true);
+        var bytes = await reader.ReadAsync(reader.ResolveReference(release.CatalogSource, manifest.Path), token);
+        if (bytes.LongLength != manifest.Size ||
+            !Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).Equals(manifest.Sha256, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("Script size or SHA-256 mismatch.");
+        }
         try
         {
-            using var http = clients.CreateClient("ScriptCatalog");
-            var service = new Gurux.Updater.Services.GXScriptService(http);
-            await service.InstallAsync(release.CatalogSource, manifest, path, GXScriptCatalogProjection.AmiVersion, token);
-            return (manifest, await File.ReadAllTextAsync(path, token));
+            var source = new System.Text.UTF8Encoding(false, true).GetString(bytes);
+            if (source.Contains('\0'))
+            {
+                throw new InvalidDataException("Script contains NUL bytes.");
+            }
+            return (manifest, source);
         }
-        finally
+        catch (System.Text.DecoderFallbackException error)
         {
-            foreach (var file in new[] { path, path + ".gurux.json" })
-            {
-                if (File.Exists(file))
-                {
-                    File.Delete(file);
-                }
-            }
-
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory);
-            }
+            throw new InvalidDataException("Script must be UTF-8 text.", error);
         }
     }
 
@@ -142,9 +140,9 @@ public sealed class GXScriptCatalogService(GXScriptCatalogStore catalog, IDbConn
             {
                 throw new InvalidOperationException("The script has local edits. Explicitly accept replacing them after comparison.");
             }
-            if (!NuGetVersion.TryParse(script.CatalogVersion, out var installed) || NuGetVersion.Parse(release.Version) <= installed)
+            if (!NuGetVersion.TryParse(script.CatalogVersion, out var installed) || NuGetVersion.Parse(release.Version) < installed)
             {
-                throw new InvalidOperationException("Select a newer template version.");
+                throw new InvalidOperationException("Select the installed template version or a newer template version.");
             }
         }
         var selectedGroups = new List<GXScriptGroup>();

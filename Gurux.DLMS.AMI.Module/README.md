@@ -53,7 +53,7 @@ public sealed class ExampleModule : GXAmiModuleBase
 }
 ```
 
-The AMI host publishes this endpoint at `GET /api/extensions/Example/status`.
+The AMI host publishes this endpoint at `GET /api/modules/Example/status`.
 It requires authentication and the host's module access checks. Load the module
 through the host's module management; this contract library does not run or
 install a host application.
@@ -114,7 +114,7 @@ maximum versions are exclusive.
 ## HTTP endpoints
 
 `MapGet`, `MapPost` and `MapMethods` take a route relative to
-`/api/extensions/{moduleId}/` and return an `AmiEndpointDefinition`.
+`/api/modules/{moduleId}/` and return an `AmiEndpointDefinition`.
 Use `RequirePolicy` to add operation-specific access policies:
 
 ```csharp
@@ -130,7 +130,7 @@ A module can explicitly request public access using
 `builder.MapPost("submissions", SubmitAsync).AllowAnonymous()`. The host operator
 must additionally list the exact HTTP method and absolute route in
 `Modules:AnonymousEndpoints`, for example
-`POST /api/extensions/Gurux.DLMS.AMI.DeviceProfiles/submissions`.
+`POST /api/modules/Gurux.DLMS.AMI.DeviceProfiles/submissions`.
 Without that opt-in, authentication and module access checks still apply.
 Anonymous declarations cannot require policies. Only builder endpoints support
 this opt-in; module-owned framework endpoints are unchanged. The runtime rechecks
@@ -165,7 +165,7 @@ any reference-type response model, or null for an unknown topic. The Module pack
 reference `Gurux.UI.Components`. Modules using `IGXHelpProvider` can adapt the request to
 `GXHelpRequest` in this callback and register the interface in their own service collection.
 
-This registers one singleton provider and a policy-protected `GET /api/extensions/{moduleId}/help`
+This registers one singleton provider and a policy-protected `GET /api/modules/{moduleId}/help`
 endpoint. The endpoint forwards `topic`, `version` and `culture` to the provider, returns
 the callback result as JSON, and returns HTTP 404 for an unknown topic. Request cancellation is forwarded.
 Keep guides inside the module; use separate topics for configuration and views when applicable.

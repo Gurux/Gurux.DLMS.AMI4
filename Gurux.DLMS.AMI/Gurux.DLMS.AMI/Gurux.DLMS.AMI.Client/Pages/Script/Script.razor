@@ -50,7 +50,7 @@
     @Title
 </h1>
 <CascadingValue Value="this">
-    <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
+    <GXTabControl @key="Active" PersistSelectionInUrl="true" NavigateOnSelection="false">
         <TabTextTemplate>
             <GXImage Id="@context.Icon" />
             @context.Text
@@ -79,7 +79,11 @@
         ClientHelpers.NavigateToLastPage(NavigationManager);
         return Task.CompletedTask;
     }
-    public void Dispose() => _editorMenu?.Dispose();
+    public void Dispose()
+    {
+        ++_loadVersion;
+        _editorMenu?.Dispose();
+    }
     private async Task OnSave()
     {
         try
@@ -132,6 +136,12 @@
     }
 
     private bool _ready;
+    private (string? Action, Guid? Id, Guid? CopyFrom)? _loadedRequest;
+    private int _loadVersion;
+
+    /// <summary>The authorized source to open as a new independent editable copy.</summary>
+    [Parameter, SupplyParameterFromQuery(Name = "copyFrom")]
+    public Guid? CopyFrom { get; set; }
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
@@ -172,8 +182,19 @@
     /// </summary>
     public GXScript Active = new GXScript(null) { Enabled = true };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
+        var request = (Action, Id, CopyFrom);
+        if (_loadedRequest == request)
+        {
+            return;
+        }
+        _loadedRequest = request;
+        int loadVersion = ++_loadVersion;
+        _ready = false;
+        _editorMenu?.Dispose();
+        _editorMenu = null;
+        Active = new GXScript(null) { Enabled = true };
         Progress = Services.GetService<IGXProgress>();
         NotificationService = Services.GetService<IGXNotificationService>();
 
@@ -197,13 +218,18 @@
             Title += " " + Properties.Resources.Script;
             using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScript);
             NotificationService?.RemoveByKey("Pages/Script/Script.OnInitializedAsync");
-            if (string.Compare(Action, "Add", true) != 0)
+            bool copying = string.Equals(Action, "Add", StringComparison.OrdinalIgnoreCase) && CopyFrom.HasValue;
+            if (copying || string.Compare(Action, "Add", true) != 0)
             {
                 //Get script data.
-                var tmp = (await Http.GetAsJsonAsync<GetScriptResponse>(string.Format("api/Script?id={0}", Id)));
+                var tmp = (await Http.GetAsJsonAsync<GetScriptResponse>(string.Format("api/Script?id={0}", copying ? CopyFrom : Id)));
+                if (loadVersion != _loadVersion)
+                {
+                    return;
+                }
                 if (tmp?.Item != null)
                 {
-                    Active = tmp.Item;
+                    Active = copying ? GXScriptCopies.Create(tmp.Item, Properties.Resources.Copy) : tmp.Item;
                 }
                 else
                 {
@@ -212,6 +238,10 @@
                 }
             }
             InitializeEditorMenu();
+            if (copying)
+            {
+                FormContext.NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXScript.Name)));
+            }
             _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)

@@ -51,15 +51,15 @@ public sealed class ScriptCatalogController(GXScriptCatalogService scripts) : Co
         }
         catch (ArgumentException error)
         {
-            return BadRequest(new { error.Message });
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid script template request", detail: error.Message);
         }
         catch (InvalidDataException error)
         {
-            return UnprocessableEntity(new { error.Message });
+            return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "Script template verification failed", detail: error.Message);
         }
         catch (InvalidOperationException error)
         {
-            return Conflict(new { error.Message });
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Script template conflict", detail: error.Message);
         }
     }
 
@@ -77,15 +77,15 @@ public sealed class ScriptCatalogController(GXScriptCatalogService scripts) : Co
         }
         catch (ArgumentException error)
         {
-            return BadRequest(new { error.Message });
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid script template request", detail: error.Message);
         }
         catch (InvalidDataException error)
         {
-            return UnprocessableEntity(new { error.Message });
+            return Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "Script template verification failed", detail: error.Message);
         }
         catch (InvalidOperationException error)
         {
-            return Conflict(new { error.Message });
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "Script template conflict", detail: error.Message);
         }
     }
 

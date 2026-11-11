@@ -27,6 +27,7 @@
 
 using System.Collections.Concurrent;
 using System.Data;
+using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.Service.Orm;
 using System.Text.Json.Nodes;
@@ -51,9 +52,27 @@ internal static class AmiModuleSettingsStorage
         ? [] : JsonNode.Parse(settings) as JsonObject
             ?? throw new InvalidOperationException("Module settings must be a JSON object.");
 
-    /// <summary>Only the host can replace the reserved state section.</summary>
+    /// <summary>Ordinary edits may omit the schema marker; retain its persisted version without inventing one for legacy data.</summary>
+    internal static string? PreserveSchemaVersion(string? incoming, string? stored)
+    {
+        var persisted = Parse(stored);
+        if (!persisted.ContainsKey(AmiModuleSettingsSchema.VersionKey))
+        {
+            return incoming;
+        }
+        var settings = Parse(incoming);
+        if (settings.ContainsKey(AmiModuleSettingsSchema.VersionKey))
+        {
+            return incoming;
+        }
+        settings[AmiModuleSettingsSchema.VersionKey] = persisted[AmiModuleSettingsSchema.VersionKey]?.DeepClone();
+        return settings.ToJsonString();
+    }
+
+    /// <summary>Only the host can replace reserved state; omitted schema metadata retains its persisted version.</summary>
     internal static string? PreserveState(string? incoming, string? stored)
     {
+        incoming = PreserveSchemaVersion(incoming, stored);
         var persisted = Parse(stored);
         if (persisted[StateKey] == null && persisted[ResourcesKey] == null && string.IsNullOrWhiteSpace(incoming))
         {

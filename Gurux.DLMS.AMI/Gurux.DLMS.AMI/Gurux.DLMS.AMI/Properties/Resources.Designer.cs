@@ -1459,6 +1459,15 @@ namespace Gurux.DLMS.AMI.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Extensions.
+        /// </summary>
+        public static string Extensions {
+            get {
+                return ResourceManager.GetString("Extensions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Allow users to sign in through external authentication services..
         /// </summary>
         public static string ExternalAuthenticationDescription {

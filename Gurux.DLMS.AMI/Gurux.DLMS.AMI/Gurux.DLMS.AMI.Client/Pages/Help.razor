@@ -42,12 +42,9 @@
          alt="@Properties.Resources.GuruxDLMSAMI"
          style="max-width: 100%; height: auto;" />
     <GXHelpContext Topic="web-client-ui" />
-    <HeadContent>
-        <link href="css/readme.css?v=2" rel="stylesheet" />
-    </HeadContent>
 }
 
-<div class="relay-readme-container">
+<div>
     @if (_loading)
     {
         <p role="status">Loading help...</p>
@@ -60,13 +57,9 @@
     {
         <GXHelpContentView Content="@_content" />
     }
-    else if (_providerTopic && !_moduleTopic)
-    {
-        <p role="status">Help is not available for this topic.</p>
-    }
     else
     {
-        <GXMarkdownView Source="readme.md" OpenExternalLinksInNewTab="true" class="relay-readme" />
+        <p role="status">Help is not available for this topic.</p>
     }
 </div>
 
@@ -77,8 +70,6 @@
     [Parameter] public GXHelpRequest? Request { get; set; }
     private GXHelpRequest? _loadedRequest;
     private GXHelpContent? _content;
-    private bool _providerTopic;
-    private bool _moduleTopic;
     private bool _disposed;
     private bool _loading;
     private bool _loadFailed;
@@ -119,6 +110,10 @@
         var uri = new Uri(NavigationManager.Uri);
         var query = HttpUtility.ParseQueryString(uri.Query);
         var request = Request ?? new GXHelpRequest(Uri.UnescapeDataString(uri.Fragment.TrimStart('#')), query["version"], query["culture"]);
+        if (string.IsNullOrWhiteSpace(request.Topic))
+        {
+            request = request with { Topic = "web-client-ui" };
+        }
         if (_loadedRequest == request)
         {
             return;
@@ -126,37 +121,36 @@
         _loadedRequest = request;
         var generation = ++_generation;
         var topic = request.Topic;
-        _moduleTopic = topic.StartsWith("module:", StringComparison.Ordinal);
-        _providerTopic = topic.StartsWith("cosem.", StringComparison.Ordinal) || _moduleTopic;
         _content = null;
         _loadFailed = false;
-        _loading = _providerTopic;
-        if (_providerTopic)
+        _loading = true;
+        try
         {
-            try
+            var content = await HelpService.GetHelpAsync(request, _lifetime.Token);
+            if (content == null && topic.StartsWith("module:", StringComparison.Ordinal))
             {
-                var content = await HelpService.GetHelpAsync(request, _lifetime.Token);
-                if (generation == _generation)
-                {
-                    _content = content;
-                }
+                content = await HelpService.GetHelpAsync(request with { Topic = "web-client-ui" }, _lifetime.Token);
             }
-            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+            if (generation == _generation)
             {
+                _content = content;
             }
-            catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException)
+        {
+            if (generation == _generation)
             {
-                if (generation == _generation)
-                {
-                    _loadFailed = true;
-                }
+                _loadFailed = true;
             }
-            finally
+        }
+        finally
+        {
+            if (generation == _generation)
             {
-                if (generation == _generation)
-                {
-                    _loading = false;
-                }
+                _loading = false;
             }
         }
     }

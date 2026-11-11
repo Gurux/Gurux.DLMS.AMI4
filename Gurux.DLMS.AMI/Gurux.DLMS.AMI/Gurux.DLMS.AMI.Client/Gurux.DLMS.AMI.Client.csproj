@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
     <PropertyGroup>
         <DefaultItemExcludes>$(DefaultItemExcludes);Testing/**</DefaultItemExcludes>
         <TargetFramework>net10.0</TargetFramework>
@@ -15,7 +15,8 @@
         <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
         <PackageReference Include="Gurux.DLMS.AMI.Http" Version="4.1.2611.501" />
         <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.1.2611.901" />
-        <PackageReference Include="Gurux.DLMS.UI.Components" Version="1.0.2611.1001" />
+        <PackageReference Include="Gurux.UI.Components" Version="4.0.2611.1102" />
+        <PackageReference Include="Gurux.DLMS.UI.Components" Version="1.0.2611.1101" />
         <PackageReference Include="Gurux.Net" Version="8.4.2604.201" />
         <PackageReference Include="Gurux.Scheduling" Version="1.0.2609.2201" />
         <PackageReference Include="Gurux.Serial" Version="8.4.2503.603" />
@@ -41,9 +42,6 @@
         </EmbeddedResource>
     </ItemGroup>
 
-    <ItemGroup>
-        <Content Include="..\..\..\README.md" Link="wwwroot\readme.md" ContentRoot="$(MSBuildProjectDirectory)\..\..\..\" />
-    </ItemGroup>
     <ItemGroup>
         <TrimmerRootDescriptor Include="ModuleComponents.xml" />
     </ItemGroup>

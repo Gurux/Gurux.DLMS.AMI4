@@ -60,7 +60,11 @@ internal sealed class AmiModuleSettings(string? value = null, IDbConnectionFacto
             Volatile.Write(ref value, AmiModuleSettingsStorage.PreserveState(settings, value));
         }
     }
-    internal string? Normalize(string? settings) => schema?.Normalize(settings) ?? settings;
+    internal string? Normalize(string? settings)
+    {
+        settings = AmiModuleSettingsStorage.PreserveSchemaVersion(settings, Value);
+        return schema?.Normalize(settings) ?? settings;
+    }
 
     internal async Task RegisterSchemaAsync(AmiModuleSettingsSchema? settingsSchema, CancellationToken cancellationToken)
     {

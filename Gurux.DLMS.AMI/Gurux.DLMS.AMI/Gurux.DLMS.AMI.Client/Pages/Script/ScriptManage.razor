@@ -51,7 +51,6 @@
 @inject HttpClient Http
 <GXHelpContext Topic="ScriptManage" />
 
-<ScriptRebuild HasScripts="@_hasScripts"></ScriptRebuild>
 @*If user adds a new item or modifies the existing one.*@
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
@@ -83,13 +82,6 @@ else
 }
 <br />
 @code {
-    private bool _hasScripts;
-
-    private void ScriptListChanged(bool hasScripts)
-    {
-        _hasScripts = hasScripts;
-    }
-
     protected override void OnParametersSet()
     {
         Path = GXTabRoutes.Active(NavigationManager, "config/Script", 0, Path);
@@ -97,7 +89,6 @@ else
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        ["HasScriptsChanged"] = EventCallback.Factory.Create<bool>(this, ScriptListChanged),
         ["Id"] = Id!
     };
 

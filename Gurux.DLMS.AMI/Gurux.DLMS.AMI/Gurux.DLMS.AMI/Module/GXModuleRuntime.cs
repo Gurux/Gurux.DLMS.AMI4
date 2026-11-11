@@ -574,7 +574,7 @@ public sealed partial class GXModuleRuntime(IServiceProvider host, IConfiguratio
                 throw new ArgumentException("Module routes must be relative route patterns.");
             }
 
-            _ = RoutePatternFactory.Parse("/api/extensions/" + builder.ModuleId + "/" + pattern);
+            _ = RoutePatternFactory.Parse("/api/modules/" + builder.ModuleId + "/" + pattern);
             if (endpoint.Methods.Length == 0)
             {
                 throw new ArgumentException("Endpoint must specify an HTTP method.");
@@ -692,7 +692,7 @@ public sealed partial class GXModuleRuntime(IServiceProvider host, IConfiguratio
         lock (sync)
         {
             return [.. entries.Where(p => p.Value.State == AmiModuleState.Active).SelectMany(p => p.Value.Endpoints.Select((e, i)
-        => new AmiPublishedEndpoint(p.Key, p.Value.Generation, i, "/api/extensions/" + p.Key + "/" + e.Pattern.Trim('/'), [.. e.Methods], [.. e.Policies])
+        => new AmiPublishedEndpoint(p.Key, p.Value.Generation, i, "/api/modules/" + p.Key + "/" + e.Pattern.Trim('/'), [.. e.Methods], [.. e.Policies])
         {
             HasAuthenticator = p.Value.AuthenticatorType != null,
             IsAnonymous = e.Methods.Length != 0 && e.Methods.All(method => GXModuleAnonymousAccess.IsAllowed(configuration, p.Key, e, method))

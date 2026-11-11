@@ -82,24 +82,27 @@
         <InputDate Type="@InputDateType.DateTimeLocal" id="expiration" class="form-control"
                    @bind-Value="TokenExpiration" />
     </div>
-    <button class="btn btn-secondary" @onclick="OnToken">
+    <button type="button" class="btn btn-secondary" @onclick="OnToken">
         <div class="GenerateAccessToken"></div>
         &nbsp;@Properties.Resources.GenerateAccessToken
     </button>
     @if (Token != null)
     {
-        <div class="form-group">
-            <GXCopyButton Value="@Token">@Properties.Resources.TokensTitle</GXCopyButton>
-            <InputText id="token" class="form-control" readonly="readonly"
-                       @bind-Value="Token" />
-        </div>
-        <p>
-            <div style="background: #f4e8d6; padding: 1.25rem 1.25rem 1.25rem 1.25rem; ">
-                <p>
-                    @Properties.Resources.AgentTokenCreateSucceeded
-                </p>
+        <div class="agent-token-created alert alert-success" role="status" aria-live="polite">
+            <svg class="agent-token-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                <path d="M10 21h4" />
+            </svg>
+            <div class="agent-token-content">
+                <p class="agent-token-message">@Properties.Resources.AgentTokenCreateSucceeded</p>
+                <div class="agent-token-value">
+                    <input id="agent-access-token" class="form-control" type="text" value="@Token" readonly
+                           aria-label="@Properties.Resources.TokensTitle" spellcheck="false" autocomplete="off" />
+                    <GXCopyButton Value="@Token" />
+                </div>
             </div>
-        </p>
+        </div>
     }
 </EditForm>
 @code {

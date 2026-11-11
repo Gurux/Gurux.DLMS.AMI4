@@ -142,7 +142,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            if (string.IsNullOrEmpty(request?.OrderBy))
+            // The public maintenance probe runs on every request and must not lock navigation tables.
+            if (!publicMaintenance && string.IsNullOrEmpty(request?.OrderBy))
             {
                 arg.Columns.Add<GXMenuLink>(c => c.Order);
                 arg.Joins.AddInnerJoin<GXMenuLink, GXConfiguration>(j => j.Configuration!, j => j.Id);
@@ -151,7 +152,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.And<GXMenu>(m => m.Kind == MenuKind.Configuration && m.Removed == null);
             }
             GXDateTimeFilters.Apply<GXConfiguration>(arg, request?.DateFilters);
-            await using var connection = await _dbFactory.GetConnectionAsync();
+            await using var connection = await _dbFactory.GetConnectionAsync(cancellationToken);
             if (request != null && request.Count != 0 && response != null)
             {
                 //Return total row count. This can be used for paging.
@@ -172,11 +173,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Descending = request.Descending;
                 arg.OrderBy.Add<GXConfiguration>(request.OrderBy);
             }
+            else if (publicMaintenance)
+            {
+                arg.OrderBy.Add<GXConfiguration>(q => q.Id);
+            }
             else
             {
                 arg.OrderBy.Add<GXMenuLink>(q => q.Order);
             }
-            GXConfiguration[] configurations = [.. (await connection.SelectAsync<GXConfiguration>(arg))];
+            GXConfiguration[] configurations = [.. (await connection.SelectAsync<GXConfiguration>(arg, cancellationToken))];
             foreach (var configuration in configurations)
             {
                 RefreshStatusSettings(configuration);

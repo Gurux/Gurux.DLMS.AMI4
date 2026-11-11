@@ -1092,6 +1092,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This script is managed by the catalog. Create a copy to change its source code..
+        /// </summary>
+        internal static string CatalogScriptReadOnly {
+            get {
+                return ResourceManager.GetString("CatalogScriptReadOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Release.
         /// </summary>
         internal static string CatalogUpdateRelease {
@@ -1394,6 +1403,78 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string CommunicationWindow {
             get {
                 return ResourceManager.GetString("CommunicationWindow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Community publication approved.
+        /// </summary>
+        internal static string CommunityApprovedTitle {
+            get {
+                return ResourceManager.GetString("CommunityApprovedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Community submission could not be tracked.
+        /// </summary>
+        internal static string CommunityFailedTitle {
+            get {
+                return ResourceManager.GetString("CommunityFailedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Awaiting community review.
+        /// </summary>
+        internal static string CommunityPendingTitle {
+            get {
+                return ResourceManager.GetString("CommunityPendingTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The submission could not be tracked. It may have reached the review service. Contact the administrator before retrying..
+        /// </summary>
+        internal static string CommunityPublishFailed {
+            get {
+                return ResourceManager.GetString("CommunityPublishFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Community publication rejected.
+        /// </summary>
+        internal static string CommunityRejectedTitle {
+            get {
+                return ResourceManager.GetString("CommunityRejectedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The script has been sent for review. You will be notified when it is approved or rejected..
+        /// </summary>
+        internal static string CommunityReviewPending {
+            get {
+                return ResourceManager.GetString("CommunityReviewPending", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The script was approved for anonymous community publication. Catalog version: {0}..
+        /// </summary>
+        internal static string CommunityScriptApproved {
+            get {
+                return ResourceManager.GetString("CommunityScriptApproved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The script was rejected for community publication..
+        /// </summary>
+        internal static string CommunityScriptRejected {
+            get {
+                return ResourceManager.GetString("CommunityScriptRejected", resourceCulture);
             }
         }
         
@@ -2411,6 +2492,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Edit {
             get {
                 return ResourceManager.GetString("Edit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Edit a copy.
+        /// </summary>
+        internal static string EditCopy {
+            get {
+                return ResourceManager.GetString("EditCopy", resourceCulture);
             }
         }
         
@@ -4362,11 +4452,13 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyMaterialIsHidden", resourceCulture);
             }
         }
-
-        /// <summary>Looks up the instruction for opening the meter-password dialog.</summary>
-        internal static string UseChangePasswordInTheKeyList {
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key material is hidden. Import a new key to rotate it; use lifecycle actions to change its state..
+        /// </summary>
+        internal static string KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState {
             get {
-                return ResourceManager.GetString("UseChangePasswordInTheKeyList", resourceCulture);
+                return ResourceManager.GetString("KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState", resourceCulture);
             }
         }
         
@@ -5929,6 +6021,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Performance is disabled..
+        /// </summary>
+        internal static string PerformanceIsDisabled {
+            get {
+                return ResourceManager.GetString("PerformanceIsDisabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Performance snapshot interval (seconds): .
         /// </summary>
         internal static string PerformanceSnapshotIntervalSeconds {
@@ -5942,16 +6043,8 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         /// </summary>
         internal static string PerformanceSnapshotIntervalSecondsDefinesHowOftenPerformanceValuesAreSavedToTheDatabase {
             get {
-                return ResourceManager.GetString("PerformanceSnapshotIntervalSecondsDefinesHowOftenPerformanceValuesAreSavedToTheDatabase", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Performance is disabled..
-        /// </summary>
-        internal static string PerformanceIsDisabled {
-            get {
-                return ResourceManager.GetString("PerformanceIsDisabled", resourceCulture);
+                return ResourceManager.GetString("PerformanceSnapshotIntervalSecondsDefinesHowOftenPerformanceValuesAreSavedToTheDa" +
+                        "tabase", resourceCulture);
             }
         }
         
@@ -6349,6 +6442,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Publish {
             get {
                 return ResourceManager.GetString("Publish", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The selected script will be sent to ami.gurux.fi for review and published anonymously under GPL-2.0-only if approved. Review may take some time. You will be notified when the script is approved or rejected..
+        /// </summary>
+        internal static string PublishCommunityConfirmation {
+            get {
+                return ResourceManager.GetString("PublishCommunityConfirmation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Publish to community.
+        /// </summary>
+        internal static string PublishToCommunity {
+            get {
+                return ResourceManager.GetString("PublishToCommunity", resourceCulture);
             }
         }
         
@@ -7524,6 +7635,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select one script to publish..
+        /// </summary>
+        internal static string SelectOneScript {
+            get {
+                return ResourceManager.GetString("SelectOneScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Select visible.
         /// </summary>
         internal static string SelectVisible {
@@ -8160,6 +8280,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string TaskWaitTime {
             get {
                 return ResourceManager.GetString("TaskWaitTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Templates.
+        /// </summary>
+        internal static string Templates {
+            get {
+                return ResourceManager.GetString("Templates", resourceCulture);
             }
         }
         
@@ -9034,6 +9163,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Url {
             get {
                 return ResourceManager.GetString("Url", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use Change password in the key list to change the meter password..
+        /// </summary>
+        internal static string UseChangePasswordInTheKeyList {
+            get {
+                return ResourceManager.GetString("UseChangePasswordInTheKeyList", resourceCulture);
             }
         }
         

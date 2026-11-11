@@ -590,8 +590,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             IMenuGroupRepository menuGroupRepository = scope.ServiceProvider.GetRequiredService<IMenuGroupRepository>();
                             menuGroups = await menuGroupRepository.GetJoinedMenuGroups(menu.Id);
                             var comparer = new UniqueComparer<GXMenuGroup, Guid>();
-                            List<GXMenuGroup> removedMenuGroups = [.. menuGroups.Except(menu.MenuGroups, comparer)];
-                            List<GXMenuGroup> addedMenuGroups = [.. menu.MenuGroups.Except(menuGroups, comparer)];
+                            var requestedMenuGroups = menu.MenuGroups ?? [];
+                            List<GXMenuGroup> removedMenuGroups = [.. menuGroups.Except(requestedMenuGroups, comparer)];
+                            List<GXMenuGroup> addedMenuGroups = [.. requestedMenuGroups.Except(menuGroups, comparer)];
                             if (removedMenuGroups.Count != 0)
                             {
                                 RemoveMenusFromMenuGroup(connection, menu.Id, removedMenuGroups);
@@ -716,8 +717,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="menuId">Menu ID.</param>
         /// <param name="groups">Group IDs of the menu groups where the menu is added.</param>
         private static void AddMenuToMenuGroups(GXDbConnection connection,
-            Guid menuId, IEnumerable<GXMenuGroup> groups)
+            Guid menuId, IEnumerable<GXMenuGroup>? groups)
         {
+            if (groups == null)
+            {
+                return;
+            }
             DateTime now = DateTime.Now;
             List<GXMenuGroupMenu> list = [];
             foreach (GXMenuGroup it in groups)
@@ -1081,6 +1086,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "/Agent", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Agents)), null, "Agents", [TargetType.AgentLog], "New Logs", GXAgentPolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Gateway", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Gateway)), null, "Gateway", [TargetType.GatewayLog], "New Logs", GXGatewayPolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Logs", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Logs)), null, "Log", null, null, GXLogPolicies.View);
+            await AddLink(connection, menu, Visibility.All, "/Extension", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Extensions)), null, "Extension", null, null, null);
             await AddLink(connection, menu, Visibility.All, "/Config", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Configuration)), null, "Configuration", null, null, GXConfigurationPolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Favorites", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Favorites)), null, "Favorite", null, null, GXFavoritePolicies.View);
         }
@@ -1626,6 +1632,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/Script", labels.GetString("Scripts", System.Globalization.CultureInfo.InvariantCulture)!, icon: "scripts", policy: GXScriptPolicies.View, type: typeof(Client.Pages.Script.Scripts));
             await AddLink(connection, menu, Visibility.All, "config/ScriptGroup", labels.GetString("ScriptGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "script-groups", policy: GXScriptGroupPolicies.View, type: typeof(Client.Pages.Script.ScriptGroups));
             await AddLink(connection, menu, Visibility.All, "config/ScriptLog", labels.GetString("ScriptLogs", System.Globalization.CultureInfo.InvariantCulture)!, icon: "script-logs", policy: GXScriptLogPolicies.View, type: typeof(Client.Pages.Script.ScriptLogs));
+            await AddLink(connection, menu, Visibility.All, "Templates", labels.GetString("Templates", System.Globalization.CultureInfo.InvariantCulture)!, icon: "script", policy: GXUpdatePolicies.Admin, type: typeof(Gurux.DLMS.AMI.Client.Pages.Script.ScriptTemplates));
         }
 
         private static async Task AddTriggerTabs(GXDbConnection? connection, GXMenuGroup group)

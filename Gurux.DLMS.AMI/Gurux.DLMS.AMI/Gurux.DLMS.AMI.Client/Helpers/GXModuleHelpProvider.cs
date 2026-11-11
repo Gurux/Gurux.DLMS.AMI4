@@ -50,7 +50,7 @@ public sealed class GXModuleHelpProvider(HttpClient http) : IGXHelpProvider
         {
             return null;
         }
-        var address = "api/extensions/" + Uri.EscapeDataString(parts[1]) + "/help?topic=" + Uri.EscapeDataString(request.Topic);
+        var address = "api/modules/" + Uri.EscapeDataString(parts[1]) + "/help?topic=" + Uri.EscapeDataString(request.Topic);
         if (request.Version != null)
         {
             address += "&version=" + Uri.EscapeDataString(request.Version);

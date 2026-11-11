@@ -1,0 +1,207 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IServiceProvider Services
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@implements IDisposable
+
+<AuthorizeView Policy="@GXUpdatePolicies.Admin">
+    <Authorized>
+        <PageTitle>@Properties.Resources.Templates</PageTitle>
+        <div class="script-catalog-check">
+            @if (_checked != null)
+            {
+                <span>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_checked))</span>
+            }
+            <button type="button" class="btn btn-link" disabled="@_checking" @onclick="OnCheck">(@Properties.Resources.CheckManually)</button>
+            <a href="@NavigationManager.GetCurrentPagePath("/updates")">@Properties.Resources.AvailableUpdates</a>
+        </div>
+        <ScriptUpdates @key="_catalogScripts" Items="@_catalogScripts" OnUpdated="CatalogChangedAsync" />
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    /// <summary>The selected script, supplied by the script details tabs.</summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool _checking;
+    private IReadOnlyList<GXAvailableUpdate> _catalogScripts = [];
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _disposed;
+    private long _catalogRequest;
+    private bool _canCheck;
+    private DateTimeOffset? _checked;
+    private IGXNotifier? Notifier;
+    private IGXProgress? Progress;
+    private IGXNotificationService? NotificationService;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier = Services.GetService<IGXNotifier>();
+        Progress = Services.GetService<IGXProgress>();
+        NotificationService = Services.GetService<IGXNotificationService>();
+        var authorization = Services.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
+        var authentication = Services.GetRequiredService<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider>();
+        var state = await authentication.GetAuthenticationStateAsync();
+        _canCheck = (await authorization.AuthorizeAsync(state.User, GXUpdatePolicies.Admin)).Succeeded;
+        if (_canCheck && !_disposed)
+        {
+            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            {
+                if (items.Any(item => item.Type == GXConfigurationPolicies.Cron &&
+                    item.Id == GXCronNotifications.Completed && IsCatalogCheckCompletion(item.Settings)))
+                {
+                    _ = RefreshCheckedAsync();
+                }
+            });
+            try
+            {
+                await RefreshCheckedAsync();
+            }
+            catch (Exception error)
+            {
+                NotificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
+            }
+        }
+    }
+
+    private static bool IsCatalogCheckCompletion(string? settings)
+    {
+        if (string.IsNullOrWhiteSpace(settings))
+        {
+            return false;
+        }
+        try
+        {
+            return JsonSerializer.Deserialize<GXBackgroundTaskStatus>(settings)?.TaskId == "update";
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private async Task RefreshCheckedAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        try
+        {
+            long request = Interlocked.Increment(ref _catalogRequest);
+            var snapshot = await Http.GetAsJsonAsync<GXAvailableUpdatesResponse>("api/Update/List", _lifetime.Token);
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && request == _catalogRequest)
+                {
+                    _checked = snapshot.Checked;
+                    _catalogScripts = snapshot.Scripts;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            if (!_disposed)
+            {
+                NotificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
+            }
+        }
+    }
+
+    private async Task CatalogChangedAsync()
+    {
+        await RefreshCheckedAsync();
+    }
+
+    /// <summary>Discovers catalog versions without replacing installed script source.</summary>
+    public async Task OnCheck()
+    {
+        if (_disposed || !_canCheck || _checking)
+        {
+            return;
+        }
+        _checking = true;
+        using var progressScope = Progress?.ProgressStart(GXProgress.CheckingNewVersions);
+        NotificationService?.RemoveByKey("Pages/Script/ScriptTemplates.OnCheck");
+        using var checkCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            _lifetime.Token, progressScope?.CancellationToken ?? CancellationToken.None);
+        try
+        {
+            await Services.GetRequiredService<GXBackgroundTaskNotifications>()
+                .CheckScriptsAsync(checkCancellation.Token);
+            await RefreshCheckedAsync();
+        }
+        catch (AccessTokenNotAvailableException error)
+        {
+            error.Redirect();
+        }
+        catch (OperationCanceledException) when (checkCancellation.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            NotificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
+        }
+        finally
+        {
+            _checking = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        Interlocked.Increment(ref _catalogRequest);
+        Notifier?.RemoveListener(this);
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}
