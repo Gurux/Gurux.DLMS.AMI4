@@ -213,7 +213,11 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
                         {
                         throw new InvalidDataException("Package digest does not match the signed release manifest.");
                     }
-                    await ValidatePackageAsync(package, stage, version, transferToken);
+                    package = await ValidatePackageAsync(package, stage, version, transferToken);
+                    await using (var prepared = File.OpenRead(package))
+                    {
+                        digest = Convert.ToHexString(await SHA256.HashDataAsync(prepared, transferToken)).ToLowerInvariant();
+                    }
                     PendingUpdate = new GXPreparedAgentUpdate(version, package, digest);
                     logger.LogInformation("Agent release {Version} staged for external installation", version);
                     return;
@@ -239,10 +243,12 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         finally { prepareGate.Release(); }
     }
 
-    private async Task ValidatePackageAsync(string package, string stage, string version, CancellationToken token)
+    private async Task<string> ValidatePackageAsync(string package, string stage, string version, CancellationToken token)
     {
         using var archive = ZipFile.OpenRead(package);
         var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+        bool structured = archive.Entries.Any(e => e.FullName.Replace('\\', '/') == "gx-agent/agent/Gurux.DLMS.AMI.Agent.dll");
+        bool wrapped = structured || archive.Entries.Any(e => e.FullName.Replace('\\', '/') == "gx-agent/Gurux.DLMS.AMI.Agent.dll");
         long expanded = 0;
         if (archive.Entries.Count > 10000)
             {
@@ -265,6 +271,31 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             if (name.EndsWith('/'))
                 {
                 continue;
+            }
+            if (wrapped)
+            {
+                if (!name.StartsWith("gx-agent/", StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("Agent package contains files outside gx-agent/.");
+                }
+                name = name["gx-agent/".Length..];
+                if (structured)
+                {
+                    if (name.StartsWith("agent/", StringComparison.Ordinal))
+                    {
+                        name = name["agent/".Length..];
+                    }
+                    else if (name.StartsWith("gurux-updater/", StringComparison.Ordinal) ||
+                        name is "start.sh" or "start.bat")
+                    {
+                        // The running updater and root launchers remain outside the live agent directory.
+                        continue;
+                    }
+                    else
+                    {
+                        throw new InvalidDataException("Agent package contains unexpected files outside agent/.");
+                    }
+                }
             }
             if (!entries.TryAdd(name, entry))
                 {
@@ -296,6 +327,26 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             {
             throw new InvalidDataException("Agent package version does not match the requested version.");
         }
+        if (!wrapped)
+        {
+            return package;
+        }
+        // The signed download is verified before this conversion. The external updater
+        // expects application files at the ZIP root and verifies the converted ZIP hash.
+        string installationPackage = Path.Combine(stage, "install.zip");
+        using (var output = ZipFile.Open(installationPackage, ZipArchiveMode.Create))
+        {
+            foreach (var entry in entries)
+            {
+                var target = output.CreateEntry(entry.Key);
+                target.ExternalAttributes = entry.Value.ExternalAttributes;
+                target.LastWriteTime = entry.Value.LastWriteTime;
+                await using var source = entry.Value.Open();
+                await using var destination = target.Open();
+                await CopyBoundedAsync(source, destination, entry.Value.Length, token);
+            }
+        }
+        return installationPackage;
     }
 
     private async Task ValidateContainerReleaseAsync(string version, CancellationToken token)
@@ -413,7 +464,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
                 using (new FileStream(Path.Combine(folder.FullName, ".active"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
                 { }
                 // Delete only files owned by this adapter, never recurse into unexpected contents or links.
-                if (folder.EnumerateDirectories().Any() || folder.EnumerateFiles().Any(f => f.Attributes.HasFlag(FileAttributes.ReparsePoint) || f.Name is not ("agent.zip" or "candidate.dll" or ".active")))
+                if (folder.EnumerateDirectories().Any() || folder.EnumerateFiles().Any(f => f.Attributes.HasFlag(FileAttributes.ReparsePoint) || f.Name is not ("agent.zip" or "install.zip" or "candidate.dll" or ".active")))
                     {
                     continue;
                 }

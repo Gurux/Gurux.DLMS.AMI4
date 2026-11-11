@@ -52,7 +52,7 @@
     <ItemGroup>
         <EmbeddedResource Include="agent-release-public.pem" LogicalName="Gurux.DLMS.AMI.Agent.agent-release-public.pem" />
         <None Update="agent-release-public.pem" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-        <None Update="Install-Agent.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+        <None Update="start.sh;start.bat" CopyToPublishDirectory="PreserveNewest" />
         <Content Include="$(UpdaterPayloadDirectory)/**/*" Condition="'$(UpdaterPayloadDirectory)' != ''" Link="setup/updater/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
     <Target Name="ValidateUpdaterPayload" BeforeTargets="Publish" Condition="'$(UpdaterPayloadDirectory)' != ''">
@@ -61,8 +61,19 @@
     <Target Name="ZipPublish" AfterTargets="Publish">
         <PropertyGroup>
             <_AgentPackageRuntimeSuffix Condition="'$(RuntimeIdentifier)' != ''">-$(RuntimeIdentifier)</_AgentPackageRuntimeSuffix>
+            <_AgentPackageDirectory>$(BaseIntermediateOutputPath)agent-package/$(Configuration)/$(Version)$(_AgentPackageRuntimeSuffix)/</_AgentPackageDirectory>
         </PropertyGroup>
-        <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ProjectDir)bin/$(Configuration)/Gurux.DLMS.AMI.Agent-$(Version)$(_AgentPackageRuntimeSuffix).zip" Overwrite="true" />
+        <RemoveDir Directories="$(_AgentPackageDirectory)" />
+        <ItemGroup>
+            <_AgentPackageFiles Include="$(PublishDir)**/*" Exclude="$(PublishDir)setup/updater/**/*;$(PublishDir)start.sh;$(PublishDir)start.bat;$(PublishDir)Install-Agent.ps1" />
+            <_AgentUpdaterFiles Include="$(PublishDir)setup/updater/**/*" />
+            <_AgentLaunchers Include="$(ProjectDir)start.sh;$(ProjectDir)start.bat" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_AgentPackageFiles)" DestinationFiles="@(_AgentPackageFiles->'$(_AgentPackageDirectory)gx-agent/agent/%(RecursiveDir)%(Filename)%(Extension)')" />
+        <Copy SourceFiles="@(_AgentUpdaterFiles)" DestinationFiles="@(_AgentUpdaterFiles->'$(_AgentPackageDirectory)gx-agent/gurux-updater/%(RecursiveDir)%(Filename)%(Extension)')" />
+        <Copy SourceFiles="@(_AgentLaunchers)" DestinationFolder="$(_AgentPackageDirectory)gx-agent/" />
+        <ZipDirectory SourceDirectory="$(_AgentPackageDirectory)" DestinationFile="$(ProjectDir)bin/$(Configuration)/Gurux.DLMS.AMI.Agent-$(Version)$(_AgentPackageRuntimeSuffix).zip" Overwrite="true" />
+        <RemoveDir Directories="$(_AgentPackageDirectory)" />
     </Target>
     <ItemGroup>
         <Using Include="Gurux.DLMS.AMI.Http" />

@@ -58,7 +58,7 @@ internal sealed class GXAgentUpdaterOptions
     {
         DeploymentRoot = config["Updater:DeploymentRoot"],
         RequestKeyFile = config["Updater:RequestKeyFile"],
-        Executable = string.IsNullOrWhiteSpace(config["Updater:Executable"]) ? Environment.GetEnvironmentVariable("GURUX_UPDATER_PATH") ?? "" : config["Updater:Executable"]!,
+        Executable = ResolveExecutable(config),
         ServiceName = config["Updater:ServiceName"],
         ApplicationPath = config["Updater:ApplicationPath"],
         HealthUrl = config["Updater:HealthUrl"],
@@ -71,6 +71,22 @@ internal sealed class GXAgentUpdaterOptions
         SettingsPath = Path.GetFullPath(config["Agent:SettingsPath"] ?? Environment.GetEnvironmentVariable("GURUX_AGENT_SETTINGS") ?? GXAgentSettingsStore.DefaultPath),
         StagingDirectory = config["Updater:StagingDirectory"] ?? new GXAgentUpdaterOptions().StagingDirectory
     };
+
+    internal static string ResolveExecutable(IConfiguration config)
+    {
+        var configured = config["Updater:Executable"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+        configured = Environment.GetEnvironmentVariable("GURUX_UPDATER_PATH");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
+            "..", "gurux-updater", "Gurux.Updater.Tool.dll"));
+    }
 
     private static string ReadPublicKey(IConfiguration config)
     {

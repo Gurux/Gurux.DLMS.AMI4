@@ -27,6 +27,7 @@
 
 using Gurux.DLMS.AMI.Agent;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
@@ -38,6 +39,34 @@ internal static class UpdaterChecks
 {
     internal static async Task RunAsync()
     {
+        string? savedUpdater = Environment.GetEnvironmentVariable("GURUX_UPDATER_PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("GURUX_UPDATER_PATH", " ");
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Updater:Executable"] = " "
+            }).Build();
+            string bundled = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "gurux-updater", "Gurux.Updater.Tool.dll"));
+            if (GXAgentUpdaterOptions.Read(config).Executable != bundled)
+            {
+                throw new Exception("Missing updater configuration must use the bundled sibling tool.");
+            }
+            Environment.SetEnvironmentVariable("GURUX_UPDATER_PATH", "external-tool");
+            if (GXAgentUpdaterOptions.Read(config).Executable != "external-tool")
+            {
+                throw new Exception("Environment updater override was ignored.");
+            }
+            config["Updater:Executable"] = "configured-tool";
+            if (GXAgentUpdaterOptions.Read(config).Executable != "configured-tool")
+            {
+                throw new Exception("Explicit updater configuration must take priority.");
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("GURUX_UPDATER_PATH", savedUpdater);
+        }
         string root = Path.Combine(Path.GetTempPath(), "unified-agent-" + Guid.NewGuid().ToString("N"));
         string install = Path.Combine(root, "agent install");
         string tool = Path.Combine(root, "external updater.dll");
@@ -50,7 +79,7 @@ internal static class UpdaterChecks
         string version = FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion!.Split('+')[0];
         using var signingKey = RSA.Create(2048);
         options.PublicKeyPem = signingKey.ExportSubjectPublicKeyInfoPem();
-        byte[] Package(string? badEntry = null, bool oldWorkerOnly = false)
+        byte[] Package(string? badEntry = null, bool oldWorkerOnly = false, string prefix = "")
         {
             using var data = new MemoryStream();
             using (var zip = new ZipArchive(data, ZipArchiveMode.Create, true))
@@ -60,10 +89,10 @@ internal static class UpdaterChecks
                 }
                 else
                 {
-                    Write(zip, "Gurux.DLMS.AMI.Agent.dll", File.ReadAllBytes(typeof(Settings).Assembly.Location));
-                    Write(zip, "Gurux.DLMS.AMI.Agent.deps.json", Encoding.UTF8.GetBytes("{}"));
-                    Write(zip, "Gurux.DLMS.AMI.Agent.runtimeconfig.json", Encoding.UTF8.GetBytes("{}"));
-                    Write(zip, Path.GetFileName(app), [1]);
+                    Write(zip, prefix + "Gurux.DLMS.AMI.Agent.dll", File.ReadAllBytes(typeof(Settings).Assembly.Location));
+                    Write(zip, prefix + "Gurux.DLMS.AMI.Agent.deps.json", Encoding.UTF8.GetBytes("{}"));
+                    Write(zip, prefix + "Gurux.DLMS.AMI.Agent.runtimeconfig.json", Encoding.UTF8.GetBytes("{}"));
+                    Write(zip, prefix + Path.GetFileName(app), [1]);
                 }
                 if (badEntry != null) {
                     Write(zip, badEntry, [1]);
@@ -87,6 +116,34 @@ internal static class UpdaterChecks
             if (service.PendingUpdate?.Version != version || !File.Exists(service.PendingUpdate.PackagePath)) {
                 throw new Exception("Full package was not staged.");
             }
+            var wrapped = Service(Package(prefix: "gx-agent/"));
+            await wrapped.PrepareAsync(version, ["https://releases.test/agent.zip"], CancellationToken.None);
+            using (var staged = ZipFile.OpenRead(wrapped.PendingUpdate!.PackagePath))
+            {
+                if (staged.GetEntry("Gurux.DLMS.AMI.Agent.dll") == null || staged.Entries.Any(e => e.FullName.StartsWith("gx-agent/")))
+                {
+                    throw new Exception("The external updater must receive an application rooted package.");
+                }
+            }
+            var structured = Service(Package("gx-agent/gurux-updater/tool.dll", prefix: "gx-agent/agent/"));
+            await structured.PrepareAsync(version, ["https://releases.test/agent.zip"], CancellationToken.None);
+            using (var staged = ZipFile.OpenRead(structured.PendingUpdate!.PackagePath))
+            {
+                if (staged.GetEntry("Gurux.DLMS.AMI.Agent.dll") == null || staged.Entries.Any(e => e.FullName.StartsWith("gx-agent/") || e.FullName.StartsWith("gurux-updater/")))
+                {
+                    throw new Exception("Structured releases must install only the agent subtree.");
+                }
+            }
+            await Reject(Service(Package("gx-agent/settings.json", prefix: "gx-agent/agent/")), version);
+            await Reject(Service(Package("gx-agent/agent/appsettings.json", prefix: "gx-agent/agent/")), version);
+            await Reject(Service(Package("gx-agent/gurux-updater/../escape.dll", prefix: "gx-agent/agent/")), version);
+            byte[] stagedBytes = await File.ReadAllBytesAsync(wrapped.PendingUpdate.PackagePath);
+            if (wrapped.PendingUpdate.Sha256 != Convert.ToHexString(SHA256.HashData(stagedBytes)).ToLowerInvariant())
+            {
+                throw new Exception("Updater checksum must match the staged installation package.");
+            }
+            await Reject(Service(Package("settings.json", prefix: "gx-agent/")), version);
+            await Reject(Service(Package("gx-agent/settings.json", prefix: "gx-agent/")), version);
             int starts = 0;
             service.StartProcess = (info, _) =>
             {
