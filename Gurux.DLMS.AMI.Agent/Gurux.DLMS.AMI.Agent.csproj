@@ -65,7 +65,7 @@
         </PropertyGroup>
         <RemoveDir Directories="$(_AgentPackageDirectory)" />
         <ItemGroup>
-            <_AgentPackageFiles Include="$(PublishDir)**/*" Exclude="$(PublishDir)setup/updater/**/*;$(PublishDir)start.sh;$(PublishDir)start.bat;$(PublishDir)Install-Agent.ps1" />
+            <_AgentPackageFiles Include="$(PublishDir)**/*" Exclude="$(PublishDir)setup/updater/**/*;$(PublishDir)start.sh;$(PublishDir)start.bat" />
             <_AgentUpdaterFiles Include="$(PublishDir)setup/updater/**/*" />
             <_AgentLaunchers Include="$(ProjectDir)start.sh;$(ProjectDir)start.bat" />
         </ItemGroup>
