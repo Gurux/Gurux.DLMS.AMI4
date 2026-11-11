@@ -187,7 +187,7 @@ internal static class GXProfileHistoryReader
                 if (clock is byte[] bytes) {
                     clock = GXDLMSClient.ChangeType(bytes, DataType.DateTime, useUtc2NormalTime);
                 }
-                if (clock is GXDateTime date && (date.Skip & (DateTimeSkips.Deviation | DateTimeSkips.Year | DateTimeSkips.Month | DateTimeSkips.Day | DateTimeSkips.Hour | DateTimeSkips.Minute | DateTimeSkips.Second)) != 0)
+                if (clock is GXDateTime date && (date.Skip & (DateTimeSkips.Year | DateTimeSkips.Month | DateTimeSkips.Day | DateTimeSkips.Hour | DateTimeSkips.Minute)) != 0)
                     {
                     throw new InvalidOperationException("Profile clock has an incomplete timestamp or time zone deviation.");
                 }
