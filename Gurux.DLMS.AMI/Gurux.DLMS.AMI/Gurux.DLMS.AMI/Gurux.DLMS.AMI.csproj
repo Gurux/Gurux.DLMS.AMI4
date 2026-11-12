@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -15,6 +15,7 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Gurux.Service" Version="3.0.2611.501" />
+        <PackageReference Include="YamlDotNet" Version="18.1.0" />
         <ProjectReference Include="..\Gurux.DLMS.AMI.Client\Gurux.DLMS.AMI.Client.csproj" />
         <PackageReference Include="Gurux.DLMS.AMI.Services" Version="4.1.2611.501" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
