@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Reuse the agent's existing friend identity without exposing more runtime internals. -->
+    <AssemblyName>ContainerUpdater.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Gurux.DLMS.AMI.Agent/Gurux.DLMS.AMI.Agent.csproj" />
+  </ItemGroup>
+</Project>

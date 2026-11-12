@@ -99,8 +99,9 @@ reporter = "gx-health-" + uuid.uuid4().hex[:12]
 replacement = "gx-health-" + uuid.uuid4().hex[:12]
 try:
     published = health_directory / "publish"
-    subprocess.run(["dotnet", "publish", str(repo / "Tests" / "ContainerUpdater" / "ContainerUpdater.Tests.csproj"),
-                    "-c", "Release", "--artifacts-path", str(health_directory / "artifacts"), "-o", str(published), "--verbosity", "quiet"], check=True, capture_output=True)
+    subprocess.run(["dotnet", "publish", str(repo / ".github" / "tests" / "AgentHealthReporter" / "AgentHealthReporter.csproj"),
+                    "-c", "Release", "--artifacts-path", str(health_directory / "artifacts"), "-o", str(published),
+                    "-p:GeneratePackageOnBuild=false", "-p:UseAppHost=false", "--verbosity", "minimal"], check=True)
     state = health_directory / "state"
     state.mkdir()
     subprocess.run(["docker", "run", "-d", "--name", reporter, "--user", str(os.getuid()), "--entrypoint", "dotnet",

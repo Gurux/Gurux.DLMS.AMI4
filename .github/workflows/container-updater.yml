@@ -9,6 +9,7 @@ on:
       - 'deployment/docker/**'
       - '.github/scripts/agent-compose-release.ps1'
       - '.github/tests/agent-compose-release.tests.ps1'
+      - '.github/tests/AgentHealthReporter/**'
       - '.github/workflows/container-updater.yml'
   push:
     branches: [main]
@@ -20,6 +21,7 @@ on:
       - 'deployment/docker/**'
       - '.github/scripts/agent-compose-release.ps1'
       - '.github/tests/agent-compose-release.tests.ps1'
+      - '.github/tests/AgentHealthReporter/**'
       - '.github/workflows/container-updater.yml'
   workflow_dispatch:
 permissions:
