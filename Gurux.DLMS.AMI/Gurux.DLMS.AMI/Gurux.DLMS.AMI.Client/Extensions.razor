@@ -184,7 +184,7 @@
         Active = module;
         if (module != null && GetLink(module.Id) is string link) { NavigationManager.NavigateTo(link); }
     }
-    private void ReportError(Exception error) => notifications?.Add(new GXNotificationItem(NotificationLevel.Error, Properties.Resources.Extensions, error.Message, "Extensions.Load", true));
+    private void ReportError(Exception error) => notifications?.ReportError(error, "Extensions.Load");
 
     public void Dispose()
     {

@@ -340,44 +340,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         internal static void ValidateAudience(GXMenu menu)
         {
+            // Empty policies are a public audience; group assignments are optional.
             menu.MenuGroups ??= [];
-            if (menu.MenuGroups.Count == 0 && menu.Policies?.Any(p => !string.IsNullOrWhiteSpace(p)) != true)
-            {
-                throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
-            }
         }
 
-        // Group assignments restrict access; an ungrouped menu needs an explicit policy.
-        internal async Task<bool> CanViewAsync(GXDbConnection connection, GXMenu menu, CancellationToken cancellationToken = default)
-        {
-            if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, menu.Policies, cancellationToken))
-            {
-                return false;
-            }
-            if (User.IsInRole(GXRoles.Admin))
-            {
-                return true;
-            }
-            var groups = GXSelectArgs.Select<GXMenuGroup>(g => g.Id, g => g.Removed == null);
-            groups.Joins.AddInnerJoin<GXMenuGroup, GXMenuGroupMenu>(g => g.Id, m => m.MenuGroupId);
-            groups.Where.And<GXMenuGroupMenu>(m => m.MenuId == menu.Id && m.Removed == null);
-            if (!(await connection.SelectAsync<GXMenuGroup>(groups, cancellationToken)).Any())
-            {
-                return menu.Policies?.Any(p => !string.IsNullOrWhiteSpace(p)) == true;
-            }
-            var userId = ServerHelpers.GetUserId(User, false);
-            if (userId == null || User.Identity?.IsAuthenticated != true)
-            {
-                return false;
-            }
-            groups.Joins.AddInnerJoin<GXMenuGroup, GXUserGroupMenuGroup>(g => g.Id, m => m.MenuGroupId);
-            groups.Joins.AddInnerJoin<GXUserGroupMenuGroup, GXUserGroup>(m => m.UserGroupId, g => g.Id);
-            groups.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(g => g.Id, m => m.UserGroupId);
-            groups.Where.And<GXUserGroupMenuGroup>(m => m.Removed == null);
-            groups.Where.And<GXUserGroup>(g => g.Removed == null);
-            groups.Where.And<GXUserGroupUser>(m => m.UserId == userId && m.Removed == null);
-            return (await connection.SelectAsync<GXMenuGroup>(groups, cancellationToken)).Any();
-        }
+        // Empty policies are public, including anonymous readers. Configured policies remain enforced.
+        internal Task<bool> CanViewAsync(GXDbConnection connection, GXMenu menu, CancellationToken cancellationToken = default)
+            => GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, menu.Policies, cancellationToken);
 
         /// <inheritdoc />
         public async Task<GXMenu> ReadAsync(string name, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default)
@@ -1066,10 +1035,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = def.CreationTime,
                     Creator = def.Creator,
                     SystemDefined = true,
+                    Policies = [],
                 };
                 def.Menus?.Add(menu);
                 connection?.Insert(GXInsertArgs.Insert(menu));
-                //NavMenu is shown only for login users.
+                //The public NavMenu keeps per-link policies for restricted destinations.
                 GXMenuGroupMenu mg = new()
                 {
                     MenuId = menu.Id,

@@ -1,0 +1,22 @@
+@namespace Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Shared.DTOs
+@inject ILogger<GXBrowserErrorLog> Logger
+
+@code {
+    [Parameter] public GXLog? Entry { get; set; }
+    private (string? Message, string? StackTrace)? _logged;
+
+    protected override void OnParametersSet()
+    {
+        if (Entry == null || (string.IsNullOrEmpty(Entry.StackTrace) && Entry.Level != (int)System.Diagnostics.TraceLevel.Error))
+        {
+            return;
+        }
+        var diagnostic = (Entry.Message, Entry.StackTrace);
+        if (_logged != diagnostic)
+        {
+            _logged = diagnostic;
+            Logger.LogError("{Message}{NewLine}{StackTrace}", Entry.Message, Environment.NewLine, Entry.StackTrace);
+        }
+    }
+}

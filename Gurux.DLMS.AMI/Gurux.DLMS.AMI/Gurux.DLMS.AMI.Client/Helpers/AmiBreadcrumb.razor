@@ -1,0 +1,124 @@
+@namespace Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.UI.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject IGXMenuService Menus
+
+<GXBreadcrumb Items="@(Items ?? GetNamedItems())" HiddenSegments="@HiddenSegments" @attributes="AdditionalAttributes" />
+
+@code {
+    [Parameter] public IEnumerable<GXBreadcrumb.BreadcrumbItem>? Items { get; set; }
+    [Parameter] public IEnumerable<string> HiddenSegments { get; set; } = ["Edit", "Remove"];
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+    private EditContext? _context;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        Menus.Changed += Changed;
+        Navigation.LocationChanged += LocationChanged;
+        UpdateContext();
+    }
+
+    private void UpdateContext()
+    {
+        var next = Menus.GetEditContext(menuId: GXEditorMenu.MenuId) ?? Menus.EditContext;
+        if (ReferenceEquals(next, _context))
+        {
+            return;
+        }
+        if (_context != null)
+        {
+            _context.OnFieldChanged -= FieldChanged;
+        }
+        _context = next;
+        if (_context != null)
+        {
+            _context.OnFieldChanged += FieldChanged;
+        }
+    }
+
+    private IEnumerable<GXBreadcrumb.BreadcrumbItem>? GetNamedItems()
+    {
+        var model = _context?.Model;
+        if (model == null)
+        {
+            return null;
+        }
+        var type = model.GetType();
+        var name = type.GetProperty("Name")?.GetValue(model) as string;
+        var id = type.GetProperty("Id")?.GetValue(model)?.ToString();
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(id))
+        {
+            return null;
+        }
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        bool Matches(string segment)
+        {
+            var decoded = Uri.UnescapeDataString(segment);
+            return Guid.TryParse(id, out var targetId) && Guid.TryParse(decoded, out var segmentId)
+                ? targetId == segmentId : string.Equals(id, decoded, StringComparison.Ordinal);
+        }
+        if (!segments.Any(Matches))
+        {
+            // A previous editor may still be disposing while the next page loads.
+            return null;
+        }
+        var items = new List<GXBreadcrumb.BreadcrumbItem>
+        {
+            new("Home", Navigation.BaseUri, false, true)
+        };
+        var hidden = new HashSet<string>(HiddenSegments, StringComparer.OrdinalIgnoreCase);
+        var accumulated = "";
+        foreach (var segment in segments)
+        {
+            accumulated += "/" + segment;
+            var decoded = Uri.UnescapeDataString(segment);
+            if (hidden.Contains(decoded))
+            {
+                continue;
+            }
+            var named = Matches(segment);
+            var isGuid = Guid.TryParse(decoded, out _);
+            var label = named ? name : isGuid ? segment : GXBreadcrumb.SplitCamelCasePreserveAcronyms(decoded.Replace('-', ' ').Replace('_', ' '));
+            if (!named && !isGuid && label.Length != 0)
+            {
+                label = char.ToUpperInvariant(label[0]) + label[1..];
+            }
+            items.Add(new(label, Navigation.BaseUri.TrimEnd('/') + accumulated, false, !named && !isGuid));
+        }
+        items[^1] = items[^1] with { Href = null, Active = true };
+        return items;
+    }
+
+    private void LocationChanged(object? sender, LocationChangedEventArgs args) => Changed();
+    private void FieldChanged(object? sender, FieldChangedEventArgs args) => Changed();
+    private void Changed()
+    {
+        if (!_disposed)
+        {
+            _ = InvokeAsync(() =>
+            {
+                if (!_disposed)
+                {
+                    UpdateContext();
+                    StateHasChanged();
+                }
+            });
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Menus.Changed -= Changed;
+        Navigation.LocationChanged -= LocationChanged;
+        if (_context != null)
+        {
+            _context.OnFieldChanged -= FieldChanged;
+        }
+    }
+}

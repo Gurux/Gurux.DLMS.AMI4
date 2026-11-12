@@ -36,6 +36,22 @@ namespace Gurux.DLMS.AMI.Server.Internal;
 /// <summary>Restricts resource reads before their count and page are calculated.</summary>
 internal static class GXAppearancePolicyQuery
 {
+    /// <summary>An explicit policy grant is independent of the resource's visibility or ownership.</summary>
+    public static async Task<bool> AllowsAsync(GXDbConnection connection, IAuthorizationService authorization,
+        ClaimsPrincipal user, GXAppearance appearance, IEnumerable<string>? policies, CancellationToken token = default)
+    {
+        var hasPolicies = policies?.Any(p => !string.IsNullOrWhiteSpace(p)) == true;
+        if (hasPolicies && await GXResourcePolicyAccess.AllowsAsync(connection, authorization, user, policies, token))
+        {
+            return true;
+        }
+        if (GXAppearanceAccess.IsOwnerOnly(appearance))
+        {
+            return GXAppearanceAccess.CanReadPrivate(user, appearance);
+        }
+        return !hasPolicies && GXAppearanceAccess.CanView(user, appearance);
+    }
+
     public static async Task<bool> RestrictAsync(GXDbConnection connection, GXSelectArgs query,
         IAuthorizationService authorization, ClaimsPrincipal user, CancellationToken token = default)
     {
@@ -43,13 +59,11 @@ internal static class GXAppearancePolicyQuery
         var candidateQuery = GXSelectArgs.Select<GXAppearance>(a => new { a.Id, a.AccessVisibility, a.Creator }, a => a.Removed == null);
         candidateQuery.Joins.AddLeftJoin<GXAppearance, GXUser>(a => a.Creator!, u => u.Id!);
         candidateQuery.Columns.Add<GXUser>(u => u.Id!);
-        GXAppearanceAccess.Restrict(candidateQuery, user);
         var candidates = await connection.SelectAsync<GXAppearance>(candidateQuery, token);
         foreach (var candidate in candidates)
         {
             var names = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXAppearance), candidate.Id, token);
-            if (GXAppearanceAccess.IsOwnerOnly(candidate) ? GXAppearanceAccess.CanReadPrivate(user, candidate) :
-                await GXResourcePolicyAccess.AllowsAsync(connection, authorization, user, names, token))
+            if (await AllowsAsync(connection, authorization, user, candidate, names, token))
             {
                 allowed.Add(candidate.Id);
             }

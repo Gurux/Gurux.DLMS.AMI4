@@ -73,7 +73,14 @@
             }
             @if (Title != null)
             {
-                <h4 class="@GetClass()">@((MarkupString)Title)</h4>
+                @if (Mode == TraceLevel.Error)
+                {
+                    <h4 class="@GetClass()" style="white-space: pre-wrap">@Title</h4>
+                }
+                else
+                {
+                    <h4 class="@GetClass()">@((MarkupString)Title)</h4>
+                }
                 <hr>
             }
             <p>@ChildContent</p>
@@ -209,49 +216,32 @@
 
     public void ProcessError(Exception ex)
     {
-        if (ex is GXMaintenanceException e)
+        var message = ex is GXAmiException ami ? ami.Message : ex.Message;
+        Logger.LogError(ex, "{Message}", message);
+        if (ex is GXMaintenanceException maintenance)
         {
             MaintenanceMode = true;
-            MaintenanceModeMessage = e.Message;
-            MaintenanceModeEnds = e.EndTime;
+            MaintenanceModeMessage = maintenance.Message;
+            MaintenanceModeEnds = maintenance.EndTime;
         }
         else
         {
             Mode = TraceLevel.Error;
-            if (ex is GXAmiException e1)
-            {
-                Title = e1.Message;
-                Title = Title.Replace(Environment.NewLine, "<br>");
-                Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}, CreationTime: {CreationTime}, ID: {Id}",
-                    ex.GetType(), ex.Message, e1.CreationTime, e1.Id);
-            }
-            else
-            {
-                if (ex.InnerException != null)
-                {
-                    Title = ex.InnerException.Message;
-                    Logger.LogError("Error:ProcessError - Type: {0} Message: {1}, {2}", ex.InnerException.GetType(), ex.InnerException.Message, ex.InnerException.StackTrace);
-                }
-                else
-                {
-                    Title = ex.Message;
-                    Logger.LogError("Error:ProcessError - Type: {0} Message: {1}, {2}", ex.GetType(), ex.Message, ex.StackTrace);
-                }
-                Title = Title.Replace(Environment.NewLine, "<br>");
-            }
+            Title = message;
         }
         InvokeAsync(StateHasChanged);
     }
+
     public void ProcessErrors(IEnumerable<object> errors)
     {
         Mode = TraceLevel.Error;
-        StringBuilder sb = new StringBuilder();
+        var messages = new List<string>();
         foreach (GXScriptException error in errors)
         {
-            sb.AppendFormat("Line: {0}, ID: {1}, {2}", error.Line, error.Id, error.Message);
+            Logger.LogError("Script error: {Message}; line {Line}; ID {Id}", error.Message, error.Line, error.Id);
+            messages.Add(error.Message);
         }
-        Title = sb.ToString(); ;
-        Title = Title.Replace(Environment.NewLine, "<br>");
+        Title = string.Join(Environment.NewLine, messages);
         InvokeAsync(StateHasChanged);
     }
 

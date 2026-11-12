@@ -273,7 +273,7 @@
             if (!_disposed)
             {
                 _error = exception.Message;
-                notifications?.Add(new GXNotificationItem(NotificationLevel.Error, exception.Message, string.Empty, ErrorKey));
+                notifications?.ReportError(exception, ErrorKey);
             }
         }
         finally

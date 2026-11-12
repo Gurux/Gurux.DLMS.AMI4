@@ -61,17 +61,8 @@ public static class GXProfilePictures
         {
             throw new ArgumentException("Profile picture must reference an existing image.");
         }
-        if (!GXAppearanceAccess.CanView(user, image))
-            {
-            throw new UnauthorizedAccessException("Profile picture is not accessible.");
-        }
-        if (GXAppearanceAccess.IsOwnerOnly(image))
-        {
-            GXAppearanceAccess.RequirePrivateOwner(user, image);
-            return;
-        }
         var policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXAppearance), imageId.Value, token);
-        if (!await GXResourcePolicyAccess.AllowsAsync(connection, authorization, user, policies, token))
+        if (!await GXAppearancePolicyQuery.AllowsAsync(connection, authorization, user, image, policies, token))
         {
             throw new UnauthorizedAccessException("Profile picture is not accessible.");
         }

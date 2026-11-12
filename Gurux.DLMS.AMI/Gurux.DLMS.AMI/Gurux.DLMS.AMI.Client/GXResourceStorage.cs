@@ -403,6 +403,11 @@ namespace Gurux.DLMS.AMI.Client
                 changed = _menus[name] != body;
                 _menus[name] = body;
             }
+            if (changed && name == GXMenus.NavMenu && user.Identity?.IsAuthenticated == true &&
+                (menu == null || menu.Id == Guid.Empty || menu.Links?.Any() != true))
+            {
+                _logger.LogWarning("Navigation menu {MenuName} is unavailable or has no visible links for the current user. Check menu-group assignments and policies.", name);
+            }
             if (changed)
             {
                 MenuChanged?.Invoke(this, new GXMenuChangedEventArgs { Name = name, Menu = menu });

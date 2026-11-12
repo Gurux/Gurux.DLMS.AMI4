@@ -37,6 +37,7 @@
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
 @inject HttpClient Http
+@inject ILogger<LogDetails> Logger
 @inject NavigationManager NavigationManager
 @inject IGXResourceStorage ResourceStorage
 @implements IDisposable
@@ -82,8 +83,7 @@ else if (_log != null)
     <pre class="text-break" style="white-space:pre-wrap">@FormatPayload(_log.Data)</pre>
     <h2>@Properties.Resources.Reply</h2>
     <pre class="text-break" style="white-space:pre-wrap">@FormatPayload(_log.Reply)</pre>
-    <h2>@Properties.Resources.StackTrace</h2>
-    <pre class="text-break" style="white-space:pre-wrap">@_log.StackTrace</pre>
+    <GXBrowserErrorLog Entry="@_log" />
 }
 
 @code {
@@ -150,6 +150,7 @@ else if (_log != null)
         {
             if (!load.IsCancellationRequested)
             {
+                Logger.LogError(exception, "{Message}", exception.Message);
                 _error = exception.Message;
             }
         }

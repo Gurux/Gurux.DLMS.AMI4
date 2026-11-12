@@ -56,6 +56,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IAuthorizationService _authorizationService;
         private readonly NotificationCache _notificationCache;
         private readonly GXImageStorage _imageStorage;
+        private readonly IGXThemeService _appearance;
 
         /// <summary>
         /// Constructor.
@@ -68,7 +69,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumTypeRepository enumTypeRepository,
             IConfigurationRepository configurationRepository,
             NotificationCache notificationCache,
-            GXImageStorage imageStorage)
+            GXImageStorage imageStorage,
+            IGXThemeService appearance)
         {
             _ = configurationRepository;
             _ = systemLogRepository;
@@ -82,6 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
             _notificationCache = notificationCache;
             _imageStorage = imageStorage;
+            _appearance = appearance;
         }
 
         private async Task<List<string>> GetNotifiedUsers(Guid id, NotificationAction action)
@@ -183,7 +186,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             //All appearances are available can see all the appearances.
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXAppearance>(a => a.Removed == null);
-            GXAppearanceAccess.Restrict(arg, User);
             arg.Joins.AddLeftJoin<GXAppearance, GXUser>(j => j.Creator!, j => j.Id!);
             arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
             if (request?.Exclude != null && request.Exclude.Any())
@@ -307,7 +309,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.And<GXAppearance>(w => w.Name == name);
             }
-            GXAppearanceAccess.Restrict(arg, User);
             arg.Joins.AddLeftJoin<GXAppearance, GXUser>(j => j.Creator!, j => j.Id!);
             arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
@@ -326,9 +327,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (appearance != null)
             {
                 appearance.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXAppearance), appearance.Id, cancellationToken);
-                if (GXAppearanceAccess.IsOwnerOnly(appearance) ? !GXAppearanceAccess.CanReadPrivate(User, appearance) :
-                    !await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, appearance.Policies, cancellationToken))
+                if (!await GXAppearancePolicyQuery.AllowsAsync(connection, _authorizationService, User, appearance, appearance.Policies, cancellationToken))
                 {
+                    if (!GXAppearanceAccess.CanView(User, appearance))
+                    {
+                        return null;
+                    }
                     throw new UnauthorizedAccessException();
                 }
                 await HydrateImageAsync(appearance, cancellationToken);
@@ -564,31 +568,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ];
         }
 
-        private static List<GXAppearance> GetThemes()
+        private List<GXAppearance> GetThemes()
         {
-            return [
-            CreateTheme("Default", "", "", true),
-        CreateTheme("Cerulean", "","https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cerulean/bootstrap.min.css" ),
-        CreateTheme("Cosmo",   "", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css" ),
-        CreateTheme("Cyborg", "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cyborg/bootstrap.min.css" ),
-        CreateTheme("Darkly", "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css" ),
-        CreateTheme("Flatly", "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/flatly/bootstrap.min.css" ) ,
-        CreateTheme("Journal","",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/journal/bootstrap.min.css" ) ,
-        CreateTheme("Litera",  "", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/litera/bootstrap.min.css" ) ,
-        CreateTheme("Lumen",  "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/lumen/bootstrap.min.css" ) ,
-        CreateTheme("Lux",   "",   "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/lux/bootstrap.min.css" ) ,
-        CreateTheme("Materia", "", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/materia/bootstrap.min.css" ),
-        CreateTheme("Minty", "",   "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/minty/bootstrap.min.css" ),
-        CreateTheme("Pulse",  "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/pulse/bootstrap.min.css" ) ,
-        CreateTheme("Sandstone","", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/sandstone/bootstrap.min.css" ) ,
-        CreateTheme("Simplex", "", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/simplex/bootstrap.min.css" ) ,
-        CreateTheme("Sketchy", "", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/sketchy/bootstrap.min.css" ) ,
-        CreateTheme("Slate",  "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/slate/bootstrap.min.css" ) ,
-        CreateTheme("Solar",  "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/solar/bootstrap.min.css" ) ,
-        CreateTheme("Spacelab","", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/spacelab/bootstrap.min.css" ) ,
-        CreateTheme("Superhero", "","https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/superhero/bootstrap.min.css" ) ,
-        CreateTheme("United",  "", "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/united/bootstrap.min.css" ) ,
-        CreateTheme("Yeti",   "",  "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/yeti/bootstrap.min.css" ) ];
+            return AmiThemeAdapter.GetDefaults(_appearance)
+                .Select(theme => CreateTheme(theme.Name, "", theme.CssFile,
+                    string.Equals(theme.Name, "Default", StringComparison.OrdinalIgnoreCase)))
+                .ToList();
         }
 
         private static GXAppearance AddImage(string name, string? value)
@@ -605,7 +590,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             };
         }
 
-        private static List<GXAppearance> GetDefaults()
+        private List<GXAppearance> GetDefaults()
         {
             var defaults = GetThemes();
             defaults.AddRange(GetIconpacks());

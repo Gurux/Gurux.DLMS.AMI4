@@ -398,7 +398,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error, ex.Message, string.Empty));
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -425,7 +425,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error, ex.Message, string.Empty));
+            NotificationService?.ReportError(ex);
         }
     }
 
@@ -454,7 +454,7 @@
         catch (AccessTokenNotAvailableException exception) { exception.Redirect(); }
         catch (Exception ex)
         {
-            NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error, Properties.Resources.PublishToCommunity, ex.Message, key, true, NotificationScope.Global));
+            NotificationService?.ReportError(ex, key, NotificationScope.Global);
         }
         finally { publishingCommunity = false; }
     }

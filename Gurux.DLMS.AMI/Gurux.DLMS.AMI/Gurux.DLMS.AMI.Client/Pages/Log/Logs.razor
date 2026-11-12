@@ -189,7 +189,13 @@ else if (string.IsNullOrWhiteSpace(_source))
             return "-";
         }
         var name = _logTypes.FirstOrDefault(type => type.PublicId.ToString() == value)?.Name ?? value;
-        return name.StartsWith("builtin:", StringComparison.OrdinalIgnoreCase) ? name[8..] : name;
+        var label = name.StartsWith("builtin:", StringComparison.OrdinalIgnoreCase) ? name[8..] : name;
+        return label.ToLowerInvariant() switch
+        {
+            "cron" => "UI Cron",
+            "system" => "Systen",
+            _ => label
+        };
     }
 
     private GXLogType? SelectedLogType => _logTypes.FirstOrDefault(t => t.PublicId.ToString() == _source);

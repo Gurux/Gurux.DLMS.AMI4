@@ -62,7 +62,7 @@
                     <br />
                 </div>
                 <fieldset disabled="@(!Settings.Enabled)">
-                    <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
+                    <NetworkSettings IsServer="true" PortValidationField="GatewaySettings.Port" @bind-Settings="@Settings.MediaSettings"
                                      @ref=networkSettings></NetworkSettings>
                     <div class="form-group">
                         <label>@Properties.Resources.TraceLevel</label>

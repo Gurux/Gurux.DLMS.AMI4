@@ -59,14 +59,7 @@
                     <input type="text" id="level" disabled="disabled"
                            value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
                 </div>
-                @if (!string.IsNullOrEmpty(_active.StackTrace))
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.StackTrace</label>
-                        <textarea id="Reply" @bind="_active.StackTrace" rows="10"
-                                  readonly="readonly" class="form-control" />
-                    </div>
-                }
+                <GXBrowserErrorLog Entry="@_active" />
                 @if (_active.User != null)
                 {
                     <div class="form-group">

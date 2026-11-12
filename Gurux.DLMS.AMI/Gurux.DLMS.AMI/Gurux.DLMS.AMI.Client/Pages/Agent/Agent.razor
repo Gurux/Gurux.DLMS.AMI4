@@ -213,21 +213,21 @@
             if (NotificationSettings.ExpirationTime < 0) {
                 Error(nameof(Active.NotifySettings), Properties.Resources.InvalidExpirationTime);
             }
-            Network(NotificationSettings.MediaType, NotificationSettings.MediaSettings, nameof(Active.NotifySettings));
+            Network(NotificationSettings.MediaType, NotificationSettings.MediaSettings, "NotifySettings.Port");
         }
         if (ListenerSettings?.Enabled == true)
         {
             if (ListenerSettings.ExpirationTime < 0) {
                 Error(nameof(Active.ListenerSettings), Properties.Resources.InvalidExpirationTime);
             }
-            Network(ListenerSettings.MediaType, ListenerSettings.MediaSettings, nameof(Active.ListenerSettings));
+            Network(ListenerSettings.MediaType, ListenerSettings.MediaSettings, "ListenerSettings.Port");
         }
         if (GatewaySettings?.Enabled == true)
         {
             if (GatewaySettings.ExpirationTime < 0) {
                 Error(nameof(Active.GatewaySettings), Properties.Resources.InvalidExpirationTime);
             }
-            Network(typeof(Gurux.Net.GXNet).FullName, GatewaySettings.MediaSettings, nameof(Active.GatewaySettings));
+            Network(typeof(Gurux.Net.GXNet).FullName, GatewaySettings.MediaSettings, "GatewaySettings.Port");
             if (GatewaySettings.Id == null && GatewaySettings.ScriptMethod == null) {
                 Error(nameof(Active.GatewaySettings), Properties.Resources.GatewayMustBeSelected);
             }

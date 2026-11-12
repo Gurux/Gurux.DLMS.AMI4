@@ -31,6 +31,7 @@
 @using Gurux.DLMS.AMI.Shared.DTOs.View
 @using Gurux.UI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
+@inject ILogger<GXViewColumnEditor> Logger
 @inject HttpClient Http
 @inject IServiceProvider Services
 
@@ -149,6 +150,7 @@
         }
         catch (Exception exception)
         {
+            Logger.LogError(exception, "{Message}", exception.Message);
             _error = exception.Message;
         }
         finally

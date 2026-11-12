@@ -46,6 +46,7 @@
 @inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
+@inject ILogger<ScriptGeneral> Logger
 @inject ILogger<ScriptGeneral> _logger;
 
 <GXHelpContext Topic="ScriptGeneral" />
@@ -241,6 +242,7 @@
             {
                 foreach (var error in errors)
                 {
+                    Logger.LogError("Script error: {Message}; line {Line}; ID {Id}", error.Message, error.Line, error.Id);
                     NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error,
                         error.Message, string.Empty, Closable: false));
                 }

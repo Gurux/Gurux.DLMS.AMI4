@@ -33,6 +33,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @attribute [Authorize(Roles = GXRoles.Admin)]
+@inject ILogger<CatalogUpdatePage> Logger
 @inject HttpClient Http
 @inject AuthenticationStateProvider Authentication
 @implements IDisposable
@@ -98,6 +99,7 @@
         catch (OperationCanceledException) when (request.IsCancellationRequested) { }
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
         {
+            Logger.LogError(error, "{Message}", error.Message);
             if (!request.IsCancellationRequested) {
                 _error = true;
             }

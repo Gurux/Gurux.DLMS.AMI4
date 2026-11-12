@@ -52,24 +52,10 @@
 @inject IServiceProvider Services
 
 <HeadContent>
-    @if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
-    {
-        <link rel="stylesheet" href="@CurrentTheme.CssFile" />
-    }
     <IconPackStyles Packs="@IconPacks" />
-    @if (CurrentTheme?.Styles?.Any() == true)
-    {
-        <style>
-            :root {
-                @foreach (var style
-                            in CurrentTheme.Styles)
-                {
-                    @GetStyle(style)
-                }
-            }
-        </style>
-    }
 </HeadContent>
+
+<AmiThemeProvider>
 
 <AmiHelpPanel />
 <AuthorizeView>
@@ -118,7 +104,7 @@
             <div class="top-row px-4 auth">
                 <LayoutNavigationMenus Location="MenuLocation.Top" />
                 <FavoriteTile />
-                <GXBreadcrumb Items="@GetDeviceObjectBreadcrumbs()" SegmentLabelMap="@_maps" HiddenSegments="@(new[] { "Edit", "Remove" })" class="me-auto" />
+                <AmiBreadcrumb Items="@GetDeviceObjectBreadcrumbs()" class="me-auto" />
                 <GXMenuBar MenuId="@GXEditorMenu.MenuId" ProtectedMenuIds="@ProtectedMenus"
                            PreserveCommandsOnNavigation="@GXTabRoutes.IsTabNavigation"
                            WarnOnUnsavedChanges="true"
@@ -212,6 +198,8 @@
 <ModuleViews Area="Gurux.DLMS.AMI.Module.Enums.AmiViewArea.Application"
              Display="Gurux.DLMS.AMI.Module.Enums.AmiViewDisplay.Append" />
 
+</AmiThemeProvider>
+
 @code {
     private string? _deviceBreadcrumbPath;
     private string? _deviceBreadcrumbName;
@@ -256,35 +244,10 @@
     private void OpenAbout() => _showAbout = true;
     private void CloseAbout() => _showAbout = false;
 
-    private string GetStyle(GXThemeStyle style)
-    {
-        string tmp;
-        if (style.Type == (byte)ThemeType.Color)
-        {
-            if (style.Name == "--bs-body-bg")
-            {
-                tmp = style.Name + ": " + style.Value + ";";
-            }
-            else
-            {
-                //Return color as RGB.
-                tmp = style.Name + "-rgb: " + ClientHelpers.HexToRgb(style.Value) + ";";
-            }
-        }
-        else
-        {
-            tmp = style.Name + ": " + style.Value + "";
-        }
-        return tmp;
-    }
-
     private readonly List<GXBlock> _blocks = new List<GXBlock>();
-    Dictionary<string, string> _maps = new Dictionary<string, string>();
     private LoginDisplay? LoginDisplay;
 
     private GXAmiNotifierService? Notifier = null;
-
-    private GXThemeInfo? CurrentTheme;
 
     private IEnumerable<string>? IconPacks;
 
@@ -328,7 +291,6 @@
         _initialResources = Services.GetService<GXResourceStorage>();
         if (_initialResources != null)
         {
-            _initialResources.OnThemeChanged += InitialThemeChanged;
             _initialResources.OnIconPacksChanged += InitialIconPacksChanged;
             _ = LoadInitialResourcesAsync(_initialResources);
         }
@@ -352,7 +314,6 @@
                         }
                         Notifier.OnPageChanged += () =>
                         {
-                            _maps.Clear();
                             //This must be in InvokeAsync, because event is called outside Blazor context.
                             InvokeAsync(StateHasChanged);
                         };
@@ -383,26 +344,6 @@
                                 Logger.LogError(ex.Message);
                                 //It's OK if this fails.
                             }
-                            _ = ResourceStorage.GetCurrentThemeAsync().ContinueWith(t =>
-                            {
-                                CurrentTheme = t.Result;
-                                if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
-                                {
-                                    Logger.LogDebug("Current theme:{0}", CurrentTheme.CssFile);
-                                }
-                                if (CurrentTheme?.Styles != null)
-                                {
-                                    foreach (var style in CurrentTheme.Styles)
-                                    {
-                                        Logger.LogDebug("Style: {0}", GetStyle(style));
-                                    }
-                                }
-                            });
-                            ResourceStorage.OnThemeChanged += (sender, theme) =>
-                            {
-                                CurrentTheme = theme;
-                                StateHasChanged();
-                            };
                             _ = ResourceStorage.GetCurrentIconPacksAsync().ContinueWith(t2 =>
                                 {
                                     if (IconPacks != null)
@@ -430,10 +371,6 @@
         if (_blockStorage != null)
         {
             _blockStorage.BlocksChanged -= BlocksChanged;
-        }
-        if (_initialResources != null)
-        {
-            _initialResources.OnThemeChanged -= InitialThemeChanged;
         }
         if (_initialResources != null)
         {
@@ -465,16 +402,6 @@
         });
     }
 
-    private void InitialThemeChanged(object? sender, GXThemeInfo theme) => _ = InvokeAsync(() =>
-    {
-        if (_initialDisposed)
-        {
-            return;
-        }
-        CurrentTheme = theme;
-        StateHasChanged();
-    });
-
     private void InitialIconPacksChanged(object? sender, IEnumerable<string>
     packs) => _ = InvokeAsync(() =>
     {
@@ -500,7 +427,6 @@
             }
 
             var initial = resources.InitializeAsync(names);
-            CurrentTheme = await resources.GetCurrentThemeAsync();
             IconPacks = await resources.GetCurrentIconPacksAsync();
             if (!_initialDisposed)
             {
@@ -513,7 +439,6 @@
                 return;
             }
 
-            CurrentTheme = await resources.GetCurrentThemeAsync();
             IconPacks = await resources.GetCurrentIconPacksAsync();
             await InvokeAsync(StateHasChanged);
         }

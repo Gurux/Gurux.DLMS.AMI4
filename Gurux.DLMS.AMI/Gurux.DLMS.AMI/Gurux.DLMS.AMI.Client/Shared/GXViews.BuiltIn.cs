@@ -38,7 +38,7 @@ public partial class GXViews
         "Block.BlockGroups", "Block.Blocks",
         "ComponentView.ComponentViewGroups", "ComponentView.ComponentViews",
         "Config.AgentInstallers", "Config.Authentications", "Config.ConfigurationList", "Config.DataExchange",
-        "Config.Language", "Config.Languages", "Config.Localization", "Config.PolicyList", "Config.RoleEditor",
+        "Config.Language", "Config.Languages", "Config.Localization", "Config.PolicyList", "Config.RoleEditor", "Config.RolePermissions",
         "Device.DeviceActions", "Device.DeviceGroups", "Device.DeviceLogs", "Device.Devices", "Device.DeviceTraces",
         "DeviceTemplate.AttributeTemplates", "DeviceTemplate.DeviceTemplateGroups", "DeviceTemplate.DeviceTemplates", "DeviceTemplate.ObjectTemplates", "DeviceTemplate.Profiles",
         "Gateway.GatewayGroups", "Gateway.GatewayLogs", "Gateway.Gateways",

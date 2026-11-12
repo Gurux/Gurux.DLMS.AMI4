@@ -27,6 +27,7 @@
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.Rendering;
 
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
@@ -35,6 +36,20 @@ public sealed class ModuleErrorBoundary : ErrorBoundary
     [Parameter] public string ModuleId { get; set; } = "";
     [Inject] public ModuleLoader Loader { get; set; } = default!;
     [Inject] public ILogger<ModuleErrorBoundary> Logger { get; set; } = default!;
+    protected override void BuildRenderTree(RenderTreeBuilder builder)
+    {
+        if (CurrentException == null || ErrorContent != null)
+        {
+            base.BuildRenderTree(builder);
+            return;
+        }
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "alert alert-danger");
+        builder.AddAttribute(2, "role", "alert");
+        builder.AddContent(3, CurrentException.Message);
+        builder.CloseElement();
+    }
+
     protected override Task OnErrorAsync(Exception exception)
     {
         Logger.LogError(exception, "Module {Id} UI failed and was disabled for this content version.", ModuleId);

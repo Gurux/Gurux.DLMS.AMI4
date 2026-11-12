@@ -53,14 +53,7 @@
                     <label>@Properties.Resources.Message</label>
                     <InputText id="name" disabled="disabled" @bind-Value="_active.Message" class="form-control" />
                 </div>
-                @if (!string.IsNullOrEmpty(_active.StackTrace))
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.StackTrace</label>
-                        <textarea id="Reply" @bind="_active.StackTrace" rows="10"
-                                  readonly="readonly" class="form-control" />
-                    </div>
-                }
+                <GXBrowserErrorLog Entry="@_active" />
                 <div class="form-group">
                     <label>@Properties.Resources.ErrorSeverityLevel</label>
                     <input type="text" id="level" disabled="disabled"

@@ -31,6 +31,7 @@
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using Gurux.DLMS.AMI.Shared.Rest
 @inject HttpClient Http
+@inject ILogger<GXErrorBoundary> Logger
 @inherits ErrorBoundary
 @if (CurrentException == null)
 {
@@ -43,7 +44,7 @@ else if (ErrorContent != null)
 else
 {
     <div class="alert alert-danger" role="alert">
-        @Gurux.DLMS.AMI.Client.Properties.Resources.AnUnhandledErrorHasOccurred
+        @CurrentException.Message
     </div>
 }
 
@@ -70,6 +71,7 @@ else
 
     protected override async Task OnErrorAsync(Exception exception)
     {
+        Logger.LogError(exception, "{Message}", exception.Message);
         try
         {
             GXLog ue = new GXLog(System.Diagnostics.TraceLevel.Error);
@@ -84,7 +86,6 @@ else
         {
             //It's OK if this fails.
         }
-        await base.OnErrorAsync(exception);
     }
 
     public new void Recover()

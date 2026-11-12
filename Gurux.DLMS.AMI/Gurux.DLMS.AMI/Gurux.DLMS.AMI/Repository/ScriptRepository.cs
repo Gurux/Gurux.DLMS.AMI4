@@ -454,6 +454,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool changed = script.SourceCode != saved.SourceCode || script.Namespaces != saved.Namespaces || script.Language != saved.Language;
             if (!changed)
             {
+                // Methods are server-owned metadata. Partial editor saves must not erase
+                // existing method IDs or the agent references that use them.
+                script.Methods = await connection.SelectAsync<GXScriptMethod>(
+                    GXSelectArgs.SelectAll<GXScriptMethod>(method => method.Script == saved));
+                if (script.Methods.Count == 0 || saved.ByteAssembly == null || saved.ByteAssembly.Length == 0)
+                {
+                    // Repair legacy scripts whose compiled method metadata is missing.
+                    return true;
+                }
                 //Use saved byte assembly if source code hasn't changed.
                 script.ByteAssembly = saved.ByteAssembly;
                 script.CompilationDependencies = GXScriptDependencyStorage.Read(connection, script.Id);

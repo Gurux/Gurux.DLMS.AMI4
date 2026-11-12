@@ -248,10 +248,12 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            ListScripts req = new ListScripts();
+            // The server grants this broader scope only to administrators; other users
+            // retain their script-group and policy restrictions.
+            ListScripts req = new ListScripts { AllUsers = true };
             var ret = await Http.PostAsJson<ListScriptsResponse>
                 ("api/Script/List", req);
-            scripts = ret.Scripts;
+            scripts = ret.Scripts?.Where(script => script.Removed == null);
         }
         catch (AccessTokenNotAvailableException exception)
         {

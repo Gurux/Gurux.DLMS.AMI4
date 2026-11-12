@@ -94,8 +94,9 @@ public partial class ChangeHistory : IDisposable
         }
         catch (OperationCanceledException) { throw; }
         catch (AccessTokenNotAvailableException error) { error.Redirect(); }
-        catch (Exception)
+        catch (Exception error)
         {
+            Logger.LogError(error, "{Message}", error.Message);
             _changesError = "Changes could not be loaded. Please try again.";
             if (!_disposed)
             {

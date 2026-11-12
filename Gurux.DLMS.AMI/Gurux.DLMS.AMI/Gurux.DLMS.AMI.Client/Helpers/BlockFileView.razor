@@ -27,6 +27,7 @@
 // --------------------------------------------------------------------------
 *@
 
+@inject ILogger<BlockFileView> Logger
 @inject HttpClient Http
 @implements IDisposable
 
@@ -72,8 +73,9 @@ else if (_content != null)
         catch (OperationCanceledException) when (request.IsCancellationRequested)
         {
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException error)
         {
+            Logger.LogError(error, "{Message}", error.Message);
             if (!request.IsCancellationRequested && BlockId == id)
             {
                 _error = true;

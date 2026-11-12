@@ -40,10 +40,10 @@ namespace Gurux.DLMS.AMI.Server.Controllers;
 /// <summary>Discovers navigation menus assigned to a layout region.</summary>
 [ApiController]
 [Route("api/Menu/Navigation")]
-[Authorize]
+[AllowAnonymous]
 public sealed class MenuNavigationController(IMenuRepository menus, IDbConnectionFactory database) : ControllerBase
 {
-    /// <summary>Returns placed menus and links filtered for the requesting user's groups and policies.</summary>
+    /// <summary>Returns placed menus and links filtered for the requesting user's resource and link policies.</summary>
     [HttpGet]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<ActionResult<IEnumerable<GetMenuResponse>>> Get(CancellationToken cancellationToken = default)

@@ -1,0 +1,94 @@
+@namespace Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.UI.Components
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@using Microsoft.Extensions.DependencyInjection
+@inject IServiceProvider Services
+@inject IGXThemeService Appearance
+@inject ILogger<AmiThemeProvider> Logger
+
+<GXThemeProvider>
+    <ChildContent>@ChildContent</ChildContent>
+    <ErrorContent Context="error">
+        <p role="alert">@error</p>
+    </ErrorContent>
+</GXThemeProvider>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private IGXResourceStorage? _resources;
+    private long _generation;
+    private bool _disposed;
+
+    protected override void OnInitialized()
+    {
+        // Static account pages do not register the browser resource storage.
+        _resources = Services.GetService<IGXResourceStorage>();
+        if (_resources != null)
+        {
+            _resources.OnThemeChanged += ThemeChanged;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _resources != null)
+        {
+            var generation = Interlocked.Read(ref _generation);
+            try
+            {
+                var theme = await _resources.GetCurrentThemeAsync();
+                await ApplyAsync(theme, generation);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Cannot load AMI appearance.");
+            }
+        }
+    }
+
+    private void ThemeChanged(object? sender, GXThemeInfo theme)
+    {
+        var generation = Interlocked.Increment(ref _generation);
+        _ = InvokeAsync(() => ApplyAsync(theme, generation));
+    }
+
+    private async Task ApplyAsync(GXThemeInfo? theme, long generation)
+    {
+        try
+        {
+            await Appearance.InitializeAsync();
+            if (_disposed || generation != Interlocked.Read(ref _generation))
+            {
+                return;
+            }
+            var definition = AmiThemeAdapter.Create(theme, Appearance);
+            if (definition == null)
+            {
+                await Appearance.SetThemeAsync("default");
+            }
+            else
+            {
+                if (definition.Id == AmiThemeAdapter.ThemeId)
+                {
+                    Appearance.RegisterTheme(definition);
+                }
+                await Appearance.SetThemeAsync(definition.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Cannot apply AMI appearance. Keeping the previous theme.");
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_resources != null)
+        {
+            _resources.OnThemeChanged -= ThemeChanged;
+        }
+    }
+}

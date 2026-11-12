@@ -65,14 +65,7 @@
                         <LogCreatorLabel Creator="@_active.Creator" Resource="Agent" Property="Name" class="form-control" />
                     </div>
                 }
-                @if (string.IsNullOrEmpty(_active.StackTrace))
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.StackTrace</label>
-                        <textarea id="stackTrace" value="@_active.StackTrace"
-                          rows="15" disabled="disabled" class="form-control" />
-                    </div>
-                }
+                <GXBrowserErrorLog Entry="@_active" />
                 @if (_active.CreationTime != null)
                 {
                     <div class="form-group">

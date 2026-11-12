@@ -129,10 +129,6 @@
                 {
                     <GXLocalizedText Value="@Properties.Resources.All" />
                 }
-                else if (AssignmentMode || !CanEditRole(it))
-                {
-                    @string.Join(", ", it.Permissions?.Select(p => p.Name) ?? Enumerable.Empty<string?>())
-                }
                 else
                 {
                     <GXAccordion Id="@($"role-permissions-{it.Id}")">
@@ -140,15 +136,11 @@
                             @string.Join(", ", it.Permissions?.Select(p => p.Name) ?? Enumerable.Empty<string?>())
                         </HeaderTemplate>
                         <ChildContent>
-                            @foreach (var permission in PermissionCatalog.Concat(it.Permissions ?? new List<GXPermission>()).DistinctBy(p => p.Name))
-                            {
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox"
-                                           checked="@(it.Permissions?.Any(p => string.Equals(p.Name, permission.Name, StringComparison.OrdinalIgnoreCase)) == true)"
-                                           @onchange="@(e => CheckPermission(it, permission, Convert.ToBoolean(e.Value)))" />
-                                    <label class="form-check-label">@permission.Name</label>
-                                </div>
-                            }
+                            <PermissionListEditor Catalog="PermissionCatalog"
+                                                  SelectedNames="@(it.Permissions?.Select(p => p.Name).OfType<string>() ?? Enumerable.Empty<string>())"
+                                                  Disabled="@(!CanEditRole(it))" ContextKey="@it.Id" ViewName="Config.RolePermissions"
+                                                  ViewPolicies="@(new List<string> { GXRolePolicies.View })"
+                                                  SelectionChanged="@(selection => CheckPermission(it, selection))" />
                         </ChildContent>
                     </GXAccordion>
                 }
@@ -325,8 +317,19 @@
     /// Check the permission.
     /// </summary>
     /// <param name="permission"></param>
-    private void CheckPermission(GXRole role, GXPermission permission, bool selected)
+    private async Task CheckPermission(GXRole role, PermissionListEditor.PermissionSelection selection)
     {
+        if (!CanEditRole(role) || IsAdmin(role))
+        {
+            return;
+        }
+        var permission = PermissionCatalog.Concat(role.Permissions ?? Enumerable.Empty<GXPermission>())
+            .FirstOrDefault(p => string.Equals(p.Name, selection.Name, StringComparison.OrdinalIgnoreCase));
+        if (permission == null)
+        {
+            return;
+        }
+        var selected = selection.Selected;
         role.Permissions ??= new List<GXPermission>();
         role.Permissions.RemoveAll(p => string.Equals(p.Name, permission.Name, StringComparison.OrdinalIgnoreCase));
         if (selected)
@@ -335,7 +338,7 @@
         }
         if (OnChanged.HasDelegate)
         {
-            _ = OnChanged.InvokeAsync(Roles);
+            await OnChanged.InvokeAsync(Roles);
         }
     }
     private ValueTask<ItemsProviderResult<GXRole>> GetItems(GXItemsProviderRequest request)

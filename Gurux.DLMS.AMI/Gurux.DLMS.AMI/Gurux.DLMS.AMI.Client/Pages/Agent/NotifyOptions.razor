@@ -61,7 +61,7 @@
                 <fieldset disabled="@(!Settings.Enabled)">
                     @if (!IsSerialPort())
                     {
-                        <NetworkSettings IsServer="true" Disabled="@(!Settings.Enabled)"
+                        <NetworkSettings IsServer="true" PortValidationField="NotifySettings.Port" Disabled="@(!Settings.Enabled)"
                                          @bind-Settings="@Settings.MediaSettings"
                                          @ref=networkSettings></NetworkSettings>
                     }

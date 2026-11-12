@@ -147,6 +147,7 @@ namespace Gurux.DLMS.AMI
                 .AddInteractiveWebAssemblyComponents()
                 .AddAuthenticationStateSerialization();
 
+            builder.Services.AddAmiAppearance();
             builder.Services.AddScoped<ModuleLoader>();
             builder.Services.AddScoped<GXConfirmationService>();
             builder.Services.AddScoped<IGXAmiConfirmation>(sp => sp.GetRequiredService<GXConfirmationService>());

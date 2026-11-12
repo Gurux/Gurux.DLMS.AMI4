@@ -27,6 +27,8 @@
 // --------------------------------------------------------------------------
 *@
 
+@implements IDisposable
+
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.UI.Components.Accordion
 @using Microsoft.AspNetCore.Authorization
@@ -41,7 +43,7 @@
 
 <GXHelpContext Topic="NetworkSettings" />
 
-<GXAccordion Id="content-type-authoring">
+<GXAccordion @key="_validationExpansionVersion" Expand="@_validationExpanded" Id="content-type-authoring">
     <HeaderTemplate>
         <div>
             <h6><b>@Properties.Resources.Network</b></h6>
@@ -71,6 +73,13 @@
             <GXInputNumber RememberValue="false" id="port" class="form-control"
                          @bind-Value="Port" Min="@GXNumberBounds.Minimum(Port)" Max="@GXNumberBounds.Maximum(Port)" />
             <ValidationMessage For="@(() => Port)" />
+            @if (EditContext != null && PortValidationField != null)
+            {
+                @foreach (string message in EditContext.GetValidationMessages(EditContext.Field(PortValidationField)))
+                {
+                    <div class="validation-message">@message</div>
+                }
+            }
         </div>
     </ChildContent>
 </GXAccordion>
@@ -81,6 +90,34 @@
     private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
 
     private string? _settings;
+    private EditContext? _subscribedContext;
+    private bool _validationExpanded;
+    private int _validationExpansionVersion;
+
+    [CascadingParameter]
+    public EditContext? EditContext { get; set; }
+
+    [Parameter]
+    public string? PortValidationField { get; set; }
+
+    private void OnValidationStateChanged(object? sender, ValidationStateChangedEventArgs args)
+    {
+        if (EditContext != null && PortValidationField != null &&
+            EditContext.GetValidationMessages(EditContext.Field(PortValidationField)).Any())
+        {
+            _validationExpanded = true;
+            ++_validationExpansionVersion;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_subscribedContext != null)
+        {
+            _subscribedContext.OnValidationStateChanged -= OnValidationStateChanged;
+        }
+    }
 
     /// <summary>
     /// Host name is hidden if only server settings are shown.
@@ -160,6 +197,16 @@
     /// </summary>
     protected override void OnParametersSet()
     {
+        if (_subscribedContext != EditContext)
+        {
+            Dispose();
+            _subscribedContext = EditContext;
+            if (_subscribedContext != null)
+            {
+                _subscribedContext.OnValidationStateChanged += OnValidationStateChanged;
+                OnValidationStateChanged(this, new ValidationStateChangedEventArgs());
+            }
+        }
         if (_settings == Settings)
         {
             return;

@@ -34,6 +34,7 @@ public static class GXResourceStorageRegistration
 {
     public static IServiceCollection AddAmiResourceStorage(this IServiceCollection services)
     {
+        services.AddAmiAppearance();
         services.AddScoped<GXResourceStorage>();
         services.AddScoped<GXPolicyNameCache>();
         services.AddScoped<IGXPolicyNameProvider>(sp => sp.GetRequiredService<GXPolicyNameCache>());

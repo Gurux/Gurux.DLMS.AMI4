@@ -91,12 +91,6 @@ public partial class GXResourceStorage
 
     private async Task<string> LoadNavigationMenusAsync()
     {
-        var authentication = _menuAuthenticationProvider?.GetAuthenticationStateAsync();
-        if (authentication == null || (await authentication).User.Identity?.IsAuthenticated != true)
-        {
-            return "[]";
-        }
-
         using var scope = _serviceProvider.CreateScope();
         return await scope.ServiceProvider.GetRequiredService<HttpClient>().GetStringAsync("api/Menu/Navigation");
     }
