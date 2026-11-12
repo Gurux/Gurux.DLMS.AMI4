@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="Gurux.DLMS.AMI.Module.Tests.csproj" />
-  <Project Path="../../Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/ModuleRuntime.Tests/ModuleRuntime.Tests.csproj" />
-  <Project Path="../../Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/Testing/Health.Tests/Health.Tests.csproj" />
-</Solution>

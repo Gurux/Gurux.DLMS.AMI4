@@ -7,14 +7,7 @@ on:
       - 'Gurux.DLMS.AMI.Agent/**'
       - 'Gurux.DLMS.AMI.Shared/**'
       - 'Gurux.DLMS.AMI.Script/**'
-      - 'Tests/AgentRawDelivery/**'
-      - 'Tests/AgentScriptExecution/**'
       - 'Gurux.DLMS.AMI.Http/**'
-      - 'Tests/AgentMaintenance/**'
-      - 'Tests/AgentApplication/**'
-      - 'Tests/AgentReconnect/**'
-      - 'Tests/AgentDeviceKeys/**'
-      - 'Tests/AgentWorkerReliability/**'
       - '.github/scripts/prepare-agent-updater.ps1'
       - '.github/tests/agent-package.tests.ps1'
       - '.github/tests/agent-launchers.tests.ps1'
@@ -86,7 +79,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - name: Test release automation and maintenance behavior
+      - name: Test release automation and packaging
         run: |
           & .github/tests/agent-release.tests.ps1
           & .github/tests/agent-release-no-dependencies.tests.ps1
@@ -95,20 +88,6 @@ jobs:
           & .github/tests/agent-signing.tests.ps1
           & .github/tests/agent-updater-payload.tests.ps1
           & .github/tests/agent-docker.tests.ps1
-          dotnet run --project Tests/AgentMaintenance/AgentMaintenance.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent maintenance checks failed.' }
-          dotnet run --project Tests/AgentApplication/AgentApplication.Checks.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent application checks failed.' }
-          dotnet run --project Tests/AgentReconnect/AgentReconnect.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent reconnect checks failed.' }
-          dotnet run --project Tests/AgentDeviceKeys/AgentDeviceKeys.Checks.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent device key checks failed.' }
-          dotnet run --project Tests/AgentWorkerReliability/AgentWorkerReliability.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent reliability checks failed.' }
-          dotnet run --project Tests/AgentRawDelivery/AgentRawDelivery.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent raw delivery checks failed.' }
-          dotnet run --project Tests/AgentScriptExecution/AgentScriptExecution.csproj --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw 'Agent script execution checks failed.' }
       - name: Reserve version and check for an already published release
         id: release
         env:

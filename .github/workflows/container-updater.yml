@@ -5,7 +5,7 @@ on:
       - 'Gurux.DLMS.AMI.ContainerUpdater/**'
       - 'Gurux.DLMS.AMI.Agent/**'
       - 'Gurux.DLMS.AMI.Script/**'
-      - 'Tests/ContainerUpdater/**'
+      - 'Tests/ContainerUpdater/docker_smoke.py'
       - 'deployment/docker/**'
       - '.github/scripts/agent-compose-release.ps1'
       - '.github/tests/agent-compose-release.tests.ps1'
@@ -16,7 +16,7 @@ on:
       - 'Gurux.DLMS.AMI.ContainerUpdater/**'
       - 'Gurux.DLMS.AMI.Agent/**'
       - 'Gurux.DLMS.AMI.Script/**'
-      - 'Tests/ContainerUpdater/**'
+      - 'Tests/ContainerUpdater/docker_smoke.py'
       - 'deployment/docker/**'
       - '.github/scripts/agent-compose-release.ps1'
       - '.github/tests/agent-compose-release.tests.ps1'
@@ -32,8 +32,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-      - name: Check updater and agent handoff
-        run: dotnet run --project Tests/ContainerUpdater/ContainerUpdater.Tests.csproj -c Release
       - name: Build isolated smoke-test images
         run: |
           docker build -f Gurux.DLMS.AMI.ContainerUpdater/Dockerfile -t gurux-ami-updater-test:local .

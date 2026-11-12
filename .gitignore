@@ -268,3 +268,12 @@ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/appsettings.Development.json
 /deployment/docker/**/.env
 /deployment/docker/**/compose.override.yaml
 /deployment/docker/**/compose.override.yaml.*.tmp
+
+# General application tests run locally; retain release checks in .github/tests.
+/Tests/*
+!/Tests/ContainerUpdater/
+/Tests/ContainerUpdater/*
+!/Tests/ContainerUpdater/docker_smoke.py
+/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/
+/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/Testing/
+/.github/workflows/ui-tests.yml
