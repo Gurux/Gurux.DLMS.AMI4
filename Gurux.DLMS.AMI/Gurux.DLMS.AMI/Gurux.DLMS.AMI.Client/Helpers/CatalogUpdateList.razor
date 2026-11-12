@@ -61,7 +61,13 @@
                     {
                         <a class="catalog-update-card" href="@DetailsUrl(item)">
                             <span class="catalog-update-icon" aria-hidden="true"><CatalogUpdateIcon Entry="item" /></span>
-                            <span class="catalog-card-name" title="@item.Name">@item.Name</span>
+                            <span class="catalog-card-details">
+                                <span class="catalog-card-name" title="@item.Name">@item.Name</span>
+                                @if (item.PublishedAt is { } published)
+                                {
+                                    <time class="catalog-card-published" datetime="@published.ToString("O")">@published.ToLocalTime().ToString("g")</time>
+                                }
+                            </span>
                             <span class="catalog-updated-badge">@Properties.Resources.Updated</span>
                         </a>
                         <WalkthroughHideButton Title="@item.Name" Disabled="@_saving" OnHide="() => HideAsync(item)" />

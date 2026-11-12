@@ -71,7 +71,9 @@ SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 }
 .catalog-update-card:hover { border-color: var(--bs-primary, #2787a8); }
 .catalog-update-card:focus-visible { outline: 2px solid var(--bs-primary, #2787a8); outline-offset: 3px; }
+.catalog-card-details { display: flex; flex-direction: column; min-width: 0; }
 .catalog-card-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.catalog-card-published { color: var(--bs-secondary-color, #666); font-size: .75rem; }
 .catalog-updated-badge { flex-shrink: 0; padding: .15rem .3rem; border-radius: .2rem; background: #287b96; color: #fff; font-size: .75rem; }
 .catalog-update-list--cards .catalog-update-icon { flex-basis: 1.35rem; width: 1.35rem; height: 1.35rem; }
 .catalog-update-list--cards .catalog-update-icon ::deep img,

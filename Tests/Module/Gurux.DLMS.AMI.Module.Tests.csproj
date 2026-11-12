@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><DefaultItemExcludes>$(DefaultItemExcludes);Support/**;Compatibility/**;Help/**</DefaultItemExcludes><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" /><PackageReference Include="MSTest.TestFramework" Version="4.5.2" /><PackageReference Include="MSTest.TestAdapter" Version="4.5.2" /></ItemGroup>
-  <ItemGroup><PackageReference Include="Gurux.DLMS.AMI.Module" Version="5.0.2611.902" /></ItemGroup>
+  <ItemGroup><PackageReference Include="Gurux.DLMS.AMI.Module" Version="5.0.2611.1101" /></ItemGroup>
   <ItemGroup><ProjectReference Include="Support/Gurux.DLMS.AMI.Module.Testing.csproj" /></ItemGroup>
   <Target Name="BuildPublishedContractFixture" BeforeTargets="CoreCompile">
     <MSBuild Projects="$(MSBuildProjectDirectory)/Compatibility/LegacyModule/LegacyModule.csproj"
