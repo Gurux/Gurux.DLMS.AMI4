@@ -197,6 +197,7 @@ public sealed class GXScriptCatalogService(GXScriptCatalogStore catalog, IDbConn
 
         var candidate = script ?? new GXScript(request.Name ?? (manifest.Id.Length <= 64 ? manifest.Id : manifest.Id[..64])) {
             Id = localId, Creator = new GXUser { Id = ServerHelpers.GetUserId(User) }, Enabled = false,
+            Description = manifest.Description,
             CreationTime = DateTimeOffset.UtcNow, Language = ScriptLanguage.CSharp
         };
         if (string.IsNullOrWhiteSpace(candidate.Name) || candidate.Name.Length > 64)

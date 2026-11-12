@@ -58,7 +58,8 @@
     <ChildContent>
         <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" Policy="@GXDeviceTemplatePolicies.Add" />
         <GXMenuEntry Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"
-                  Policy="@GXDeviceTemplatePolicies.Delete" />
+                     Policy="@GXDeviceTemplatePolicies.Delete" />
+        <GXMenuEntry Text="@Properties.Resources.PublishToCommunity" Id="publish-community" OnClick="@OnPublishCommunity" Policy="@GXDeviceTemplatePolicies.Add" />
     </ChildContent>
 </GXMenuControl>
 
@@ -107,16 +108,18 @@
     </FilterContent>
     <MenuContent>
         <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="@OnEdit"
-                         Policy="@GXDeviceTemplatePolicies.Edit"></GXContextMenuItem>
+                           Policy="@GXDeviceTemplatePolicies.Edit"></GXContextMenuItem>
         <GXContextMenuItem Text="@Properties.Resources.Remove" Id="remove" OnClick="@OnRemove"
-                         Policy="@GXDeviceTemplatePolicies.Delete"></GXContextMenuItem>
+                           Policy="@GXDeviceTemplatePolicies.Delete"></GXContextMenuItem>
+        <GXContextMenuItem Text="@Properties.Resources.PublishToCommunity" Id="publish-community" OnClick="@OnPublishCommunity" Policy="@GXDeviceTemplatePolicies.Add" />
     </MenuContent>
     <HeaderContent>
         <GXTh Id="Manufacturer" TItem="GXDeviceTemplate">@Properties.Resources.Manufacturer</GXTh>
         <GXTh Id="Model" TItem="GXDeviceTemplate">@Properties.Resources.Model</GXTh>
         <GXTh Id="Version" TItem="GXDeviceTemplate">@Properties.Resources.Version</GXTh>
         <GXTh Name="Name" Target="@template">@Properties.Resources.Name</GXTh>
-        <GXTh Name="CreationTime" Target="@template" SortMode="SortMode.Descending">@Properties.Resources.CreationTime
+        <GXTh Name="CreationTime" Target="@template" SortMode="SortMode.Descending">
+            @Properties.Resources.CreationTime
         </GXTh>
         <GXTh Name="Updated" Target="@template">@Properties.Resources.Updated</GXTh>
     </HeaderContent>
@@ -124,13 +127,16 @@
         <GXTd Id="Manufacturer">@template.Manufacturer?.Name</GXTd>
         <GXTd Id="Model">@template.Manufacturer?.Models?.FirstOrDefault()?.Name</GXTd>
         <GXTd Id="Version">@GetVersionName(template)</GXTd>
-        <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath("/DeviceTemplate/Edit/" + template.Id)">@template.Name
+        <GXTd Id="Name" Link="@NavigationManager.GetCurrentPagePath("/DeviceTemplate/Edit/" + template.Id)">
+            @template.Name
         </GXTd>
         <GXTd Id="CreationTime">@ResourceStorage.DateTimeOffsetToString(template.CreationTime)</GXTd>
         <GXTd Id="Updated">@ResourceStorage.DateTimeOffsetToString(template.Updated)</GXTd>
     </ItemContent>
 </GXViewTable>
 <br />
+
+<DeviceTemplateCommunityDialog @ref="communityDialog" />
 
 @code {
     private static readonly GXViewColumn[] ViewColumnDefaults =
@@ -242,6 +248,9 @@
             return table?.Active;
         }
     }
+
+    private bool publishingCommunity;
+    private DeviceTemplateCommunityDialog? communityDialog;
 
     /// <summary>
     /// Table reference.
@@ -456,6 +465,45 @@
                 NotificationService?.ReportError(ex);
             }
         }
+    }
+
+    /// <summary>Confirms anonymous publication of one saved device template before sending it for review.</summary>
+    public async Task OnPublishCommunity()
+    {
+        if (publishingCommunity) { return; }
+        publishingCommunity = true;
+        const string key = "Pages/DeviceTemplate/PublishCommunity";
+        try
+        {
+            NotificationService?.RemoveByKey(key);
+            var selected = table?.SingleOrDefault().ToArray() ?? [];
+            if (selected.Length != 1)
+            {
+                throw new InvalidOperationException(selected.Length == 0 ? Properties.Resources.NoItemIsSelected : Properties.Resources.SelectOneDeviceTemplate);
+            }
+            // Capture the selected template before asking for public metadata.
+            var template = selected[0];
+            var request = await (communityDialog ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget)).ShowAsync(template);
+            if (request == null)
+            {
+                return;
+            }
+            var result = await Confirmation.ConfirmAsync(Properties.Resources.PublishToCommunity, Properties.Resources.PublishDeviceTemplateCommunityConfirmation,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.PublishToCommunity, Items = [template.Name] });
+            if (!result.Confirm) { return; }
+            using var progress = Progress?.ProgressStart(Properties.Resources.PublishToCommunity);
+            request.AcceptPublication = true;
+            await Services.GetRequiredService<GXScriptCommunityNotifications>().PublishDeviceTemplateAsync(request);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            NotificationService?.ReportError(ex, key, NotificationScope.Global);
+        }
+        finally { publishingCommunity = false; }
     }
 
     public void Dispose()

@@ -36,6 +36,11 @@
 @inject NavigationManager Navigation
 @inject IServiceProvider Services
 
+@if (Modules)
+{
+    <ModulePendingUpdatesPanel @ref="pendingUpdatesPanel" OnApplied="OnUpdated" />
+}
+
 <GXViewTable ViewName="Admin.UpdateTable" ViewColumns="ViewColumnDefaults" TItem="GXAvailableUpdate" @ref="_table" Context="item" ItemsProvider="GetItems"
          Menu="false"
          ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
@@ -81,6 +86,7 @@
     private readonly Dictionary<string, Guid> _selected = new();
     private bool _versionsLoaded;
     private bool _updating;
+    private ModulePendingUpdatesPanel? pendingUpdatesPanel;
 
     private void SelectVersion(string id, object? value)
     {
@@ -108,8 +114,12 @@
         
             using var progress = Services.GetService<IGXProgress>()?.ProgressStart(Gurux.DLMS.AMI.Client.Properties.Resources.UpdatingModule);
             var result = await Http.PostAsJson<InstallModuleResponse>("api/Module/Install", new InstallModule { Module = new GXModule(module.Id), VersionId = version });
-            notifications?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Success, result.Restart ? Properties.Resources.ModuleUpdatedRestartTheServerToApplyTheChange : Properties.Resources.ModuleUpdated, "", "Updates.Module"));
+            notifications?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Success, result.Restart ? Properties.Resources.ModuleUpdatePrepared : Properties.Resources.ModuleUpdated, "", "Updates.Module"));
             await OnUpdated.InvokeAsync();
+            if (pendingUpdatesPanel != null)
+            {
+                await pendingUpdatesPanel.RefreshAsync();
+            }
         }
         catch (Exception error)
         {

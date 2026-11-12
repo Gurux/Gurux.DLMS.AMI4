@@ -45,7 +45,7 @@ internal sealed class GXConfigurationRefresh : IDisposable
     public async Task RefreshAsync(HttpClient http, IEnumerable<GXTarget> updates, string name,
         Action<GXConfiguration> apply, Func<bool> canApply, IGXNotificationService? notifications = null)
     {
-        var update = updates.LastOrDefault(it => it.Type == GXConfigurationPolicies.Edit && it.Name == name);
+        var update = updates.LastOrDefault(it => (it.Type == GXConfigurationPolicies.Edit || it.Type == GXCatalogNotifications.ConfigurationChecked) && it.Name == name);
         if (_disposed || update == null || string.IsNullOrEmpty(update.Id) || !canApply())
         {
             return;

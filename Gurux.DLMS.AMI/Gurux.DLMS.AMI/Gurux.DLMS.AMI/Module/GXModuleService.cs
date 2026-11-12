@@ -62,13 +62,14 @@ internal sealed partial class GXModuleService : IGXModuleService, IDisposable
     private readonly ConcurrentDictionary<string, string> announced = new(StringComparer.OrdinalIgnoreCase);
 
     public GXModuleService(IDbConnectionFactory dbFactory, GXModuleRuntime runtime, IHostEnvironment environment,
-        ILogger<GXModuleService> logger, NotificationCache notifications, GXDevelopmentModuleResolver? development = null)
+        ILogger<GXModuleService> logger, NotificationCache notifications, GXDevelopmentModuleResolver? development = null, GXModulePendingUpdates? pendingUpdates = null)
     {
         this.dbFactory = dbFactory;
         this.runtime = runtime;
         this.logger = logger;
         this.notifications = notifications;
         this.development = development;
+        this.pendingUpdates = pendingUpdates ?? new GXModulePendingUpdates(environment);
         isDevelopment = environment.IsDevelopment();
         modulesRoot = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "Modules"));
         runtime.Changed += OnChanged;
@@ -82,7 +83,7 @@ internal sealed partial class GXModuleService : IGXModuleService, IDisposable
     public Task ExecuteAsync(GXModule module, string? settings, CancellationToken cancellationToken = default)
         => runtime.ExecuteAsync(module.Id, settings, cancellationToken);
 
-    public async Task StartConfiguredModulesAsync(CancellationToken cancellationToken = default)
+    private async Task StartConfiguredModulesCoreAsync(CancellationToken cancellationToken, bool retryFailed = false)
     {
         var dev = development == null ? [] : await CollectDevelopmentCandidatesAsync(cancellationToken);
         var installed = new Dictionary<string, GXModule>(StringComparer.OrdinalIgnoreCase);
@@ -115,7 +116,7 @@ internal sealed partial class GXModuleService : IGXModuleService, IDisposable
             var storedModules = await connection.SelectAsync<GXModule>(storedArgs, cancellationToken);
             foreach (var stored in storedModules)
             {
-                if (runtime.GetManifest(stored.Id)?.State == AmiModuleState.Failed)
+                if (!retryFailed && runtime.GetManifest(stored.Id)?.State == AmiModuleState.Failed)
                 {
                     continue;
                 }
@@ -270,6 +271,11 @@ internal sealed partial class GXModuleService : IGXModuleService, IDisposable
                         loadContext.Unload();
                         return ValueTask.CompletedTask;
                     }, cancellationToken,
+                    beforeStart: applyingUpdates?.Packages.FirstOrDefault(item => item.Id == stored.Id)?.Previous is { } predecessor
+                        ? (context, ct) => GXModuleInstallPlanner.IsInstalled(new GXModule(stored.Id) { Status = predecessor.Status, FileName = predecessor.FileName })
+                            ? instance.UpdateAsync(context, predecessor.Version ?? "0", ct)
+                            : instance.InstallAsync(context, ct)
+                        : null,
                     beforePublish: ct =>
                     {
                         ct.ThrowIfCancellationRequested();
@@ -566,9 +572,12 @@ internal sealed partial class GXModuleService : IGXModuleService, IDisposable
                     start: false, uninstallOptions: uninstallOptions);
             }
             // Development directories belong to the developer and are never deleted.
-            if (string.IsNullOrEmpty(stored.Path))
+            var preparedPrefix = ManagedPath(stored.Id, (stored.Version ?? "0") + ".prepared-");
+            bool preparedPackage = stored.Path != null && Path.GetFullPath(stored.Path).StartsWith(preparedPrefix,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+            if (string.IsNullOrEmpty(stored.Path) || preparedPackage)
             {
-                string directory = ManagedPath(stored.Id, stored.Version ?? "0");
+                string directory = preparedPackage ? Path.GetFullPath(stored.Path!) : ManagedPath(stored.Id, stored.Version ?? "0");
                 if (Directory.Exists(directory))
                 {
                     DeleteManagedDirectory(directory);
@@ -623,6 +632,17 @@ internal sealed partial class GXModuleService : IGXModuleService, IDisposable
                 throw new InvalidOperationException($"The downloaded package does not match the requested module. Expected '{expectedId}', package declares '{selected.Module.Id}'.");
             }
 
+            await using (var connection = await dbFactory.GetConnectionAsync(cancellationToken))
+            {
+                var current = await AmiModuleSettingsStorage.ReadModuleAsync(connection, selected.Module.Id, cancellationToken);
+                if (user != null && current != null && GXModuleInstallPlanner.IsInstalled(current))
+                {
+                    await QueueModuleUpdatesAsync([new(selected.Module.Id,
+                        GXModuleDependencyValidator.ReadCompatibilityVersion(selected.Module.GetType().Assembly), compressedFile,
+                        current.ReleaseVersion ?? current.Version, current.Name)], cancellationToken);
+                    return [current];
+                }
+            }
             return [await InstallCandidateAsync(user, selected.File, temporary, true, cancellationToken)];
         }
         finally

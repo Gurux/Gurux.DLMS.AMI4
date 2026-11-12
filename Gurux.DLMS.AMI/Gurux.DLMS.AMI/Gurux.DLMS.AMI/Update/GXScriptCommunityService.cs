@@ -16,6 +16,8 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
 {
     /// <summary>Manages durable community submissions.</summary>
     public const string RemoteBase = "https://ami.gurux.fi/api/modules/Gurux.AMI.ScriptManagement/";
+    /// <summary>Anonymous device profile receiver owned by the DeviceProfiles module.</summary>
+    public const string DeviceProfilesBase = "https://ami.gurux.fi/api/modules/Gurux.DLMS.AMI.DeviceProfiles/";
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private readonly IDataProtector protector = protection.CreateProtector("Gurux.AMI.ScriptCommunity.v1");
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -49,11 +51,12 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
                 throw new ArgumentException("Community templates do not carry additional namespace settings. Use fully qualified type names before publishing.");
             }
         }
-        var hash = Convert.ToHexString(SHA256.HashData(bytes));
+        // Include the publication license so an older GPL receipt cannot suppress a CC0 submission.
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("CC0-1.0\0" + script.SourceCode)));
         await Gate.WaitAsync(token);
         try
         {
-            var existing = (await store.ReadAsync(token)).FirstOrDefault(row => row.OwnerId == owner && row.ScriptId == id && row.SourceHash == hash);
+            var existing = (await store.ReadAsync(token)).FirstOrDefault(row => row.OwnerId == owner && row.ContentType != "DeviceTemplate" && row.ScriptId == id && row.SourceHash == hash);
             if (existing != null && existing.Status != "Failed")
             {
                 return existing.ToResponse();
@@ -82,7 +85,7 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
             {
                 scriptId = identifier, fileName, source = script.SourceCode,
                 description = string.IsNullOrWhiteSpace(script.Description) ? script.Name : script.Description,
-                author = "Anonymous", license = "GPL-2.0-only", amiVersionRange = "[4.1,5.0)", baseVersion = script.CatalogVersion
+                author = "Anonymous", license = "CC0-1.0", amiVersionRange = "[4.1,5.0)", baseVersion = script.CatalogVersion
             }, Json);
             var row = existing ?? new GXScriptCommunityRecord
             {
@@ -98,6 +101,45 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
             row.FailureMessage = null;
             await store.SaveAsync(row, existing == null, token);
             await RefreshOneAsync(row, token, request);
+            return row.ToResponse();
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
+    /// <summary>Exports authorized saved metadata and submits an anonymous CC0 device profile.</summary>
+    public async Task<GXScriptCommunitySubmission> PublishDeviceTemplateAsync(string owner, GXPublishCommunityDeviceTemplate request, CancellationToken token)
+    {
+        var repository = services.GetRequiredService<IDeviceTemplateRepository>();
+        var template = await repository.ReadAsync(request.Id, null, token);
+        var payload = GXDeviceTemplateCommunityExport.Create(template, request);
+        var body = JsonSerializer.Serialize(payload, Json);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body)));
+        await Gate.WaitAsync(token);
+        try
+        {
+            var existing = (await store.ReadAsync(token)).FirstOrDefault(row => row.OwnerId == owner &&
+                row.ContentType == "DeviceTemplate" && row.ScriptId == request.Id && row.SourceHash == hash);
+            if (existing != null && existing.Status != "Failed")
+            {
+                return existing.ToResponse();
+            }
+            var name = template.Name ?? request.Model;
+            var row = existing ?? new GXScriptCommunityRecord
+            {
+                Id = Guid.NewGuid(), OwnerId = owner, ScriptId = request.Id, SourceHash = hash,
+                ScriptName = name[..Math.Min(name.Length, 200)], ContentType = "DeviceTemplate", Created = DateTimeOffset.UtcNow
+            };
+            row.RemoteId = Guid.Empty;
+            row.ProtectedToken = null;
+            row.Version = null;
+            row.Status = "Publishing";
+            row.Acknowledged = false;
+            row.FailureMessage = null;
+            await store.SaveAsync(row, existing == null, token);
+            await RefreshOneAsync(row, token, body);
             return row.ToResponse();
         }
         finally
@@ -157,9 +199,10 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         try
         {
             using var client = clients.CreateClient("ScriptCommunity");
+            var remoteBase = row.ContentType == "DeviceTemplate" ? DeviceProfilesBase : RemoteBase;
             if (row.RemoteId == Guid.Empty)
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, RemoteBase + "submissions")
+                using var request = new HttpRequestMessage(HttpMethod.Post, remoteBase + "submissions")
                 {
                     Content = new StringContent(sourceRequest ?? throw new InvalidOperationException("Explicit publication is required."), Encoding.UTF8, "application/json")
                 };
@@ -174,7 +217,7 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
             }
             else
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, RemoteBase + "submission-status")
+                using var request = new HttpRequestMessage(HttpMethod.Post, remoteBase + "submission-status")
                 {
                     Content = JsonContent.Create(new { id = row.RemoteId, trackingToken = protector.Unprotect(row.ProtectedToken!) })
                 };
@@ -205,6 +248,10 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
                 error is HttpRequestException { StatusCode: System.Net.HttpStatusCode.NotFound })
             {
                 row.Status = "Failed";
+                if (error is CommunityProfileAlreadyExistsException)
+                {
+                    row.FailureMessage = "An identical device template already exists in the community repository.";
+                }
                 if (row.RemoteId != Guid.Empty)
                 {
                     row.FailureMessage = error is CryptographicException
@@ -223,8 +270,28 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         timeout.CancelAfter(TimeSpan.FromSeconds(20));
         token = timeout.Token;
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict &&
+            request.RequestUri?.AbsoluteUri.StartsWith(DeviceProfilesBase, StringComparison.Ordinal) == true)
+        {
+            await response.Content.LoadIntoBufferAsync(16 * 1024, token);
+            try
+            {
+                using var failure = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
+                if (failure.RootElement.ValueKind == JsonValueKind.Object && failure.RootElement.TryGetProperty("code", out var code) &&
+                    code.ValueKind == JsonValueKind.String && code.GetString() == "profile_already_exists")
+                {
+                    throw new CommunityProfileAlreadyExistsException();
+                }
+            }
+            catch (JsonException)
+            {
+                // Unknown remote errors retain the generic receipt failure; their text is never exposed.
+            }
+        }
         response.EnsureSuccessStatusCode();
         await response.Content.LoadIntoBufferAsync(16 * 1024, token);
         return await response.Content.ReadFromJsonAsync<T>(Json, token) ?? throw new InvalidDataException("Empty community response.");
     }
+    private sealed class CommunityProfileAlreadyExistsException : Exception;
+
 }

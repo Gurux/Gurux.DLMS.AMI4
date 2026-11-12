@@ -233,8 +233,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await Request.Body.CopyToAsync(ms, cancellationToken);
                 // Save the file
                 System.IO.File.WriteAllBytes(zip, ms.ToArray());
+                var authorization = HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+                if (!(await authorization.AuthorizeAsync(User, GXModulePolicies.Edit)).Succeeded)
+                {
+                    var candidate = GXModuleService.InspectPackage(zip, null, cancellationToken);
+                    await using var connection = await HttpContext.RequestServices.GetRequiredService<IDbConnectionFactory>().GetConnectionAsync(cancellationToken);
+                    var previous = await Gurux.DLMS.AMI.Server.Module.AmiModuleSettingsStorage.ReadModuleAsync(connection, candidate.Id, cancellationToken);
+                    if (previous != null && Gurux.DLMS.AMI.Server.Module.GXModuleInstallPlanner.IsInstalled(previous))
+                    {
+                        return Forbid();
+                    }
+                }
                 List<GXModule> modules = await _moduleService.AddModuleAsync(User, zip, cancellationToken);
                 res.Modules = [.. modules];
+                var pending = await HttpContext.RequestServices.GetRequiredService<Gurux.DLMS.AMI.Server.Module.GXModulePendingUpdates>().ReadAsync(cancellationToken);
+                res.Restart = pending?.State == "PendingRestart" && res.Modules.Any(module => pending.Packages.Any(package => package.Id == module.Id));
                 return res;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -321,8 +334,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 ], token));
             try
             {
-                await installer.InstallAsync(User, request.Module.Id, request.VersionId, cancellationToken);
-                return new InstallModuleResponse();
+                bool restart = await installer.InstallAsync(User, request.Module.Id, request.VersionId, cancellationToken);
+                return new InstallModuleResponse { Restart = restart };
             }
             catch (Exception error) when (error is not OperationCanceledException and not UnauthorizedAccessException
                 and not Gurux.DLMS.AMI.Shared.GXAmiForbiddenException and not Gurux.DLMS.AMI.Shared.GXAmiNotFoundException)

@@ -21,6 +21,8 @@ public sealed class GXScriptCommunityRecord : IUnique<Guid>
     [StringLength(64)] public string SourceHash { get; set; } = "";
     /// <summary>Display name retained for notifications.</summary>
     [StringLength(200)] public string ScriptName { get; set; } = "";
+    /// <summary>DeviceTemplate for profile submissions; null for existing script receipts.</summary>
+    [StringLength(32)] public string? ContentType { get; set; }
     /// <summary>Durable publishing or review status.</summary>
     [StringLength(32)] public string Status { get; set; } = "Publishing";
     /// <summary>Approved catalog version, when available.</summary>
@@ -40,7 +42,7 @@ public sealed class GXScriptCommunityRecord : IUnique<Guid>
     /// <summary>Projects only public submission metadata.</summary>
     public GXScriptCommunitySubmission ToResponse() => new()
     {
-        Id = Id, ScriptName = ScriptName, Status = Status, Version = Version,
+        Id = Id, ScriptName = ScriptName, ContentType = ContentType, Status = Status, Version = Version,
         Message = Status == "Failed" ? FailureMessage ?? "The submission may have arrived, but its receipt could not be confirmed. Check with the community administrator before submitting again." : null
     };
 }
@@ -101,6 +103,10 @@ public sealed class GXScriptCommunityStore(IGXDatabase database) : IGXScriptComm
         if (!schema.TableExist<GXScriptCommunityRecord>())
         {
             schema.CreateTable<GXScriptCommunityRecord>(false, false);
+        }
+        else if (!schema.GetColumns<GXScriptCommunityRecord>().Contains(nameof(GXScriptCommunityRecord.ContentType), StringComparer.OrdinalIgnoreCase))
+        {
+            schema.UpdateTable(typeof(GXScriptCommunityRecord), false, false);
         }
     }
 }

@@ -1235,7 +1235,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddContentTabMenu(connection, group, GXMenus.AgentSettingsTab,
                 ("Reader", "Reader", "reader", null),
                 ("Pushevents", "PushEvents", "notification", null),
-                ("RawNotifications", "RawNotifications", "notification", null),
                 ("Autoconnect", "AutoConnect", "auto-connect", null),
                 ("Gateway", "Gateway", "gateway", null));
             await AddContentTabMenu(connection, group, GXMenus.ThemeDetailsTab,

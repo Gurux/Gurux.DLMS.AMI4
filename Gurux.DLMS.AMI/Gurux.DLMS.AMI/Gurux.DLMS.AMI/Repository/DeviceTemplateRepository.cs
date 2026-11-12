@@ -25,11 +25,8 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Client.Pages.Device;
-using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
-using Gurux.DLMS.AMI.Data;
 using Gurux.DLMS.AMI.Db;
 using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Module;
@@ -41,7 +38,6 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.Service.Orm.Enums;

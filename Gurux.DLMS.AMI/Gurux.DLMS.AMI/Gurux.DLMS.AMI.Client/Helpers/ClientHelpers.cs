@@ -354,7 +354,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                     {
                         LogicalName = value.LogicalName,
                         ObjectType = (int)value.ObjectType,
-                        Name = value.Description,
+                        Name = value.Description ?? string.Empty,
                         Version = value.Version,
                         ShortName = value.ShortName,
                         Attributes = []

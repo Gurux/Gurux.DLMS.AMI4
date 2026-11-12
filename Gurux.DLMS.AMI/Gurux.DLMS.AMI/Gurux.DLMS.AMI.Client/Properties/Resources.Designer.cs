@@ -6446,7 +6446,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The selected script will be sent to ami.gurux.fi for review and published anonymously under GPL-2.0-only if approved. Review may take some time. You will be notified when the script is approved or rejected..
+        ///   Looks up a localized string similar to The selected script will be sent to ami.gurux.fi for review and published anonymously under CC0 1.0 Universal if approved. Review may take some time. You will be notified when the script is approved or rejected..
         /// </summary>
         internal static string PublishCommunityConfirmation {
             get {
@@ -9543,5 +9543,143 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("YourSiteIsOnMaintenanceMode", resourceCulture);
             }
         }
+        internal static string SelectOneDeviceTemplate {
+            get {
+                return ResourceManager.GetString("SelectOneDeviceTemplate", resourceCulture);
+            }
+        }
+
+        internal static string PublishDeviceTemplateCommunityConfirmation {
+            get {
+                return ResourceManager.GetString("PublishDeviceTemplateCommunityConfirmation", resourceCulture);
+            }
+        }
+
+        internal static string CommunityDeviceTemplatePending {
+            get {
+                return ResourceManager.GetString("CommunityDeviceTemplatePending", resourceCulture);
+            }
+        }
+
+        internal static string CommunityDeviceTemplateApproved {
+            get {
+                return ResourceManager.GetString("CommunityDeviceTemplateApproved", resourceCulture);
+            }
+        }
+
+        internal static string CommunityDeviceTemplateRejected {
+            get {
+                return ResourceManager.GetString("CommunityDeviceTemplateRejected", resourceCulture);
+            }
+        }
+
+        internal static string CommunityProfileDetails {
+            get {
+                return ResourceManager.GetString("CommunityProfileDetails", resourceCulture);
+            }
+        }
+
+        internal static string CommunityProfileRequiredMetadata {
+            get {
+                return ResourceManager.GetString("CommunityProfileRequiredMetadata", resourceCulture);
+            }
+        }
+
+        internal static string CommunityProfileFirmware {
+            get {
+                return ResourceManager.GetString("CommunityProfileFirmware", resourceCulture);
+            }
+        }
+
+        internal static string ReviewCommunityPublication {
+            get {
+                return ResourceManager.GetString("ReviewCommunityPublication", resourceCulture);
+            }
+        }
+
+        internal static string ModuleUpdateRestartRequired {
+            get {
+                return ResourceManager.GetString("ModuleUpdateRestartRequired", resourceCulture);
+            }
+        }
+
+        internal static string ModuleRunningVersion {
+            get {
+                return ResourceManager.GetString("ModuleRunningVersion", resourceCulture);
+            }
+        }
+
+        internal static string ModulePendingVersion {
+            get {
+                return ResourceManager.GetString("ModulePendingVersion", resourceCulture);
+            }
+        }
+
+        internal static string RestartAmi {
+            get {
+                return ResourceManager.GetString("RestartAmi", resourceCulture);
+            }
+        }
+
+        internal static string RestartAmiForModuleUpdates {
+            get {
+                return ResourceManager.GetString("RestartAmiForModuleUpdates", resourceCulture);
+            }
+        }
+
+        internal static string CancelPendingModuleUpdate {
+            get {
+                return ResourceManager.GetString("CancelPendingModuleUpdate", resourceCulture);
+            }
+        }
+
+        internal static string ModuleUpdatePrepared {
+            get {
+                return ResourceManager.GetString("ModuleUpdatePrepared", resourceCulture);
+            }
+        }
+
+        internal static string ModuleUpdatesApplied {
+            get {
+                return ResourceManager.GetString("ModuleUpdatesApplied", resourceCulture);
+            }
+        }
+
+        internal static string ModuleUpdateFailed {
+            get {
+                return ResourceManager.GetString("ModuleUpdateFailed", resourceCulture);
+            }
+        }
+
+        internal static string ModuleUpdatePreviousVersionsRetained {
+            get {
+                return ResourceManager.GetString("ModuleUpdatePreviousVersionsRetained", resourceCulture);
+            }
+        }
+
+        internal static string WaitingForAmiRestart {
+            get {
+                return ResourceManager.GetString("WaitingForAmiRestart", resourceCulture);
+            }
+        }
+
+        internal static string AmiRestartNotConfirmed {
+            get {
+                return ResourceManager.GetString("AmiRestartNotConfirmed", resourceCulture);
+            }
+        }
+
+        internal static string PendingModuleUpdateChanged {
+            get {
+                return ResourceManager.GetString("PendingModuleUpdateChanged", resourceCulture);
+            }
+        }
+
+        internal static string RawNotificationProcessing {
+            get {
+                return ResourceManager.GetString("RawNotificationProcessing", resourceCulture);
+            }
+        }
+
     }
 }

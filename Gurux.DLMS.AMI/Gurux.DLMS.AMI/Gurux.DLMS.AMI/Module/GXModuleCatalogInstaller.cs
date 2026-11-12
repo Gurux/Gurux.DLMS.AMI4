@@ -42,7 +42,7 @@ internal sealed class GXModuleCatalogInstaller(IModuleRepository repository, IGX
 {
     private sealed record Package(GXModule Module, GXModuleVersion Release, string Zip, GXModuleInstallCandidate Candidate);
 
-    public async Task InstallAsync(ClaimsPrincipal user, string id, Guid? versionId, CancellationToken cancellationToken)
+    public async Task<bool> InstallAsync(ClaimsPrincipal user, string id, Guid? versionId, CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "GuruxCatalogInstall", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -86,6 +86,16 @@ internal sealed class GXModuleCatalogInstaller(IModuleRepository repository, IGX
                 var release = GXModuleInstallPlanner.SelectVersion(module.Versions ?? [], requirement, rootRelease.Prerelease);
                 return release == null ? null : (await Download(module, release, token)).Candidate;
             }, cancellationToken);
+            if (plan.Any(candidate => GXModuleInstallPlanner.IsInstalled(packages[candidate.Id].Module)))
+            {
+                await modules.QueueModuleUpdatesAsync([.. plan.Select(candidate =>
+                {
+                    var package = packages[candidate.Id];
+                    return new GXModuleUpdatePackage(candidate.Id, package.Release.Number!, package.Zip,
+                        package.Module.ReleaseVersion ?? package.Module.Version, package.Module.Name);
+                })], cancellationToken);
+                return true;
+            }
             foreach (var candidate in plan)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -116,6 +126,7 @@ internal sealed class GXModuleCatalogInstaller(IModuleRepository repository, IGX
                     throw new InvalidOperationException($"Installing module '{candidate.Id}' failed: {error.Message}", error);
                 }
             }
+            return false;
         }
         finally { Directory.Delete(directory, recursive: true); }
     }

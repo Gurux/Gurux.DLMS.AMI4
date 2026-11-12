@@ -1,0 +1,179 @@
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.UI.Components.Enums
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Http
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject HttpClient Http
+@inject AuthenticationStateProvider Authentication
+@inject IAuthorizationService Authorization
+@inject IGXAmiConfirmation Confirmation
+@inject IGXNotificationService Notifications
+@implements IDisposable
+
+@if (_status != null && _status.Modules.Any(item => ModuleId == null || item.Id == ModuleId) &&
+    _status.State is "PendingRestart" or "Applying" or "Failed")
+{
+    <section class="alert @(_status.State == "Failed" ? "alert-danger" : "alert-info") module-pending-updates" aria-live="polite">
+        <p><strong>@(_status.State == "Failed" ? Properties.Resources.ModuleUpdateFailed : Properties.Resources.ModuleUpdateRestartRequired)</strong></p>
+        <ul>
+            @foreach (var module in _status.Modules.Where(item => ModuleId == null || item.Id == ModuleId))
+            {
+                <li><strong>@module.Name</strong>: @Properties.Resources.ModuleRunningVersion @module.CurrentVersion;
+                    @Properties.Resources.ModulePendingVersion @module.Version</li>
+            }
+        </ul>
+        @if (_status.State == "Failed")
+        {
+            <p>@Properties.Resources.ModuleUpdatePreviousVersionsRetained</p>
+        }
+        @if (_restarting)
+        {
+            <p role="status">@Properties.Resources.WaitingForAmiRestart</p>
+        }
+        else if (_status.State == "PendingRestart")
+        {
+            @if (_canRestart)
+            {
+                <button type="button" class="btn btn-primary me-2" disabled="@_busy" @onclick="RestartAsync">@Properties.Resources.RestartAmi</button>
+            }
+            <button type="button" class="btn btn-secondary" disabled="@_busy" @onclick="CancelAsync">@Properties.Resources.CancelPendingModuleUpdate</button>
+        }
+        <button type="button" class="btn btn-link" disabled="@_busy" @onclick="RefreshAsync">@Properties.Resources.Refresh</button>
+    </section>
+}
+
+@code {
+    [Parameter] public string? ModuleId { get; set; }
+    [Parameter] public EventCallback OnApplied { get; set; }
+    private GXModulePendingUpdateStatus? _status;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _authorized, _canRestart, _busy, _restarting, _disposed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        _authorized = (await Authorization.AuthorizeAsync(user, GXModulePolicies.Add)).Succeeded &&
+            (await Authorization.AuthorizeAsync(user, GXModulePolicies.Edit)).Succeeded;
+        _canRestart = (await Authorization.AuthorizeAsync(user, GXConfigurationPolicies.Edit)).Succeeded;
+        await RefreshAsync();
+    }
+    public async Task RefreshAsync()
+    {
+        if (!_authorized || _disposed)
+        {
+            return;
+        }
+        try
+        {
+            _status = await Http.GetFromJsonAsync<GXModulePendingUpdateStatus>("api/Module/Pending", _lifetime.Token);
+            if (!_disposed)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Notifications.ReportError(error, "Modules.Pending");
+        }
+    }
+    private async Task CancelAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync("api/Module/Pending/Cancel", new { }, _lifetime.Token);
+            await response.EnsureSuccessAsync(_lifetime.Token);
+            await RefreshAsync();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Notifications.ReportError(error, "Modules.Pending.Cancel");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+    private async Task RestartAsync()
+    {
+        if (_busy || !_canRestart)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.RestartAmi,
+                Properties.Resources.RestartAmiForModuleUpdates, new AmiConfirmationOptions { ConfirmText = Properties.Resources.RestartAmi });
+            if (!confirmation.Confirm)
+            {
+                return;
+            }
+            var requestedBatch = _status?.Id;
+            using var response = await Http.PostAsJsonAsync("api/Configuration/Restart", new StopApplicationRequest(), _lifetime.Token);
+            await response.EnsureSuccessAsync(_lifetime.Token);
+            _restarting = true;
+            StateHasChanged();
+            for (int attempt = 0; attempt < 90; ++attempt)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), _lifetime.Token);
+                try
+                {
+                    var status = await Http.GetFromJsonAsync<GXModulePendingUpdateStatus>("api/Module/Pending", _lifetime.Token);
+                    if (status != null && status.Id != requestedBatch)
+                    {
+                        _status = status;
+                        throw new InvalidOperationException(Properties.Resources.PendingModuleUpdateChanged);
+                    }
+                    if (status?.State is "Succeeded" or "Failed")
+                    {
+                        _status = status;
+                        await OnApplied.InvokeAsync();
+                        Notifications.Add(new GXNotificationItem(status.State == "Succeeded" ? NotificationLevel.Success : NotificationLevel.Error,
+                            status.State == "Succeeded" ? Properties.Resources.ModuleUpdatesApplied : Properties.Resources.ModuleUpdatePreviousVersionsRetained,
+                            "", "Modules.Pending.Restart"));
+                        return;
+                    }
+                }
+                catch (HttpRequestException)
+                {
+                    // Losing the connection during a requested restart is expected.
+                }
+            }
+            throw new InvalidOperationException(Properties.Resources.AmiRestartNotConfirmed);
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Notifications.ReportError(error, "Modules.Pending.Restart");
+        }
+        finally
+        {
+            _busy = false;
+            _restarting = false;
+        }
+    }
+    public void Dispose()
+    {
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+}

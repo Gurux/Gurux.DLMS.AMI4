@@ -83,7 +83,8 @@ public sealed class UpdateController(GXUpdateStatusStore store, GXBackgroundTask
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<GXAvailableUpdatesResponse> Check(CancellationToken cancellationToken = default)
     {
-        var runId = await runner.RunAsync(GXBackgroundTaskIds.Update, User, cancellationToken);
+        // Keep the catalog check alive after this request returns; the client polls its run ID.
+        var runId = await runner.StartAsync(GXBackgroundTaskIds.Update, User, cancellationToken);
         var response = await store.ReadAsync(cancellationToken);
         response.RunId = runId;
         return response;

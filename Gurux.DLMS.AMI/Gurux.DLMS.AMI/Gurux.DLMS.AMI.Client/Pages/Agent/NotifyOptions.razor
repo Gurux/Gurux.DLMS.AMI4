@@ -80,6 +80,15 @@
     without any processing, transformation, or validation. The parsing is done later"
                                      @bind-Value="Settings.PassThroughData" />
                     </div>
+                    @if (RawSettings != null)
+                    {
+                        <fieldset disabled="@(!Settings.PassThroughData)">
+                            <GXAccordion Id="raw-notification-processing" @key="RawSettings"
+                                         Header="@Properties.Resources.RawNotificationProcessing" Expand="@RawSettings.Enabled">
+                                <RawNotificationOptions Settings="@RawSettings" Scripts="@Scripts" Embedded="true" />
+                            </GXAccordion>
+                        </fieldset>
+                    }
                     <div class="form-group">
                         <GXInputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
                                      @bind-Value="Settings.UseLogicalNameReferencing" />
@@ -128,6 +137,10 @@
 
     [Parameter]
     public NotifySettings? Settings { get; set; }
+
+    /// <summary>Independent deferred processing settings displayed below raw reception.</summary>
+    [Parameter]
+    public RawNotificationSettings? RawSettings { get; set; }
 
     private GXValidator? _validator;
 

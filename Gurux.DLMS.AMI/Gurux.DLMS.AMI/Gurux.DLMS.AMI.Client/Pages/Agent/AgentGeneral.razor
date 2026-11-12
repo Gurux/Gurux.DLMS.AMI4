@@ -99,7 +99,7 @@
             @context.Text
         </TabTextTemplate>
         <ChildContent>
-            <TabHeader Name="@GXMenus.AgentSettingsTab">
+            <TabHeader Name="@GXMenus.AgentSettingsTab" LinkFilter="@(link => link.Url != "RawNotifications")">
                 <ContentForLink Context="link">
                     @if (link.Url == "Reader")
                     {
@@ -108,14 +108,9 @@
                     }
                     else if (link.Url == "Pushevents")
                     {
-                        <NotifyOptions Settings="@NotificationSettings"
+                        <NotifyOptions Settings="@NotificationSettings" RawSettings="@RawNotificationSettings"
                                        Scripts="@scripts" 
                                        @bind-SerialPort="@Active.SerialPort"></NotifyOptions>
-                    }
-                    else if (link.Url == "RawNotifications")
-                    {
-                        <RawNotificationOptions Settings="@RawNotificationSettings"
-                                                Scripts="@scripts"  />
                     }
                     else if (link.Url == "Autoconnect")
                     {

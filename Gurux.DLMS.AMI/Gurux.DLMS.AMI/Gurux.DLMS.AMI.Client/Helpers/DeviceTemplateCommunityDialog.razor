@@ -1,0 +1,107 @@
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Client.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Device
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Http
+@using Gurux.DLMS.Enums
+@inject HttpClient Http
+@implements IDisposable
+
+@if (_request != null)
+{
+    <div class="modal show d-block" role="dialog" aria-modal="true" aria-labelledby="community-profile-title">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h4 id="community-profile-title">@Properties.Resources.CommunityProfileDetails</h4></div>
+            <div class="modal-body">
+                <p>@_name</p>
+                <label class="d-block">@Properties.Resources.Manufacturer
+                    <input class="form-control" maxlength="80" @bind="_request.Manufacturer" />
+                </label>
+                <label class="d-block">@Properties.Resources.Model
+                    <input class="form-control" maxlength="80" @bind="_request.Model" />
+                </label>
+                <label class="d-block">@Properties.Resources.CommunityProfileFirmware
+                    <input class="form-control" maxlength="80" @bind="_request.Firmware" />
+                </label>
+                <label class="d-block">@Properties.Resources.Protocol
+                    <select class="form-select" @bind="_request.ProfileIndex">
+                        @for (int index = 0; index < _profiles.Length; ++index)
+                        {
+                            <option value="@index">@_profiles[index]</option>
+                        }
+                    </select>
+                </label>
+                <label class="d-block">@Properties.Resources.Description
+                    <textarea class="form-control" maxlength="1000" @bind="_request.Description"></textarea>
+                </label>
+                @if (_error != null)
+                {
+                    <p class="text-danger" role="alert">@_error</p>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick="Confirm">@Properties.Resources.ReviewCommunityPublication</button>
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">@Properties.Resources.Cancel</button>
+            </div>
+        </div></div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    private GXPublishCommunityDeviceTemplate? _request;
+    private TaskCompletionSource<GXPublishCommunityDeviceTemplate?>? _completion;
+    private readonly CancellationTokenSource _lifetime = new();
+    private string[] _profiles = [];
+    private string? _name, _error;
+
+    public async Task<GXPublishCommunityDeviceTemplate?> ShowAsync(GXDeviceTemplate selected)
+    {
+        if (_completion != null)
+        {
+            throw new InvalidOperationException(Properties.Resources.PublishToCommunity);
+        }
+        var template = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(
+            "api/DeviceTemplate?id=" + selected.Id, _lifetime.Token)).Item
+            ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget);
+        var settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(template.Settings ?? "{}") ?? new();
+        _profiles = settings.Profiles.Count == 0
+            ? [((InterfaceType)settings.InterfaceType).ToString()]
+            : settings.Profiles.Select(profile => $"{(InterfaceType)profile.InterfaceType} ({profile.ClientAddress})").ToArray();
+        _request = new() { Id = template.Id, Manufacturer = template.Manufacturer?.Name ?? "", Model = template.Name ?? "" };
+        _name = template.Name;
+        _error = null;
+        _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = _completion;
+        StateHasChanged();
+        return await completion.Task;
+    }
+
+    private void Confirm()
+    {
+        if (_request == null)
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_request.Manufacturer) || string.IsNullOrWhiteSpace(_request.Model))
+        {
+            _error = Properties.Resources.CommunityProfileRequiredMetadata;
+            return;
+        }
+        Finish(_request);
+    }
+    private void Cancel() => Finish(null);
+    private void Finish(GXPublishCommunityDeviceTemplate? result)
+    {
+        var completion = _completion;
+        _completion = null;
+        _request = null;
+        completion?.TrySetResult(result);
+    }
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+        Finish(null);
+    }
+}

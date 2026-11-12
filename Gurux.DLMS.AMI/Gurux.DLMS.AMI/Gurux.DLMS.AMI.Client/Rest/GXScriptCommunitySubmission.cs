@@ -14,6 +14,7 @@ public sealed class GXScriptCommunitySubmission
     public Guid Id { get; set; }
     /// <summary>Name of the submitted script.</summary>
     public string ScriptName { get; set; } = string.Empty;
+    public string? ContentType { get; set; }
     /// <summary>Pending, Publishing, Approved, Rejected or Failed.</summary>
     public string Status { get; set; } = "Pending";
     /// <summary>Published catalog version when approved.</summary>

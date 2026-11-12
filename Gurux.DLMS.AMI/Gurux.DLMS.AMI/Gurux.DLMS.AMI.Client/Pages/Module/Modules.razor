@@ -54,6 +54,7 @@
 @implements IGXAmiComponent
 
 <GXHelpContext Topic="Modules" />
+<ModulePendingUpdatesPanel @ref="pendingUpdatesPanel" OnApplied="Updated" />
 
 @if (Title)
 {
@@ -349,8 +350,16 @@
             }
         
             using var progress = Progress?.ProgressStart(GXProgress.SavingModulesManage);
-            await Http.PostAsJson<InstallModuleResponse>("api/Module/Install", new InstallModule { Module = new GXModule(module.Id), VersionId = version }, (progress?.CancellationToken ?? CancellationToken.None));
+            var result = await Http.PostAsJson<InstallModuleResponse>("api/Module/Install", new InstallModule { Module = new GXModule(module.Id), VersionId = version }, (progress?.CancellationToken ?? CancellationToken.None));
+            if (result.Restart)
+            {
+                NotificationService?.Add(new GXNotificationItem(NotificationLevel.Information, Properties.Resources.ModuleUpdatePrepared, "", "Modules.Install"));
+            }
             await Updated();
+            if (pendingUpdatesPanel != null)
+            {
+                await pendingUpdatesPanel.RefreshAsync();
+            }
         }
         catch (Exception error)
         {
@@ -368,6 +377,7 @@
     /// </summary>
     protected GXViewTable<GXModule>? table;
     private bool _interactive;
+    private ModulePendingUpdatesPanel? pendingUpdatesPanel;
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -433,6 +443,7 @@
                 {
                     if (it.Type == GXModulePolicies.Add ||
                         it.Type == GXModulePolicies.Edit ||
+                        it.Type == GXCatalogNotifications.ModuleUpdated ||
                         it.Type == GXModulePolicies.Delete)
                     {
                         _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);

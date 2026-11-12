@@ -53,6 +53,10 @@
     @Title
 </h1>
 <ModuleRemovalDialog @ref="_removalDialog" Removed="OnModuleRemovedAsync" />
+@if (!isAdding && !string.IsNullOrWhiteSpace(Active.Id))
+{
+    <ModulePendingUpdatesPanel @ref="pendingUpdatesPanel" ModuleId="@Active.Id" OnApplied="RefreshInstalledModuleAsync" />
+}
 <CascadingValue Value="this">
     <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
         <TabTextTemplate>
@@ -93,6 +97,19 @@
         }
     }
     private bool _ready;
+    private ModulePendingUpdatesPanel? pendingUpdatesPanel;
+    private async Task RefreshInstalledModuleAsync()
+    {
+        var response = await Http.GetFromJsonAsync<GetModuleResponse>("api/Module?id=" + Uri.EscapeDataString(Active.Id), _lifetime.Token);
+        if (response?.Item is { } saved)
+        {
+            Active.Version = saved.Version;
+            Active.ReleaseVersion = saved.ReleaseVersion;
+            Active.Status = saved.Status;
+            Active.RuntimeState = saved.RuntimeState;
+        }
+        await Loader.RefreshAsync(_lifetime.Token);
+    }
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
@@ -219,6 +236,11 @@
                 response = await Http.PostAsync("api/Module/Add", content);
                 await response.EnsureSuccessAsync(default);
                 AddModuleResponse? ret = await response.Content.ReadFromJsonAsync<AddModuleResponse>();
+                if (ret?.Restart == true)
+                {
+                    NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information,
+                        Properties.Resources.ModuleUpdatePrepared, "", "Modules.Upload"));
+                }
                 if (ret != null && ret.Modules != null && ret.Modules.Any())
                 {
                     Active = ret.Modules.First();

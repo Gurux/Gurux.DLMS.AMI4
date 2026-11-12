@@ -32,7 +32,7 @@ namespace Gurux.DLMS.AMI.Module;
 
 internal sealed partial class GXModuleService
 {
-    internal static GXModuleInstallCandidate InspectPackage(string zip, string expectedId, CancellationToken cancellationToken)
+    internal static GXModuleInstallCandidate InspectPackage(string zip, string? expectedId, CancellationToken cancellationToken)
     {
         string directory = Path.Combine(Path.GetTempPath(), "GuruxModuleInspection", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -61,7 +61,7 @@ internal sealed partial class GXModuleService
                 throw new InvalidOperationException("A module package must contain exactly one concrete IGXAmiModule implementation.");
             }
             var candidate = candidates[0];
-            if (candidate.Id != expectedId)
+            if (expectedId != null && candidate.Id != expectedId)
                 {
                 throw new InvalidOperationException($"The downloaded package does not match the requested module. Expected '{expectedId}', package declares '{candidate.Id}'.");
             }

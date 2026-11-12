@@ -138,20 +138,30 @@
             CrudAction action = ClientHelpers.GetAction(NavigationManager, Action, CrudAction.Read);
             if (Active?.Id == null && Id != null)
             {
-                //Get module data.
-                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>("api/Module?id=" + Id));
-                if (tmp?.Item != null)
+                if (!Loader.IsInitialized)
                 {
-                    Active = tmp.Item;
+                    await Loader.RefreshAsync(_lifetime.Token);
                 }
-                else
+                var manifest = Loader.AddIns.FirstOrDefault(item =>
+                    string.Equals(item.Id, Id, StringComparison.OrdinalIgnoreCase) && item.Enabled &&
+                    item.State == AmiModuleState.Active);
+                if (manifest != null)
                 {
-                    NavigationManager.NavigateTo("404");
+                    Active = new GXModule { Id = manifest.Id, Name = manifest.Name, Version = manifest.Version, Enabled = true };
+                    await ShowModuleSettings();
+                    // Redirect-only views, such as Swagger and Scalar, need no persisted module settings.
+                    if (_extensionUI != null && typeof(IGXAmiModuleSettings).IsAssignableFrom(_extensionUI))
+                    {
+                        var response = await Http.GetAsJsonAsync<GetModuleResponse>(
+                            "api/Module?id=" + Uri.EscapeDataString(manifest.Id), _lifetime.Token);
+                        Active = response.Item;
+                    }
                 }
             }
             if (Active == null)
             {
                 NavigationManager.NavigateTo("404");
+                return;
             }
             await ShowModuleSettings();
             action = ClientHelpers.GetAction(NavigationManager, Action);

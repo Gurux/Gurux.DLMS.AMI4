@@ -232,7 +232,7 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
             module.Updated = DateTimeOffset.UtcNow;
             await db.UpdateAsync(tx, GXUpdateArgs.Update(module, m => new { m.AvailableVersion, m.NewVersion, m.Icon, m.Updated }), token);
             tx.Commit();
-            await NotifyAsync(db, "module.view", "module.edit", module.Id, module.Name, token);
+            await NotifyAsync(db, "module.view", GXCatalogNotifications.ModuleUpdated, module.Id, module.Name, token);
         }
         finally
         {
@@ -365,7 +365,8 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
             settings["Checked"] = DateTimeOffset.UtcNow;
             configuration.Settings = settings.ToJsonString();
             await db.UpdateAsync(GXUpdateArgs.Update(configuration, c => c.Settings!), token);
-            await NotifyAsync(db, GXConfigurationPolicies.View, GXConfigurationPolicies.Edit,
+            await NotifyAsync(db, GXConfigurationPolicies.View,
+                name == GXConfigurations.Modules ? GXCatalogNotifications.ConfigurationChecked : GXConfigurationPolicies.Edit,
                 configuration.Id.ToString(), configuration.Name, token);
         }
     }

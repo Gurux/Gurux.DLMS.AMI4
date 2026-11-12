@@ -350,8 +350,12 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         {
             _ = request;
             _ = cancellationToken;
-            _applicationLifetime.StopApplication();
-            return Ok();
+            Response.OnCompleted(() =>
+            {
+                _applicationLifetime.StopApplication();
+                return Task.CompletedTask;
+            });
+            return Accepted();
         }
 
         /// <summary>

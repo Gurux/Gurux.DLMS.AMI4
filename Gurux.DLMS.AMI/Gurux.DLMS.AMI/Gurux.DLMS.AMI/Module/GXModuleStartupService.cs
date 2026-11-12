@@ -57,6 +57,11 @@ public sealed class GXModuleStartupService(IGXModuleService modules, GXModuleRun
         {
             throw;
         }
+        catch (GXModuleUpdateRecoveryException ex)
+        {
+            logger.LogCritical(ex, "Module startup recovery failed; refusing to start with an inconsistent module graph.");
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unable to start configured modules.");

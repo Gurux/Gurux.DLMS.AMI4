@@ -123,6 +123,9 @@ namespace Gurux.DLMS.AMI
             builder.Services.AddScoped<IGXAmiTemplateTokenProvider, Server.Token.GXMaintenanceTemplateTokenProvider>();
             builder.Services.AddScoped<IGXAmiTemplateTokenResolver, Server.Token.GXTemplateTokenResolver>();
             //Add module service.
+            builder.Services.AddKeyedSingleton<Action<string>>(GXDeviceTemplateImportValidator.ServiceKey,
+                (_, _) => GXDeviceTemplateImportValidator.Validate);
+            builder.Services.AddSingleton<Server.Module.GXModulePendingUpdates>();
             builder.Services.AddSingleton<IGXModuleService, GXModuleService>();
             builder.Services.AddSingleton<Server.Module.GXDevelopmentModuleResolver>();
             builder.Services.AddSingleton<Server.Module.GXModuleRuntime>();

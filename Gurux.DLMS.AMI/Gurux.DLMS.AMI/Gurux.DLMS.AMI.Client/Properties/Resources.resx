@@ -3145,7 +3145,7 @@
     <value>Publish to community</value>
   </data>
   <data name="PublishCommunityConfirmation" xml:space="preserve">
-    <value>The selected script will be sent to ami.gurux.fi for review and published anonymously under GPL-2.0-only if approved. Review may take some time. You will be notified when the script is approved or rejected.</value>
+    <value>The selected script will be sent to ami.gurux.fi for review and published anonymously under CC0 1.0 Universal if approved. Review may take some time. You will be notified when the script is approved or rejected.</value>
   </data>
   <data name="CommunityReviewPending" xml:space="preserve">
     <value>The script has been sent for review. You will be notified when it is approved or rejected.</value>
@@ -3173,5 +3173,74 @@
   </data>
   <data name="CommunityPendingTitle" xml:space="preserve">
     <value>Awaiting community review</value>
+  </data>
+  <data name="SelectOneDeviceTemplate" xml:space="preserve">
+    <value>Select one device template to publish.</value>
+  </data>
+  <data name="PublishDeviceTemplateCommunityConfirmation" xml:space="preserve">
+    <value>The selected saved device template will be sent anonymously to ami.gurux.fi for review and public distribution under CC0 1.0. Passwords, keys, connection details and meter values are excluded. Approved profiles are proposed to Gurux.DLMS.DeviceProfiles through a GitHub pull request. You will be notified when the proposal is created or rejected.</value>
+  </data>
+  <data name="CommunityDeviceTemplatePending" xml:space="preserve">
+    <value>The device template has been sent for review. You will be notified when a publication pull request is created or the submission is rejected.</value>
+  </data>
+  <data name="CommunityDeviceTemplateApproved" xml:space="preserve">
+    <value>The device template was approved and a community publication pull request was created. Final publication follows repository review and merge.</value>
+  </data>
+  <data name="CommunityDeviceTemplateRejected" xml:space="preserve">
+    <value>The device template was rejected for community publication.</value>
+  </data>
+  <data name="CommunityProfileDetails" xml:space="preserve">
+    <value>Device profile publication details</value>
+  </data>
+  <data name="CommunityProfileRequiredMetadata" xml:space="preserve">
+    <value>Enter a manufacturer and model, and select the communication profile to publish.</value>
+  </data>
+  <data name="CommunityProfileFirmware" xml:space="preserve">
+    <value>Firmware or variant (optional)</value>
+  </data>
+  <data name="ReviewCommunityPublication" xml:space="preserve">
+    <value>Review publication</value>
+  </data>
+  <data name="ModuleUpdateRestartRequired" xml:space="preserve">
+    <value>Module update prepared — restart required</value>
+  </data>
+  <data name="ModuleRunningVersion" xml:space="preserve">
+    <value>Running version:</value>
+  </data>
+  <data name="ModulePendingVersion" xml:space="preserve">
+    <value>Pending version:</value>
+  </data>
+  <data name="RestartAmi" xml:space="preserve">
+    <value>Restart AMI</value>
+  </data>
+  <data name="RestartAmiForModuleUpdates" xml:space="preserve">
+    <value>Restart AMI to apply the prepared module updates? Connections will be interrupted. The configured container or service manager must start AMI again.</value>
+  </data>
+  <data name="CancelPendingModuleUpdate" xml:space="preserve">
+    <value>Cancel pending update</value>
+  </data>
+  <data name="ModuleUpdatePrepared" xml:space="preserve">
+    <value>Module update prepared. Restart AMI to apply it.</value>
+  </data>
+  <data name="ModuleUpdatesApplied" xml:space="preserve">
+    <value>The module updates were applied successfully.</value>
+  </data>
+  <data name="ModuleUpdateFailed" xml:space="preserve">
+    <value>Module update failed</value>
+  </data>
+  <data name="ModuleUpdatePreviousVersionsRetained" xml:space="preserve">
+    <value>The update failed. Previous module versions were retained. See the server log for details.</value>
+  </data>
+  <data name="WaitingForAmiRestart" xml:space="preserve">
+    <value>Waiting for AMI to restart and apply the module updates…</value>
+  </data>
+  <data name="AmiRestartNotConfirmed" xml:space="preserve">
+    <value>AMI did not confirm the restart. Check the server or its service manager, then refresh this page.</value>
+  </data>
+  <data name="PendingModuleUpdateChanged" xml:space="preserve">
+    <value>The pending module update changed while AMI was restarting. Refresh the module list to see its current status.</value>
+  </data>
+  <data name="RawNotificationProcessing" xml:space="preserve">
+    <value>Raw notification processing</value>
   </data>
 </root>

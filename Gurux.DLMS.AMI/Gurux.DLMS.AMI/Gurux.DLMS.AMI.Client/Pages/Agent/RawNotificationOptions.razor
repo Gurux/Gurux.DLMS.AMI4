@@ -39,8 +39,11 @@
 
 @if (Settings != null)
 {
-    <EditForm EditContext="@(GXEditContexts.For(Owner?.Active ?? (object)Settings))">
-        <DataAnnotationsValidator />
+    RenderFragment fields = @<div>
+        @if (!Embedded)
+        {
+            <DataAnnotationsValidator />
+        }
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
@@ -75,7 +78,17 @@
                 </fieldset>
             </div>
         </div>
-    </EditForm>
+    </div>;
+    @if (Embedded)
+    {
+        @fields
+    }
+    else
+    {
+        <EditForm EditContext="@(GXEditContexts.For(Owner?.Active ?? (object)Settings))">
+            @fields
+        </EditForm>
+    }
 }
 
 @code {
@@ -85,7 +98,11 @@
     [Parameter]
     public IEnumerable<GXScript>? Scripts { get; set; }
 
-    /// <summary>Parser settings edited by this tab and serialized by the parent agent editor.</summary>
+    /// <summary>Uses the containing push form instead of creating a nested form.</summary>
+    [Parameter]
+    public bool Embedded { get; set; }
+
+    /// <summary>Parser settings serialized by the parent agent editor.</summary>
     [Parameter]
     public RawNotificationSettings? Settings { get; set; }
 
@@ -116,7 +133,7 @@
         }
     }
 
-    /// <summary>Adds parser validation errors to the parent agent form and this tab's form.</summary>
+    /// <summary>Adds parser validation errors to the parent agent form and the containing form.</summary>
     public async Task ValidateAsync(GXValidator sender)
     {
         OnValidate(sender);

@@ -74,6 +74,8 @@ public interface IGXModuleService
     /// <param name="developmentPath">The development path.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task<List<GXModule>> RefreshAsync(ClaimsPrincipal? user, string developmentPath, CancellationToken cancellationToken = default);
+    /// <summary>Retains inspected module packages for application before the next startup.</summary>
+    Task QueueModuleUpdatesAsync(IReadOnlyList<Gurux.DLMS.AMI.Server.Module.GXModuleUpdatePackage> packages, CancellationToken cancellationToken = default);
     /// <summary>Performs the start configured modules operation.</summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     Task StartConfiguredModulesAsync(CancellationToken cancellationToken = default);

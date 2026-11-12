@@ -432,7 +432,10 @@
     /// <summary>Confirms anonymous publication of one saved script before sending it for review.</summary>
     public async Task OnPublishCommunity()
     {
-        if (publishingCommunity) { return; }
+        if (publishingCommunity)
+        {
+            return;
+        }
         publishingCommunity = true;
         const string key = "Pages/Script/Scripts.PublishCommunity";
         try
@@ -447,16 +450,25 @@
             var script = selected[0];
             var result = await Confirmation.ConfirmAsync(Properties.Resources.PublishToCommunity, Properties.Resources.PublishCommunityConfirmation,
                 new AmiConfirmationOptions { ConfirmText = Properties.Resources.PublishToCommunity, Items = [script.Name] });
-            if (!result.Confirm) { return; }
+            if (!result.Confirm)
+            {
+                return;
+            }
             using var progress = Progress?.ProgressStart(Properties.Resources.PublishToCommunity);
             await Services.GetRequiredService<GXScriptCommunityNotifications>().PublishAsync(script.Id);
         }
-        catch (AccessTokenNotAvailableException exception) { exception.Redirect(); }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
         catch (Exception ex)
         {
             NotificationService?.ReportError(ex, key, NotificationScope.Global);
         }
-        finally { publishingCommunity = false; }
+        finally
+        {
+            publishingCommunity = false;
+        }
     }
 
     public void Dispose()

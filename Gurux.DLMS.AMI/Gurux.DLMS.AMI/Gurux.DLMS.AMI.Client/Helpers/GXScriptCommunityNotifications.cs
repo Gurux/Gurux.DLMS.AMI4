@@ -14,10 +14,17 @@ public sealed class GXScriptCommunityNotifications(HttpClient http, IGXNotificat
     private long generation;
 
     /// <summary>Sends only the saved script ID to the authenticated AMI server.</summary>
-    public async Task PublishAsync(Guid id, CancellationToken token = default)
+    public Task PublishAsync(Guid id, CancellationToken token = default)
+        => PublishAsync("api/ScriptCommunity/Publish", new GXPublishCommunityScript { Id = id }, token);
+
+    /// <summary>Submits a saved device template through its authorized server exporter.</summary>
+    public Task PublishDeviceTemplateAsync(GXPublishCommunityDeviceTemplate request, CancellationToken token = default)
+        => PublishAsync("api/DeviceTemplateCommunity/Publish", request, token);
+
+    private async Task PublishAsync(string endpoint, object request, CancellationToken token)
     {
         var current = generation;
-        var submission = await http.PostAsJson<GXScriptCommunitySubmission>("api/ScriptCommunity/Publish", new GXPublishCommunityScript { Id = id }, token);
+        var submission = await http.PostAsJson<GXScriptCommunitySubmission>(endpoint, request, token);
         await gate.WaitAsync(token);
         try
         {
@@ -74,6 +81,16 @@ public sealed class GXScriptCommunityNotifications(HttpClient http, IGXNotificat
             "Failed" => (NotificationLevel.Error, submission.Message ?? Properties.Resources.CommunityPublishFailed),
             _ => (NotificationLevel.Information, Properties.Resources.CommunityReviewPending)
         };
+        if (submission.ContentType == "DeviceTemplate")
+        {
+            description = submission.Status switch
+            {
+                "Approved" => Properties.Resources.CommunityDeviceTemplateApproved,
+                "Rejected" => Properties.Resources.CommunityDeviceTemplateRejected,
+                "Failed" => submission.Message ?? Properties.Resources.CommunityPublishFailed,
+                _ => Properties.Resources.CommunityDeviceTemplatePending
+            };
+        }
         var title = submission.ScriptName + ": " + (submission.Status switch
         {
             "Approved" => Properties.Resources.CommunityApprovedTitle,

@@ -220,6 +220,7 @@
                 {
                     if (it.Type == GXModulePolicies.Add ||
                         it.Type == GXModulePolicies.Edit ||
+                        it.Type == GXCatalogNotifications.ModuleUpdated ||
                         it.Type == GXModulePolicies.Delete)
                     {
                         _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);

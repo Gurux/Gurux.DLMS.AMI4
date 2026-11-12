@@ -33,6 +33,7 @@ using Gurux.DLMS.AMI.Client.Rest;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Server.Module;
 using UpdateDbModule = Gurux.DLMS.AMI.Shared.DTOs.Module.GXModule;
 using UpdateDbAgent = Gurux.DLMS.AMI.Shared.DTOs.Agent.GXAgent;
 using Gurux.DLMS.AMI.Shared.DTOs.Update;
@@ -208,7 +209,36 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         snapshot.Core.InstalledVersion = CoreVersion();
         snapshot.Core.Status = Status(snapshot.Core.InstalledVersion, snapshot.Core.AvailableVersion);
         var cached = snapshot.Modules.ToDictionary(m => m.Id, StringComparer.OrdinalIgnoreCase);
-        snapshot.Modules = [.. (await InstalledModulesAsync(db, token)).Select(m => Module(m, cached.GetValueOrDefault(m.Id)))];
+        var moduleUpdates = new List<GXAvailableUpdate>();
+        foreach (var module in await InstalledModulesAsync(db, token))
+        {
+            var release = cached.GetValueOrDefault(module.Id);
+            // Module catalog checks can refresh installable versions independently of the full snapshot.
+            // Reuse those versions when the snapshot is missing or was invalidated by a host upgrade.
+            if (string.IsNullOrWhiteSpace(release?.AvailableVersion) && new GXSchemaManager(db).TableExist<Gurux.DLMS.AMI.Shared.DTOs.Module.GXModuleVersion>())
+            {
+                var versions = await GXModuleVersionStorage.ReadAsync(db, module, token);
+                var installable = versions.Where(v => v.Enabled != false && !string.IsNullOrWhiteSpace(v.FileName) &&
+                        !string.IsNullOrWhiteSpace(v.Url) && GXReleaseVersionComparer.TryNormalize(v.Number, out _))
+                    .Select(v => new CatalogRelease(v.Number!, v.Prerelease || GXReleaseVersionComparer.IsPrerelease(v.Number!),
+                        v.CreationTime, v.Description, v.FileName, v.Url)).ToArray();
+                var latest = GXCatalogReleaseSelector.Latest(installable, options.IncludePrereleases);
+                release = new GXAvailableUpdate
+                {
+                    AvailableVersion = latest?.Number,
+                    PublishedAt = latest?.PublishedAt,
+                    IncludePrereleases = options.IncludePrereleases,
+                    Releases = [.. installable.OrderByDescending(v => v.Number, GXReleaseVersionComparer.Instance)
+                        .Select(v => new GXAvailableRelease
+                        {
+                            Version = v.Number, Prerelease = v.Prerelease, PublishedAt = v.PublishedAt,
+                            ReleaseNotes = v.Description
+                        })]
+                };
+            }
+            moduleUpdates.Add(Module(module, release));
+        }
+        snapshot.Modules = moduleUpdates;
         snapshot.Scripts = await GXScriptCatalogProjection.ReadAsync(db, options, token);
         snapshot.Agents = await AgentsAsync(db, token);
         snapshot.DeviceProfiles = [];

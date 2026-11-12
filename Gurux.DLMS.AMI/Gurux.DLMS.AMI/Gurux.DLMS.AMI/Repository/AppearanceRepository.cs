@@ -788,6 +788,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             defaults.Add(AddImage("workflow", "bi-diagram-3"));
             defaults.Add(AddImage("change-password", "bi-key"));
             defaults.Add(AddImage("extension", "bi-puzzle-fill"));
+            defaults.Add(AddImage("publish-community", "bi bi-cloud-arrow-up"));
 
             //Add flags for countries.
             defaults.Add(AddImage("fi", "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"fi\" viewBox=\"0 0 24 16\">\r\n  <rect width=\"24\" height=\"16\" fill=\"white\"/>\r\n  <rect x=\"6\" width=\"4\" height=\"16\" fill=\"#003580\"/>\r\n  <rect y=\"6\" width=\"24\" height=\"4\" fill=\"#003580\"/>\r\n</svg>"));
