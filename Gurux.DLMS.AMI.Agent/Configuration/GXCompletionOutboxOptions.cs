@@ -72,19 +72,3 @@ internal sealed class GXCompletionOutboxOptions
         return result;
     }
 }
-
-/// <summary>A sampled view of completion storage and task admission.</summary>
-/// <param name="PendingCount">Queued records plus results awaiting persistence; excludes quarantine.</param>
-/// <param name="PendingBytes">Queued JSON and UTF-8 bytes awaiting persistence; excludes quarantine.</param>
-/// <param name="OldestSeconds">Age of the oldest queued file in seconds; zero when no queued files exist.</param>
-/// <param name="QuarantinedCount">Records retained for operator recovery without automatic replay.</param>
-/// <param name="FreeBytes">Last sampled available space on the queue's drive, in bytes.</param>
-/// <param name="UnpersistedCount">Results whose only retained copy is still in process memory.</param>
-/// <param name="ClaimsPaused">Whether shutdown, storage failure or an admission threshold prevents new claims.</param>
-/// <remarks>Storage is sampled independently of HTTP. After a sampling failure, previous storage counts may remain in this snapshot.</remarks>
-internal sealed record GXCompletionOutboxStatus(int PendingCount, long PendingBytes, double OldestSeconds,
-    int QuarantinedCount, long FreeBytes, int UnpersistedCount, bool ClaimsPaused)
-{
-    /// <summary>Gets whether shutdown is waiting for results held only in memory to be persisted.</summary>
-    public bool ShutdownBlocked { get; init; }
-}

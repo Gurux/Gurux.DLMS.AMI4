@@ -45,6 +45,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Agent.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Gurux.Net.Enums;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
@@ -55,75 +56,85 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
     internal class GXNotifyService(ILogger<GXNotifyService> logger,
         IServiceProvider serviceProvider, GXAgentWorker worker) : IHostedService, IDisposable
     {
+        /// <summary>Resolves transport and repository services for this component.</summary>
         private readonly IServiceProvider _serviceProvider = serviceProvider;
+        /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
         private readonly ILogger<GXNotifyService> _logger = logger;
-        NotifySettings? settings;
-        private readonly SemaphoreSlim lifecycle = new(1, 1);
+        /// <summary>Transport settings applied to the active connection.</summary>
+        NotifySettings? _settings;
+        /// <summary>Serializes service startup and shutdown operations.</summary>
+        private readonly SemaphoreSlim _lifecycle = new(1, 1);
         //Notify wait push, events or notifies from the meters.
-        GXNet? notify;
-        private GXRawNotificationSender? rawSender;
-        private int disposeStarted;
-        private CancellationTokenSource scriptLifetime = new();
+        /// <summary>Accumulates incoming bytes until a notification can be decoded.</summary>
+        GXNet? _notify;
+        /// <summary>Durably queues raw notifications for delivery to the server.</summary>
+        private GXRawNotificationSender? _rawSender;
+        /// <summary>Atomically prevents repeated disposal of notification resources.</summary>
+        private int _disposeStarted;
+        /// <summary>Cancels script work owned by this notification service.</summary>
+        private CancellationTokenSource _scriptLifetime = new();
 
         /// <summary>
         /// Each client has own message queue.
         /// </summary>
-        private readonly Dictionary<string, GXNotifyClient> notifyMessages = [];
+        private readonly Dictionary<string, GXNotifyClient> _notifyMessages = [];
 
-        GXScriptMethod? scriptMethod;
-        internal Guid? ScriptId => scriptMethod?.Script?.Id;
+        /// <summary>Configured script used to interpret received notifications.</summary>
+        GXScriptMethod? _scriptMethod;
+        /// <summary>Gets the script identifier currently configured for notification processing.</summary>
+        internal Guid? ScriptId => _scriptMethod?.Script?.Id;
 
         /// <inheritdoc/>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            ObjectDisposedException.ThrowIf(Volatile.Read(ref disposeStarted) != 0, this);
-            await lifecycle.WaitAsync(cancellationToken);
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeStarted) != 0, this);
+            await _lifecycle.WaitAsync(cancellationToken);
             try
             {
-                if (notify != null)
+                if (_notify != null)
                 {
                     return;
                 }
 
-                if (scriptLifetime.IsCancellationRequested)
+                if (_scriptLifetime.IsCancellationRequested)
                 {
-                    scriptLifetime.Dispose();
-                    scriptLifetime = new CancellationTokenSource();
+                    _scriptLifetime.Dispose();
+                    _scriptLifetime = new CancellationTokenSource();
                 }
 
                 if (worker.RuntimeOptions.NotifySettings != null)
                 {
-                    settings = worker.RuntimeOptions.NotifySettings;
+                    _settings = worker.RuntimeOptions.NotifySettings;
                     GXNet net = new()
                     {
-                        Settings = settings.MediaSettings
+                        Settings = _settings.MediaSettings
                     };
-                    if (settings != null && settings.Enabled && net.Port != 0)
+                    if (_settings != null && _settings.Enabled && net.Port != 0)
                     {
-                        if (!settings.PassThroughData && settings.ScriptMethod != null)
+                        if (!_settings.PassThroughData && _settings.ScriptMethod != null)
                         {
                             var timeType = typeof(GXReplyData).GetProperty(nameof(GXReplyData.Time))!.PropertyType;
-                            scriptMethod = await worker.Scripts.LoadAsync(settings.ScriptMethod.Value, [typeof(string), typeof(GXDevice), Nullable.GetUnderlyingType(timeType) ?? timeType, null ], cancellationToken);
+                            _scriptMethod = await worker.Scripts.LoadAsync(_settings.ScriptMethod.Value, [typeof(string), typeof(GXDevice), Nullable.GetUnderlyingType(timeType) ?? timeType, null ], cancellationToken);
                         }
                         else
                         {
-                            scriptMethod = null;
+                            _scriptMethod = null;
                         }
 
-                        notify = new GXNet((NetworkType)net.Protocol, net.Port);
-                        if (settings.PassThroughData)
+                        _notify = new GXNet((NetworkType)net.Protocol, net.Port);
+                        if (_settings.PassThroughData)
                         {
-                            rawSender = new GXRawNotificationSender(worker.client, worker.RuntimeOptions.Id, settings.Interface, _logger, options: _serviceProvider.GetService<IOptions<GXRawDeliveryOptions>>()?.Value);
+                            _rawSender = new GXRawNotificationSender(worker.Client, worker.RuntimeOptions.Id, _settings.Interface, _logger, options: _serviceProvider.GetService<IOptions<GXRawDeliveryOptions>>()?.Value);
                         }
 
-                        notify.OnReceived += OnNotifyReceived;
-                        notify.OnClientConnected += OnRawClientConnected;
-                        notify.OnClientDisconnected += OnRawClientDisconnected;
+                        _notify.OnReceived += OnNotifyReceived;
+                        _notify.OnClientConnected += OnRawClientConnected;
+                        _notify.OnClientDisconnected += OnRawClientDisconnected;
                         if (worker.RuntimeOptions.TraceLevel > TraceLevel.Error)
                         {
                             if (_logger.IsEnabled(LogLevel.Information) == true)
                             {
-                                _logger.LogInformation("Listening push notifications in port: {Value0}.", notify.Port);
+                                _logger.LogInformation("Listening push notifications in port: {Value0}.", _notify.Port);
                             }
 
                             if (worker.RuntimeOptions.NotifySettings.TraceLevel > TraceLevel.Error)
@@ -134,34 +145,38 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                                     Logs = [new GXLog(TraceLevel.Verbose)
                                     {
                                         Creator = worker.RuntimeOptions.Id,
-                                        Message = string.Format("Listening push notifications in port: {0}.", notify.Port)
+                                        Message = string.Format("Listening push notifications in port: {0}.", _notify.Port)
                                     }
 
                                     ]
                                 };
-                                await worker.client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
+                                await worker.Client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
                             }
                         }
 
-                        notify.Open();
+                        _notify.Open();
                     }
                 }
 
-                if (settings == null || !settings.Enabled || notify == null)
+                if (_settings == null || !_settings.Enabled || _notify == null)
                 {
                     _logger.LogInformation("Notify service is not used.");
                 }
             }
             finally
             {
-                lifecycle.Release();
+                _lifecycle.Release();
             }
         }
 
         // Cache the most recently resolved device for the notification parser, not as a source of keys.
+        /// <summary>Caches resolved devices to avoid repeated server lookups.</summary>
         private readonly MemoryCache _cachedDevices = new("Devices");
 
-        private void OnGetKeys(object sender, GXCryptoKeyParameter args)
+        /// <summary>Resolves device security keys needed to decrypt an incoming notification.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+        private void OnGetKeys(object? sender, GXCryptoKeyParameter args)
         {
             if ((args.KeyType & Enums.CryptoKeyType.Authentication) != 0) {
                 args.AuthenticationKey = null;
@@ -171,7 +186,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             }
             string st = GXCommon.ToHex(args.SystemTitle, false);
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var response = worker.client.GetAsJsonAsync<GetDeviceResponse>(
+            var response = worker.Client.GetAsJsonAsync<GetDeviceResponse>(
                 $"/api/Device/BySystemTitle?systemTitle={Uri.EscapeDataString(st)}", deadline.Token).GetAwaiter().GetResult();
             var device = response?.Item ?? throw new InvalidOperationException(string.Format(Properties.Resources.UnknownDeviceForSystemTitle, st));
             var keys = System.Text.Json.JsonSerializer.Deserialize<DeviceSettings>(device.Settings ?? "null")
@@ -191,17 +206,25 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             _cachedDevices.Set(st, device, DateTimeOffset.UtcNow.AddMinutes(1));
         }
 
+        /// <summary>Returns a required security key or rejects a notification with missing key material.</summary>
+        /// <param name="key">Identity of the tracked connection.</param>
+        /// <param name="systemTitle">System title identifying the notification sender.</param>
+        /// <returns>The supplied non-null security key.</returns>
         private static byte[] Required(byte[]? key, string systemTitle)
-            => key is { Length: > 0 } ? key.ToArray()
+            => key is { Length: > 0 } ? [.. key]
                 : throw new InvalidOperationException(string.Format(Properties.Resources.UnknownKeyForSystemTitle, systemTitle));
         /// <summary>
         /// Handle received notify message.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        internal void OnNotifyReceived(object sender, ReceiveEventArgs e)
+        internal void OnNotifyReceived(object? sender, ReceiveEventArgs e)
         {
-            NotifySettings? currentSettings = settings;
+            if (e.Data is not byte[] || e.SenderInfo == null)
+            {
+                return;
+            }
+            NotifySettings? currentSettings = _settings;
             if (currentSettings == null)
             {
                 return;
@@ -211,9 +234,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             {
                 try
                 {
-                    rawSender?.Receive(e.SenderInfo, (byte[])e.Data, notify?.Protocol == NetworkType.Udp);
+                    _rawSender?.Receive(e.SenderInfo, (byte[])e.Data, _notify?.Protocol == NetworkType.Udp);
                 }
-                catch (OperationCanceledException) when (rawSender?.IsIntakeStopped == true)
+                catch (OperationCanceledException) when (_rawSender?.IsIntakeStopped == true)
                 {
                     _logger.LogDebug("Raw receiver stopped while waiting for local storage capacity.");
                 }
@@ -222,17 +245,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             try
             {
                 GXNotifyClient reply;
-                lock (notifyMessages)
+                lock (_notifyMessages)
                 {
-                    if (notifyMessages.TryGetValue(e.SenderInfo, out GXNotifyClient? value))
+                    if (_notifyMessages.TryGetValue(e.SenderInfo, out GXNotifyClient? value))
                     {
                         reply = value;
                     }
                     else
                     {
                         reply = new GXNotifyClient(currentSettings.UseLogicalNameReferencing,
-                            currentSettings.Interface, null, worker.Scripts.Current(scriptMethod));
-                        notifyMessages.Add(e.SenderInfo, reply);
+                            currentSettings.Interface, null, worker.Scripts.Current(_scriptMethod));
+                        _notifyMessages.Add(e.SenderInfo, reply);
                     }
                 }
                 var selectedScript = reply.ScriptMethod;
@@ -258,7 +281,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                         Type = "Notify data",
                         Logs = [log]
                     };
-                    worker.client.PostAsJson<AddDeviceTraceResponse>("/api/Log/Add?source=agent", it).Wait();
+                    worker.Client.PostAsJson<AddDeviceTraceResponse>("/api/Log/Add?source=agent", it).Wait();
                 }
 
                 try
@@ -302,7 +325,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                         {
                             Logs = [trace]
                         };
-                        worker.client.PostAsJson<AddDeviceTraceResponse>("/api/Log/Add?source=agent", it).Wait();
+                        worker.Client.PostAsJson<AddDeviceTraceResponse>("/api/Log/Add?source=agent", it).Wait();
                     }
                     try
                     {
@@ -318,7 +341,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                             };
                             //Run script.
                             worker.Scripts.RunAsync(tmp, selectedScript,
-                                [e.SenderInfo, device, reply.Notify.Time, reply.Notify.Value], scriptLifetime.Token).GetAwaiter().GetResult();
+                                [e.SenderInfo, device, reply.Notify.Time, reply.Notify.Value], _scriptLifetime.Token).GetAwaiter().GetResult();
                         }
                     }
                     catch (Exception ex)
@@ -336,7 +359,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                                 StackTrace =ex.StackTrace
                             } ]
                         };
-                        worker.client.PostAsJson("/api/Log/Add?source=agent", log).Wait();
+                        worker.Client.PostAsJson("/api/Log/Add?source=agent", log).Wait();
                         if (selectedScript != null && selectedScript.Script != null)
                         {
                             AddLog se = new()
@@ -347,7 +370,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                                 Message = ex.Message
                             } ]
                             };
-                            worker.client.PostAsJson<AddLogResponse>("/api/Log/Add?source=script", se).Wait();
+                            worker.Client.PostAsJson<AddLogResponse>("/api/Log/Add?source=script", se).Wait();
                         }
                     }
                     finally
@@ -356,9 +379,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                         //Don't call clear here.
                         //There might be bytes from the next frame waiting.
                         reply.Reply.Trim();
-                        if (notify?.Protocol == NetworkType.Udp)
+                        if (_notify?.Protocol == NetworkType.Udp)
                         {
-                            reply.ScriptMethod = worker.Scripts.Current(scriptMethod);
+                            reply.ScriptMethod = worker.Scripts.Current(_scriptMethod);
                         }
                     }
                 }
@@ -380,7 +403,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                 };
                 try
                 {
-                    worker.client.PostAsJson("/api/Log/Add?source=agent", log).Wait();
+                    worker.Client.PostAsJson("/api/Log/Add?source=agent", log).Wait();
                 }
                 catch (Exception ex2)
                 {
@@ -393,63 +416,77 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             }
         }
 
-        private void OnRawClientConnected(object sender, ConnectionEventArgs e)
+        /// <summary>Registers an incoming raw notification stream with the durable sender.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Failure inspected for an authorization status.</param>
+        private void OnRawClientConnected(object? sender, ConnectionEventArgs e)
         {
-            if (rawSender != null) { rawSender.Close(e.Info); return; }
-            if (settings == null)
+            if (e.Info == null)
+            {
+                return;
+            }
+            if (_rawSender != null) { _rawSender.Close(e.Info); return; }
+            if (_settings == null)
             {
                 return;
             }
 
-            lock (notifyMessages)
+            lock (_notifyMessages)
             {
-                notifyMessages[e.Info] = new GXNotifyClient(settings.UseLogicalNameReferencing, settings.Interface, null,
-                    worker.Scripts.Current(scriptMethod));
+                _notifyMessages[e.Info] = new GXNotifyClient(_settings.UseLogicalNameReferencing, _settings.Interface, null,
+                    worker.Scripts.Current(_scriptMethod));
             }
         }
 
-        private void OnRawClientDisconnected(object sender, ConnectionEventArgs e)
+        /// <summary>Writes the terminal record for the disconnected raw notification stream.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Failure inspected for an authorization status.</param>
+        private void OnRawClientDisconnected(object? sender, ConnectionEventArgs e)
         {
-            if (rawSender != null)
+            if (e.Info == null)
             {
-                rawSender.Close(e.Info);
+                return;
+            }
+            if (_rawSender != null)
+            {
+                _rawSender.Close(e.Info);
             }
             else
             {
-                lock (notifyMessages)
+                lock (_notifyMessages)
                 {
-                    notifyMessages.Remove(e.Info);
+                    _notifyMessages.Remove(e.Info);
                 }
             }
         }
         /// <inheritdoc/>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            await lifecycle.WaitAsync(cancellationToken);
+            await _lifecycle.WaitAsync(cancellationToken);
             try
             {
-                rawSender?.StopIntake();
-                await scriptLifetime.CancelAsync();
-                if (notify != null)
+                _rawSender?.StopIntake();
+                await _scriptLifetime.CancelAsync();
+                if (_notify != null)
                 {
-                    notify.OnReceived -= OnNotifyReceived;
-                    notify.OnClientConnected -= OnRawClientConnected;
-                    notify.OnClientDisconnected -= OnRawClientDisconnected;
-                    notify.Close();
-                    notify.Dispose();
-                    notify = null;
+                    _notify.OnReceived -= OnNotifyReceived;
+                    _notify.OnClientConnected -= OnRawClientConnected;
+                    _notify.OnClientDisconnected -= OnRawClientDisconnected;
+                    _notify.Close();
+                    _notify.Dispose();
+                    _notify = null;
                 }
 
-                if (rawSender != null)
+                if (_rawSender != null)
                 {
                     try
                     {
-                        await rawSender.CompleteAsync(cancellationToken);
+                        await _rawSender.CompleteAsync(cancellationToken);
                     }
                     finally
                     {
-                        await rawSender.DisposeAsync();
-                        rawSender = null;
+                        await _rawSender.DisposeAsync();
+                        _rawSender = null;
                     }
                 }
 
@@ -469,36 +506,36 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 
                             ]
                         };
-                        await worker.client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
+                        await worker.Client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
                     }
                 }
             }
             finally
             {
-                lifecycle.Release();
+                _lifecycle.Release();
             }
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref disposeStarted, 1) != 0)
+            if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
             {
                 return;
             }
-            rawSender?.StopIntake();
-            scriptLifetime.Cancel();
-            scriptLifetime.Dispose();
-            if (notify != null)
+            _rawSender?.StopIntake();
+            _scriptLifetime.Cancel();
+            _scriptLifetime.Dispose();
+            if (_notify != null)
             {
-                notify.OnReceived -= OnNotifyReceived;
-                notify.OnClientConnected -= OnRawClientConnected;
-                notify.OnClientDisconnected -= OnRawClientDisconnected;
-                notify.Dispose();
-                notify = null;
+                _notify.OnReceived -= OnNotifyReceived;
+                _notify.OnClientConnected -= OnRawClientConnected;
+                _notify.OnClientDisconnected -= OnRawClientDisconnected;
+                _notify.Dispose();
+                _notify = null;
             }
-            rawSender?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            rawSender = null;
+            _rawSender?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            _rawSender = null;
             _cachedDevices.Dispose();
         }
     }

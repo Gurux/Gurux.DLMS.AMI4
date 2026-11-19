@@ -1,4 +1,3 @@
-using System.Text.Json;
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -26,6 +25,7 @@ using System.Text.Json;
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
+using System.Text.Json;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -36,27 +36,39 @@ namespace Gurux.DLMS.AMI.Agent;
 /// <summary>Stages a complete release outside the live installation and hands installation to Gurux.Updater.</summary>
 internal sealed class GXAgentUpdateService : IGXAgentUpdateService
 {
-    private readonly GXAgentUpdaterOptions options;
-    private readonly ILogger<GXAgentUpdateService> logger;
-    private readonly Func<HttpClient> downloadClient;
-    private readonly SemaphoreSlim prepareGate = new(1, 1);
+    /// <summary>Validated limits and settings used by this component.</summary>
+    private readonly GXAgentUpdaterOptions _options;
+    /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
+    private readonly ILogger<GXAgentUpdateService> _logger;
+    /// <summary>Creates a client for downloading authenticated release assets.</summary>
+    private readonly Func<HttpClient> _downloadClient;
+    /// <summary>Serializes validation and staging of downloaded releases.</summary>
+    private readonly SemaphoreSlim _prepareGate = new(1, 1);
+    /// <summary>Gets the verified release currently staged for external installation.</summary>
     public GXPreparedAgentUpdate? PendingUpdate { get; private set; }
+    /// <summary>Gets the queued container deployment request awaiting acknowledgement.</summary>
     internal string? ContainerRequestId { get; private set; }
+    /// <summary>Gets or sets the process launcher used for external updater handoff.</summary>
     internal Func<ProcessStartInfo, CancellationToken, Task> StartProcess { get; set; } = StartProcessAsync;
 
+    /// <summary>Initializes verified release preparation and external installation handoff.</summary>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="logger">Records operation diagnostics without exposing authentication secrets.</param>
+    /// <param name="downloadClient">Optional factory creating authenticated release download clients.</param>
     public GXAgentUpdateService(GXAgentUpdaterOptions options, ILogger<GXAgentUpdateService> logger, Func<HttpClient>? downloadClient = null)
     {
-        this.options = options;
-        this.logger = logger;
-        this.downloadClient = downloadClient ?? (() => new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
+        this._options = options;
+        this._logger = logger;
+        this._downloadClient = downloadClient ?? (() => new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
         CleanupStaging();
     }
 
+    /// <summary>Gets the configuration error preventing safe updater handoff, if any.</summary>
     public string? UnavailableReason
     {
         get
         {
-            if (options.RetryAfter > DateTimeOffset.UtcNow)
+            if (_options.RetryAfter > DateTimeOffset.UtcNow)
                 {
                 return "Updater launch failed; waiting before retrying the pending update.";
             }
@@ -67,38 +79,44 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
     }
 
+    /// <summary>Gets the executable application path used for updater handoff.</summary>
     private string ApplicationPath
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(options.ApplicationPath))
+            if (!string.IsNullOrWhiteSpace(_options.ApplicationPath))
             {
-                return Path.GetFullPath(options.ApplicationPath);
+                return Path.GetFullPath(_options.ApplicationPath);
             }
-            string executable = Path.Combine(options.InstallationDirectory,
+            string executable = Path.Combine(_options.InstallationDirectory,
                 OperatingSystem.IsWindows() ? "Gurux.DLMS.AMI.Agent.exe" : "Gurux.DLMS.AMI.Agent");
-            return Path.GetFullPath(string.IsNullOrWhiteSpace(options.ServiceName) && File.Exists(executable)
-                ? executable : Path.Combine(options.InstallationDirectory, "Gurux.DLMS.AMI.Agent.dll"));
+            return Path.GetFullPath(string.IsNullOrWhiteSpace(_options.ServiceName) && File.Exists(executable)
+                ? executable : Path.Combine(_options.InstallationDirectory, "Gurux.DLMS.AMI.Agent.dll"));
         }
     }
 
+    /// <summary>Checks that a resolved filesystem path remains inside the expected directory.</summary>
+    /// <param name="path">File or directory on which the operation acts.</param>
+    /// <param name="directory">Expected parent directory used to constrain resolved paths.</param>
+    /// <returns>Whether the resolved path is contained by the expected directory.</returns>
     private static bool Under(string path, string directory)
     {
         string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)) + Path.DirectorySeparatorChar;
         return Path.GetFullPath(path).StartsWith(root, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     }
 
+    /// <summary>Rejects updater settings that cannot safely stage or hand off an application release.</summary>
     private void ValidateConfiguration()
     {
-        if (options.DownloadTimeout <= TimeSpan.Zero || options.DownloadTimeout > TimeSpan.FromHours(24) ||
-            options.MaxPackageBytes <= 0 || options.MaxExpandedBytes <= 0 || options.StagingRetention < TimeSpan.FromDays(1))
+        if (_options.DownloadTimeout <= TimeSpan.Zero || _options.DownloadTimeout > TimeSpan.FromHours(24) ||
+            _options.MaxPackageBytes <= 0 || _options.MaxExpandedBytes <= 0 || _options.StagingRetention < TimeSpan.FromDays(1))
             {
             throw new InvalidOperationException("Updater limits must be positive, timeout at most 24 hours, and retention at least one day.");
         }
         try
         {
             using var key = RSA.Create();
-            key.ImportFromPem(options.PublicKeyPem);
+            key.ImportFromPem(_options.PublicKeyPem);
             if (key.KeySize < 2048)
                 {
                 throw new InvalidOperationException("Release signing key must be at least 2048 bits.");
@@ -106,22 +124,22 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
         catch (Exception error) when (error is ArgumentException or CryptographicException)
         { throw new InvalidOperationException("Configure Updater:PublicKeyPem with the trusted release signing public key.", error); }
-        if (!string.IsNullOrWhiteSpace(options.DeploymentRoot))
+        if (!string.IsNullOrWhiteSpace(_options.DeploymentRoot))
         {
-            var heartbeat = Path.Combine(options.DeploymentRoot, "agent-heartbeat");
-            if (!Path.IsPathFullyQualified(options.DeploymentRoot) || string.IsNullOrWhiteSpace(options.RequestKeyFile) ||
-                !Path.IsPathFullyQualified(options.RequestKeyFile) || !File.Exists(options.RequestKeyFile) ||
+            var heartbeat = Path.Combine(_options.DeploymentRoot, "agent-heartbeat");
+            if (!Path.IsPathFullyQualified(_options.DeploymentRoot) || string.IsNullOrWhiteSpace(_options.RequestKeyFile) ||
+                !Path.IsPathFullyQualified(_options.RequestKeyFile) || !File.Exists(_options.RequestKeyFile) ||
                 !File.Exists(heartbeat) || DateTime.UtcNow - File.GetLastWriteTimeUtc(heartbeat) >= TimeSpan.FromSeconds(30))
             {
                 throw new InvalidOperationException("The independent container updater is not ready.");
             }
-            var retry = GXAgentContainerUpdate.RetryAfter(options.DeploymentRoot);
+            var retry = GXAgentContainerUpdate.RetryAfter(_options.DeploymentRoot);
             if (retry > DateTimeOffset.UtcNow)
             {
-                options.RetryAfter = retry;
+                _options.RetryAfter = retry;
                 throw new InvalidOperationException("A previous container update failed; waiting before retrying.");
             }
-            if (Under(options.StagingDirectory, options.InstallationDirectory))
+            if (Under(_options.StagingDirectory, _options.InstallationDirectory))
             {
                 throw new InvalidOperationException("Container update verification must use persistent staging outside the application.");
             }
@@ -132,37 +150,42 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             {
             throw new InvalidOperationException("Container agents are updated by replacing their container image.");
         }
-        if (!string.IsNullOrWhiteSpace(options.VersionUrl))
+        if (!string.IsNullOrWhiteSpace(_options.VersionUrl))
             {
             throw new InvalidOperationException("Use Updater:HealthUrl for local package installation; --version-url is not supported in local mode.");
         }
-        if (!string.IsNullOrWhiteSpace(options.HealthUrl) &&
-            (!Uri.TryCreate(options.HealthUrl, UriKind.Absolute, out var health) || health.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(health.UserInfo)))
+        if (!string.IsNullOrWhiteSpace(_options.HealthUrl) &&
+            (!Uri.TryCreate(_options.HealthUrl, UriKind.Absolute, out var health) || health.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(health.UserInfo)))
             {
             throw new InvalidOperationException("Updater:HealthUrl must be an absolute HTTP(S) URL without credentials.");
         }
-        if (OperatingSystem.IsLinux() && !string.IsNullOrWhiteSpace(options.ServiceName) && !File.Exists("/usr/bin/systemd-run"))
+        if (OperatingSystem.IsLinux() && !string.IsNullOrWhiteSpace(_options.ServiceName) && !File.Exists("/usr/bin/systemd-run"))
             {
             throw new InvalidOperationException("Service updates require systemd-run to launch the updater outside the agent service.");
         }
-        if (string.IsNullOrWhiteSpace(options.Executable) || !Path.IsPathFullyQualified(options.Executable) || !File.Exists(options.Executable))
+        if (string.IsNullOrWhiteSpace(_options.Executable) || !Path.IsPathFullyQualified(_options.Executable) || !File.Exists(_options.Executable))
             {
             throw new InvalidOperationException("Configure Updater:Executable with the absolute path of an installed external Gurux.Updater tool.");
         }
-        if (Under(options.Executable, options.InstallationDirectory))
+        if (Under(_options.Executable, _options.InstallationDirectory))
             {
             throw new InvalidOperationException("Gurux.Updater must be installed outside the agent installation directory.");
         }
-        if (Under(options.StagingDirectory, options.InstallationDirectory) || Path.GetFullPath(options.StagingDirectory) == Path.GetFullPath(options.InstallationDirectory))
+        if (Under(_options.StagingDirectory, _options.InstallationDirectory) || Path.GetFullPath(_options.StagingDirectory) == Path.GetFullPath(_options.InstallationDirectory))
             {
             throw new InvalidOperationException("Update staging must be outside the live installation directory.");
         }
-        if (!Under(ApplicationPath, options.InstallationDirectory) || !File.Exists(ApplicationPath))
+        if (!Under(ApplicationPath, _options.InstallationDirectory) || !File.Exists(ApplicationPath))
             {
             throw new InvalidOperationException("Configure Updater:ApplicationPath with the installed agent application.");
         }
     }
 
+    /// <summary>Downloads, verifies and stages an application release before host shutdown begins.</summary>
+    /// <param name="version">Application release version being verified or published.</param>
+    /// <param name="urls">Candidate package download locations supplied by the server.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Downloads, verifies and stages an application release before host shutdown begins.</returns>
     public async Task PrepareAsync(string version, IEnumerable<string> urls, CancellationToken token)
     {
         ValidateConfiguration();
@@ -170,7 +193,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             {
             throw new ArgumentException("Invalid requested agent version.", nameof(version));
         }
-        await prepareGate.WaitAsync(token);
+        await _prepareGate.WaitAsync(token);
         try
         {
             if (PendingUpdate?.Version == version)
@@ -179,9 +202,9 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             }
             CleanupStaging();
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-            deadline.CancelAfter(options.DownloadTimeout);
+            deadline.CancelAfter(_options.DownloadTimeout);
             var transferToken = deadline.Token;
-            if (!string.IsNullOrWhiteSpace(options.DeploymentRoot))
+            if (!string.IsNullOrWhiteSpace(_options.DeploymentRoot))
             {
                 await ValidateContainerReleaseAsync(version, transferToken);
             }
@@ -193,20 +216,20 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
                     {
                     throw new InvalidDataException("Agent update URL must be an absolute HTTPS URL without credentials.");
                 }
-                string stage = Path.Combine(Path.GetFullPath(options.StagingDirectory), Guid.NewGuid().ToString("N"));
+                string stage = Path.Combine(Path.GetFullPath(_options.StagingDirectory), Guid.NewGuid().ToString("N"));
                 Directory.CreateDirectory(stage);
                 try
                 {
                     string package = Path.Combine(stage, "agent.zip");
                     // Do not send the AMI personal access token to a release download host.
                     using var lease = new FileStream(Path.Combine(stage, ".active"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-                    using var http = downloadClient();
+                    using var http = _downloadClient();
                     var manifestUri = new UriBuilder(uri) { Path = uri.AbsolutePath + ".manifest.json" }.Uri;
                     using var metadata = new MemoryStream();
                     await DownloadAsync(http, manifestUri, metadata, 64 * 1024, transferToken);
-                    var manifest = GXAgentReleaseManifest.Verify(metadata.ToArray(), version, options.PublicKeyPem);
+                    var manifest = GXAgentReleaseManifest.Verify(metadata.ToArray(), version, _options.PublicKeyPem);
                     await using (var file = File.Create(package))
-                        await DownloadAsync(http, uri, file, options.MaxPackageBytes, transferToken);
+                        await DownloadAsync(http, uri, file, _options.MaxPackageBytes, transferToken);
                     await using var input = File.OpenRead(package);
                     string digest = Convert.ToHexString(await SHA256.HashDataAsync(input, transferToken)).ToLowerInvariant();
                     if (digest != manifest.Sha256)
@@ -219,7 +242,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
                         digest = Convert.ToHexString(await SHA256.HashDataAsync(prepared, transferToken)).ToLowerInvariant();
                     }
                     PendingUpdate = new GXPreparedAgentUpdate(version, package, digest);
-                    logger.LogInformation("Agent release {Version} staged for external installation", version);
+                    _logger.LogInformation("Agent release {Version} staged for external installation", version);
                     return;
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -240,9 +263,15 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             }
             throw new InvalidOperationException("No valid complete agent application package was available.", last);
         }
-        finally { prepareGate.Release(); }
+        finally { _prepareGate.Release(); }
     }
 
+    /// <summary>Validates package paths, expanded size, application version and release signature.</summary>
+    /// <param name="package">Downloaded archive to validate before staging.</param>
+    /// <param name="stage">Private staging directory where verified package contents are prepared.</param>
+    /// <param name="version">Application release version being verified or published.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The validated staged application path prepared for external installation.</returns>
     private async Task<string> ValidatePackageAsync(string package, string stage, string version, CancellationToken token)
     {
         using var archive = ZipFile.OpenRead(package);
@@ -257,7 +286,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         foreach (var entry in archive.Entries)
         {
             token.ThrowIfCancellationRequested();
-            if (entry.Length > options.MaxExpandedBytes - expanded)
+            if (entry.Length > _options.MaxExpandedBytes - expanded)
                 {
                 throw new InvalidDataException("Agent package expanded size exceeds its limit.");
             }
@@ -313,14 +342,14 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             {
             throw new InvalidDataException("Agent package contains deployment/registration settings or obsolete split application assemblies.");
         }
-        if (string.IsNullOrWhiteSpace(options.ServiceName) && !entries.ContainsKey(Path.GetFileName(ApplicationPath)))
+        if (string.IsNullOrWhiteSpace(_options.ServiceName) && !entries.ContainsKey(Path.GetFileName(ApplicationPath)))
             {
             throw new InvalidDataException("Standalone update package must include its agent application entry point.");
         }
         string metadata = Path.Combine(stage, "candidate.dll");
         await using (var output = File.Create(metadata))
         await using (var input = entries["Gurux.DLMS.AMI.Agent.dll"].Open())
-            await CopyBoundedAsync(input, output, Math.Min(options.MaxExpandedBytes, entries["Gurux.DLMS.AMI.Agent.dll"].Length), token);
+            await CopyBoundedAsync(input, output, Math.Min(_options.MaxExpandedBytes, entries["Gurux.DLMS.AMI.Agent.dll"].Length), token);
         string? actual = FileVersionInfo.GetVersionInfo(metadata).ProductVersion?.Split('+')[0];
         File.Delete(metadata);
         if (actual != version.Split('+')[0])
@@ -349,11 +378,15 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         return installationPackage;
     }
 
+    /// <summary>Verifies immutable container release metadata before queuing replacement.</summary>
+    /// <param name="version">Application release version being verified or published.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Verifies immutable container release metadata before queuing replacement.</returns>
     private async Task ValidateContainerReleaseAsync(string version, CancellationToken token)
     {
         var tag = Uri.EscapeDataString("Gurux.DLMS.AMI.Agent/v" + version);
         var uri = new Uri($"https://github.com/Gurux/Gurux.DLMS.AMI4/releases/download/{tag}/Gurux.DLMS.AMI.Agent-{version}.compose.json");
-        using var http = downloadClient();
+        using var http = _downloadClient();
         http.DefaultRequestHeaders.UserAgent.ParseAdd("Gurux.DLMS.AMI.Agent/1.0");
         using var metadata = new MemoryStream();
         await DownloadAsync(http, uri, metadata, 65536, token);
@@ -378,7 +411,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         {
             Compose = new Gurux.Updater.Model.GXComposeOptions
             {
-                Services = new() { ["agent"] = "agent" }, AllowedImageRepositories = new() { "guruxorg/dlms-ami-agent" },
+                Services = new() { ["agent"] = "agent" }, AllowedImageRepositories = ["guruxorg/dlms-ami-agent"],
                 Platform = platform, WasmRole = "agent"
             }
         }, new Gurux.Updater.Model.GXUpdateRelease { Version = version, Compose = compose }, current);
@@ -388,6 +421,13 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
     }
 
+    /// <summary>Downloads and validates content required to prepare an application or script release.</summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
+    /// <param name="uri">Validated release download address.</param>
+    /// <param name="output">Destination stream receiving bounded downloaded bytes.</param>
+    /// <param name="limit">Maximum number of bytes accepted from the input stream.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Downloads and validates content required to prepare an application or script release.</returns>
     private static async Task DownloadAsync(HttpClient http, Uri uri, Stream output, long limit, CancellationToken token)
     {
         for (int redirects = 0; redirects <= 5; ++redirects)
@@ -414,6 +454,12 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         throw new InvalidDataException("Too many release redirects.");
     }
 
+    /// <summary>Copies a download stream while enforcing the configured package size limit.</summary>
+    /// <param name="input">Source stream containing downloaded package bytes.</param>
+    /// <param name="output">Destination stream receiving bounded downloaded bytes.</param>
+    /// <param name="limit">Maximum number of bytes accepted from the input stream.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Copies a download stream while enforcing the configured package size limit.</returns>
     private static async Task CopyBoundedAsync(Stream input, Stream output, long limit, CancellationToken token)
     {
         byte[] buffer = new byte[81920];
@@ -430,31 +476,33 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         }
     }
 
+    /// <summary>Removes expired staged releases while preserving the pending update.</summary>
     internal void CleanupStaging()
     {
         try
         { CleanupStagingCore(); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-        { logger.LogWarning(error, "Update stage cleanup failed; agent operation continues"); }
+        { _logger.LogWarning(error, "Update stage cleanup failed; agent operation continues"); }
     }
 
+    /// <summary>Deletes expired staging entries after checking they are not the pending release.</summary>
     private void CleanupStagingCore()
     {
         // Startup cleanup must never act on an invalid live-install staging configuration.
-        if (options.StagingRetention < TimeSpan.FromDays(1) || Under(options.StagingDirectory, options.InstallationDirectory) ||
-            string.Equals(Path.GetFullPath(options.StagingDirectory), Path.GetFullPath(options.InstallationDirectory),
+        if (_options.StagingRetention < TimeSpan.FromDays(1) || Under(_options.StagingDirectory, _options.InstallationDirectory) ||
+            string.Equals(Path.GetFullPath(_options.StagingDirectory), Path.GetFullPath(_options.InstallationDirectory),
                 OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
             {
             return;
         }
-        if (!Directory.Exists(options.StagingDirectory))
+        if (!Directory.Exists(_options.StagingDirectory))
             {
             return;
         }
-        foreach (var folder in new DirectoryInfo(options.StagingDirectory).EnumerateDirectories())
+        foreach (var folder in new DirectoryInfo(_options.StagingDirectory).EnumerateDirectories())
         {
             if (!Guid.TryParseExact(folder.Name, "N", out _) || folder.Attributes.HasFlag(FileAttributes.ReparsePoint) ||
-                folder.LastWriteTimeUtc >= DateTime.UtcNow - options.StagingRetention ||
+                folder.LastWriteTimeUtc >= DateTime.UtcNow - _options.StagingRetention ||
                 string.Equals(folder.FullName, Path.GetDirectoryName(PendingUpdate?.PackagePath), StringComparison.OrdinalIgnoreCase))
                 {
                 continue;
@@ -475,10 +523,13 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
                 folder.Delete();
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-            { logger.LogWarning(error, "Could not remove expired update stage {Stage}", folder.Name); }
+            { _logger.LogWarning(error, "Could not remove expired update stage {Stage}", folder.Name); }
         }
     }
 
+    /// <summary>Builds the external updater command using the staged release and current process identity.</summary>
+    /// <param name="processId">Current process identifier that the updater must wait to exit.</param>
+    /// <returns>Process settings containing the verified release and current process handoff arguments.</returns>
     internal ProcessStartInfo CreateStartInfo(int processId)
     {
         ValidateConfiguration();
@@ -488,32 +539,32 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             throw new ArgumentOutOfRangeException(nameof(processId));
         }
         var command = new List<string>();
-        bool toolAssembly = Path.GetExtension(options.Executable).Equals(".dll", StringComparison.OrdinalIgnoreCase);
-        string executable = toolAssembly ? "dotnet" : options.Executable;
+        bool toolAssembly = Path.GetExtension(_options.Executable).Equals(".dll", StringComparison.OrdinalIgnoreCase);
+        string executable = toolAssembly ? "dotnet" : _options.Executable;
         if (toolAssembly)
             {
-            command.Add(options.Executable);
+            command.Add(_options.Executable);
         }
-        command.AddRange(["update", "--local", pending.PackagePath, "--destination", Path.GetFullPath(options.InstallationDirectory),
+        command.AddRange(["update", "--local", pending.PackagePath, "--destination", Path.GetFullPath(_options.InstallationDirectory),
             "--application", ApplicationPath, "--sha256", pending.Sha256]);
-        if (!string.IsNullOrWhiteSpace(options.ServiceName))
+        if (!string.IsNullOrWhiteSpace(_options.ServiceName))
             {
-            command.AddRange(["--service", options.ServiceName]);
+            command.AddRange(["--service", _options.ServiceName]);
         }
         else
             {
             command.AddRange(["--process-id", processId.ToString(System.Globalization.CultureInfo.InvariantCulture), "--wait-seconds", "120"]);
         }
-        if (!string.IsNullOrWhiteSpace(options.HealthUrl))
+        if (!string.IsNullOrWhiteSpace(_options.HealthUrl))
             {
-            command.AddRange(["--health-url", options.HealthUrl]);
+            command.AddRange(["--health-url", _options.HealthUrl]);
         }
         // A local package has no remote release version metadata; the CLI does not accept --version-url in local mode.
-        if (!string.IsNullOrWhiteSpace(options.VersionUrl))
+        if (!string.IsNullOrWhiteSpace(_options.VersionUrl))
             {
             throw new InvalidOperationException("Use Updater:HealthUrl for local package installation; the updater does not support --version-url in local mode.");
         }
-        if (OperatingSystem.IsLinux() && !string.IsNullOrWhiteSpace(options.ServiceName))
+        if (OperatingSystem.IsLinux() && !string.IsNullOrWhiteSpace(_options.ServiceName))
         {
             // Launch in a separate systemd unit so stopping the agent service cannot kill its updater child.
             command.Insert(0, executable);
@@ -527,7 +578,7 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
             WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = Path.GetDirectoryName(pending.PackagePath)!
         };
-        info.Environment["GURUX_AGENT_SETTINGS"] = Path.GetFullPath(options.SettingsPath);
+        info.Environment["GURUX_AGENT_SETTINGS"] = Path.GetFullPath(_options.SettingsPath);
         foreach (var argument in command)
             {
             info.ArgumentList.Add(argument);
@@ -535,28 +586,37 @@ internal sealed class GXAgentUpdateService : IGXAgentUpdateService
         return info;
     }
 
+    /// <summary>Hands the verified update to the external updater or authenticated container queue.</summary>
+    /// <param name="processId">Current process identifier that the updater must wait to exit.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Hands the verified update to the external updater or authenticated container queue.</returns>
     public async Task LaunchAsync(int processId, CancellationToken token)
     {
-        if (!string.IsNullOrWhiteSpace(options.DeploymentRoot))
+        if (!string.IsNullOrWhiteSpace(_options.DeploymentRoot))
         {
             ValidateConfiguration();
             var pending = PendingUpdate ?? throw new InvalidOperationException("No verified update is staged.");
             GXAgentContainerHealth.MarkDrained();
             var current = AgentRuntimeVersion.Resolve(AppContext.BaseDirectory, null,
                 FileVersionInfo.GetVersionInfo(typeof(GXAgentUpdateService).Assembly.Location).ProductVersion) ?? "";
-            await GXAgentContainerHealth.WriteAsync(options.DeploymentRoot, current, false, token);
-            ContainerRequestId = await GXAgentContainerUpdate.QueueAsync(options.DeploymentRoot, options.RequestKeyFile!, pending.Version, token);
+            await GXAgentContainerHealth.WriteAsync(_options.DeploymentRoot, current, false, token);
+            ContainerRequestId = await GXAgentContainerUpdate.QueueAsync(_options.DeploymentRoot, _options.RequestKeyFile!, pending.Version, token);
             return;
         }
         var info = CreateStartInfo(processId);
         await StartProcess(info, token);
     }
 
+    /// <summary>Starts the configured external updater and rejects unsuccessful immediate termination.</summary>
+    /// <param name="info">Process start settings or transport description used by the operation.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Starts the configured external updater and rejects unsuccessful immediate termination.</returns>
     private static async Task StartProcessAsync(ProcessStartInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         using var process = Process.Start(info) ?? throw new InvalidOperationException("Could not start Gurux.Updater.");
-        var exit = process.WaitForExitAsync();
+        // Observe process exit independently; cancellation only limits the startup wait.
+        var exit = process.WaitForExitAsync(CancellationToken.None);
         if (Path.GetFileName(info.FileName) == "systemd-run")
         {
             await exit.WaitAsync(token);

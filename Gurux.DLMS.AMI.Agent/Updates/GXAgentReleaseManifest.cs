@@ -31,8 +31,17 @@ using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Agent;
 
+/// <summary>Carries the release identity, package digest and trusted signature.</summary>
+/// <param name="Version">Application version published by this record.</param>
+/// <param name="Sha256">SHA-256 digest of the signed application package.</param>
+/// <param name="Signature">Signature authenticating the release version and package hash.</param>
 internal sealed record GXAgentReleaseManifest(string Version, string Sha256, string Signature)
 {
+    /// <summary>Verifies the signed release identity and package hash against the trusted public key.</summary>
+    /// <param name="json">Serialized release manifest containing the signed package identity.</param>
+    /// <param name="version">Application release version being verified or published.</param>
+    /// <param name="publicKey">Trusted public key used to verify the manifest signature.</param>
+    /// <returns>The release manifest whose identity, hash and signature passed verification.</returns>
     internal static GXAgentReleaseManifest Verify(byte[] json, string version, string publicKey)
     {
         try

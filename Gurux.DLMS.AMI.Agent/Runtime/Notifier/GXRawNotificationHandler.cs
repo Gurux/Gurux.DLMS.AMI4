@@ -35,44 +35,70 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier;
 /// <summary>Claims raw connections on notifications, maintains leases and acknowledges awaited parser work.</summary>
 internal sealed class GXRawNotificationHandler : IAsyncDisposable
 {
-    private readonly HttpClient http;
-    private readonly GXAgentNotification notification;
-    private readonly Guid processor;
-    private readonly int workers;
-    private readonly Func<GXRawNotification, CancellationToken, Task> process;
-    private readonly ILogger logger;
-    private readonly TimeSpan leaseDuration;
-    private readonly Action<GXRawNotification>? connectionFinished;
-    private readonly Func<bool>? canProcess;
-    private readonly SemaphoreSlim wake;
-    private readonly CancellationTokenSource stop = new();
-    private IDisposable? subscription;
-    private Task[] running = [];
+    /// <summary>Sends requests to the configured AMI server.</summary>
+    private readonly HttpClient _http;
+    /// <summary>Publishes in-process signals when raw notification work changes.</summary>
+    private readonly GXAgentNotification _notification;
+    /// <summary>Identifies this process when acquiring server-side notification leases.</summary>
+    private readonly Guid _processor;
+    /// <summary>Number of concurrent raw notification consumers.</summary>
+    private readonly int _workers;
+    /// <summary>Processes a leased raw notification within its cancellation lifetime.</summary>
+    private readonly Func<GXRawNotification, CancellationToken, Task> _process;
+    /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
+    private readonly ILogger _logger;
+    /// <summary>Period for which a leased notification remains owned by this processor.</summary>
+    private readonly TimeSpan _leaseDuration;
+    /// <summary>Callback invoked when a raw notification stream finishes.</summary>
+    private readonly Action<GXRawNotification>? _connectionFinished;
+    /// <summary>Reports whether the worker is currently allowed to claim notifications.</summary>
+    private readonly Func<bool>? _canProcess;
+    /// <summary>Wakes processors when notifications become available.</summary>
+    private readonly SemaphoreSlim _wake;
+    /// <summary>Cancels background processing during shutdown.</summary>
+    private readonly CancellationTokenSource _stop = new();
+    /// <summary>Subscription forwarding available-work notifications to the processor.</summary>
+    private IDisposable? _subscription;
+    /// <summary>Background processor tasks owned by the handler.</summary>
+    private Task[] _running = [];
 
+    /// <summary>Configures leased raw notification consumers and their bounded processing lifetime.</summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
+    /// <param name="notification">Publishes in-process raw notification work signals.</param>
+    /// <param name="processor">Unique identity used to own server-side notification leases.</param>
+    /// <param name="workers">Maximum number of parallel raw notification consumers.</param>
+    /// <param name="process">Processes leased raw data within the supplied cancellation lifetime.</param>
+    /// <param name="logger">Records operation diagnostics without exposing authentication secrets.</param>
+    /// <param name="leaseDuration">Duration for which a claimed raw connection remains owned by this processor.</param>
+    /// <param name="connectionFinished">Callback releasing stream resources after all connection records finish.</param>
+    /// <param name="canProcess">Reports whether runtime state currently permits new notification claims.</param>
     internal GXRawNotificationHandler(HttpClient http, GXAgentNotification notification, Guid processor, int workers,
         Func<GXRawNotification, CancellationToken, Task> process, ILogger logger, TimeSpan? leaseDuration = null,
         Action<GXRawNotification>? connectionFinished = null, Func<bool>? canProcess = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(workers, 1);
 
-        this.http = http;
-        this.notification = notification;
-        this.processor = processor;
-        this.workers = workers;
-        this.process = process;
-        this.logger = logger;
-        this.leaseDuration = leaseDuration ?? TimeSpan.FromSeconds(60);
-        this.connectionFinished = connectionFinished;
-        this.canProcess = canProcess;
-        wake = new SemaphoreSlim(0, workers);
+        this._http = http;
+        this._notification = notification;
+        this._processor = processor;
+        this._workers = workers;
+        this._process = process;
+        this._logger = logger;
+        this._leaseDuration = leaseDuration ?? TimeSpan.FromSeconds(60);
+        this._connectionFinished = connectionFinished;
+        this._canProcess = canProcess;
+        _wake = new SemaphoreSlim(0, workers);
     }
 
+    /// <summary>Starts the configured background notification consumers and recovery timer.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Starts the configured background notification consumers and recovery timer.</returns>
     internal Task StartAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        subscription = notification.On("raw-notification.add", Signal);
-        running = [.. Enumerable.Range(0, workers).Select(_ => RunAsync(stop.Token))
-, RecoverMissedEventsAsync(stop.Token)];
+        _subscription = _notification.On("raw-notification.add", Signal);
+        _running = [.. Enumerable.Range(0, _workers).Select(_ => RunAsync(_stop.Token))
+, RecoverMissedEventsAsync(_stop.Token)];
         Signal(); // Recover work queued before the subscription was established.
         return Task.CompletedTask;
     }
@@ -80,14 +106,14 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
     /// <summary>Also called after reconnect to recover events missed while the connection was down.</summary>
     internal void Signal()
     {
-        if (stop.IsCancellationRequested)
+        if (_stop.IsCancellationRequested)
         {
             return;
         }
 
         try
         {
-            wake.Release();
+            _wake.Release();
         }
         catch (SemaphoreFullException)
         {
@@ -97,6 +123,9 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
         }
     }
 
+    /// <summary>Periodically wakes notification consumers to recover signals missed during disconnection.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Periodically wakes notification consumers to recover signals missed during disconnection.</returns>
     private async Task RecoverMissedEventsAsync(CancellationToken token)
     {
         try
@@ -113,28 +142,37 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
         }
     }
 
+    /// <summary>Posts a raw notification workflow request and decodes its typed response.</summary>
+    /// <param name="route">Relative server endpoint receiving the workflow request.</param>
+    /// <param name="request">Request object sent to the AMI server.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The typed server response decoded from the workflow acknowledgement.</returns>
+    /// <typeparam name="T">Decoded server response type.</typeparam>
     private async Task<T> PostAsync<T>(string route, object request, CancellationToken token)
     {
-        using var response = await http.PostAsJsonAsync("/api/RawNotification/" + route, request, token);
+        using var response = await _http.PostAsJsonAsync("/api/RawNotification/" + route, request, token);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<T>(cancellationToken: token)
             ?? throw new HttpRequestException("The raw notification server returned an empty response.");
     }
 
+    /// <summary>Claims raw connection leases and processes their ordered chunks until shutdown.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Claims raw connection leases and processes their ordered chunks until shutdown.</returns>
     private async Task RunAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
             try
             {
-                await wake.WaitAsync(token);
+                await _wake.WaitAsync(token);
                 while (!token.IsCancellationRequested)
                 {
-                    while (canProcess?.Invoke() == false)
+                    while (_canProcess?.Invoke() == false)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(1), token);
                     }
-                    var reply = await PostAsync<GetNextRawNotificationResponse>("Next", new GetNextRawNotification { ProcessorId = processor, LeaseDuration = leaseDuration }, token);
+                    var reply = await PostAsync<GetNextRawNotificationResponse>("Next", new GetNextRawNotification { ProcessorId = _processor, LeaseDuration = _leaseDuration }, token);
                     var chunks = reply.RawNotifications.ToArray();
                     if (chunks.Length == 0)
                     {
@@ -151,7 +189,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
             }
             catch (Exception error)
             {
-                logger.LogError(error, "Raw notification worker failed; retrying after a connection error");
+                _logger.LogError(error, "Raw notification worker failed; retrying after a connection error");
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(1), token);
@@ -164,6 +202,10 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
             }
         }
     }
+    /// <summary>Processes ordered raw chunks under a renewable connection lease and reports their outcome.</summary>
+    /// <param name="chunks">Ordered raw records claimed for a single connection lease.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Processes ordered raw chunks under a renewable connection lease and reports their outcome.</returns>
     private async Task ProcessConnectionAsync(GXRawNotification[] chunks, CancellationToken token)
     {
         var first = chunks.OrderBy(n => n.SequenceNumber).First();
@@ -171,7 +213,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
         using var session = CancellationTokenSource.CreateLinkedTokenSource(token);
         using var renewed = new CancellationTokenSource();
         using var changed = new SemaphoreSlim(0, 1);
-        using var updates = notification.On("raw-notification.add", () =>
+        using var updates = _notification.On("raw-notification.add", () =>
         {
             try
             {
@@ -205,7 +247,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
                     }
                     // Do not wait for TCP closure: a script may already have a complete message.
                     // Its per-lease load context retains parser state across successive chunks.
-                    await process(chunk, session.Token);
+                    await _process(chunk, session.Token);
                     ++next;
                     if (chunk.ConnectionClosed)
                     { closed = true; break; }
@@ -214,7 +256,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
                 {
                     await changed.WaitAsync(TimeSpan.FromSeconds(1), session.Token);
                     chunks = [.. (await PostAsync<GetLeasedRawNotificationsResponse>("Leased", new GetLeasedRawNotifications {
-                        ProcessorId = processor, LeaseToken = leaseToken
+                        ProcessorId = _processor, LeaseToken = leaseToken
                     }, session.Token)).RawNotifications];
                 }
             }
@@ -228,7 +270,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
             session.Token.ThrowIfCancellationRequested();
             await PostAsync<RawNotificationDoneResponse>("Done", new RawNotificationDone
             {
-                ProcessorId = processor,
+                ProcessorId = _processor,
                 LeaseToken = leaseToken
             }, session.Token);
         }
@@ -236,16 +278,16 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
         {
             renewed.Cancel();
             await renew;
-            logger.LogError(error, "Raw notification connection {Connection} failed", first.ConnectionId);
+            _logger.LogError(error, "Raw notification connection {Connection} failed", first.ConnectionId);
             // Use a separate short timeout so shutdown can release work for another processor.
             using var reportTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             try
             {
-                await PostAsync<RawNotificationFailedResponse>("Fail", new RawNotificationFailed { ProcessorId = processor, LeaseToken = leaseToken, Error = leaseError?.Message ?? error.Message, NextAttempt = error is InvalidDataException || first.Attempts >= 5 ? null : DateTimeOffset.UtcNow.AddSeconds(10) }, reportTimeout.Token);
+                await PostAsync<RawNotificationFailedResponse>("Fail", new RawNotificationFailed { ProcessorId = _processor, LeaseToken = leaseToken, Error = leaseError?.Message ?? error.Message, NextAttempt = error is InvalidDataException || first.Attempts >= 5 ? null : DateTimeOffset.UtcNow.AddSeconds(10) }, reportTimeout.Token);
             }
             catch (Exception reportError)
             {
-                logger.LogWarning(reportError, "Could not release raw notification lease {Lease}; it will expire", leaseToken);
+                _logger.LogWarning(reportError, "Could not release raw notification lease {Lease}; it will expire", leaseToken);
             }
         }
         finally
@@ -253,7 +295,7 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
             session.Cancel();
             renewed.Cancel();
             await renew;
-            connectionFinished?.Invoke(first);
+            _connectionFinished?.Invoke(first);
         }
 
         async Task KeepAliveAsync()
@@ -263,8 +305,8 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
             {
                 while (!linked.IsCancellationRequested)
                 {
-                    await Task.Delay(leaseDuration / 3, linked.Token);
-                    await PostAsync<RenewRawNotificationLeaseResponse>("RenewLease", new RenewRawNotificationLease { ProcessorId = processor, LeaseToken = leaseToken, LeaseDuration = leaseDuration }, linked.Token);
+                    await Task.Delay(_leaseDuration / 3, linked.Token);
+                    await PostAsync<RenewRawNotificationLeaseResponse>("RenewLease", new RenewRawNotificationLease { ProcessorId = _processor, LeaseToken = leaseToken, LeaseDuration = _leaseDuration }, linked.Token);
                 }
             }
             catch (OperationCanceledException) when (linked.IsCancellationRequested)
@@ -278,18 +320,22 @@ internal sealed class GXRawNotificationHandler : IAsyncDisposable
         }
     }
 
+    /// <summary>Stops accepting work and waits for admitted operations to finish.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Stops accepting work and waits for admitted operations to finish.</returns>
     internal async Task StopAsync(CancellationToken token)
     {
-        subscription?.Dispose();
-        subscription = null;
-        stop.Cancel();
-        await Task.WhenAll(running).WaitAsync(token);
+        _subscription?.Dispose();
+        _subscription = null;
+        _stop.Cancel();
+        await Task.WhenAll(_running).WaitAsync(token);
     }
 
+    /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         await StopAsync(CancellationToken.None);
-        stop.Dispose();
-        wake.Dispose();
+        _stop.Dispose();
+        _wake.Dispose();
     }
 }

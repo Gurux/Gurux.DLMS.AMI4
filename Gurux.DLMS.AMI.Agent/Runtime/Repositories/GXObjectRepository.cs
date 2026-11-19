@@ -37,6 +37,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     /// <summary>
     /// This class implements object repository that can be called from the agent script.
     /// </summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
     class GXObjectRepository(HttpClient http) : IObjectRepository
     {
         /// <inheritdoc/>

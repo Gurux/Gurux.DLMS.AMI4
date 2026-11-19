@@ -32,42 +32,48 @@ namespace Gurux.DLMS.AMI.Agent.Shared;
 /// <summary>Host-owned asynchronous change signals. Dispose after stopping the worker.</summary>
 public sealed class GXAgentHostNotifications : IGXAgentHostNotifications, IDisposable
 {
-    private readonly object gate = new();
-    private readonly Channel<bool> signal = Channel.CreateBounded<bool>(1);
-    private GXAgentHostChange pending;
-    private bool disposed;
+    /// <summary>Protects concurrent access to the owning object's mutable state.</summary>
+    private readonly object _gate = new();
+    /// <summary>Wakes the consumer when new work or host changes are available.</summary>
+    private readonly Channel<bool> _signal = Channel.CreateBounded<bool>(1);
+    /// <summary>Host changes accumulated until consumed by the notification reader.</summary>
+    private AgentHostChange _pending;
+    /// <summary>Indicates that owned resources have been released.</summary>
+    private bool _disposed;
 
     /// <inheritdoc />
-    public void NotifyVersionAvailable() => Notify(GXAgentHostChange.VersionAvailable);
+    public void NotifyVersionAvailable() => Notify(AgentHostChange.VersionAvailable);
     /// <inheritdoc />
-    public void NotifySettingsChanged() => Notify(GXAgentHostChange.SettingsChanged);
+    public void NotifySettingsChanged() => Notify(AgentHostChange.SettingsChanged);
 
     /// <inheritdoc />
-    public void NotifyAuthenticationRequired() => Notify(GXAgentHostChange.AuthenticationRequired);
+    public void NotifyAuthenticationRequired() => Notify(AgentHostChange.AuthenticationRequired);
 
-    private void Notify(GXAgentHostChange change)
+    /// <summary>Accumulates host changes and wakes the single notification consumer.</summary>
+    /// <param name="change">Host changes to accumulate for the notification consumer.</param>
+    private void Notify(AgentHostChange change)
     {
-        lock (gate)
+        lock (_gate)
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            pending |= change;
-            signal.Writer.TryWrite(true);
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _pending |= change;
+            _signal.Writer.TryWrite(true);
         }
     }
 
     /// <inheritdoc />
-    public async ValueTask<GXAgentHostChange> WaitForChangeAsync(CancellationToken cancellationToken = default)
+    public async ValueTask<AgentHostChange> WaitForChangeAsync(CancellationToken cancellationToken = default)
     {
-        while (await signal.Reader.WaitToReadAsync(cancellationToken))
+        while (await _signal.Reader.WaitToReadAsync(cancellationToken))
         {
-            lock (gate)
+            lock (_gate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ObjectDisposedException.ThrowIf(disposed, this);
-                if (signal.Reader.TryRead(out _))
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (_signal.Reader.TryRead(out _))
                 {
-                    var result = pending;
-                    pending = GXAgentHostChange.None;
+                    var result = _pending;
+                    _pending = AgentHostChange.None;
                     return result;
                 }
             }
@@ -78,14 +84,14 @@ public sealed class GXAgentHostNotifications : IGXAgentHostNotifications, IDispo
     /// <summary>Releases waiting consumers. The host must stop its worker before disposal.</summary>
     public void Dispose()
     {
-        lock (gate)
+        lock (_gate)
         {
-            if (disposed)
+            if (_disposed)
                 {
                 return;
             }
-            disposed = true;
-            signal.Writer.TryComplete();
+            _disposed = true;
+            _signal.Writer.TryComplete();
         }
     }
 }

@@ -33,8 +33,11 @@ namespace Gurux.DLMS.AMI.Agent.Shared;
 /// <summary>A deep, validated configuration snapshot. Editing a returned copy cannot change this snapshot.</summary>
 public sealed class GXAgentOptionsSnapshot
 {
-    private readonly GXAgentOptions value;
-    private GXAgentOptionsSnapshot(GXAgentOptions value) => this.value = value;
+    /// <summary>Validated configuration retained independently of caller-owned copies.</summary>
+    private readonly GXAgentOptions _value;
+    /// <summary>Retains an independently copied and validated configuration object.</summary>
+    /// <param name="value">New configuration or state value to publish.</param>
+    private GXAgentOptionsSnapshot(GXAgentOptions value) => this._value = value;
 
     /// <summary>Creates a detached snapshot after validating the complete configuration.</summary>
     /// <param name="options">Editable configuration.</param>
@@ -50,28 +53,32 @@ public sealed class GXAgentOptionsSnapshot
         return new GXAgentOptionsSnapshot(copy);
     }
 
+    /// <summary>Creates a deep configuration copy through the supported JSON persistence format.</summary>
+    /// <param name="source">Original value copied without sharing mutable state.</param>
+    /// <returns>A deep configuration copy sharing no mutable settings with the source.</returns>
     private static GXAgentOptions Copy(GXAgentOptions source) =>
         JsonSerializer.Deserialize<GXAgentOptions>(JsonSerializer.Serialize(source))!;
 
     /// <summary>Gets a detached, editable copy suitable for JSON persistence. It contains the authentication token.</summary>
     /// <returns>A complete deep copy, including independent worker settings and byte arrays.</returns>
-    public GXAgentOptions ToOptions() => Copy(value);
+    public GXAgentOptions ToOptions() => Copy(_value);
 
     /// <summary>Gets the agent identifier.</summary>
-    public Guid Id => value.Id;
+    public Guid Id => _value.Id;
     /// <summary>Gets the server address.</summary>
-    public string Address => value.Address;
+    public string Address => _value.Address;
     /// <summary>Gets the application version published in this configuration snapshot.</summary>
     /// <remarks>This value describes configuration and does not select an assembly to load.</remarks>
-    public string? Version => value.Version;
+    public string? Version => _value.Version;
     /// <summary>Gets the diagnostic trace level.</summary>
-    public TraceLevel TraceLevel => value.TraceLevel;
+    public TraceLevel TraceLevel => _value.TraceLevel;
 
     // Only the trusted worker assembly can read the published object without copying.
     // It must never mutate this object; every writer captures and publishes a new snapshot.
-    internal GXAgentOptions RuntimeValue => value;
+    /// <summary>Gets the validated object for trusted runtime readers that do not mutate it.</summary>
+    internal GXAgentOptions RuntimeValue => _value;
 
     /// <summary>Returns safe diagnostics without authentication or nested transport credentials.</summary>
     /// <returns>A safe diagnostic summary.</returns>
-    public override string ToString() => value.ToString();
+    public override string ToString() => _value.ToString();
 }

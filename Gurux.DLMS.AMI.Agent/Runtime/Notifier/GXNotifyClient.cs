@@ -32,8 +32,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
+    /// <summary>Decodes incoming DLMS notification messages using configured addressing and keys.</summary>
     internal class GXNotifyClient
     {
+        /// <summary>Decodes incoming DLMS notification messages using configured addressing and keys.</summary>
+        /// <param name="useLogicalNameReferencing">Whether incoming messages use logical-name addressing.</param>
+        /// <param name="interfaceType">DLMS framing interface used by the notification transport.</param>
+        /// <param name="systemTitle">System title identifying the notification sender.</param>
+        /// <param name="scriptMethod">Optional script used to interpret notification payloads.</param>
         public GXNotifyClient(bool useLogicalNameReferencing,
             int interfaceType,
             string? systemTitle, GXScriptMethod? scriptMethod = null)

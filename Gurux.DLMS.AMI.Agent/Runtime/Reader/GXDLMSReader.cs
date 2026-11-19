@@ -35,48 +35,55 @@ using Gurux.DLMS.AMI.Shared.Rest;
 
 using Gurux.DLMS.Enums;
 using Gurux.DLMS.Objects;
-using Gurux.DLMS.Objects.Enums;
 using Gurux.DLMS.Secure;
-using Gurux.Net;
-using Gurux.Serial;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.IO.Ports;
-using System.Text;
+using Gurux.DLMS.DeviceAccess;
+using SharedReader = Gurux.DLMS.DeviceAccess.GXDLMSReader;
 using Task = System.Threading.Tasks.Task;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
+    /// <summary>Executes device protocol exchanges using the shared device-access reader.</summary>
     internal class GXDLMSReader
     {
         /// <summary>
-        /// Wait time.
+        /// Sends AMI action and packet-trace records to the server.
         /// </summary>
-        private readonly HttpClient http;
+        private readonly HttpClient _http;
+        /// <summary>Shared device-access session used for protocol operations.</summary>
+        private readonly SharedReader _session;
+        /// <summary>Gets or sets cancellation for device protocol exchanges.</summary>
         internal CancellationToken CancellationToken { get; set; }
-        private readonly int WaitTime;
+        /// <summary>Maximum device response wait in milliseconds.</summary>
+        private readonly int _waitTime;
         /// <summary>
         /// Retry count.
         /// </summary>
-        private readonly int RetryCount = 3;
+        private readonly int _retryCount = 3;
+        /// <summary>Transport used to exchange bytes with the connected device.</summary>
         private IGXMedia? _media;
-        private IGXMedia Media
-        {
-            get => _media ?? throw new ObjectDisposedException(nameof(GXDLMSReader));
-            set => _media = value;
-        }
+        /// <summary>Gets whether console or persisted device packet tracing is enabled.</summary>
         internal bool PacketTracingEnabled => _consoleTrace != TraceLevel.Off || _deviceTrace != TraceLevel.Off;
+        /// <summary>Minimum trace level for console diagnostics.</summary>
         readonly TraceLevel _consoleTrace;
+        /// <summary>Minimum trace level for persisted device diagnostics.</summary>
         readonly TraceLevel _deviceTrace;
+        /// <summary>Secure DLMS client configured for the shared device session.</summary>
         private GXDLMSSecureClient? _client;
+        /// <summary>Gets the configured secure protocol client for the current device.</summary>
         internal GXDLMSSecureClient Client
         {
             get => _client ?? throw new ObjectDisposedException(nameof(GXDLMSReader));
             private set => _client = value;
         }
+        /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
         private readonly ILogger? _logger;
+        /// <summary>Device whose protocol operations and diagnostics are being processed.</summary>
         private readonly GXDevice? _device;
         /// <summary>Applies the template's time-zone convention and outgoing date/time field exclusions.</summary>
+        /// <param name="client">Configured communication client used by the operation.</param>
+        /// <param name="settings">Device protocol and authentication settings.</param>
         internal static void ApplyDateTimeSettings(GXDLMSClient client, DeviceSettings settings)
         {
             client.UseUtc2NormalTime = settings.UtcTimeZone;
@@ -84,15 +91,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         }
 
         // The server authorizes and fills these values when the device is fetched.
+        /// <summary>Copies configured security titles and keys into the active secure protocol client.</summary>
+        /// <param name="client">Configured communication client used by the operation.</param>
+        /// <param name="settings">Device protocol and authentication settings.</param>
         internal static void ApplyDeviceKeys(GXDLMSSecureClient client, DeviceSettings settings)
         {
             client.Password = settings.Password?.ToArray();
-            client.Ciphering.BlockCipherKey = settings.BlockCipherKey is { Length: > 0 } ? settings.BlockCipherKey.ToArray() : null;
-            client.Ciphering.AuthenticationKey = settings.AuthenticationKey is { Length: > 0 } ? settings.AuthenticationKey.ToArray() : null;
+            client.Ciphering.BlockCipherKey = settings.BlockCipherKey is { Length: > 0 } ? [.. settings.BlockCipherKey] : null;
+            client.Ciphering.AuthenticationKey = settings.AuthenticationKey is { Length: > 0 } ? [.. settings.AuthenticationKey] : null;
             client.Ciphering.DedicatedKey = null;
         }
         /// <summary>
-        /// Constructor.
+        /// Creates an AMI adapter over the shared device-access session.
         /// </summary>
         /// <param name="client">DLMS Client.</param>
         /// <param name="media">Media.</param>
@@ -113,792 +123,78 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             int retry,
             GXDevice? device, HttpClient http)
         {
-            this.http = http;
+            this._http = http;
             ArgumentOutOfRangeException.ThrowIfNegative(wt);
-            WaitTime = checked((int)TimeSpan.FromSeconds(wt).TotalMilliseconds);
-            RetryCount = retry;
+            // A missing DTO timeout selects the shared session default.
+            _waitTime = wt == 0 ? 5000 : checked((int)TimeSpan.FromSeconds(wt).TotalMilliseconds);
+            _retryCount = retry;
             _consoleTrace = consoleTrace;
             _deviceTrace = deviceTrace;
-            Media = media;
+            _media = media;
             Client = client;
             _logger = logger;
             _device = device;
-        }
-
-        // Protocol methods are synchronous; slice receives without changing the total configured timeout.
-        internal bool Receive<T>(ReceiveParameters<T> parameters)
-        {
-            int timeout = parameters.WaitTime;
-            var elapsed = Stopwatch.StartNew();
-            try
+            _session = new SharedReader(client, media as IGXAsyncMedia ?? throw new ArgumentException("The media must support asynchronous communication.", nameof(media)), new GXDLMSReaderOptions
             {
-                do
-                {
-                    CancellationToken.ThrowIfCancellationRequested();
-                    parameters.WaitTime = timeout <= 0 ? 250 : Math.Min(250, Math.Max(1, timeout - (int)elapsed.ElapsedMilliseconds));
-                    bool received = Media.Receive(parameters);
-                    CancellationToken.ThrowIfCancellationRequested();
-                    if (received)
-                        {
-                        return true;
-                    }
-                } while (timeout <= 0 || elapsed.ElapsedMilliseconds < timeout);
-                return false;
-            }
-            catch (Exception) when (CancellationToken.IsCancellationRequested)
+                WaitTime = _waitTime,
+                RetryCount = _retryCount,
+                CheckAccessRights = false,
+                TraceLevel = TraceLevel.Off
+            })
             {
-                CancellationToken.ThrowIfCancellationRequested();
-                throw;
-            }
-            finally { parameters.WaitTime = timeout; }
-        }
-
-        internal void Wait(int milliseconds)
-        {
-            CancellationToken.ThrowIfCancellationRequested();
-            if (CancellationToken.WaitHandle.WaitOne(milliseconds))
-                {
-                CancellationToken.ThrowIfCancellationRequested();
-            }
-        }
-        /// <summary>
-        /// Send IEC disconnect message.
-        /// </summary>
-        void DiscIEC()
-        {
-            ReceiveParameters<string?> p = new()
-            {
-                AllData = false,
-                Eop = (byte)0x0A,
-                WaitTime = WaitTime
+                OnPacketTrace = packet => WriteTrace(packet.Sent, GXCommon.ToHex(packet.Data, true)).GetAwaiter().GetResult()
             };
-            string data = (char)0x01 + "B0" + (char)0x03 + "\r\n";
-            Media.Send(data, null);
-            p.Eop = "\n";
-            p.AllData = true;
-            p.Count = 1;
-
-            Receive(p);
         }
 
         /// <summary>
-        /// Initialize optical head.
+        /// Initialize the shared meter session without fetching an association view.
         /// </summary>
-        void InitializeOpticalHead()
+        /// <param name="preEstablished">Whether the device association is already established.</param>
+        /// <param name="ignoreSNRMWithPreEstablished">Whether link negotiation is skipped for a pre-established association.</param>
+        /// <param name="invocationCounter">Invocation counter object used to synchronize secure message numbering.</param>
+        /// <returns>A task completing when the device association has been established.</returns>
+        public Task InitializeConnection(bool preEstablished, bool ignoreSNRMWithPreEstablished, string? invocationCounter)
         {
-            if (Client.InterfaceType != InterfaceType.HdlcWithModeE)
-            {
-                return;
-            }
-            GXSerial? serial = Media as GXSerial;
-            byte Terminator = (byte)0x0A;
-            Media.Open();
-            if (serial != null)
-            {
-                //Some meters need a little break.
-                Wait(1000);
-            }
-            //Query device information.
-            string data = "/?!\r\n";
-            if (_consoleTrace > TraceLevel.Info)
-            {
-                Console.WriteLine("IEC Sending:" + data);
-            }
-            ReceiveParameters<string?> p = new()
-            {
-                AllData = false,
-                Eop = Terminator,
-                WaitTime = WaitTime
-            };
-            lock (Media.Synchronous)
-            {
-                Media.Send(data, null);
-                if (!Receive(p))
-                {
-                    //Try to move away from mode E.
-                    try
-                    {
-                        Disconnect();
-                    }
-                    catch (Exception)
-                    {
-                    }
-                    DiscIEC();
-                    string str = "Failed to receive reply from the device in given time.";
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine(str);
-                    }
-                    Media.Send(data, null);
-                    if (!Receive(p))
-                    {
-                        throw new Exception(str);
-                    }
-                }
-                //If echo is used.
-                if (p.Reply == data)
-                {
-                    p.Reply = null;
-                    if (!Receive(p))
-                    {
-                        //Try to move away from mode E.
-                        GXReplyData reply = new();
-                        Disconnect();
-                        if (serial != null)
-                        {
-                            DiscIEC();
-                            serial.DtrEnable = serial.RtsEnable = false;
-                            serial.BaudRate = 9600;
-                            serial.DtrEnable = serial.RtsEnable = true;
-                            DiscIEC();
-                        }
-                        data = "Failed to receive reply from the device in given time.";
-                        if (_consoleTrace > TraceLevel.Info)
-                        {
-                            Console.WriteLine(data);
-                        }
-                        throw new Exception(data);
-                    }
-                }
-            }
-            if (_consoleTrace > TraceLevel.Info)
-            {
-                Console.WriteLine("IEC received: " + p.Reply);
-            }
-            if (string.IsNullOrEmpty(p.Reply))
-            {
-                throw new Exception("Empty IEC response.");
-            }
-            int pos = 0;
-            //With some meters there might be some extra invalid chars. Remove them.
-            while (pos < p.Reply.Length && p.Reply[pos] != '/')
-            {
-                ++pos;
-            }
-            if (pos == p.Reply.Length || p.Reply[pos] != '/')
-            {
-                p.WaitTime = 100;
-                Receive(p);
-                DiscIEC();
-                throw new Exception("Invalid responce.");
-            }
-
-            _ = p.Reply.Substring(1 + pos, 3);
-            char baudrate = p.Reply[4 + pos];
-            int BaudRate = baudrate switch
-            {
-                '0' => 300,
-                '1' => 600,
-                '2' => 1200,
-                '3' => 2400,
-                '4' => 4800,
-                '5' => 9600,
-                '6' => 19200,
-                _ => throw new Exception("Unknown baud rate."),
-            };
-            if (_consoleTrace > TraceLevel.Info)
-            {
-                Console.WriteLine(DateTime.Now.ToLongTimeString() + "\tBaudRate is : " + BaudRate.ToString());
-            }
-            //Send ACK
-            //Send Protocol control character
-            // "2" HDLC protocol procedure (Mode E)
-            byte controlCharacter = (byte)'2';
-            //Send Baud rate character
-            //Mode control character
-            byte ModeControlCharacter = (byte)'2';
-            //"2" //(HDLC protocol procedure) (Binary mode)
-            //Set mode E.
-            byte[] arr = [0x06, controlCharacter, (byte)baudrate, ModeControlCharacter, 13, 10];
-            if (_consoleTrace > TraceLevel.Info)
-            {
-                Console.WriteLine(DateTime.Now.ToLongTimeString() + "\tMoving to mode E.", arr);
-            }
-            lock (Media.Synchronous)
-            {
-                p.Reply = null;
-                Media.Send(arr, null);
-                //Some meters need this sleep. Do not remove.
-                Wait(200);
-                p.WaitTime = 2000;
-                //Note! All meters do not echo this.
-                Receive(p);
-                if (p.Reply != null)
-                {
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine("Received: " + p.Reply);
-                    }
-                }
-                if (serial != null)
-                {
-                    Media.Close();
-                    serial.BaudRate = BaudRate;
-                    serial.DataBits = 8;
-                    serial.Parity = Parity.None;
-                    serial.StopBits = StopBits.One;
-                    Media.Open();
-                }
-                //Some meters need this sleep. Do not remove.
-                Wait(800);
-            }
-        }
-
-        /// <summary>
-        /// Read Invocation counter (frame counter) from the meter and update it.
-        /// </summary>
-        private async Task UpdateFrameCounter(string? invocationCounter)
-        {
-            //Read frame counter if GeneralProtection is used.
-            if (!string.IsNullOrEmpty(invocationCounter) && Client.Ciphering != null && Client.Ciphering.Security != Security.None)
-            {
-                InitializeOpticalHead();
-                byte[] data;
-                GXReplyData reply = new();
-                Client.ProposedConformance |= Conformance.GeneralProtection;
-                int add = Client.ClientAddress;
-                Authentication auth = Client.Authentication;
-                Security security = Client.Ciphering.Security;
-                Signing signing = Client.Ciphering.Signing;
-                byte[] challenge = Client.CtoSChallenge;
-                try
-                {
-                    Client.ClientAddress = 16;
-                    Client.Authentication = Authentication.None;
-                    Client.Ciphering.Security = Security.None;
-                    Client.Ciphering.Signing = Signing.None;
-                    data = Client.SNRMRequest();
-                    if (data != null)
-                    {
-                        if (_consoleTrace > TraceLevel.Info)
-                        {
-                            Console.WriteLine("Send SNRM request." + GXCommon.ToHex(data, true));
-                        }
-                        ReadDataBlock(data, reply);
-                        if (_consoleTrace == TraceLevel.Verbose)
-                        {
-                            Console.WriteLine("Parsing UA reply." + reply.ToString());
-                        }
-                        //Has server accepted client.
-                        Client.ParseUAResponse(reply.Data);
-                        if (_consoleTrace > TraceLevel.Info)
-                        {
-                            Console.WriteLine("Parsing UA reply succeeded.");
-                        }
-                    }
-                    //Generate AARQ request.
-                    //Split requests to multiple packets if needed.
-                    //If password is used all data might not fit to one packet.
-                    CancellationToken.ThrowIfCancellationRequested();
-                    foreach (byte[] it in Client.AARQRequest())
-                    {
-                        if (_consoleTrace > TraceLevel.Info)
-                        {
-                            Console.WriteLine("Send AARQ request {0}", GXCommon.ToHex(it, true));
-                        }
-                        reply.Clear();
-                        ReadDataBlock(it, reply);
-                    }
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine("Parsing AARE reply" + reply.ToString());
-                    }
-                    try
-                    {
-                        //Parse reply.
-                        CancellationToken.ThrowIfCancellationRequested();
-                        Client.ParseAAREResponse(reply.Data);
-                        reply.Clear();
-                        GXDLMSData d = new(invocationCounter);
-                        await Read(d, 2);
-                        Client.Ciphering.InvocationCounter = 1 + Convert.ToUInt32(d.Value);
-                        Console.WriteLine("Invocation counter: " + Convert.ToString(Client.Ciphering.InvocationCounter));
-                        reply.Clear();
-                        Disconnect(false);
-                        //Some meters need this sleep. Do not remove.
-                        Wait(800);
-                    }
-                    catch (Exception)
-                    {
-                        Disconnect();
-                        throw;
-                    }
-                }
-                finally
-                {
-                    Client.ClientAddress = add;
-                    Client.Authentication = auth;
-                    Client.Ciphering.Security = security;
-                    Client.CtoSChallenge = challenge;
-                    Client.Ciphering.Signing = signing;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Initialize connection to the meter.
-        /// </summary>
-        public async Task InitializeConnection(bool preEstablished, bool ignoreSNRMWithPreEstablished, string? invocationCounter)
-        {
-            await UpdateFrameCounter(invocationCounter);
-            InitializeOpticalHead();
-            GXReplyData reply = new();
-            byte[] data;
-            if (!ignoreSNRMWithPreEstablished)
-            {
-                data = Client.SNRMRequest();
-                if (data != null)
-                {
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine("Send SNRM request." + GXCommon.ToHex(data, true));
-                    }
-                    ReadDataBlock(data, reply);
-                    if (_consoleTrace == TraceLevel.Verbose)
-                    {
-                        Console.WriteLine("Parsing UA reply." + reply.ToString());
-                    }
-                    //Has server accepted client.
-                    Client.ParseUAResponse(reply.Data);
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine("Parsing UA reply succeeded.");
-                    }
-                }
-            }
             if (!preEstablished)
             {
-                //Generate AARQ request.
-                //Split requests to multiple packets if needed.
-                //If password is used all data might not fit to one packet.
-                CancellationToken.ThrowIfCancellationRequested();
-                foreach (byte[] it in Client.AARQRequest())
-                {
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine("Send AARQ request {0}", GXCommon.ToHex(it, true));
-                    }
-                    reply.Clear();
-                    ReadDataBlock(it, reply);
-                }
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Parsing AARE reply" + reply.ToString());
-                }
-                //Parse reply.
-                CancellationToken.ThrowIfCancellationRequested();
-                Client.ParseAAREResponse(reply.Data);
-                reply.Clear();
-                //Get challenge Is HLS authentication is used.
-                if (Client.Authentication > Authentication.Low)
-                {
-                    CancellationToken.ThrowIfCancellationRequested();
-                    foreach (byte[] it in Client.GetApplicationAssociationRequest())
-                    {
-                        reply.Clear();
-                        ReadDataBlock(it, reply);
-                    }
-                    CancellationToken.ThrowIfCancellationRequested();
-                    Client.ParseApplicationAssociationResponse(reply.Data);
-                }
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Parsing AARE reply succeeded.");
-                }
+                Client.ServerSystemTitle = null;
             }
+            else if (!Client.PreEstablishedConnection)
+            {
+                throw new InvalidOperationException("Pre-established associations require a device system title.");
+            }
+            return _session.ConnectAsync(new GXDLMSConnectOptions
+            {
+                WaitTime = _waitTime,
+                RetryCount = _retryCount,
+                InvocationCounter = invocationCounter,
+                IgnoreSNRMWithPreEstablished = ignoreSNRMWithPreEstablished,
+                ReadAssociationView = false
+            }, CancellationToken);
         }
 
         /// <summary>
         /// This method is used to update meter firmware.
         /// </summary>
-        /// <param name="target"></param>
+        /// <param name="target">Image transfer object accepting the firmware image.</param>
         /// <param name="identification">Firmware image identifier.</param>
         /// <param name="data">Firmware image bytes.</param>
         public void ImageUpdate(GXDLMSImageTransfer target, byte[] identification, byte[] data)
         {
-            //Check that image transfer ia enabled.
-            GXReplyData reply = new();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.Read(target, 5), reply);
-            Client.UpdateValue(target, 5, reply.Value);
-            if (!target.ImageTransferEnabled)
-            {
-                throw new Exception("Image transfer is not enabled");
-            }
-
-            //Step 1: Read image block size.
-            reply.Clear();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.Read(target, 2), reply);
-            Client.UpdateValue(target, 2, reply.Value);
-
-            // Step 2: Initiate the Image transfer process.
-            reply.Clear();
-            ReadDataBlock(target.ImageTransferInitiate(Client, identification, data.Length), reply);
-
-            // Step 3: Transfers ImageBlocks.
-            reply.Clear();
-            ReadDataBlock(target.ImageBlockTransfer(Client, data, out _), reply);
-
-            //Step 4: Check the completeness of the Image.
-            reply.Clear();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.Read(target, 3), reply);
-            Client.UpdateValue(target, 3, reply.Value);
-            DateTime now = DateTime.Now;
-            // Step 5: The Image is verified;
-            try
-            {
-                reply.Clear();
-                ReadDataBlock(target.ImageVerify(Client), reply);
-            }
-            catch (GXDLMSException e)
-            {
-                if (e.ErrorCode != (short)ErrorCode.TemporaryFailure)
-                {
-                    throw;
-                }
-                do
-                {
-                    Wait(10000);
-                    //Read image transfer status.
-                    reply.Clear();
-                    CancellationToken.ThrowIfCancellationRequested();
-                    ReadDataBlock(Client.Read(target, 6), reply);
-                    Client.UpdateValue(target, 6, reply.Value);
-                    //The image verify can take max 30 mins.
-                    if ((DateTime.Now - now).TotalMinutes > 30)
-                    {
-                        throw new TimeoutException();
-                    }
-                }
-                while (target.ImageTransferStatus != ImageTransferStatus.VerificationSuccessful &&
-                target.ImageTransferStatus != ImageTransferStatus.VerificationFailed);
-            }
-            //Step 7: Activate image.
-            try
-            {
-                reply.Clear();
-                ReadDataBlock(target.ImageActivate(Client), reply);
-            }
-            catch (GXDLMSException e)
-            {
-                if (e.ErrorCode != (short)ErrorCode.TemporaryFailure)
-                {
-                    throw;
-                }
-                do
-                {
-                    Wait(10000);
-                    //Read image transfer status.
-                    reply.Clear();
-                    CancellationToken.ThrowIfCancellationRequested();
-                    ReadDataBlock(Client.Read(target, 6), reply);
-                    Client.UpdateValue(target, 6, reply.Value);
-                    //The image activication can take max 30 mins.
-                    if ((DateTime.Now - now).TotalMinutes > 30)
-                    {
-                        throw new TimeoutException();
-                    }
-                } while (target.ImageTransferStatus != ImageTransferStatus.ActivationSuccessful &&
-                target.ImageTransferStatus != ImageTransferStatus.ActivationFailed);
-            }
-            ;
+            _session.ImageUpdate(target, identification, data, cancellationToken: CancellationToken);
         }
 
         /// <summary>
         /// Read association view.
         /// </summary>
+        /// <param name="useCache">Whether previously read scaler and unit values may be reused.</param>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public void GetAssociationView(bool useCache)
         {
-            // Association views are always read from the device; retain the legacy API argument.
+            // No file cache was used by the agent; always refresh the shared collection.
             _ = useCache;
-            GXReplyData reply = new();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.GetObjectsRequest(), reply);
-            Client.ParseObjects(reply.Data, true);
-        }
-
-        /// <summary>
-        /// Read scalers and units.
-        /// </summary>
-        public async Task GetScalersAndUnits()
-        {
-            GXDLMSObjectCollection objs = Client.Objects.GetObjects([ObjectType.Register, ObjectType.ExtendedRegister, ObjectType.DemandRegister]);
-            //If trace is info.
-            if (_consoleTrace > TraceLevel.Warning)
-            {
-                Console.WriteLine("Read scalers and units from the device.");
-            }
-            if ((Client.NegotiatedConformance & Conformance.MultipleReferences) != 0)
-            {
-                List<KeyValuePair<GXDLMSObject, int>> list = [];
-                foreach (GXDLMSObject it in objs)
-                {
-                    if (it is GXDLMSRegister)
-                    {
-                        list.Add(new KeyValuePair<GXDLMSObject, int>(it, 3));
-                    }
-                    if (it is GXDLMSDemandRegister)
-                    {
-                        list.Add(new KeyValuePair<GXDLMSObject, int>(it, 4));
-                    }
-                }
-                if (list.Count != 0)
-                {
-                    ReadList(list);
-                }
-            }
-            else
-            {
-                //Read values one by one.
-                foreach (GXDLMSObject it in objs)
-                {
-                    try
-                    {
-                        if (it is GXDLMSRegister)
-                        {
-                            Console.WriteLine(it.Name);
-                            await Read(it, 3);
-                        }
-                        if (it is GXDLMSDemandRegister)
-                        {
-                            Console.WriteLine(it.Name);
-                            await Read(it, 4);
-                        }
-                    }
-                    catch
-                    {
-                        //Actaric SL7000 can return error here. Continue reading.
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Read profile generic columns.
-        /// </summary>
-        public async Task GetProfileGenericColumns()
-        {
-            //Read Profile Generic columns first.
-            foreach (GXDLMSObject it in Client.Objects.GetObjects(ObjectType.ProfileGeneric))
-            {
-                try
-                {
-                    //If info.
-                    if (_consoleTrace > TraceLevel.Warning)
-                    {
-                        Console.WriteLine(it.LogicalName);
-                    }
-                    await Read(it, 3);
-                    //If info.
-                    if (_consoleTrace > TraceLevel.Warning)
-                    {
-                        GXDLMSObject[] cols = ((GXDLMSProfileGeneric)it).GetCaptureObject();
-                        StringBuilder sb = new();
-                        bool First = true;
-                        foreach (GXDLMSObject col in cols)
-                        {
-                            if (!First)
-                            {
-                                sb.Append(" | ");
-                            }
-                            First = false;
-                            sb.Append(col.Name);
-                            sb.Append(' ');
-                            sb.Append(col.Description);
-                        }
-                        Console.WriteLine(sb.ToString());
-                    }
-                }
-                catch (Exception)
-                {
-                    //Continue reading.
-                }
-            }
-        }
-
-        /// <summary>
-        /// Read DLMS Data from the device.
-        /// </summary>
-        /// <param name="data">Data to send.</param>
-        /// <param name="reply">Reply populated with received data.</param>
-        /// <returns>Received data.</returns>
-        public void ReadDLMSPacket(byte[]? data, GXReplyData reply)
-        {
-            CancellationToken.ThrowIfCancellationRequested();
-            if (data == null && !reply.IsStreaming())
-            {
-                return;
-            }
-            reply.Error = 0;
-            object? eop = (byte)0x7E;
-            //In network connection terminator is not used.
-            if (Client.InterfaceType == InterfaceType.WRAPPER && Media is GXNet)
-            {
-                eop = null;
-            }
-            int pos = 0;
-            bool succeeded = false;
-            ReceiveParameters<byte[]> p = new()
-            {
-                Eop = eop,
-                Count = 5,
-                WaitTime = WaitTime,
-            };
-            GXReplyData notify = new();
-            lock (Media.Synchronous)
-            {
-                while (!succeeded && pos != 3)
-                {
-                    if (!reply.IsStreaming())
-                    {
-                        WriteTrace(true, GXCommon.ToHex(data, true)).GetAwaiter().GetResult();
-                        Media.Send(data, null);
-                    }
-                    succeeded = Receive(p);
-                    if (!succeeded)
-                    {
-                        if (++pos >= RetryCount)
-                        {
-                            throw new Exception("Failed to receive reply from the device in given time.");
-                        }
-                        //If Eop is not set read one byte at time.
-                        if (p.Eop == null)
-                        {
-                            p.Count = 1;
-                        }
-                        //Try to read again...
-                        System.Diagnostics.Debug.WriteLine("Data send failed. Try to resend " + pos.ToString() + "/3");
-                    }
-                }
-                try
-                {
-                    pos = 0;
-                    //Loop until whole COSEM packet is received.
-                    CancellationToken.ThrowIfCancellationRequested();
-                    while (!Client.GetData(p.Reply, reply, notify))
-                    {
-                        // If all data is received.
-                        if (notify.IsComplete && !notify.IsMoreData)
-                        {
-                            /*
-                            try
-                            {
-                                if (GXNotifyListener.Parser != null)
-                                {
-                                    GXAMIClient cl = new GXAMIClient();
-                                    GXNotifyListener.Parser.Parse(Media.ToString(), notify.Value, cl.GetData, cl.SetData);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                //TODO: Save error to the database.
-                            }
-                            */
-                            notify.Clear();
-                        }
-
-                        //If Eop is not set read one byte at time.
-                        if (p.Eop == null)
-                        {
-                            p.Count = 1;
-                        }
-                        while (!Receive(p))
-                        {
-                            if (++pos >= RetryCount)
-                            {
-                                throw new Exception("Failed to receive reply from the device in given time.");
-                            }
-                            //If echo.
-                            if (data != null && (p.Reply == null || p.Reply.Length == data.Length))
-                            {
-                                Media.Send(data, null);
-                            }
-                            //Try to read again...
-                            System.Diagnostics.Debug.WriteLine("Data send failed. Try to resend " + pos.ToString() + "/3");
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    WriteTrace(false, GXCommon.ToHex(p.Reply, true)).GetAwaiter().GetResult();
-                    throw;
-                }
-            }
-            WriteTrace(false, GXCommon.ToHex(p.Reply, true)).GetAwaiter().GetResult();
-            if (reply.Error != 0)
-            {
-                if (reply.Error == (short)ErrorCode.Rejected)
-                {
-                    Wait(1000);
-                    ReadDLMSPacket(data, reply);
-                }
-                else
-                {
-                    throw new GXDLMSException(reply.Error);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Send data block(s) to the meter.
-        /// </summary>
-        /// <param name="data">Send data block(s).</param>
-        /// <param name="reply">Received reply from the meter.</param>
-        /// <returns>Return false if frame is rejected.</returns>
-        public bool ReadDataBlock(byte[][] data, GXReplyData reply)
-        {
-            if (data == null)
-            {
-                return true;
-            }
-            foreach (byte[] it in data)
-            {
-                reply.Clear();
-                ReadDataBlock(it, reply);
-            }
-            return reply.Error == 0;
-        }
-
-        /// <summary>
-        /// Read data block from the device.
-        /// </summary>
-        /// <param name="data">data to send</param>
-        /// <param name="reply">Received data.</param>
-        /// <returns>Received data.</returns>
-        public void ReadDataBlock(byte[]? data, GXReplyData reply)
-        {
-            ReadDLMSPacket(data, reply);
-            lock (Media.Synchronous)
-            {
-                while (reply.IsMoreData)
-                {
-                    CancellationToken.ThrowIfCancellationRequested();
-                    if (reply.IsStreaming())
-                    {
-                        data = null;
-                    }
-                    else
-                    {
-                        CancellationToken.ThrowIfCancellationRequested();
-                        data = Client.ReceiverReady(reply);
-                    }
-                    ReadDLMSPacket(data, reply);
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        //If data block is read.
-                        if ((reply.MoreData & RequestTypes.Frame) == 0)
-                        {
-                            Console.Write("+");
-                        }
-                        else
-                        {
-                            Console.Write("-");
-                        }
-                    }
-                }
-            }
+            _session.EnsureAssociationView(forceRefresh: true, cancellationToken: CancellationToken);
         }
 
         /// <summary>
@@ -907,6 +203,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <param name="it">COSEM object to read.</param>
         /// <param name="attributeIndex">Attribute index.</param>
         /// <returns>Read value.</returns>
+        /// <remarks>Scalar reads use the shared attribute operation; composite values retain their typed XML representation.</remarks>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public async Task<object> Read(GXDLMSObject it, int attributeIndex)
         {
             string type = "Read";
@@ -929,44 +228,40 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             try
             {
-                GXReplyData reply = new();
-                CancellationToken.ThrowIfCancellationRequested();
-                if (!ReadDataBlock(Client.Read(it, attributeIndex), reply))
+                DataType dataType = it.GetDataType(attributeIndex);
+                object? value;
+                if (dataType != DataType.None && dataType != DataType.Array && dataType != DataType.Structure)
                 {
-                    if (reply.Error != (short)ErrorCode.Rejected)
-                    {
-                        throw new GXDLMSException(reply.Error);
-                    }
-                    reply.Clear();
-                    Wait(1000);
-                    CancellationToken.ThrowIfCancellationRequested();
-                    if (!ReadDataBlock(Client.Read(it, attributeIndex), reply))
-                    {
-                        throw new GXDLMSException(reply.Error);
-                    }
+                    value = await _session.ReadAsync(it, attributeIndex, cancellationToken: CancellationToken);
                 }
-                //Update data type.
-                DataType dt = it.GetDataType(attributeIndex);
-                if (dt == DataType.None)
+                else
                 {
-                    it.SetDataType(attributeIndex, reply.DataType);
-                    dt = reply.DataType;
-                }
-                if (dt == DataType.Array || dt == DataType.Structure || reply.Value is GXStructure || reply.Value is GXArray)
-                {
-                    if (it is GXDLMSProfileGeneric && attributeIndex == 2)
+                    // AMI persists typed wire XML, not the object's display value.
+                    // Exchange creates requests under the shared session gate and owns all I/O.
+                    GXReplyData reply = await _session.ExchangeAsync(
+                        client => client.Read(it, attributeIndex), CancellationToken);
+                    if (dataType == DataType.None)
                     {
-                        return reply.Value;
+                        it.SetDataType(attributeIndex, reply.DataType);
+                        dataType = reply.DataType;
                     }
-                    if (reply.Value == null)
+                    if (dataType == DataType.Array || dataType == DataType.Structure ||
+                        reply.Value is GXStructure || reply.Value is GXArray)
                     {
-                        return "";
+                        if (it is GXDLMSProfileGeneric && attributeIndex == 2)
+                        {
+                            return reply.Value;
+                        }
+                        if (reply.Value == null)
+                        {
+                            return "";
+                        }
+                        string xml = GXDLMSTranslator.ValueToXml(reply.Value);
+                        a?.Reply = xml;
+                        return xml;
                     }
-                    string xml = GXDLMSTranslator.ValueToXml(reply.Value);
-                    a?.Reply = xml;
-                    return xml;
+                    value = Client.UpdateValue(it, attributeIndex, reply.Value);
                 }
-                object value = Client.UpdateValue(it, attributeIndex, reply.Value);
                 if (a != null)
                 {
                     if (value is byte[] b)
@@ -978,7 +273,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         a.Reply = Convert.ToString(value);
                     }
                 }
-                return value;
+                return value!;
             }
             catch (Exception ex)
             {
@@ -999,7 +294,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         Logs = [a],
                         Type = type
                     };
-                    await http.PostAsJson<AddLogResponse>("/api/Log/Add?source=device-action", log, CancellationToken);
+                    await _http.PostAsJson<AddLogResponse>("/api/Log/Add?source=device-action", log, CancellationToken);
                 }
             }
         }
@@ -1008,79 +303,73 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Read list of attributes.
         /// </summary>
+        /// <param name="list">Protocol objects or attributes included in the batch operation.</param>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public void ReadList(List<KeyValuePair<GXDLMSObject, int>> list)
         {
-            CancellationToken.ThrowIfCancellationRequested();
-            byte[][] data = Client.ReadList(list);
-            GXReplyData reply = new();
-            List<object> values = [];
-            foreach (byte[] it in data)
-            {
-                ReadDataBlock(it, reply);
-                if (list.Count != 1 && reply.Value is object[] replyValues)
-                {
-                    values.AddRange(replyValues);
-                }
-                else if (reply.Value != null)
-                {
-                    //Value is null if data is send in multiple frames.
-                    values.Add(reply.Value);
-                }
-                reply.Clear();
-            }
-            if (values.Count != list.Count)
-            {
-                throw new Exception("Invalid reply. Read items count do not match.");
-            }
-            Client.UpdateValues(list, values);
+            _session.ReadList(list, cancellationToken: CancellationToken);
         }
 
         /// <summary>
         /// Write attribute value.
         /// </summary>
+        /// <param name="it">Protocol object or profile whose data is requested.</param>
+        /// <param name="attributeIndex">Attribute index on the target protocol object.</param>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public void Write(GXDLMSObject it, int attributeIndex)
         {
-            GXReplyData reply = new();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.Write(it, attributeIndex), reply);
+            _session.Write(it, attributeIndex, cancellationToken: CancellationToken);
         }
 
         /// <summary>
         /// Method attribute value.
         /// </summary>
+        /// <param name="it">Protocol object or profile whose data is requested.</param>
+        /// <param name="attributeIndex">Attribute index on the target protocol object.</param>
+        /// <param name="value">New configuration or state value to publish.</param>
+        /// <param name="type">Protocol data type or notification category processed by this operation.</param>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public void Method(GXDLMSObject it, int attributeIndex, object value, DataType type)
         {
-            GXReplyData reply = new();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.Method(it, attributeIndex, value, type), reply);
+            _session.Method(it, attributeIndex, value, type, cancellationToken: CancellationToken);
         }
 
         /// <summary>
         /// Read Profile Generic Columns by entry.
         /// </summary>
+        /// <param name="it">Protocol object or profile whose data is requested.</param>
+        /// <param name="index">Protocol attribute index receiving the decoded value.</param>
+        /// <param name="count">Maximum number of profile entries to retrieve.</param>
+        /// <returns>Decoded profile rows within the requested entry range.</returns>
+        /// <remarks>Uses the shared raw exchange to preserve GXArray rows and unconverted octets required by AMI history.</remarks>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public object ReadRowsByEntry(GXDLMSProfileGeneric it, UInt32 index, UInt32 count)
         {
-            GXReplyData reply = new();
-            CancellationToken.ThrowIfCancellationRequested();
-            ReadDataBlock(Client.ReadRowsByEntry(it, index, count), reply);
-            return reply.Value;
+            return _session.Exchange(client => client.ReadRowsByEntry(it, index, count), CancellationToken).Value;
         }
 
         /// <summary>
         /// Read Profile Generic Columns by range.
         /// </summary>
+        /// <param name="it">Protocol object or profile whose data is requested.</param>
+        /// <param name="start">Beginning of the requested profile history interval.</param>
+        /// <param name="end">End of the requested profile history interval.</param>
+        /// <returns>Decoded profile rows within the requested time range.</returns>
+        /// <remarks>Preserves typed wire rows instead of converting them into the shared reader's profile buffer.</remarks>
+        /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public object ReadRowsByRange(GXDLMSProfileGeneric it, DateTime start, DateTime end)
         {
-            GXReplyData reply = new();
-            CancellationToken.ThrowIfCancellationRequested();
-            if (!ReadDataBlock(Client.ReadRowsByRange(it, start, end), reply))
-                {
-                throw new GXDLMSException(reply.Error);
-            }
-            return reply.Value;
+            return _session.Exchange(client => client.ReadRowsByRange(it, start, end), CancellationToken).Value;
         }
 
         /// <summary>Opens a fresh association to prove the new LLS password before server activation.</summary>
+        /// <param name="password">Authentication secret used to establish the replacement association.</param>
+        /// <returns>A task completing when the device association using the supplied password is established.</returns>
         internal async Task ReconnectWithPasswordAsync(byte[] password)
         {
             if (_consoleTrace != TraceLevel.Off || _deviceTrace != TraceLevel.Off)
@@ -1089,32 +378,30 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             CancellationToken.ThrowIfCancellationRequested();
             Disconnect();
-            Media.Open();
-            Client.Password = password.ToArray();
+            Client.Password = [.. password];
             await InitializeConnection(false, false, null);
         }
 
         /// <summary>Disconnects the association and optionally closes the transport.</summary>
+        /// <param name="closeConnection">Whether the transport must also be closed after releasing the association.</param>
         public void Disconnect(bool closeConnection = true)
         {
             if (_media != null && _client != null)
             {
                 try
                 {
-                    if (_consoleTrace > TraceLevel.Info)
-                    {
-                        Console.WriteLine("Disconnecting from the meter.");
-                    }
-                    GXReplyData reply = new();
-                    ReadDLMSPacket(Client.DisconnectRequest(), reply);
                     if (closeConnection)
                     {
-                        Media.Close();
+                        _session.Close(CancellationToken);
+                    }
+                    else
+                    {
+                        _session.Disconnect(CancellationToken);
                     }
                 }
-                catch
+                catch (Exception error)
                 {
-
+                    _logger?.LogDebug(error, "Disconnecting from the meter failed.");
                 }
             }
         }
@@ -1126,25 +413,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         {
             if (_media != null && _client != null)
             {
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Release from the meter.");
-                }
-                GXReplyData reply = new();
                 try
                 {
-
-                    if (Client.InterfaceType == InterfaceType.WRAPPER ||
-                        Client.Ciphering.Security != (byte)Security.None)
-                    {
-                        CancellationToken.ThrowIfCancellationRequested();
-                        ReadDataBlock(Client.ReleaseRequest(), reply);
-                    }
+                    _session.Release(CancellationToken);
                 }
-                catch (Exception ex)
+                catch (Exception error)
                 {
-                    //All meters don't support Release.
-                    Console.WriteLine("Release failed. " + ex.Message);
+                    _logger?.LogDebug(error, "Releasing the meter association failed.");
                 }
             }
         }
@@ -1154,39 +429,24 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// </summary>
         public void Close()
         {
-            var media = _media;
-            var client = _client;
-            if (media == null)
-                {
+            if (_media == null)
+            {
                 return;
             }
             try
             {
-                if (client != null && !CancellationToken.IsCancellationRequested)
-                {
-                    var reply = new GXReplyData();
-                    try
-                    {
-                        if ((client.ConnectionState & ConnectionState.Dlms) != 0 &&
-                            (client.InterfaceType == InterfaceType.WRAPPER || client.Ciphering.Security != Security.None))
-                        {
-                            CancellationToken.ThrowIfCancellationRequested();
-                            ReadDataBlock(client.ReleaseRequest(), reply);
-                        }
-                    }
-                    catch (Exception error) { _logger?.LogDebug(error, "Releasing the meter association failed."); }
-                    if (client.ConnectionState != 0)
-                    {
-                        reply.Clear();
-                        ReadDLMSPacket(client.DisconnectRequest(), reply);
-                    }
-                }
+                _session.Close(CancellationToken);
             }
-            catch (Exception error) { _logger?.LogDebug(error, "Disconnecting from the meter failed."); }
+            catch (Exception error)
+            {
+                _logger?.LogDebug(error, "Disconnecting from the meter failed.");
+            }
             finally
             {
                 try
-                { media.Close(); }
+                {
+                    _session.Dispose();
+                }
                 finally
                 {
                     _media = null;
@@ -1199,6 +459,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// </summary>
         /// <param name="frame">Data frame as a hex string.</param>
         /// <param name="tx">True for transmitted frames, false for received frames.</param>
+        /// <returns>A task completing after the trace data has been recorded.</returns>
         async Task WriteTrace(bool tx, string frame)
         {
             if (_consoleTrace > TraceLevel.Info)
@@ -1239,7 +500,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     {
                         it.Type = "Receive";
                     }
-                    await http.PostAsJson<AddDeviceTraceResponse>("/api/DeviceTrace/Add", it, CancellationToken);
+                    await _http.PostAsJson<AddDeviceTraceResponse>("/api/DeviceTrace/Add", it, CancellationToken);
                 }
                 catch (Exception ex)
                 {

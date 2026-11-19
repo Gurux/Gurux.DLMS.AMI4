@@ -46,6 +46,8 @@ internal static class GXAgentSettingsStore
         }
     }
 
+    /// <summary>Restricts configuration file access to the current user on supported platforms.</summary>
+    /// <param name="path">File or directory on which the operation acts.</param>
     private static void RestrictFile(string path)
     {
         if (OperatingSystem.IsWindows())

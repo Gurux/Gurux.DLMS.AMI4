@@ -36,8 +36,13 @@ using System.Globalization;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
+    /// <summary>Maps server object attributes to protocol reads and persists their results.</summary>
     class Reader
     {
+        /// <summary>Resolves an attribute index using the server object metadata when available.</summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <param name="index">Protocol attribute index receiving the decoded value.</param>
+        /// <returns>The resolved protocol attribute index.</returns>
         private static int GetAttributeIndex(GXObject? obj, int index)
         {
             if (obj?.Attributes == null)
@@ -56,6 +61,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             return -1;
         }
 
+        /// <summary>Finds the requested attribute metadata or rejects an incomplete object definition.</summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <param name="index">Protocol attribute index receiving the decoded value.</param>
+        /// <returns>The matching server attribute metadata.</returns>
         private static GXAttribute GetRequiredAttribute(GXObject obj, int index)
         {
             var attributes = obj.Attributes
@@ -71,6 +80,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Get capture period of the profile generic.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <returns>The profile capture interval read from the object's attributes.</returns>
         private static int GetCapturePeriod(GXObject obj)
         {
             int index = GetAttributeIndex(obj, 4);
@@ -84,6 +95,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Get entries in use from the profile generic.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <returns>The number of profile entries currently retained by the device.</returns>
         private static int GetEntriesInUse(GXObject obj)
         {
             int index = GetAttributeIndex(obj, 7);
@@ -98,6 +111,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Get sort method for the profile generic.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <returns>The profile's configured sorting method.</returns>
         private static int GetSortMethod(GXObject obj)
         {
             int index = GetAttributeIndex(obj, 5);
@@ -112,6 +127,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Get total entries from the profile generic.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <returns>The maximum number of profile entries supported by the device.</returns>
         private static int GetTotalEntries(GXObject obj)
         {
             int index = GetAttributeIndex(obj, 8);
@@ -126,6 +143,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Get profile generic buffer last read time.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <returns>The timestamp of the most recent profile buffer read.</returns>
         private static DateTimeOffset? GetBufferReadTime(GXObject obj)
         {
             int index = GetAttributeIndex(obj, 2);
@@ -139,6 +158,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Set profile generic buffer last read time.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <param name="value">New configuration or state value to publish.</param>
         private static void SetReadTime(GXObject obj, DateTime value)
         {
             int index = GetAttributeIndex(obj, 2);
@@ -152,6 +173,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Is profile generic object sorted using date time.
         /// </summary>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <returns>Whether the profile sort object identifies a clock time attribute.</returns>
         private static bool IsSortedByDateTime(GXObject obj)
         {
             int index = GetAttributeIndex(obj, 3);
@@ -174,6 +197,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             return false;
         }
 
+        /// <summary>Reads the requested protocol object attributes and persists their decoded values to the AMI server.</summary>
+        /// <param name="http">Configured HTTP client used for server communication.</param>
+        /// <param name="logger">Records operation diagnostics without exposing authentication secrets.</param>
+        /// <param name="reader">Protocol reader connected to the target device.</param>
+        /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
+        /// <param name="obj">Server or protocol object whose attributes are being read.</param>
+        /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+        /// <returns>A task representing this operation: Reads the requested protocol object attributes and persists their decoded values to the AMI server.</returns>
         internal static async System.Threading.Tasks.Task Read(HttpClient http, ILogger? logger, GXDLMSReader reader, GXTask task, GXDLMSObject obj, CancellationToken token = default)
         {
             GXObject taskObject = task.Object
@@ -283,7 +314,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 }
                                 else
                                 {
-                                    //Save last read start time. 
+                                    //Save last read start time.
                                     //This is needed if the last row was added a long time ago.
                                     //There is no need to read values from long time of period if there aren't any values.
                                     //This is done for every read because connection might drop and don't want to re-start reading.
@@ -330,7 +361,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                     val = null;
                                     while (cnt != 0)
                                     {
-                                        //Read the last row. Some meters might return invalid count. 
+                                        //Read the last row. Some meters might return invalid count.
                                         //For that reason previous row is try to read.
                                         val = reader.ReadRowsByEntry((GXDLMSProfileGeneric)obj, cnt, 1);
                                         if (val != null)

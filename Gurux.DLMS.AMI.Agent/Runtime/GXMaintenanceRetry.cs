@@ -33,6 +33,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker;
 public static class GXMaintenanceRetry
 {
     /// <summary>Returns the remaining maintenance time, or a one-minute retry interval.</summary>
+    /// <param name="error">Failure associated with the current operation, if available.</param>
+    /// <param name="now">Current timestamp used to calculate the server-directed retry interval.</param>
+    /// <returns>The server-directed maintenance retry delay relative to the supplied timestamp.</returns>
     public static TimeSpan GetDelay(GXMaintenanceException error, DateTimeOffset now)
     {
         return error.EndTime is DateTimeOffset end && end > now
@@ -40,6 +43,9 @@ public static class GXMaintenanceRetry
     }
 
     /// <summary>Waits for maintenance to end, allowing shutdown to cancel the wait.</summary>
+    /// <param name="error">Failure associated with the current operation, if available.</param>
+    /// <param name="cancellationToken">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task completing after the maintenance delay or cancellation.</returns>
     public static async Task WaitAsync(GXMaintenanceException error, CancellationToken cancellationToken)
     {
         var retryAt = DateTimeOffset.UtcNow + GetDelay(error, DateTimeOffset.UtcNow);

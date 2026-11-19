@@ -30,6 +30,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
+    /// <summary>Converts device settings and values used by agent protocol operations.</summary>
     static class Helpers
     {
         /// <inheritdoc />

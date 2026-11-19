@@ -33,9 +33,15 @@ namespace Gurux.DLMS.AMI.Agent;
 /// <summary>Process lifetime lock. The empty file stays in place to avoid an unlink/reopen race.</summary>
 internal sealed class GXAgentInstanceLock : IDisposable
 {
-    private Action? release;
-    private GXAgentInstanceLock(Action release) => this.release = release;
+    /// <summary>Releases the process-wide instance lock exactly once.</summary>
+    private Action? _release;
+    /// <summary>Retains the release callback for an acquired exclusive agent lock.</summary>
+    /// <param name="release">Callback that releases exclusive ownership.</param>
+    private GXAgentInstanceLock(Action release) => this._release = release;
 
+    /// <summary>Acquires exclusive ownership of the installation associated with the settings file.</summary>
+    /// <param name="settingsPath">Path to the persisted agent settings.</param>
+    /// <returns>An ownership handle that releases the installation lock when disposed.</returns>
     internal static GXAgentInstanceLock Acquire(string settingsPath)
     {
         string path = Path.GetFullPath(settingsPath) + ".lock";
@@ -45,6 +51,10 @@ internal sealed class GXAgentInstanceLock : IDisposable
         catch (IOException error) { throw new InvalidOperationException("Cannot acquire agent instance lock; another agent may already use these settings or identity.", error); }
     }
 
+    /// <summary>Acquires exclusive ownership of the registered agent identity on this machine.</summary>
+    /// <param name="address">AMI server address associated with the registration.</param>
+    /// <param name="id">Identity of the agent, device or registered work being processed.</param>
+    /// <returns>An ownership handle that releases the registered agent lock when disposed.</returns>
     internal static GXAgentInstanceLock AcquireIdentity(string address, Guid id)
     {
         var uri = new Uri(address);
@@ -85,5 +95,6 @@ internal sealed class GXAgentInstanceLock : IDisposable
         return new(() => { exit.Set(); owner.Join(); exit.Dispose(); });
     }
 
-    public void Dispose() => Interlocked.Exchange(ref release, null)?.Invoke();
+    /// <inheritdoc/>
+    public void Dispose() => Interlocked.Exchange(ref _release, null)?.Invoke();
 }

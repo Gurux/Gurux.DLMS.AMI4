@@ -30,6 +30,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker;
 /// <summary>Sequences a durable intent, meter mutation, association verification and server acknowledgement.</summary>
 internal static class GXPasswordChangeExecution
 {
+    /// <summary>Orders password write, new-association verification and workflow confirmation so retries cannot repeat an uncertain secret change.</summary>
+    /// <param name="alreadyUsingNewPassword">Whether a successful new-password association has already confirmed the write.</param>
+    /// <param name="markWriting">Persists the workflow transition before modifying the device secret.</param>
+    /// <param name="write">Writes the replacement password to the authenticated device association.</param>
+    /// <param name="verifyNewAssociation">Verifies that the device accepts an association using the new secret.</param>
+    /// <param name="confirm">Persists successful verification of the changed password.</param>
+    /// <returns>A task representing this operation: Orders password write, new-association verification and workflow confirmation so retries cannot repeat an uncertain secret change.</returns>
     internal static async Task RunAsync(bool alreadyUsingNewPassword, Func<Task> markWriting, Func<Task> write,
         Func<Task> verifyNewAssociation, Func<Task> confirm)
     {

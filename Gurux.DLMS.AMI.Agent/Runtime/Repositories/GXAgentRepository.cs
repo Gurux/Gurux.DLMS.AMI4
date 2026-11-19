@@ -36,6 +36,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     /// <summary>
     /// This class implements agent repository that can be called from the agent script.
     /// </summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
     class GXAgentRepository(HttpClient http) : IAgentRepository
     {
         /// <inheritdoc/>
@@ -80,6 +81,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             return ret?.Agents ?? [];
         }
 
+        /// <inheritdoc/>
         public Task<IEnumerable<GXAgent>> ListInstallersAsync(
                 ListAgentInstallers? request,
                 bool includeRemoved,

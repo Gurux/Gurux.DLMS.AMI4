@@ -36,6 +36,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     /// <summary>
     /// This class implements device repository that can be called from the agent script.
     /// </summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
     class GXDeviceRepository(HttpClient http) : IDeviceRepository
     {
         /// <inheritdoc/>
@@ -84,6 +85,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             return response.Item ?? throw new KeyNotFoundException("Device was not returned.");
         }
 
+        /// <inheritdoc/>
         public Task ResetAsync(IEnumerable<Guid> devices)
         {
             throw new NotImplementedException();
@@ -115,6 +117,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             return ret.Ids;
         }
 
+        /// <inheritdoc/>
         public Task UpdateStatusAsync(Guid deviceId, DeviceStatus status, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();

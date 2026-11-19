@@ -36,15 +36,28 @@ using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Agent;
 
+/// <summary>Runs the agent host and coordinates registration, persistence and update handoff.</summary>
 internal static class Program
 {
-    private static string settingsFile = "settings.json";
+    /// <summary>Path used to load and persist the host configuration.</summary>
+    private static string _settingsFile = "settings.json";
+    /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
     private static ILogger? _logger;
-    private static IGXAgentWorker? worker;
-    private static ServiceProvider? workerServices;
-    private static bool workerInitialized;
-    private static readonly SemaphoreSlim consoleInput = new(1, 1);
+    /// <summary>Agent runtime controlled by this host or connection.</summary>
+    private static IGXAgentWorker? _worker;
+    /// <summary>Owns the dependency services created for the active worker.</summary>
+    private static ServiceProvider? _workerServices;
+    /// <summary>Indicates whether worker initialization completed successfully.</summary>
+    private static bool _workerInitialized;
+    /// <summary>Serializes interactive console prompts.</summary>
+    private static readonly SemaphoreSlim _consoleInput = new(1, 1);
 
+    /// <summary>Obtains a replacement access token and returns validated host options.</summary>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="interactive">Whether the host may prompt the operator for a replacement token.</param>
+    /// <param name="readSecret">Reads a replacement token without exposing it in console output.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>Validated options containing the replacement access token.</returns>
     internal static async Task<GXAgentOptions> ReadReplacementTokenAsync(GXAgentOptions options, bool interactive,
         Func<CancellationToken, Task<string>> readSecret, CancellationToken token)
     {
@@ -67,6 +80,12 @@ internal static class Program
         return replacement;
     }
 
+    /// <summary>Builds worker dependencies and initializes the selected worker with validated options.</summary>
+    /// <param name="target">Target object receiving the operation or protocol value.</param>
+    /// <param name="services">Dependency registrations used to initialize the worker.</param>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="notifications">Reports host persistence, authentication and update requests.</param>
+    /// <returns>The service provider owning the initialized worker dependencies.</returns>
     private static async Task<ServiceProvider> InitializeWorkerAsync(IGXAgentWorker target,
         IServiceCollection services, GXAgentOptions options, IGXAgentHostNotifications notifications)
     {
@@ -89,6 +108,13 @@ internal static class Program
         }
     }
 
+    /// <summary>Registers or reconfigures the hosted agent worker using the current server settings.</summary>
+    /// <param name="services">Dependency registrations used to initialize the worker.</param>
+    /// <param name="notifications">Reports host persistence, authentication and update requests.</param>
+    /// <param name="worker">Agent runtime being registered or reconfigured.</param>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="cancellationToken">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Registers or reconfigures the hosted agent worker using the current server settings.</returns>
     public static async Task RegisterAgent(IServiceCollection services, IGXAgentHostNotifications notifications,
         IGXAgentWorker worker, GXAgentOptions options, CancellationToken cancellationToken = default)
     {
@@ -136,12 +162,18 @@ internal static class Program
         }
     }
 
+    /// <summary>Reads console input asynchronously while allowing host cancellation.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The line entered by the operator, or null when console input ends.</returns>
     private static Task<string?> ReadLineAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         return Task.Run(Console.ReadLine).WaitAsync(token);
     }
 
+    /// <summary>Reads an access token without echoing secret characters to the console.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The access token entered without console echo.</returns>
     private static async Task<string> ReadSecretAsync(CancellationToken token)
     {
         if (Console.IsInputRedirected)
@@ -168,6 +200,50 @@ internal static class Program
         }
     }
 
+    /// <summary>Retrieves the Windows standard console handle used to configure input behavior.</summary>
+    /// <param name="standardHandle">Windows identifier selecting the standard input handle.</param>
+    /// <returns>The native standard input console handle.</returns>
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    private static extern IntPtr GetStdHandle(int standardHandle);
+
+    /// <summary>Reads the current Windows console input mode.</summary>
+    /// <param name="consoleHandle">Windows console handle to inspect or configure.</param>
+    /// <param name="mode">Console mode flags read or applied by the operation.</param>
+    /// <returns>Whether the current console input mode was read successfully.</returns>
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetConsoleMode(IntPtr consoleHandle, out uint mode);
+
+    /// <summary>Updates the Windows console input mode.</summary>
+    /// <param name="consoleHandle">Windows console handle to inspect or configure.</param>
+    /// <param name="mode">Console mode flags read or applied by the operation.</param>
+    /// <returns>Whether the requested console input mode was applied successfully.</returns>
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetConsoleMode(IntPtr consoleHandle, uint mode);
+
+    /// <summary>Disables Windows console selection mode so accidental selection cannot pause the host.</summary>
+    private static void DisableQuickEditMode()
+    {
+        if (!OperatingSystem.IsWindows() || !Environment.UserInteractive || Console.IsInputRedirected)
+        {
+            return;
+        }
+        const int standardInputHandle = -10;
+        const uint enableQuickEditMode = 0x0040;
+        const uint enableExtendedFlags = 0x0080;
+        var handle = GetStdHandle(standardInputHandle);
+        if (GetConsoleMode(handle, out var mode))
+        {
+            // QuickEdit selection can block console output and stall the agent.
+            // Extended flags must be set when changing QuickEdit; preserve all other modes.
+            _ = SetConsoleMode(handle, (mode | enableExtendedFlags) & ~enableQuickEditMode);
+        }
+    }
+
+    /// <summary>Runs the agent host and converts unhandled startup failures into an exit status.</summary>
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+    /// <returns>The process exit code, with zero indicating normal completion.</returns>
     private static async Task<int> Main(string[] args)
     {
         if (args is ["--health-check"])
@@ -181,8 +257,12 @@ internal static class Program
         catch (Exception error) { Console.Error.WriteLine($"Agent failed: {error.Message}"); return 1; }
     }
 
+    /// <summary>Runs the configured agent host through registration, server connection and orderly shutdown.</summary>
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+    /// <returns>The process exit code for the agent host lifetime.</returns>
     private static async Task<int> RunAsync(string[] args)
     {
+        DisableQuickEditMode();
         using var cancellation = new CancellationTokenSource();
         using var notifications = new GXAgentHostNotifications();
         Task? containerHeartbeat = null;
@@ -197,25 +277,27 @@ internal static class Program
                 .AddJsonFile("appsettings.default.json", optional: true, reloadOnChange: false)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false).AddEnvironmentVariables().Build();
             using var configLifetime = config as IDisposable;
-            using var logging = LoggerFactory.Create(builder => builder.AddConfiguration(config.GetSection("Logging")).AddConsole());
+            using var logging = LoggerFactory.Create(builder => builder.AddConfiguration(config.GetSection("Logging"))
+                .AddConsole(options => options.FormatterName = GXAgentConsoleFormatter.FormatterName)
+                .AddConsoleFormatter<GXAgentConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>(
+                    options => config.GetSection("Logging:Console").Bind(options)));
             _logger = logging.CreateLogger("Gurux.DLMS.AMI.Agent");
             string? version = AgentRuntimeVersion.Resolve(AppContext.BaseDirectory, null, FileVersionInfo.GetVersionInfo(typeof(Settings).Assembly.Location).ProductVersion);
-            _logger.LogInformation("Starting Gurux.DLMS.AMI.Agent {Version}", version);
             var commandLine = new Settings();
-            if (Settings.GetParameters(args.Where(a => a != "Configure").ToArray(), commandLine) != 0)
+            if (Settings.GetParameters([.. args.Where(a => a != "Configure")], commandLine) != 0)
                 {
                 return 1;
             }
             var updaterOptions = GXAgentUpdaterOptions.Read(config);
-            settingsFile = updaterOptions.SettingsPath;
+            _settingsFile = updaterOptions.SettingsPath;
             if (!string.IsNullOrWhiteSpace(updaterOptions.DeploymentRoot))
             {
                 containerHeartbeat = GXAgentContainerHealth.RunAsync(updaterOptions.DeploymentRoot, version ?? "",
-                    () => worker?.State == GXAgentWorkerState.Running && worker.ConnectionState == GXAgentConnectionState.Connected, cancellation.Token);
+                    () => _worker?.State == AgentWorkerState.Running && _worker.ConnectionState == AgentConnectionState.Connected, cancellation.Token);
             }
 
-            settingsLock = GXAgentInstanceLock.Acquire(settingsFile);
-            GXAgentSettingsStore.ProtectExisting(settingsFile);
+            settingsLock = GXAgentInstanceLock.Acquire(_settingsFile);
+            GXAgentSettingsStore.ProtectExisting(_settingsFile);
             var completionOptions = GXCompletionOutboxOptions.Read(config);
             var scriptOptions = GXScriptExecutionOptions.Read(config);
             var rawDeliveryOptions = new GXRawDeliveryOptions();
@@ -228,11 +310,14 @@ internal static class Program
                 services.AddSingleton(completionOptions);
                 services.AddSingleton(scriptOptions);
                 services.AddSingleton(rawDeliveryOptions);
-                services.AddLogging(builder => builder.AddConfiguration(config.GetSection("Logging")).AddConsole());
+                services.AddLogging(builder => builder.AddConfiguration(config.GetSection("Logging"))
+                .AddConsole(options => options.FormatterName = GXAgentConsoleFormatter.FormatterName)
+                .AddConsoleFormatter<GXAgentConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>(
+                    options => config.GetSection("Logging:Console").Bind(options)));
                 return services;
             }
-            string? settingsJson = File.Exists(settingsFile)
-                ? await File.ReadAllTextAsync(settingsFile, cancellation.Token)
+            string? settingsJson = File.Exists(_settingsFile)
+                ? await File.ReadAllTextAsync(_settingsFile, cancellation.Token)
                 : null;
             if (string.IsNullOrWhiteSpace(settingsJson) || args.Contains("Configure"))
             {
@@ -246,7 +331,7 @@ internal static class Program
                     await RegisterAgent(Services(), notifications, new GXAgentWorker(),
                         new GXAgentOptions { Address = commandLine.Host ?? "https://localhost:8001", Version = version }, cancellation.Token);
                 }
-                settingsJson = await File.ReadAllTextAsync(settingsFile, cancellation.Token);
+                settingsJson = await File.ReadAllTextAsync(_settingsFile, cancellation.Token);
             }
             var options = JsonSerializer.Deserialize<GXAgentOptions>(settingsJson!)
                 ?? throw new InvalidOperationException("Agent settings are empty.");
@@ -257,10 +342,13 @@ internal static class Program
             // A saved or legacy bin<version> selection can never override the executable actually running.
             options.Version = version;
             options.Validate();
+            var serviceAddress = new UriBuilder(options.Address) { UserName = "", Password = "", Query = "", Fragment = "" }.Uri.AbsoluteUri;
+            _logger.LogInformation("Using AMI service at {Address}", serviceAddress);
+            _logger.LogInformation("Starting Gurux.DLMS.AMI.Agent {Version}", version);
             identityLock = GXAgentInstanceLock.AcquireIdentity(options.Address, options.Id);
             async Task ReplaceTokenAsync()
             {
-                await consoleInput.WaitAsync(cancellation.Token);
+                await _consoleInput.WaitAsync(cancellation.Token);
                 try
                 {
                     options = await ReadReplacementTokenAsync(options, Environment.UserInteractive && !Console.IsInputRedirected,
@@ -268,7 +356,7 @@ internal static class Program
                 }
                 finally
                 {
-                    consoleInput.Release();
+                    _consoleInput.Release();
                 }
             }
             async Task StartRuntimeAsync()
@@ -278,18 +366,18 @@ internal static class Program
                 while (true)
                 {
                     cancellation.Token.ThrowIfCancellationRequested();
-                    worker = new GXAgentWorker();
-                    workerInitialized = false;
+                    _worker = new GXAgentWorker();
+                    _workerInitialized = false;
                     try
                     {
-                        workerServices = await InitializeWorkerAsync(worker, Services(), options, notifications);
-                        workerInitialized = true;
-                        await worker.StartAsync(cancellation.Token);
-                        if (worker is GXAgentWorker active && active.AuthenticationRejected)
+                        _workerServices = await InitializeWorkerAsync(_worker, Services(), options, notifications);
+                        _workerInitialized = true;
+                        await _worker.StartAsync(cancellation.Token);
+                        if (_worker is GXAgentWorker active && active.AuthenticationRejected)
                         {
                             throw new HttpRequestException("AMI authentication failed (HTTP 401).", null, System.Net.HttpStatusCode.Unauthorized);
                         }
-                        options = worker.Configuration.ToOptions();
+                        options = _worker.Configuration.ToOptions();
                         await SaveSettingsAsync(options, cancellation.Token);
                         break;
                     }
@@ -322,24 +410,24 @@ internal static class Program
             while (true)
             {
                 var change = await notifications.WaitForChangeAsync(cancellation.Token);
-                if (change.HasFlag(GXAgentHostChange.AuthenticationRequired) && worker is GXAgentWorker active && active.AuthenticationRejected)
+                if (change.HasFlag(AgentHostChange.AuthenticationRequired) && _worker is GXAgentWorker active && active.AuthenticationRejected)
                 {
-                    options = worker.Configuration.ToOptions();
+                    options = _worker.Configuration.ToOptions();
                     await DisconnectAfterDrainAsync();
                     await ReplaceTokenAsync();
                     await StartRuntimeAsync();
                     continue;
                 }
-                if (workerInitialized)
+                if (_workerInitialized)
                     {
-                    options = worker!.Configuration.ToOptions();
+                    options = _worker!.Configuration.ToOptions();
                 }
                 await SaveSettingsAsync(options, cancellation.Token);
-                if (!change.HasFlag(GXAgentHostChange.VersionAvailable))
+                if (!change.HasFlag(AgentHostChange.VersionAvailable))
                     {
                     continue;
                 }
-                var updater = workerServices!.GetRequiredService<IGXAgentUpdateService>();
+                var updater = _workerServices!.GetRequiredService<IGXAgentUpdateService>();
                 if (updater.PendingUpdate == null)
                     {
                     continue;
@@ -398,6 +486,10 @@ internal static class Program
         }
     }
 
+    /// <summary>Builds agent options from environment and host configuration when an address is supplied.</summary>
+    /// <param name="config">Application configuration containing updater settings.</param>
+    /// <param name="version">Application release version being verified or published.</param>
+    /// <returns>Configured agent options, or null when no server address was configured.</returns>
     internal static GXAgentOptions? ReadConfiguredAgent(IConfiguration config, string? version)
     {
         var token = config["Agent:Token"];
@@ -414,6 +506,13 @@ internal static class Program
         return options;
     }
 
+    /// <summary>Initializes or registers an agent using noninteractive host configuration.</summary>
+    /// <param name="services">Dependency registrations used to initialize the worker.</param>
+    /// <param name="notifications">Reports host persistence, authentication and update requests.</param>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="name">Display name identifying the agent or runtime service.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Initializes or registers an agent using noninteractive host configuration.</returns>
     private static async Task RegisterConfiguredAgentAsync(IServiceCollection services, IGXAgentHostNotifications notifications,
         GXAgentOptions options, string name, CancellationToken token)
     {
@@ -448,11 +547,22 @@ internal static class Program
         }
     }
 
+    /// <summary>Requests external installation of the release already staged by the worker.</summary>
+    /// <param name="updater">Service owning verified release staging and installation handoff.</param>
+    /// <param name="processId">Current process identifier that the updater must wait to exit.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Requests external installation of the release already staged by the worker.</returns>
     internal static async Task HandoffUpdateAsync(IGXAgentUpdateService updater, int processId, CancellationToken token)
     {
         await DisconnectAfterDrainAsync();
         await updater.LaunchAsync(processId, token);
     }
+    /// <summary>Attempts updater handoff and resumes the worker if launching the updater fails.</summary>
+    /// <param name="updater">Service owning verified release staging and installation handoff.</param>
+    /// <param name="processId">Current process identifier that the updater must wait to exit.</param>
+    /// <param name="recover">Resumes normal host operation if updater handoff fails.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>Whether the external updater accepted handoff of the staged release.</returns>
     internal static async Task<bool> TryHandoffUpdateAsync(IGXAgentUpdateService updater, int processId,
         Func<Task> recover, CancellationToken token)
     {
@@ -472,29 +582,37 @@ internal static class Program
             return false;
         }
     }
+    /// <summary>Persists the validated host configuration through the private settings store.</summary>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Persists the validated host configuration through the private settings store.</returns>
     private static async Task SaveSettingsAsync(GXAgentOptions options, CancellationToken token)
     {
-        await GXAgentSettingsStore.SaveAsync(settingsFile, JsonSerializer.Serialize(options), token);
+        await GXAgentSettingsStore.SaveAsync(_settingsFile, JsonSerializer.Serialize(options), token);
     }
 
+    /// <summary>Stops the worker with the host shutdown deadline enforced.</summary>
+    /// <returns>A task representing this operation: Stops the worker with the host shutdown deadline enforced.</returns>
     private static async Task DisconnectWithDeadlineAsync()
     {
-        if (worker == null)
+        if (_worker == null)
             {
             return;
         }
         using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        await worker.StopAsync(shutdown.Token);
-        await worker.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
-        if (workerServices != null)
+        await _worker.StopAsync(shutdown.Token);
+        await _worker.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
+        if (_workerServices != null)
             {
-            await workerServices.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
+            await _workerServices.DisposeAsync().AsTask().WaitAsync(shutdown.Token);
         }
-        workerServices = null;
-        worker = null;
-        workerInitialized = false;
+        _workerServices = null;
+        _worker = null;
+        _workerInitialized = false;
     }
 
+    /// <summary>Waits for admitted worker work to drain before disconnecting the runtime.</summary>
+    /// <returns>A task representing this operation: Waits for admitted worker work to drain before disconnecting the runtime.</returns>
     private static async Task DisconnectAfterDrainAsync()
     {
         while (true)
@@ -508,13 +626,15 @@ internal static class Program
         }
     }
 
+    /// <summary>Cancels the host polling loop without allowing callback failures to escape shutdown.</summary>
+    /// <param name="cancellation">Cancellation source used to stop the polling lifetime.</param>
     private static void ClosePoller(CancellationTokenSource cancellation)
     {
         try
         {
             while (!cancellation.IsCancellationRequested)
             {
-                consoleInput.Wait(cancellation.Token);
+                _consoleInput.Wait(cancellation.Token);
                 try
                 {
                     if (Console.KeyAvailable)
@@ -532,7 +652,7 @@ internal static class Program
                 }
                 finally
                 {
-                    consoleInput.Release();
+                    _consoleInput.Release();
                 }
                 Thread.Sleep(100);
             }

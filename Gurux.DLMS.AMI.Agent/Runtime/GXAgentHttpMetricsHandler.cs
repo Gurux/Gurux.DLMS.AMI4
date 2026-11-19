@@ -31,8 +31,11 @@ using System.Net;
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
 /// <summary>Measures AMI requests without including addresses, task identifiers or credentials in tags.</summary>
+/// <param name="inner">Original failure or inner HTTP transport retained by the wrapper.</param>
+/// <param name="metrics">Collects the HTTP request duration and outcome measurements.</param>
 internal sealed class GXAgentHttpMetricsHandler(HttpMessageHandler inner, GXAgentRuntimeMetrics metrics) : DelegatingHandler(inner)
 {
+    /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         long started = Stopwatch.GetTimestamp();
@@ -59,6 +62,9 @@ internal sealed class GXAgentHttpMetricsHandler(HttpMessageHandler inner, GXAgen
         }
     }
 
+    /// <summary>Maps an HTTP response status to a bounded diagnostic outcome label.</summary>
+    /// <param name="status">HTTP or runtime status being recorded.</param>
+    /// <returns>A bounded outcome label for success, authentication, maintenance or other HTTP failures.</returns>
     private static string Classify(HttpStatusCode status) => status switch
     {
         HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "authorization",

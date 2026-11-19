@@ -62,10 +62,10 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         GXAgentOptionsSnapshot Configuration { get; }
 
         /// <summary>Gets the worker lifecycle state, independently of server connectivity.</summary>
-        GXAgentWorkerState State { get; }
+        AgentWorkerState State { get; }
 
         /// <summary>Gets the server notification connection state.</summary>
-        GXAgentConnectionState ConnectionState { get; }
+        AgentConnectionState ConnectionState { get; }
 
         /// <summary>
         /// Registers a new agent with the server.

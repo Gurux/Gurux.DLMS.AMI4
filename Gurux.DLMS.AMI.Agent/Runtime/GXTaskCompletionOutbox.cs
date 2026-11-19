@@ -45,25 +45,51 @@ namespace Gurux.DLMS.AMI.Agent.Worker;
 /// </remarks>
 internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
 {
-    private readonly HttpClient http;
-    private readonly string directory;
-    private readonly ILogger? logger;
-    private readonly TimeSpan retryDelay;
-    private readonly GXCompletionOutboxOptions options;
-    private readonly SemaphoreSlim gate = new(1, 1);
-    private readonly CancellationTokenSource stop = new();
-    private readonly Task retry;
-    private readonly Task monitoring;
-    private readonly ConcurrentDictionary<string, string> unpersisted = new();
-    private readonly Dictionary<string, (int Attempts, DateTimeOffset Next)> schedule = [];
-    private readonly object statusGate = new();
-    private readonly object disposalGate = new();
-    private Task? disposal;
-    private int shutdownRequested;
-    private string? cursor;
-    private GXCompletionOutboxStatus status = new(0, 0, 0, 0, 0, 0, false);
-    private DateTimeOffset lastStatusLog;
-    private readonly Meter meter = new("Gurux.DLMS.AMI.Agent.Completions", "1.0");
+    /// <summary>Versions completion semantics while preserving older queued payloads.</summary>
+    private sealed class CompletionReport : TaskDone
+    {
+        /// <summary>Gets or sets the format version; zero means Result contains legacy errors.</summary>
+        public int OutcomeVersion { get; set; }
+    }
+
+    /// <summary>Sends requests to the configured AMI server.</summary>
+    private readonly HttpClient _http;
+    /// <summary>Persistent storage directory for queued delivery records.</summary>
+    private readonly string _directory;
+    /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
+    private readonly ILogger? _logger;
+    /// <summary>Delay before retrying a failed server delivery.</summary>
+    private readonly TimeSpan _retryDelay;
+    /// <summary>Validated limits and settings used by this component.</summary>
+    private readonly GXCompletionOutboxOptions _options;
+    /// <summary>Protects concurrent access to the owning object's mutable state.</summary>
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    /// <summary>Cancels background processing during shutdown.</summary>
+    private readonly CancellationTokenSource _stop = new();
+    /// <summary>Background task that retries pending completion reports.</summary>
+    private readonly Task _retry;
+    /// <summary>Background task that updates queue health measurements.</summary>
+    private readonly Task _monitoring;
+    /// <summary>Serialized completion reports retained in memory after a storage failure.</summary>
+    private readonly ConcurrentDictionary<string, string> _unpersisted = new();
+    /// <summary>Per-record delivery attempt counts and next retry times.</summary>
+    private readonly Dictionary<string, (int Attempts, DateTimeOffset Next)> _schedule = [];
+    /// <summary>Protects publication of current status and measurements.</summary>
+    private readonly object _statusGate = new();
+    /// <summary>Serializes disposal and access to the shared disposal task.</summary>
+    private readonly object _disposalGate = new();
+    /// <summary>Shared asynchronous disposal operation.</summary>
+    private Task? _disposal;
+    /// <summary>Atomically records that queue shutdown has been requested.</summary>
+    private int _shutdownRequested;
+    /// <summary>Last queue entry inspected to keep retry scans fair.</summary>
+    private string? _cursor;
+    /// <summary>Latest immutable completion queue health snapshot.</summary>
+    private GXCompletionOutboxStatus _status = new(0, 0, 0, 0, 0, 0, false);
+    /// <summary>Timestamp of the most recent queue health diagnostic.</summary>
+    private DateTimeOffset _lastStatusLog;
+    /// <summary>Publishes instruments describing this component's runtime activity.</summary>
+    private readonly Meter _meter = new("Gurux.DLMS.AMI.Agent.Completions", "1.0");
 
     /// <summary>Opens private completion storage and starts acknowledgement retry and storage monitoring.</summary>
     /// <param name="http">Caller-owned AMI client with its base address and credentials configured before sending reports.</param>
@@ -76,35 +102,35 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
     internal GXTaskCompletionOutbox(HttpClient http, string directory, ILogger? logger, TimeSpan retryDelay,
         GXCompletionOutboxOptions? options = null)
     {
-        this.http = http;
-        this.directory = directory;
-        this.logger = logger;
-        this.retryDelay = retryDelay;
-        this.options = options ?? new();
-        this.options.Validate();
+        this._http = http;
+        this._directory = directory;
+        this._logger = logger;
+        this._retryDelay = retryDelay;
+        this._options = options ?? new();
+        this._options.Validate();
         if (retryDelay <= TimeSpan.Zero)
             {
             throw new ArgumentOutOfRangeException(nameof(retryDelay));
         }
         GXAgentSettingsStore.EnsurePrivateDirectory(directory);
-        meter.CreateObservableGauge("agent.completions.pending", () => Status.PendingCount);
-        meter.CreateObservableGauge("agent.completions.pending_bytes", () => Status.PendingBytes, "By");
-        meter.CreateObservableGauge("agent.completions.oldest_seconds", () => Status.OldestSeconds, "s");
-        meter.CreateObservableGauge("agent.completions.quarantined", () => Status.QuarantinedCount);
-        meter.CreateObservableGauge("agent.completions.free_bytes", () => Status.FreeBytes, "By");
-        meter.CreateObservableGauge("agent.completions.unpersisted", () => Status.UnpersistedCount);
-        meter.CreateObservableGauge("agent.completions.claims_paused", () => Status.ClaimsPaused ? 1 : 0);
-        meter.CreateObservableGauge("agent.completions.shutdown_blocked", () => Status.ShutdownBlocked ? 1 : 0);
+        _meter.CreateObservableGauge("agent.completions.pending", () => Status.PendingCount);
+        _meter.CreateObservableGauge("agent.completions.pending_bytes", () => Status.PendingBytes, "By");
+        _meter.CreateObservableGauge("agent.completions.oldest_seconds", () => Status.OldestSeconds, "s");
+        _meter.CreateObservableGauge("agent.completions.quarantined", () => Status.QuarantinedCount);
+        _meter.CreateObservableGauge("agent.completions.free_bytes", () => Status.FreeBytes, "By");
+        _meter.CreateObservableGauge("agent.completions.unpersisted", () => Status.UnpersistedCount);
+        _meter.CreateObservableGauge("agent.completions.claims_paused", () => Status.ClaimsPaused ? 1 : 0);
+        _meter.CreateObservableGauge("agent.completions.shutdown_blocked", () => Status.ShutdownBlocked ? 1 : 0);
         UpdateStatus();
-        retry = Task.Run(RetryAsync);
-        monitoring = Task.Run(MonitorStorageAsync);
+        _retry = Task.Run(RetryAsync);
+        _monitoring = Task.Run(MonitorStorageAsync);
     }
 
     /// <summary>Gets the latest immutable storage snapshot without performing disk or network I/O.</summary>
-    internal GXCompletionOutboxStatus Status => Volatile.Read(ref status);
+    internal GXCompletionOutboxStatus Status => Volatile.Read(ref _status);
     /// <summary>Gets whether cached storage status permits task claims and no result awaits persistence or shutdown.</summary>
     /// <remarks>This hot-path check performs no disk I/O. External storage changes are normally detected on the next two-second sample.</remarks>
-    internal bool CanAcceptTasks => Volatile.Read(ref shutdownRequested) == 0 && !Status.ClaimsPaused && unpersisted.IsEmpty;
+    internal bool CanAcceptTasks => Volatile.Read(ref _shutdownRequested) == 0 && !Status.ClaimsPaused && _unpersisted.IsEmpty;
 
     /// <summary>Retains completion payloads and attempts to acknowledge them within the configured flush budget.</summary>
     /// <param name="tasks">Completed tasks whose identifiers, claim start times, results and data must be preserved.</param>
@@ -115,37 +141,39 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
     /// </remarks>
     internal async Task ReportAsync(IEnumerable<GXTask> tasks)
     {
-        var reports = tasks.Select(t => new GXTask { Id = t.Id, Start = t.Start, Result = t.Result, Data = t.Data }).ToArray();
+        var reports = tasks.Select(t => new GXTask { Id = t.Id, Start = t.Start, Result = t.Result, Error = t.Error, Data = t.Data }).ToArray();
         if (reports.Length == 0)
             {
             return;
         }
-        await gate.WaitAsync();
+        await _gate.WaitAsync();
         try
         {
             var paths = new List<string>();
             foreach (var report in reports)
             {
-                string path = Path.Combine(directory, $"{report.Id:N}-{report.Start?.UtcTicks ?? 0}.json");
+                string path = Path.Combine(_directory, $"{report.Id:N}-{report.Start?.UtcTicks ?? 0}.json");
                 paths.Add(path);
                 if (!File.Exists(path) && !File.Exists(QuarantinePath(path)))
                     {
-                    unpersisted.TryAdd(path, JsonSerializer.Serialize(new TaskDone { Tasks = [report] }));
+                    _unpersisted.TryAdd(path, JsonSerializer.Serialize(new CompletionReport { OutcomeVersion = 1, Tasks = [report] }));
                 }
             }
             await PersistAsync();
-            using var deadline = new CancellationTokenSource(options.FlushBudget);
+            using var deadline = new CancellationTokenSource(_options.FlushBudget);
             try
             { await SendPendingAsync(deadline.Token, paths); }
             catch (OperationCanceledException) when (deadline.IsCancellationRequested) { }
             UpdateStatus();
         }
-        finally { gate.Release(); }
+        finally { _gate.Release(); }
     }
 
+    /// <summary>Retries writing completion reports retained in memory after earlier storage failures.</summary>
+    /// <returns>A task representing this operation: Retries writing completion reports retained in memory after earlier storage failures.</returns>
     private async Task PersistAsync()
     {
-        foreach (var item in unpersisted)
+        foreach (var item in _unpersisted)
         {
             try
             {
@@ -153,10 +181,10 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
                     {
                     await GXAgentSettingsStore.SaveAsync(item.Key, item.Value, CancellationToken.None);
                 }
-                unpersisted.TryRemove(item.Key, out _);
+                _unpersisted.TryRemove(item.Key, out _);
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-            { logger?.LogError(error, "Cannot persist task result {Record}; retaining it in memory and pausing new claims", Path.GetFileName(item.Key)); }
+            { _logger?.LogError(error, "Cannot persist task result {Record}; retaining it in memory and pausing new claims", Path.GetFileName(item.Key)); }
         }
     }
 
@@ -166,32 +194,36 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
     /// <exception cref="OperationCanceledException">The caller's cancellation interrupts the pass.</exception>
     internal async Task FlushAsync(CancellationToken token = default)
     {
-        await gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         { await PersistAsync(); await SendPendingAsync(token); }
-        finally { UpdateStatus(); gate.Release(); }
+        finally { UpdateStatus(); _gate.Release(); }
     }
 
+    /// <summary>Attempts delivery of durable completion reports and retains transient failures for retry.</summary>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <param name="records">Optional subset of persisted completion records to deliver.</param>
+    /// <returns>A task representing this operation: Attempts delivery of durable completion reports and retains transient failures for retry.</returns>
     private async Task SendPendingAsync(CancellationToken token, IEnumerable<string>? records = null)
     {
-        var files = (records ?? Directory.EnumerateFiles(directory, "*.json")).Distinct().Order(StringComparer.Ordinal).ToArray();
-        string? startAfter = cursor;
+        var files = (records ?? Directory.EnumerateFiles(_directory, "*.json")).Distinct().Order(StringComparer.Ordinal).ToArray();
+        string? startAfter = _cursor;
         var ordered = startAfter == null ? files : files.Where(p => string.CompareOrdinal(p, startAfter) > 0).Concat(files.Where(p => string.CompareOrdinal(p, startAfter) <= 0));
         foreach (string path in ordered)
         {
             token.ThrowIfCancellationRequested();
-            if (!File.Exists(path) || schedule.TryGetValue(path, out var entry) && entry.Next > DateTimeOffset.UtcNow)
+            if (!File.Exists(path) || _schedule.TryGetValue(path, out var entry) && entry.Next > DateTimeOffset.UtcNow)
                 {
                 continue;
             }
             // Advance before awaiting: cancellation must let the next flush begin with another record.
-            cursor = path;
+            _cursor = path;
             try
             {
-                TaskDone report;
+                CompletionReport report;
                 try
                 {
-                    report = JsonSerializer.Deserialize<TaskDone>(await File.ReadAllTextAsync(path, token))
+                    report = JsonSerializer.Deserialize<CompletionReport>(await File.ReadAllTextAsync(path, token))
                         ?? throw new InvalidDataException("Empty completion record.");
                     if (report.Tasks == null || !report.Tasks.Any() || report.Tasks.Any(t => t == null || t.Id == Guid.Empty))
                         {
@@ -201,8 +233,19 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
                 catch (Exception error) when (error is JsonException or InvalidDataException)
                 { Quarantine(path, "invalid local record", error); continue; }
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-                deadline.CancelAfter(options.RequestTimeout);
-                using var response = await http.PostAsJsonAsync("/api/task/Done", report, deadline.Token);
+                deadline.CancelAfter(_options.RequestTimeout);
+                if (report.OutcomeVersion == 1)
+                {
+                    using var capability = await _http.GetAsync("/api/task/CompletionFormat", deadline.Token);
+                    if (!capability.IsSuccessStatusCode ||
+                        (await capability.Content.ReadAsStringAsync(deadline.Token)).Trim() != "1")
+                    {
+                        Defer(path);
+                        _logger?.LogWarning("Task result {Record} remains pending until the server supports separate task errors", Path.GetFileName(path));
+                        continue;
+                    }
+                }
+                using var response = await _http.PostAsJsonAsync("/api/task/Done", report, deadline.Token);
                 if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Gone or HttpStatusCode.RequestEntityTooLarge or HttpStatusCode.UnprocessableEntity)
                 { Quarantine(path, $"HTTP {(int)response.StatusCode}"); continue; }
                 if (!response.IsSuccessStatusCode)
@@ -213,133 +256,149 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
                         retryAt = DateTimeOffset.UtcNow + delay;
                     }
                     Defer(path, retryAt);
-                    logger?.LogWarning("Task result {Record} remains pending after HTTP {Status}; next attempt {Next}", Path.GetFileName(path), (int)response.StatusCode, schedule[path].Next);
+                    _logger?.LogWarning("Task result {Record} remains pending after HTTP {Status}; next attempt {Next}", Path.GetFileName(path), (int)response.StatusCode, _schedule[path].Next);
                     continue;
                 }
                 File.Delete(path);
-                schedule.Remove(path);
+                _schedule.Remove(path);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { Defer(path); throw; }
             catch (Exception error) when (error is HttpRequestException or OperationCanceledException or IOException or UnauthorizedAccessException)
             {
                 Defer(path);
-                logger?.LogWarning(error, "Task result {Record} remains pending; only its acknowledgement will be retried", Path.GetFileName(path));
+                _logger?.LogWarning(error, "Task result {Record} remains pending; only its acknowledgement will be retried", Path.GetFileName(path));
             }
         }
     }
 
+    /// <summary>Schedules a delivery retry using bounded backoff and an optional server retry time.</summary>
+    /// <param name="path">File or directory on which the operation acts.</param>
+    /// <param name="retryAt">Optional server-requested earliest retry time.</param>
     private void Defer(string path, DateTimeOffset? retryAt = null)
     {
-        int attempt = schedule.TryGetValue(path, out var value) ? Math.Min(value.Attempts + 1, 30) : 1;
-        DateTimeOffset next = DateTimeOffset.UtcNow + GXRetryBackoff.GetDelay(attempt, retryDelay, TimeSpan.FromMinutes(5));
+        int attempt = _schedule.TryGetValue(path, out var value) ? Math.Min(value.Attempts + 1, 30) : 1;
+        DateTimeOffset next = DateTimeOffset.UtcNow + GXRetryBackoff.GetDelay(attempt, _retryDelay, TimeSpan.FromMinutes(5));
         if (retryAt > next)
             {
             next = retryAt.Value;
         }
-        schedule[path] = (attempt, next);
+        _schedule[path] = (attempt, next);
     }
 
-    private string QuarantinePath(string path) => Path.Combine(directory, "quarantine", Path.GetFileName(path));
+    /// <summary>Resolves the quarantine destination for an invalid completion record.</summary>
+    /// <param name="path">File or directory on which the operation acts.</param>
+    /// <returns>The path reserved for the invalid completion record in private quarantine storage.</returns>
+    private string QuarantinePath(string path) => Path.Combine(_directory, "quarantine", Path.GetFileName(path));
+    /// <summary>Moves permanently invalid delivery data aside and records its failure reason.</summary>
+    /// <param name="path">File or directory on which the operation acts.</param>
+    /// <param name="reason">Diagnostic reason for rejecting or quarantining the data.</param>
+    /// <param name="error">Failure associated with the current operation, if available.</param>
     private void Quarantine(string path, string reason, Exception? error = null)
     {
-        GXAgentSettingsStore.EnsurePrivateDirectory(Path.Combine(directory, "quarantine"));
+        GXAgentSettingsStore.EnsurePrivateDirectory(Path.Combine(_directory, "quarantine"));
         File.Move(path, QuarantinePath(path), overwrite: false);
-        schedule.Remove(path);
-        logger?.LogError(error, "Task result {Record} quarantined: {Reason}. Result retained for operator recovery; no automatic replay", Path.GetFileName(path), reason);
+        _schedule.Remove(path);
+        _logger?.LogError(error, "Task result {Record} quarantined: {Reason}. Result retained for operator recovery; no automatic replay", Path.GetFileName(path), reason);
     }
 
+    /// <summary>Refreshes the immutable storage health measurements from current queue state.</summary>
     private void UpdateStatus()
     {
-        lock (statusGate)
+        lock (_statusGate)
             UpdateStatusCore();
     }
 
+    /// <summary>Scans persisted completion records and publishes queue capacity and health measurements.</summary>
     private void UpdateStatusCore()
     {
         var previous = Status;
         GXCompletionOutboxStatus next;
         try
         {
-            var files = new DirectoryInfo(directory).GetFiles("*.json");
-            var quarantineDir = new DirectoryInfo(Path.Combine(directory, "quarantine"));
+            var files = new DirectoryInfo(_directory).GetFiles("*.json");
+            var quarantineDir = new DirectoryInfo(Path.Combine(_directory, "quarantine"));
             var quarantine = quarantineDir.Exists ? quarantineDir.GetFiles("*.json") : [];
-            long bytes = files.Sum(f => f.Length) + unpersisted.Sum(p => (long)Encoding.UTF8.GetByteCount(p.Value));
-            string absolute = Path.GetFullPath(directory);
+            long bytes = files.Sum(f => f.Length) + _unpersisted.Sum(p => (long)Encoding.UTF8.GetByteCount(p.Value));
+            string absolute = Path.GetFullPath(_directory);
             var drive = DriveInfo.GetDrives().Where(d => absolute == Path.TrimEndingDirectorySeparator(d.Name) ||
                 absolute.StartsWith(Path.EndsInDirectorySeparator(d.Name) ? d.Name : d.Name + Path.DirectorySeparatorChar,
                     OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
                 .OrderByDescending(d => d.Name.Length).First();
             long free = drive.AvailableFreeSpace;
-            string probe = Path.Combine(directory, ".probe-" + Guid.NewGuid().ToString("N"));
+            string probe = Path.Combine(_directory, ".probe-" + Guid.NewGuid().ToString("N"));
             using (var file = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose))
                 file.WriteByte(0);
-            bool paused = Volatile.Read(ref shutdownRequested) != 0 || !unpersisted.IsEmpty || files.Length + quarantine.Length >= options.MaxPendingRecords ||
-                bytes + quarantine.Sum(f => f.Length) >= options.MaxPendingBytes || free < options.MinFreeBytes;
+            bool paused = Volatile.Read(ref _shutdownRequested) != 0 || !_unpersisted.IsEmpty || files.Length + quarantine.Length >= _options.MaxPendingRecords ||
+                bytes + quarantine.Sum(f => f.Length) >= _options.MaxPendingBytes || free < _options.MinFreeBytes;
             double age = files.Length == 0 ? 0 : Math.Max(0, (DateTime.UtcNow - files.Min(f => f.CreationTimeUtc)).TotalSeconds);
-            next = new(files.Length + unpersisted.Count, bytes, age, quarantine.Length, free, unpersisted.Count, paused);
+            next = new(files.Length + _unpersisted.Count, bytes, age, quarantine.Length, free, _unpersisted.Count, paused);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            next = previous with { ClaimsPaused = true, UnpersistedCount = unpersisted.Count,
-                PendingCount = Math.Max(0, previous.PendingCount - previous.UnpersistedCount) + unpersisted.Count };
+            next = previous with { ClaimsPaused = true, UnpersistedCount = _unpersisted.Count,
+                PendingCount = Math.Max(0, previous.PendingCount - previous.UnpersistedCount) + _unpersisted.Count };
             if (!previous.ClaimsPaused)
                 {
-                logger?.LogError(error, "Completion storage is unavailable; new task claims paused");
+                _logger?.LogError(error, "Completion storage is unavailable; new task claims paused");
             }
         }
-        next = next with { ShutdownBlocked = Volatile.Read(ref shutdownRequested) != 0 && !unpersisted.IsEmpty };
-        Volatile.Write(ref status, next);
+        next = next with { ShutdownBlocked = Volatile.Read(ref _shutdownRequested) != 0 && !_unpersisted.IsEmpty };
+        Volatile.Write(ref _status, next);
         if (next.ShutdownBlocked && !previous.ShutdownBlocked)
             {
-            logger?.LogCritical("Shutdown blocked: {Count} task results remain only in memory at {Directory}. Restore free disk space and directory write access; keep this process running until persistence recovers", next.UnpersistedCount, Path.GetFullPath(directory));
+            _logger?.LogCritical("Shutdown blocked: {Count} task results remain only in memory at {Directory}. Restore free disk space and directory write access; keep this process running until persistence recovers", next.UnpersistedCount, Path.GetFullPath(_directory));
         }
         else if (!next.ShutdownBlocked && previous.ShutdownBlocked)
             {
-            logger?.LogInformation("Completion storage recovered at {Directory}; all in-memory results are persisted and shutdown resumed", Path.GetFullPath(directory));
+            _logger?.LogInformation("Completion storage recovered at {Directory}; all in-memory results are persisted and shutdown resumed", Path.GetFullPath(_directory));
         }
         if (next.ClaimsPaused != previous.ClaimsPaused)
             {
-            logger?.LogWarning("Completion storage admission changed: paused={Paused}, pending={Pending}, quarantined={Quarantined}, freeBytes={Free}", next.ClaimsPaused, next.PendingCount, next.QuarantinedCount, next.FreeBytes);
+            _logger?.LogWarning("Completion storage admission changed: paused={Paused}, pending={Pending}, quarantined={Quarantined}, freeBytes={Free}", next.ClaimsPaused, next.PendingCount, next.QuarantinedCount, next.FreeBytes);
         }
-        if (DateTimeOffset.UtcNow - lastStatusLog > TimeSpan.FromSeconds(30))
+        if (DateTimeOffset.UtcNow - _lastStatusLog > TimeSpan.FromSeconds(30))
         {
-            lastStatusLog = DateTimeOffset.UtcNow;
-            logger?.LogInformation("Completion queue: pending={Pending}, bytes={Bytes}, oldestSeconds={Oldest}, quarantined={Quarantined}, freeBytes={Free}, unpersisted={Unpersisted}", next.PendingCount, next.PendingBytes, next.OldestSeconds, next.QuarantinedCount, next.FreeBytes, next.UnpersistedCount);
+            _lastStatusLog = DateTimeOffset.UtcNow;
+            _logger?.LogInformation("Completion queue: pending={Pending}, bytes={Bytes}, oldestSeconds={Oldest}, quarantined={Quarantined}, freeBytes={Free}, unpersisted={Unpersisted}", next.PendingCount, next.PendingBytes, next.OldestSeconds, next.QuarantinedCount, next.FreeBytes, next.UnpersistedCount);
         }
     }
 
+    /// <summary>Refreshes storage capacity independently of HTTP delivery retries.</summary>
+    /// <returns>A task representing this operation: Refreshes storage capacity independently of HTTP delivery retries.</returns>
     private async Task MonitorStorageAsync()
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
         try
         {
-            while (await timer.WaitForNextTickAsync(stop.Token))
+            while (await timer.WaitForNextTickAsync(_stop.Token))
                 {
                 UpdateStatus();
             }
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
     }
 
+    /// <summary>Retries durable completion deliveries until queue shutdown is requested.</summary>
+    /// <returns>A task representing this operation: Retries durable completion deliveries until queue shutdown is requested.</returns>
     private async Task RetryAsync()
     {
         try
         {
-            while (!stop.IsCancellationRequested)
+            while (!_stop.IsCancellationRequested)
             {
                 try
                 {
-                    using var deadline = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
-                    deadline.CancelAfter(options.FlushBudget);
+                    using var deadline = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+                    deadline.CancelAfter(_options.FlushBudget);
                     await FlushAsync(deadline.Token);
                 }
-                catch (OperationCanceledException) when (stop.IsCancellationRequested) { throw; }
+                catch (OperationCanceledException) when (_stop.IsCancellationRequested) { throw; }
                 catch (OperationCanceledException) { }
-                catch (Exception error) { logger?.LogError(error, "Retrying retained task results failed"); }
-                await Task.Delay(retryDelay, stop.Token);
+                catch (Exception error) { _logger?.LogError(error, "Retrying retained task results failed"); }
+                await Task.Delay(_retryDelay, _stop.Token);
             }
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
     }
 
     /// <summary>Stops admission, persists all in-memory results and stops background operations.</summary>
@@ -350,27 +409,29 @@ internal sealed class GXTaskCompletionOutbox : IAsyncDisposable
     /// </remarks>
     public ValueTask DisposeAsync()
     {
-        lock (disposalGate) return new(disposal ??= DisposeCoreAsync());
+        lock (_disposalGate) return new(_disposal ??= DisposeCoreAsync());
     }
 
+    /// <summary>Stops queue workers and flushes retained completion reports before releasing resources.</summary>
+    /// <returns>A task representing this operation: Stops queue workers and flushes retained completion reports before releasing resources.</returns>
     private async Task DisposeCoreAsync()
     {
-        Interlocked.Exchange(ref shutdownRequested, 1);
+        Interlocked.Exchange(ref _shutdownRequested, 1);
         // Keep recovery alive until all outcomes are on disk. A shutdown caller's deadline
         // may expire, but an update must not terminate the process holding the only copy.
         while (true)
         {
-            await gate.WaitAsync();
-            try { await PersistAsync(); UpdateStatus(); if (unpersisted.IsEmpty) {
+            await _gate.WaitAsync();
+            try { await PersistAsync(); UpdateStatus(); if (_unpersisted.IsEmpty) {
                 break;
             } }
-            finally { gate.Release(); }
-            await Task.Delay(retryDelay < TimeSpan.FromSeconds(2) ? retryDelay : TimeSpan.FromSeconds(2));
+            finally { _gate.Release(); }
+            await Task.Delay(_retryDelay < TimeSpan.FromSeconds(2) ? _retryDelay : TimeSpan.FromSeconds(2));
         }
-        await stop.CancelAsync();
-        await Task.WhenAll(retry, monitoring);
-        meter.Dispose();
-        stop.Dispose();
-        gate.Dispose();
+        await _stop.CancelAsync();
+        await Task.WhenAll(_retry, _monitoring);
+        _meter.Dispose();
+        _stop.Dispose();
+        _gate.Dispose();
     }
 }

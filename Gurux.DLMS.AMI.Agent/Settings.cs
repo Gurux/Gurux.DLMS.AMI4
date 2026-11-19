@@ -64,6 +64,7 @@ namespace Gurux.DLMS.AMI.Agent
             return 0;
         }
 
+        /// <summary>Writes the supported agent command-line options to the console.</summary>
         static void ShowHelp()
         {
             Console.WriteLine("Gurux.DLMS.AMI.Agent is used to read DLMS devices.");

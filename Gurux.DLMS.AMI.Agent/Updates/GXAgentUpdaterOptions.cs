@@ -29,31 +29,52 @@ using Microsoft.Extensions.Configuration;
 
 namespace Gurux.DLMS.AMI.Agent;
 
+/// <summary>Configures authenticated release staging and external updater handoff.</summary>
 internal sealed class GXAgentUpdaterOptions
 {
+    /// <summary>Gets or sets shared deployment queue storage for container installations.</summary>
     public string? DeploymentRoot { get; set; }
+    /// <summary>Gets or sets the file containing the host deployment request authentication key.</summary>
     public string? RequestKeyFile { get; set; }
+    /// <summary>Gets or sets the external updater executable or managed assembly path.</summary>
     public string Executable { get; set; } = "";
+    /// <summary>Gets or sets the service restarted by the external updater.</summary>
     public string? ServiceName { get; set; }
+    /// <summary>Gets the executable application path used for updater handoff.</summary>
     public string? ApplicationPath { get; set; }
+    /// <summary>Gets or sets the endpoint used to verify application health after replacement.</summary>
     public string? HealthUrl { get; set; }
+    /// <summary>Gets or sets the endpoint reporting the running application version.</summary>
     public string? VersionUrl { get; set; }
+    /// <summary>Gets or sets the settings file passed to the restarted agent.</summary>
     public string SettingsPath { get; set; } = GXAgentSettingsStore.DefaultPath;
+    /// <summary>Gets or sets the trusted public key for release manifest signature verification.</summary>
     public string PublicKeyPem { get; set; } = "";
+    /// <summary>Gets or sets the maximum duration allowed for release downloads.</summary>
     public TimeSpan DownloadTimeout { get; set; } = TimeSpan.FromMinutes(10);
+    /// <summary>Gets or sets the maximum allowed compressed release size.</summary>
     public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
+    /// <summary>Gets or sets the maximum allowed size of expanded package entries.</summary>
     public long MaxExpandedBytes { get; set; } = 2L * 1024 * 1024 * 1024;
+    /// <summary>Gets or sets how long unused staged releases are retained.</summary>
     public TimeSpan StagingRetention { get; set; } = TimeSpan.FromDays(7);
-    private long retryAfterTicks;
+    /// <summary>UTC ticks of the earliest permitted update retry.</summary>
+    private long _retryAfterTicks;
+    /// <summary>Gets the earliest time at which another application update may be attempted.</summary>
     internal DateTimeOffset RetryAfter
     {
-        get => new(Interlocked.Read(ref retryAfterTicks), TimeSpan.Zero);
-        set => Interlocked.Exchange(ref retryAfterTicks, value.UtcTicks);
+        get => new(Interlocked.Read(ref _retryAfterTicks), TimeSpan.Zero);
+        set => Interlocked.Exchange(ref _retryAfterTicks, value.UtcTicks);
     }
+    /// <summary>Gets or sets the application directory replaced by the external updater.</summary>
     public string InstallationDirectory { get; set; } = AppContext.BaseDirectory;
+    /// <summary>Gets or sets the private directory used to stage verified releases.</summary>
     public string StagingDirectory { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Gurux", "DLMS.AMI", "application-updates");
 
+    /// <summary>Resolves updater settings from application configuration, environment and installation defaults.</summary>
+    /// <param name="config">Application configuration containing updater settings.</param>
+    /// <returns>Updater settings resolved from configuration, environment and installation defaults.</returns>
     internal static GXAgentUpdaterOptions Read(IConfiguration config) => new()
     {
         DeploymentRoot = config["Updater:DeploymentRoot"],
@@ -72,6 +93,9 @@ internal sealed class GXAgentUpdaterOptions
         StagingDirectory = config["Updater:StagingDirectory"] ?? new GXAgentUpdaterOptions().StagingDirectory
     };
 
+    /// <summary>Resolves the configured updater path with environment and bundled installation fallbacks.</summary>
+    /// <param name="config">Application configuration containing updater settings.</param>
+    /// <returns>The configured or bundled external updater path.</returns>
     internal static string ResolveExecutable(IConfiguration config)
     {
         var configured = config["Updater:Executable"];
@@ -88,6 +112,9 @@ internal sealed class GXAgentUpdaterOptions
             "..", "gurux-updater", "Gurux.Updater.Tool.dll"));
     }
 
+    /// <summary>Loads the configured release verification key or the embedded trusted key.</summary>
+    /// <param name="config">Application configuration containing updater settings.</param>
+    /// <returns>The configured or embedded trusted release verification key in PEM format.</returns>
     private static string ReadPublicKey(IConfiguration config)
     {
         var configured = config["Updater:PublicKeyPem"];
@@ -100,38 +127,4 @@ internal sealed class GXAgentUpdaterOptions
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }
-}
-
-/// <summary>Describes a verified application package staged for external installation.</summary>
-/// <param name="Version">Requested release version verified against the signed manifest and application metadata.</param>
-/// <param name="PackagePath">Path of the retained ZIP package outside the live installation directory.</param>
-/// <param name="Sha256">Lowercase hexadecimal SHA-256 digest verified against the release signature.</param>
-internal sealed record GXPreparedAgentUpdate(string Version, string PackagePath, string Sha256);
-
-/// <summary>Stages verified releases and hands installation to an external updater after the host drains the worker.</summary>
-internal interface IGXAgentUpdateService
-{
-    /// <summary>Gets a configuration or cooldown diagnostic, or <see langword="null"/> when local updating is available.</summary>
-    string? UnavailableReason { get; }
-    /// <summary>Gets the verified staged release, or <see langword="null"/> when no release has been prepared.</summary>
-    GXPreparedAgentUpdate? PendingUpdate { get; }
-    /// <summary>Downloads and verifies a complete release without replacing files in the live installation.</summary>
-    /// <param name="version">Expected application release identifier.</param>
-    /// <param name="urls">Candidate HTTPS package addresses, attempted in order with their signed sidecar manifests.</param>
-    /// <param name="token">Cancels waiting for preparation and active downloads or validation.</param>
-    /// <returns>A task that completes once <see cref="PendingUpdate"/> refers to a verified package.</returns>
-    /// <exception cref="ArgumentException">The requested version is not a valid release identifier.</exception>
-    /// <exception cref="InvalidOperationException">Configuration is unavailable, the download deadline expires, or no candidate is accepted.</exception>
-    /// <exception cref="System.IO.InvalidDataException">A supplied package URL does not use HTTPS or contains credentials.</exception>
-    /// <exception cref="OperationCanceledException">Preparation is canceled by the caller.</exception>
-    Task PrepareAsync(string version, IEnumerable<string> urls, CancellationToken token);
-    /// <summary>Launches the external installer for the prepared release.</summary>
-    /// <param name="processId">Positive identifier of the current agent process; used for standalone update coordination.</param>
-    /// <param name="token">Cancels the launch or its initial confirmation wait.</param>
-    /// <returns>A task that confirms launch, not completion of package installation or application health checks.</returns>
-    /// <remarks>The host must stop the worker and persist its in-memory task results before invoking this method.</remarks>
-    /// <exception cref="InvalidOperationException">No release is staged, configuration is invalid, or the updater fails during launch.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="processId"/> is not positive.</exception>
-    /// <exception cref="OperationCanceledException">The launch wait is canceled.</exception>
-    Task LaunchAsync(int processId, CancellationToken token);
 }

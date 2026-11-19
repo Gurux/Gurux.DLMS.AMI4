@@ -29,31 +29,12 @@ using System.Net;
 
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
-/// <summary>Shares rejection of a PAT across API requests and SignalR negotiation.</summary>
-internal sealed class GXAuthenticationState(Action rejected)
-{
-    private int failed;
-    internal bool IsRejected => Volatile.Read(ref failed) != 0;
-
-    internal void Reject()
-    {
-        if (Interlocked.Exchange(ref failed, 1) == 0)
-        {
-            rejected();
-        }
-    }
-
-    internal void ThrowIfRejected()
-    {
-        if (IsRejected)
-        {
-            throw new HttpRequestException("AMI authentication failed (HTTP 401).", null, HttpStatusCode.Unauthorized);
-        }
-    }
-}
-
+/// <summary>Rejects HTTP work after permanent authentication failure and shares newly received rejections.</summary>
+/// <param name="inner">Original failure or inner HTTP transport retained by the wrapper.</param>
+/// <param name="authentication">Shared authentication rejection state for outgoing requests.</param>
 internal sealed class GXAuthenticationHandler(HttpMessageHandler inner, GXAuthenticationState authentication) : DelegatingHandler(inner)
 {
+    /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -66,38 +47,5 @@ internal sealed class GXAuthenticationHandler(HttpMessageHandler inner, GXAuthen
             authentication.ThrowIfRejected();
         }
         return response;
-    }
-}
-
-/// <summary>Forwards through a caller-owned client without taking ownership of it.</summary>
-internal sealed class GXHostHttpHandler(HttpClient client) : HttpMessageHandler
-{
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        // HttpClient rejects sending the same request twice. The content remains owned by the original request.
-        using var forwarded = new HttpRequestMessage(request.Method, request.RequestUri)
-        {
-            Version = request.Version,
-            VersionPolicy = request.VersionPolicy,
-            Content = request.Content
-        };
-        foreach (var header in request.Headers)
-        {
-            forwarded.Headers.TryAddWithoutValidation(header.Key, header.Value);
-        }
-        foreach (var option in request.Options)
-        {
-            forwarded.Options.Set(new HttpRequestOptionsKey<object?>(option.Key), option.Value);
-        }
-        try
-        {
-            var response = await client.SendAsync(forwarded, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            response.RequestMessage = request;
-            return response;
-        }
-        finally
-        {
-            forwarded.Content = null;
-        }
     }
 }

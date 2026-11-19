@@ -31,34 +31,49 @@ using Gurux.DLMS.AMI.Script;
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
 /// <summary>Bounds caller waits while retaining ownership of non-cooperative script code until it actually finishes.</summary>
+/// <param name="timeout">Maximum duration to wait before checking for further work.</param>
+/// <param name="lifetime">Cancellation lifetime shared by owned work.</param>
 internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken lifetime)
 {
+    /// <summary>Tracks script completion, cancellation and cleanup after timeout.</summary>
     private sealed class Invocation
     {
+        /// <summary>Tracks the script execution task until it finishes.</summary>
         internal bool Running;
+        /// <summary>Indicates that ownership of invocation resources has been released.</summary>
         internal bool Released;
+        /// <summary>Indicates that the invocation exceeded its allowed lifetime.</summary>
         internal bool Abandoned;
+        /// <summary>Tracks cleanup work that is still executing.</summary>
         internal bool CleanupRunning;
+        /// <summary>Indicates that cleanup exceeded its allowed lifetime.</summary>
         internal bool CleanupAbandoned;
+        /// <summary>Tracks asynchronous callbacks triggered by script cancellation.</summary>
         internal Task CancellationCallbacks = Task.CompletedTask;
+        /// <summary>Cancels work associated with the registered connection.</summary>
         internal CancellationTokenSource? Cancellation;
     }
 
-    private readonly Lock gate = new();
-    private readonly ConditionalWeakTable<GXScriptRunArgs, Invocation> invocations = new();
-    private int abandoned;
+    /// <summary>Protects concurrent access to the owning object's mutable state.</summary>
+    private readonly Lock _gate = new();
+    /// <summary>Associates script arguments with their tracked invocation state.</summary>
+    private readonly ConditionalWeakTable<GXScriptRunArgs, Invocation> _invocations = [];
+    /// <summary>Number of script invocations that outlived their allowed execution window.</summary>
+    private int _abandoned;
 
+    /// <summary>Gets whether capacity remains for another isolated script execution.</summary>
     internal bool CanExecute
     {
         get
         {
-            lock (gate)
+            lock (_gate)
             {
-                return abandoned == 0;
+                return _abandoned == 0;
             }
         }
     }
 
+    /// <summary>Rejects new script work while abandoned executions exhaust the execution budget.</summary>
     internal void CheckAdmission()
     {
         if (!CanExecute)
@@ -67,16 +82,21 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
         }
     }
 
+    /// <summary>Runs an isolated script with bounded execution and asynchronous cleanup after timeout.</summary>
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+    /// <param name="invoke">Executes the script using the supplied cancellation token.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The script return value after bounded execution completes.</returns>
     internal async Task<object?> RunAsync(GXScriptRunArgs args, Func<CancellationToken, Task<object?>> invoke, CancellationToken token)
     {
         using var waiting = CancellationTokenSource.CreateLinkedTokenSource(lifetime, token);
         waiting.Token.ThrowIfCancellationRequested();
         Invocation invocation;
         Task<object?> work;
-        lock (gate)
+        lock (_gate)
         {
             CheckAdmission();
-            invocation = invocations.GetOrCreateValue(args);
+            invocation = _invocations.GetOrCreateValue(args);
             ObjectDisposedException.ThrowIf(invocation.Released, args);
             if (invocation.Running)
             {
@@ -99,7 +119,7 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
                     while (true)
                     {
                         Task callbacks;
-                        lock (gate)
+                        lock (_gate)
                         {
                             callbacks = invocation.CancellationCallbacks;
                         }
@@ -111,7 +131,7 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
                         {
                             // Callback failure is observed; ownership lasts until every callback returns.
                         }
-                        lock (gate)
+                        lock (_gate)
                         {
                             // Cancellation may have installed callbacks between the snapshot and this lock.
                             if (!ReferenceEquals(callbacks, invocation.CancellationCallbacks))
@@ -122,7 +142,7 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
                             if (invocation.Abandoned)
                             {
                                 invocation.Abandoned = false;
-                                --abandoned;
+                                --_abandoned;
                             }
                             invocation.Cancellation.Dispose();
                             invocation.Cancellation = null;
@@ -142,12 +162,12 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
         }
         catch (Exception error) when (error is TimeoutException or OperationCanceledException)
         {
-            lock (gate)
+            lock (_gate)
             {
                 if (invocation.Running)
                 {
                     invocation.Abandoned = true;
-                    ++abandoned;
+                    ++_abandoned;
                     // User cancellation callbacks can block. CancelAsync keeps them off the caller.
                     Observe(invocation.CancellationCallbacks = invocation.Cancellation!.CancelAsync());
                 }
@@ -158,11 +178,13 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
         }
     }
 
+    /// <summary>Releases script arguments and schedules cleanup after outstanding execution finishes.</summary>
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
     internal void Release(GXScriptRunArgs args)
     {
-        lock (gate)
+        lock (_gate)
         {
-            var invocation = invocations.GetOrCreateValue(args);
+            var invocation = _invocations.GetOrCreateValue(args);
             if (invocation.Released)
             {
                 return;
@@ -176,6 +198,9 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
     }
 
     // Unloading raises user callbacks synchronously. Never run them on a caller or under gate.
+    /// <summary>Schedules script context cleanup without blocking the caller on abandoned execution.</summary>
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+    /// <param name="invocation">Tracked script execution whose resources require cleanup.</param>
     private void ScheduleUnload(GXScriptRunArgs args, Invocation invocation)
     {
         invocation.CleanupRunning = true;
@@ -187,13 +212,13 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
             }
             finally
             {
-                lock (gate)
+                lock (_gate)
                 {
                     invocation.CleanupRunning = false;
                     if (invocation.CleanupAbandoned)
                     {
                         invocation.CleanupAbandoned = false;
-                        --abandoned;
+                        --_abandoned;
                     }
                 }
             }
@@ -208,12 +233,12 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
             }
             catch (TimeoutException)
             {
-                lock (gate)
+                lock (_gate)
                 {
                     if (invocation.CleanupRunning)
                     {
                         invocation.CleanupAbandoned = true;
-                        ++abandoned;
+                        ++_abandoned;
                     }
                 }
                 Observe(cleanup);
@@ -224,6 +249,8 @@ internal sealed class GXScriptExecution(TimeSpan timeout, CancellationToken life
             }
         }
     }
+    /// <summary>Observes a background task fault so abandoned script failures do not become unobserved.</summary>
+    /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
     private static void Observe(Task task)
     {
         _ = task.ContinueWith(completed => { _ = completed.Exception; }, CancellationToken.None,

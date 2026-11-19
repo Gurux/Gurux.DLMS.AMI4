@@ -1,3 +1,30 @@
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Agent;
@@ -5,6 +32,9 @@ namespace Gurux.DLMS.AMI.Agent;
 /// <summary>Hands a drained, verified agent update to the independent container updater.</summary>
 internal static class GXAgentContainerUpdate
 {
+    /// <summary>Gets the earliest time at which another application update may be attempted.</summary>
+    /// <param name="root">Persistent deployment storage directory.</param>
+    /// <returns>The persisted update retry deadline, or the minimum date when no delay applies.</returns>
     internal static DateTimeOffset RetryAfter(string root)
     {
         try
@@ -22,6 +52,11 @@ internal static class GXAgentContainerUpdate
         return default;
     }
 
+    /// <summary>Waits for the queued container deployment to report a terminal failure.</summary>
+    /// <param name="root">Persistent deployment storage directory.</param>
+    /// <param name="requestId">Identifier of the authenticated deployment request being observed.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Waits for the queued container deployment to report a terminal failure.</returns>
     internal static async Task WaitForFailureAsync(string root, string requestId, CancellationToken token)
     {
         // Stay alive and drained while the independent updater prepares/replaces this container.
@@ -45,6 +80,12 @@ internal static class GXAgentContainerUpdate
         }
     }
 
+    /// <summary>Authenticates and persists a container deployment request for the external updater.</summary>
+    /// <param name="root">Persistent deployment storage directory.</param>
+    /// <param name="keyFile">File containing the host-only deployment request authentication key.</param>
+    /// <param name="version">Application release version being verified or published.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The unique identifier of the authenticated deployment request.</returns>
     internal static async Task<string> QueueAsync(string root, string keyFile, string version, CancellationToken token)
     {
         if (version.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(version, @"\A[0-9]+(?:\.[0-9]+){2,3}(?:-[0-9A-Za-z.-]+)?\z"))

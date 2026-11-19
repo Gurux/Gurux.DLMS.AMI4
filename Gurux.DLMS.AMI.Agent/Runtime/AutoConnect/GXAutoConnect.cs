@@ -52,24 +52,42 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
     /// </summary>
     internal class GXAutoConnect
     {
-        private readonly CancellationToken cancellationToken;
-        private GXTaskRegistration? registration;
-        private readonly object callbackGate = new();
-        private readonly object traceGate = new();
-        private bool closing;
-        private readonly GXAgentWorker worker;
-        private Gurux.DLMS.AMI.Agent.Shared.GXAgentOptions RuntimeOptions => worker.RuntimeOptions;
-        private HttpClient client => worker.client;
+        /// <summary>Cancels operations when the enclosing host or connection stops.</summary>
+        private readonly CancellationToken _cancellationToken;
+        /// <summary>Task notification registration belonging to the identified connection.</summary>
+        private GXTaskRegistration? _registration;
+        /// <summary>Serializes callbacks with connection shutdown.</summary>
+        private readonly object _callbackGate = new();
+        /// <summary>Protects concurrent trace output for the connection.</summary>
+        private readonly object _traceGate = new();
+        /// <summary>Indicates that connection shutdown has started.</summary>
+        private bool _closing;
+        /// <summary>Agent runtime controlled by this host or connection.</summary>
+        private readonly GXAgentWorker _worker;
+        /// <summary>Gets the current validated worker configuration without copying it.</summary>
+        private Gurux.DLMS.AMI.Agent.Shared.GXAgentOptions RuntimeOptions => _worker.RuntimeOptions;
+        /// <summary>Gets the HTTP client owned by the current worker.</summary>
+        private HttpClient Client => _worker.Client;
+        /// <summary>Resolves transport and repository services for this component.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
         private readonly ILogger? _logger;
+        /// <summary>Optional script used to identify an automatically connecting meter.</summary>
         private readonly GXScriptMethod? _autoConnectionIdentificationScript;
+        /// <summary>Optional script used to identify a connecting gateway.</summary>
         private readonly GXScriptMethod? _gatewayIdentificationScript;
+        /// <summary>Routes newly available task signals to registered device connections.</summary>
         private readonly IGXTaskNotification _taskNotification;
+        /// <summary>Transport used to exchange bytes with the connected device.</summary>
         private readonly GXNet _media;
+        /// <summary>Connection description attached to diagnostic output.</summary>
         private readonly string _info;
-        private readonly ListenerSettings settings;
+        /// <summary>Transport settings applied to the active connection.</summary>
+        private readonly ListenerSettings _settings;
+        /// <summary>Accumulates incoming bytes until a notification can be decoded.</summary>
         readonly GXByteBuffer _notify = new();
-        private readonly GXDLMSReader reader;
+        /// <summary>Reads protocol requests for the connected device.</summary>
+        private readonly GXDLMSReader _reader;
         /// <summary>
         /// Device identifier.
         /// </summary>
@@ -78,8 +96,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         /// Gateway identifier.
         /// </summary>
         private Guid? _gatewayId;
+        /// <summary>Signals completion of connection establishment.</summary>
         private readonly AutoResetEvent _connected = new(false);
 
+        /// <summary>Initializes an accepted automatic device connection and its protocol reader.</summary>
+        /// <param name="serviceProvider">Resolves services used by accepted transport sessions.</param>
+        /// <param name="logger">Records operation diagnostics without exposing authentication secrets.</param>
+        /// <param name="media">Accepted transport used for connection protocol exchanges.</param>
+        /// <param name="info">Process start settings or transport description used by the operation.</param>
+        /// <param name="autoConnectionIdentificationScript">Optional script identifying an automatically connecting meter.</param>
+        /// <param name="gatewayIdentificationScript">Optional script identifying the accepted gateway.</param>
+        /// <param name="loadedScript">Retains the loaded identification script for the session lifetime.</param>
+        /// <param name="taskNotification">Routes available task signals to the identified connection.</param>
+        /// <param name="worker">Agent runtime being registered or reconfigured.</param>
+        /// <param name="cancellationToken">Cancels the operation when its owning lifetime ends.</param>
         public GXAutoConnect(IServiceProvider serviceProvider,
             ILogger? logger,
             GXNet media,
@@ -91,10 +121,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         {
             // Prepared scripts now own their load contexts; retain the legacy constructor parameter.
             _ = loadedScript;
-            this.cancellationToken = cancellationToken;
-            this.worker = worker;
+            this._cancellationToken = cancellationToken;
+            this._worker = worker;
             _serviceProvider = serviceProvider;
-            settings = RuntimeOptions.ListenerSettings
+            _settings = RuntimeOptions.ListenerSettings
                 ?? throw new InvalidOperationException("Listener settings are missing.");
             _logger = logger;
             _media = media;
@@ -104,38 +134,44 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             _gatewayIdentificationScript = worker.Scripts.Current(gatewayIdentificationScript);
             _taskNotification = taskNotification;
             _media.OnReceived += Media_OnReceived;
-            if (settings.TraceLevel == TraceLevel.Verbose)
+            if (_settings.TraceLevel == TraceLevel.Verbose)
             {
                 _media.OnTrace += MediaOnTrace;
                 _media.Trace = TraceLevel.Verbose;
             }
-            GXDLMSSecureClient client = new(settings.UseLogicalNameReferencing, settings.ClientAddress, settings.ServerAddress, (Authentication)settings.Authentication, settings.Password, (InterfaceType)settings.Interface);
-            reader = new GXDLMSReader(client, _media, _logger, TraceLevel.Off,
-                settings.TraceLevel, 60, 3, null, worker.client) { CancellationToken = cancellationToken };
+            GXDLMSSecureClient client = new(_settings.UseLogicalNameReferencing, _settings.ClientAddress, _settings.ServerAddress, (Authentication)_settings.Authentication, _settings.Password, (InterfaceType)_settings.Interface);
+            _reader = new GXDLMSReader(client, _media, _logger, TraceLevel.Off,
+                _settings.TraceLevel, 60, 3, null, worker.Client) { CancellationToken = cancellationToken };
         }
 
-        private void MediaOnTrace(object sender, TraceEventArgs e)
+        /// <summary>Serializes transport trace callbacks with connection shutdown.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Transport event data identifying the connection, received bytes or trace packet.</param>
+        private void MediaOnTrace(object? sender, TraceEventArgs e)
         {
-            lock (traceGate)
+            lock (_traceGate)
             {
-                if (Volatile.Read(ref closing) || cancellationToken.IsCancellationRequested) {
+                if (Volatile.Read(ref _closing) || _cancellationToken.IsCancellationRequested) {
                     return;
                 }
                 MediaOnTraceCore(sender, e);
             }
         }
 
-        private void MediaOnTraceCore(object sender, TraceEventArgs e)
+        /// <summary>Writes transport trace data using the configured diagnostic destinations.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Transport event data identifying the connection, received bytes or trace packet.</param>
+        private void MediaOnTraceCore(object? sender, TraceEventArgs e)
         {
             try
             {
                 string? str = null;
-                if (e.Type == TraceTypes.Sent)
+                if (e.Type == TraceTypes.Sent && e.Data is byte[])
                 {
                     str = string.Format("Meter TX: {0}", GXCommon.ToHex((byte[])e.Data));
 
                 }
-                else if (e.Type == TraceTypes.Received)
+                else if (e.Type == TraceTypes.Received && e.Data is byte[])
                 {
                     str = string.Format("Meter RX: {0}", GXCommon.ToHex((byte[])e.Data));
                 }
@@ -150,11 +186,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         Type = TraceLevel.Verbose.ToString(),
                         Logs = [new(TraceLevel.Verbose)
                             {
-                                Creator = worker.RuntimeOptions.Id ,
+                                Creator = _worker.RuntimeOptions.Id ,
                                 Message = str
                             } ]
                     };
-                    worker.client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken).GetAwaiter().GetResult();
+                    _worker.Client.PostAsJson("/api/Log/Add?source=agent", log, _cancellationToken).GetAwaiter().GetResult();
                 }
             }
             catch (Exception ex)
@@ -169,16 +205,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         /// <summary>
         /// Read data from the meter.
         /// </summary>
+        /// <returns>A task completing after the connected meter's admitted work finishes.</returns>
         public async System.Threading.Tasks.Task ReadMeter()
         {
             try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                _cancellationToken.ThrowIfCancellationRequested();
                 ListenerSettings settings = RuntimeOptions.ListenerSettings
                     ?? throw new InvalidOperationException("Listener settings are missing.");
                 if (settings.IdentifyWaitTime != 0)
                 {
-                    await GXConnectionTasks.WaitAsync(_connected, TimeSpan.FromSeconds(settings.IdentifyWaitTime), cancellationToken);
+                    await GXConnectionTasks.WaitAsync(_connected, TimeSpan.FromSeconds(settings.IdentifyWaitTime), _cancellationToken);
                     if (_deviceId == null && _gatewayId == null)
                     {
                         //_deviceId is null if meter is sending data that is not require
@@ -197,11 +234,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         Type = TraceLevel.Verbose.ToString(),
                         Logs = [new(TraceLevel.Verbose)
                             {
-                                Creator = worker.RuntimeOptions.Id ,
+                                Creator = _worker.RuntimeOptions.Id ,
                                 Message = string.Format("Meter Meter connected from address '{0}'", _info)
                             } ]
                     };
-                    await client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
+                    await Client.PostAsJson("/api/Log/Add?source=agent", log, _cancellationToken);
                 }
                 if (_gatewayId == null && !settings.PreEstablished &&
                     (_deviceId == null || _deviceId == Guid.Empty && settings.IdentifyWaitTime == 0))
@@ -209,8 +246,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     GXDLMSObjectCollection objects = [];
                     GXDLMSData ldn = new("0.0.42.0.0.255");
                     ldn.SetUIDataType(2, DataType.String);
-                    await reader.InitializeConnection(false, false, settings.InvocationCounter);
-                    await reader.Read(ldn, 2);
+                    await _reader.InitializeConnection(false, false, settings.InvocationCounter);
+                    await _reader.Read(ldn, 2);
                     if (settings.TraceLevel >= TraceLevel.Info)
                     {
                         if (_logger?.IsEnabled(LogLevel.Information) == true)
@@ -221,11 +258,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         {
                             Logs = [new(TraceLevel.Info)
                             {
-                                Creator = worker.RuntimeOptions.Id ,
+                                Creator = _worker.RuntimeOptions.Id ,
                                 Message = string.Format("Meter '{0}' connected", ldn.Value)
                             } ]
                         };
-                        await worker.client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
+                        await _worker.Client.PostAsJson("/api/Log/Add?source=agent", log, _cancellationToken);
                     }
                     //Get device using logical device name.
                     GXAttribute att = new()
@@ -247,7 +284,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             Objects = new List<GXObject>([obj])
                         }
                     };
-                    var ret = await client.PostAsJson<ListDevicesResponse>("/api/Device/List", req, cancellationToken);
+                    var ret = await Client.PostAsJson<ListDevicesResponse>("/api/Device/List", req, _cancellationToken);
                     GXDevice device = ret?.Devices?.FirstOrDefault()
                         ?? throw new KeyNotFoundException($"Unknown device '{ldn.Value}'.");
                     _deviceId = device.Id;
@@ -258,27 +295,27 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     //If unknown device.
                     //TODO: throw new GXAMIUnknownDeviceException(Properties.Resources.UnknownDevice);
                 }
-                while (!cancellationToken.IsCancellationRequested)
+                while (!_cancellationToken.IsCancellationRequested)
                 {
-                    if (!worker.CanClaimTasks) {
+                    if (!_worker.CanClaimTasks) {
                         break;
                     }
-                    var response = await client.PostAsJson<GetNextTaskResponse>("/api/Task/Next", new GetNextTask
+                    var response = await Client.PostAsJson<GetNextTaskResponse>("/api/Task/Next", new GetNextTask
                     {
                         AgentId = RuntimeOptions.Id, DeviceId = _deviceId, GatewayId = _gatewayId,
                         Listener = true, WaitTime = 0
-                    }, cancellationToken);
+                    }, _cancellationToken);
                     var tasks = response?.Tasks?.ToArray();
                     if (tasks == null || tasks.Length == 0) {
                         break;
                     }
-                    await worker.ReadMeter(new GXActionBlock
+                    await _worker.ReadMeter(new GXActionBlock
                     {
-                        Tasks = tasks, CancellationToken = cancellationToken, Media = _media, GatewayId = _gatewayId
-                    }, true, settings);
+                        Tasks = tasks, CancellationToken = _cancellationToken, Media = _media, GatewayId = _gatewayId
+                    }, settings);
                 }
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+            catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested) { }
             catch (Exception ex)
             {
                 try
@@ -298,7 +335,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                 }
                             ]
                     };
-                    await client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken);
+                    await Client.PostAsJson("/api/Log/Add?source=agent", log, _cancellationToken);
                 }
                 catch (Exception ex2)
                 {
@@ -312,16 +349,16 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             {
                 _media.OnReceived -= Media_OnReceived;
                 _media.OnTrace -= MediaOnTrace;
-                lock (callbackGate)
+                lock (_callbackGate)
                 {
-                    Volatile.Write(ref closing, true);
-                    registration?.Dispose();
+                    Volatile.Write(ref _closing, true);
+                    _registration?.Dispose();
                 }
-                lock (traceGate) { /* Wait for any active trace callback before releasing dependencies. */ }
+                lock (_traceGate) { /* Wait for any active trace callback before releasing dependencies. */ }
                 _connected.Dispose();
                 _media.Close();
 
-                reader?.Close();
+                _reader?.Close();
             }
         }
 
@@ -330,24 +367,31 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void Media_OnReceived(object sender, ReceiveEventArgs e)
+        private void Media_OnReceived(object? sender, ReceiveEventArgs e)
         {
-            lock (callbackGate)
+            lock (_callbackGate)
             {
-                if (Volatile.Read(ref closing) || cancellationToken.IsCancellationRequested) {
+                if (Volatile.Read(ref _closing) || _cancellationToken.IsCancellationRequested) {
                     return;
                 }
                 try { Media_OnReceivedCore(sender, e); }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+                catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested) { }
                 catch (Exception error) { _logger?.LogError(error, "Processing incoming connection data failed."); }
             }
         }
 
-        private void Media_OnReceivedCore(object sender, ReceiveEventArgs e)
+        /// <summary>Decodes received transport bytes and advances connection identification or device work.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Transport event data identifying the connection, received bytes or trace packet.</param>
+        private void Media_OnReceivedCore(object? sender, ReceiveEventArgs e)
         {
             GXReplyData reply = new();
             GXReplyData notify = new();
-            _notify.Set((byte[])e.Data);
+            if (e.Data is not byte[] received)
+            {
+                return;
+            }
+            _notify.Set(received);
             //If Gateway establish the connection for the agent.
             if (_gatewayIdentificationScript != null)
             {
@@ -361,14 +405,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             Sender = new GXAgent() { Id = RuntimeOptions.Id }
                         };
                         //Run script.
-                        var ret = worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [e.SenderInfo, _media, _notify.Array()], cancellationToken).GetAwaiter().GetResult();
+                        var ret = _worker.Scripts.RunAsync(tmp, _gatewayIdentificationScript, [e.SenderInfo, _media, _notify.Array()], _cancellationToken).GetAwaiter().GetResult();
                         if ((_gatewayId == null || _gatewayId == Guid.Empty))
                         {
                             if (ret is GXGateway gw && gw.Id != Guid.Empty)
                             {
                                 //If script returns gateway.
                                 _gatewayId = gw.Id;
-                                registration = _taskNotification.Register(gw.Id);
+                                _registration = _taskNotification.Register(gw.Id);
                                 if (gw.Agent?.Id != RuntimeOptions.Id)
                                 {
                                     //Update the gateway agent if it has changed.
@@ -377,7 +421,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                     {
                                         Gateways = [gw]
                                     };
-                                    worker.client.PostAsJson("/api/Gateway/Update", tmp2, cancellationToken).Wait();
+                                    _worker.Client.PostAsJson("/api/Gateway/Update", tmp2, _cancellationToken).Wait();
                                 }
                                 _connected.Set();
                             }
@@ -393,7 +437,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 {
                     if (_gatewayId is Guid id)
                     {
-                        registration?.Dispose();
+                        _registration?.Dispose();
                     }
                     if (_logger?.IsEnabled(LogLevel.Error) == true)
                     {
@@ -408,7 +452,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                 StackTrace =ex.StackTrace
                             } ]
                     };
-                    worker.client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken).Wait();
+                    _worker.Client.PostAsJson("/api/Log/Add?source=agent", log, _cancellationToken).Wait();
                     if (_gatewayIdentificationScript?.Script != null)
                     {
                         AddLog se = new()
@@ -419,19 +463,19 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                 Message = ex.Message
                             } ]
                         };
-                        worker.client.PostAsJson<AddLogResponse>("/api/Log/Add?source=script", se, cancellationToken).Wait();
+                        _worker.Client.PostAsJson<AddLogResponse>("/api/Log/Add?source=script", se, _cancellationToken).Wait();
                     }
                 }
                 return;
             }
 
             GXDLMSSecureClient client =
-                new(settings.UseLogicalNameReferencing,
+                new(_settings.UseLogicalNameReferencing,
                 0,
                 0,
-                (Authentication)settings.Authentication,
-                settings.Password,
-                (InterfaceType)settings.Interface);
+                (Authentication)_settings.Authentication,
+                _settings.Password,
+                (InterfaceType)_settings.Interface);
             client.OnCustomPdu += (args) =>
             {
                 try
@@ -443,16 +487,16 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         {
                             Sender = new GXAgent() { Id = RuntimeOptions.Id }
                         };
-                        if (settings.DefaultDeviceTemplate != null)
+                        if (_settings.DefaultDeviceTemplate != null)
                         {
                             tmp.DefaultDeviceTemplate = new GXDeviceTemplate()
                             {
-                                Id = settings.DefaultDeviceTemplate.Value
+                                Id = _settings.DefaultDeviceTemplate.Value
                             };
                         }
                         // Run the prepared script version pinned for this connection.
-                        var ret = worker.Scripts.RunAsync(tmp, _autoConnectionIdentificationScript,
-                            [e.SenderInfo, _media, args.Data], cancellationToken).GetAwaiter().GetResult();
+                        var ret = _worker.Scripts.RunAsync(tmp, _autoConnectionIdentificationScript,
+                            [e.SenderInfo, _media, args.Data], _cancellationToken).GetAwaiter().GetResult();
                         if (_deviceId == null || _deviceId == Guid.Empty)
                         {
                             if (ret is Guid id)
@@ -482,7 +526,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             StackTrace = ex.StackTrace
                         }]
                     };
-                    worker.client.PostAsJson("/api/Log/Add?source=agent", log, cancellationToken).Wait();
+                    _worker.Client.PostAsJson("/api/Log/Add?source=agent", log, _cancellationToken).Wait();
                     if (_autoConnectionIdentificationScript?.Script != null)
                     {
                         AddLog se = new()
@@ -493,7 +537,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                 Message = ex.Message
                             }]
                         };
-                        worker.client.PostAsJson<AddLogResponse>("/api/Log/Add?source=script", se, cancellationToken).Wait();
+                        _worker.Client.PostAsJson<AddLogResponse>("/api/Log/Add?source=script", se, _cancellationToken).Wait();
                     }
                 }
             };

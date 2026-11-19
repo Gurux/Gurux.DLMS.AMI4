@@ -33,8 +33,16 @@ using Gurux.DLMS.Objects;
 
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
+/// <summary>Plans and executes profile history reads using the device clock and capture layout.</summary>
 internal static class GXProfileHistoryReader
 {
+    /// <summary>Reads profile metadata and plans bounded history intervals before persisting the retrieved rows.</summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
+    /// <param name="reader">Protocol reader connected to the target device.</param>
+    /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
+    /// <param name="profile">Profile generic object whose buffered history is requested.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task representing this operation: Reads profile metadata and plans bounded history intervals before persisting the retrieved rows.</returns>
     internal static async Task Read(HttpClient http, GXDLMSReader reader, GXTask task, GXDLMSProfileGeneric profile, CancellationToken token)
     {
         Guid attributeId = task.Object?.Attributes?.FirstOrDefault(a => a.Template?.Index == 2)?.Id ?? Guid.Empty;
@@ -82,6 +90,13 @@ internal static class GXProfileHistoryReader
     }
 
     /// <summary>Reads a clockless single-row profile as an ordinary buffer snapshot.</summary>
+    /// <param name="profile">Profile generic object whose buffered history is requested.</param>
+    /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
+    /// <param name="attributeId">Server attribute identifier receiving the profile metadata value.</param>
+    /// <param name="read">Reads one planned profile interval from the device.</param>
+    /// <param name="save">Persists a successfully read profile metadata value.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>Whether the requested metadata attribute was read and persisted successfully.</returns>
     internal static async Task<bool> TryReadNameplate(GXDLMSProfileGeneric profile, GXTask task, Guid attributeId,
         Func<int, Task<object>> read, Func<AddValue, Task> save, CancellationToken token = default)
     {
@@ -122,6 +137,11 @@ internal static class GXProfileHistoryReader
         return true;
     }
 
+    /// <summary>Locates the captured clock column matching the profile sort descriptor.</summary>
+    /// <param name="profile">Profile generic object whose buffered history is requested.</param>
+    /// <param name="sortAttribute">Attribute index from the profile sort object descriptor.</param>
+    /// <param name="sortData">Data index from the profile sort object descriptor.</param>
+    /// <returns>The zero-based index of the captured standard clock column.</returns>
     internal static int GetClockColumn(GXDLMSProfileGeneric profile, int sortAttribute, int sortData)
     {
         if (profile.SortObject == null)
@@ -147,6 +167,9 @@ internal static class GXProfileHistoryReader
         return clockColumn;
     }
 
+    /// <summary>Extracts attribute and data indexes from the decoded profile sort descriptor.</summary>
+    /// <param name="decoded">Decoded DLMS sort descriptor value.</param>
+    /// <returns>The attribute and data indexes decoded from the profile sort descriptor.</returns>
     internal static (int Attribute, int Data) ParseSortDescriptor(object decoded)
     {
         if (decoded is not GXStructure sort || sort.Count != 4)
@@ -156,6 +179,15 @@ internal static class GXProfileHistoryReader
         return (Convert.ToInt32(sort[2]), Convert.ToInt32(sort[3]));
     }
 
+    /// <summary>Executes planned profile intervals and persists their ordered history results.</summary>
+    /// <param name="jobs">Planned profile time intervals to retrieve.</param>
+    /// <param name="clockColumn">Captured value column containing profile timestamps.</param>
+    /// <param name="capturePeriod">Profile capture interval in seconds.</param>
+    /// <param name="read">Reads one planned profile interval from the device.</param>
+    /// <param name="commit">Persists the decoded profile interval results.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <param name="useUtc2NormalTime">Whether device timestamps use UTC-to-local conversion when planning intervals.</param>
+    /// <returns>A task representing this operation: Executes planned profile intervals and persists their ordered history results.</returns>
     internal static async Task Execute(IEnumerable<GXProfileReadInterval> jobs, int clockColumn, int capturePeriod,
         Func<DateTimeOffset, DateTimeOffset, object?> read, Func<GXProfileCommit, Task> commit, CancellationToken token = default, bool useUtc2NormalTime = false)
     {
@@ -177,7 +209,7 @@ internal static class GXProfileHistoryReader
             }
             var rows = new List<GXProfileRow>();
             DateTimeOffset? previous = null;
-            foreach (object item in value as GXArray ?? new GXArray())
+            foreach (object item in value as GXArray ?? [])
             {
                 if (item is not GXStructure row || clockColumn >= row.Count)
                     {
@@ -207,7 +239,7 @@ internal static class GXProfileHistoryReader
                 }
             }
             token.ThrowIfCancellationRequested();
-            await commit(new GXProfileCommit { SpanId = job.IntervalId, TaskId = job.TaskId, Completed = true, Rows = rows.ToArray() });
+            await commit(new GXProfileCommit { SpanId = job.IntervalId, TaskId = job.TaskId, Completed = true, Rows = [.. rows] });
         }
     }
 }

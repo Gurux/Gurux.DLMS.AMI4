@@ -43,71 +43,95 @@ namespace Gurux.DLMS.AMI.Agent.Worker;
 /// <summary>Prepares authorized script versions without invoking user code, then supplies isolated ready contexts.</summary>
 internal sealed class GXAgentScripts
 {
-    private readonly HttpClient client;
-    private readonly GXScriptExecution execution;
-    private readonly TimeSpan executionTimeout;
-    private readonly CancellationToken lifetime;
+    /// <summary>Protocol or HTTP client used for communication by this component.</summary>
+    private readonly HttpClient _client;
+    /// <summary>Coordinates script invocation timeouts and abandoned executions.</summary>
+    private readonly GXScriptExecution _execution;
+    /// <summary>Maximum duration allowed for an individual script invocation.</summary>
+    private readonly TimeSpan _executionTimeout;
+    /// <summary>Cancellation lifetime shared by this component's work.</summary>
+    private readonly CancellationToken _lifetime;
 
+    /// <summary>Initializes script caching and isolated execution using caller-owned HTTP access.</summary>
+    /// <param name="client">Configured communication client used by the operation.</param>
+    /// <param name="options">Validated configuration used by the runtime operation.</param>
+    /// <param name="lifetime">Cancellation lifetime shared by owned work.</param>
     internal GXAgentScripts(HttpClient client, GXScriptExecutionOptions? options = null, CancellationToken lifetime = default)
     {
         options ??= new GXScriptExecutionOptions();
         options.Validate();
-        this.client = client;
-        this.lifetime = lifetime;
-        executionTimeout = options.ExecutionTimeout;
-        execution = new GXScriptExecution(executionTimeout, lifetime);
+        this._client = client;
+        this._lifetime = lifetime;
+        _executionTimeout = options.ExecutionTimeout;
+        _execution = new GXScriptExecution(_executionTimeout, lifetime);
     }
 
-    private readonly Lock Gate = new();
-    private readonly SemaphoreSlim Updates = new(1, 1);
-    private readonly Dictionary<Guid, Version> Latest = [];
-    private readonly HashSet<Guid> Denied = [];
-    private ConditionalWeakTable<GXScriptMethod, Version> prepared = [];
-    private int generation;
+    /// <summary>Protects concurrent access to the owning object's mutable state.</summary>
+    private readonly Lock _gate = new();
+    /// <summary>Serializes publication and invalidation of script versions.</summary>
+    private readonly SemaphoreSlim _updates = new(1, 1);
+    /// <summary>Most recently prepared script version for each script identifier.</summary>
+    private readonly Dictionary<Guid, Version> _latest = [];
+    /// <summary>Script identifiers invalidated and unavailable for execution.</summary>
+    private readonly HashSet<Guid> _denied = [];
+    /// <summary>Associates prepared method instances with their loaded script version.</summary>
+    private ConditionalWeakTable<GXScriptMethod, Version> _prepared = [];
+    /// <summary>Invalidation generation used to reject stale compilation results.</summary>
+    private int _generation;
+    /// <summary>Caches a script compilation identity with its compiled assembly image.</summary>
+    /// <param name="Key">Content identity used to reuse an existing script compilation.</param>
+    /// <param name="Image">Compiled script assembly bytes loaded into isolated contexts.</param>
     private sealed record Compilation(string Key, byte[] Image);
-    private readonly Dictionary<Guid, Compilation> compilations = [];
+    /// <summary>Compiled script images indexed by script identifier.</summary>
+    private readonly Dictionary<Guid, Compilation> _compilations = [];
 
     /// <summary>Fetches and validates a configured method before its listener/worker is started.</summary>
+    /// <param name="methodId">Server identifier of the script method to retrieve.</param>
+    /// <param name="parameterTypes">Expected types of the script entry point parameters.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The prepared script method with verified parameter types.</returns>
     internal async Task<GXScriptMethod> LoadAsync(Guid methodId, Type?[] parameterTypes, CancellationToken token = default)
     {
-        await Updates.WaitAsync(token);
+        await _updates.WaitAsync(token);
         try
         {
             int initial;
-            lock (Gate)
+            lock (_gate)
             {
-                initial = generation;
+                initial = _generation;
             }
 
             var candidate = await DownloadAsync(methodId, parameterTypes, initial, token);
-            lock (Gate)
+            lock (_gate)
             {
-                if (initial != generation)
+                if (initial != _generation)
                 {
                     candidate.Dispose();
                     throw new OperationCanceledException("Script catalog was reset.");
                 }
 
                 Publish(candidate);
-                return Latest[methodId].Method;
+                return _latest[methodId].Method;
             }
         }
         catch (HttpRequestException error) when (IsAuthorizationError(error))
         {
-            lock (Gate)
+            lock (_gate)
             {
-                Denied.Add(methodId);
+                _denied.Add(methodId);
             }
 
             throw;
         }
         finally
         {
-            Updates.Release();
+            _updates.Release();
         }
     }
 
     /// <summary>Captures the latest validated snapshot at the beginning of a new connection.</summary>
+    /// <param name="original">Previously prepared method whose current authorized version is requested.</param>
+    /// <returns>The currently authorized prepared version of the original script method.</returns>
     internal GXScriptMethod? Current(GXScriptMethod? original)
     {
         if (original == null)
@@ -115,28 +139,36 @@ internal sealed class GXAgentScripts
             return null;
         }
 
-        lock (Gate)
+        lock (_gate)
         {
-            if (Denied.Contains(original.Id))
+            if (_denied.Contains(original.Id))
             {
                 throw new UnauthorizedAccessException("Script access has been revoked.");
             }
 
-            return Latest.TryGetValue(original.Id, out var version) ? version.Method : original;
+            return _latest.TryGetValue(original.Id, out var version) ? version.Method : original;
         }
     }
 
     /// <summary>Uses only the explicitly pinned version; no script download or compilation occurs here.</summary>
+    /// <param name="method">Script method prepared for isolated execution.</param>
+    /// <param name="parameters">Values or receive settings supplied to the operation.</param>
+    /// <returns>Arguments retaining the prepared script context for the invocation.</returns>
     internal GXScriptRunArgs CreateRunArgs(GXScriptMethod method, object?[] parameters)
         => CreateRunArgsAsync(method, parameters).GetAwaiter().GetResult();
 
+    /// <summary>Rents an isolated script context and prepares arguments for a single invocation.</summary>
+    /// <param name="method">Script method prepared for isolated execution.</param>
+    /// <param name="parameters">Values or receive settings supplied to the operation.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>Arguments owning a rented isolated script context for this invocation.</returns>
     internal async Task<GXScriptRunArgs> CreateRunArgsAsync(GXScriptMethod method, object?[] parameters,
         CancellationToken token = default)
     {
         Version version;
-        lock (Gate)
+        lock (_gate)
         {
-            if (!prepared.TryGetValue(method, out version!))
+            if (!_prepared.TryGetValue(method, out version!))
             {
                 throw new InvalidOperationException("Script was not prepared before use.");
             }
@@ -153,12 +185,17 @@ internal sealed class GXAgentScripts
     }
 
     /// <summary>Invokes a prepared snapshot with a bounded wait and retains its context until actual completion.</summary>
+    /// <param name="runner">Loaded script instance retained for the raw stream.</param>
+    /// <param name="method">Script method prepared for isolated execution.</param>
+    /// <param name="parameters">Values or receive settings supplied to the operation.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The script's completed return value.</returns>
     internal async Task<object?> RunAsync(GXAmiScript runner, GXScriptMethod method, object?[] parameters,
         CancellationToken token = default)
     {
-        execution.CheckAdmission();
-        using var preparation = CancellationTokenSource.CreateLinkedTokenSource(lifetime, token);
-        preparation.CancelAfter(executionTimeout);
+        _execution.CheckAdmission();
+        using var preparation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime, token);
+        preparation.CancelAfter(_executionTimeout);
         var args = await CreateRunArgsAsync(method, parameters, preparation.Token);
         try
         {
@@ -171,14 +208,23 @@ internal sealed class GXAgentScripts
     }
 
     /// <summary>Runs a pinned per-connection context without releasing its parser state between chunks.</summary>
+    /// <param name="runner">Loaded script instance retained for the raw stream.</param>
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>The result returned by the prepared script invocation.</returns>
     internal Task<object?> RunPreparedAsync(GXAmiScript runner, GXScriptRunArgs args, CancellationToken token = default)
-        => execution.RunAsync(args, async cancellation => await AwaitResultAsync(await runner.RunAsync(args, cancellation)), token);
+        => _execution.RunAsync(args, async cancellation => await AwaitResultAsync(await runner.RunAsync(args, cancellation)), token);
 
     /// <summary>Defers unloading when cancelled script code still owns this context.</summary>
-    internal void ReleaseRunArgs(GXScriptRunArgs args) => execution.Release(args);
+    /// <param name="args">Command-line options or script arguments associated with the operation.</param>
+    internal void ReleaseRunArgs(GXScriptRunArgs args) => _execution.Release(args);
 
-    internal bool CanExecute => execution.CanExecute;
+    /// <summary>Gets whether capacity remains for another isolated script execution.</summary>
+    internal bool CanExecute => _execution.CanExecute;
 
+    /// <summary>Unwraps asynchronous script return values before returning their result.</summary>
+    /// <param name="result">Script return value, which may be an asynchronous result.</param>
+    /// <returns>The completed asynchronous script result, or the original synchronous return value.</returns>
     internal async Task<object?> AwaitResultAsync(object? result)
     {
         while (true)
@@ -203,18 +249,21 @@ internal sealed class GXAgentScripts
     }
 
     /// <summary>Prepares all affected candidates first. A bad candidate leaves the current code unchanged.</summary>
+    /// <param name="scriptId">Identifier of the script invalidated by the server.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A task completing after the changed script cache has been refreshed.</returns>
     internal async Task RefreshAsync(Guid scriptId, CancellationToken token = default)
     {
-        await Updates.WaitAsync(token);
+        await _updates.WaitAsync(token);
         var candidates = new List<Version>();
         Version[] previous = [];
         try
         {
             int initial;
-            lock (Gate)
+            lock (_gate)
             {
-                initial = generation;
-                previous = [.. Latest.Values.Where(v => v.ScriptId == scriptId)];
+                initial = _generation;
+                previous = [.. _latest.Values.Where(v => v.ScriptId == scriptId)];
             }
 
             foreach (var version in previous)
@@ -227,9 +276,9 @@ internal sealed class GXAgentScripts
                 throw new InvalidOperationException("The script changed while its methods were being prepared; retry the update.");
             }
 
-            lock (Gate)
+            lock (_gate)
             {
-                if (initial != generation)
+                if (initial != _generation)
                 {
                     throw new OperationCanceledException("Script catalog was reset.");
                 }
@@ -244,11 +293,11 @@ internal sealed class GXAgentScripts
         }
         catch (HttpRequestException error) when (IsAuthorizationError(error))
         {
-            lock (Gate)
+            lock (_gate)
             {
                 foreach (var version in previous)
                 {
-                    Denied.Add(version.Method.Id);
+                    _denied.Add(version.Method.Id);
                 }
             }
 
@@ -261,28 +310,40 @@ internal sealed class GXAgentScripts
                 candidate.Dispose();
             }
 
-            Updates.Release();
+            _updates.Release();
         }
     }
 
-    internal Guid[] ScriptIds { get { lock (Gate) { return [.. Latest.Values.Select(v => v.ScriptId).Distinct()]; } } }
+    /// <summary>Gets distinct identifiers of scripts whose prepared versions are cached.</summary>
+    internal Guid[] ScriptIds { get { lock (_gate) { return [.. _latest.Values.Select(v => v.ScriptId).Distinct()]; } } }
+    /// <summary>Identifies download failures caused by rejected or insufficient credentials.</summary>
+    /// <param name="e">Failure inspected for an authorization status.</param>
+    /// <returns>Whether the server returned an unauthorized or forbidden status.</returns>
     private bool IsAuthorizationError(HttpRequestException e) => e.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
 
+    /// <summary>Publishes a prepared script version and releases any superseded version.</summary>
+    /// <param name="candidate">Prepared script version to publish.</param>
     private void Publish(Version candidate)
     {
-        if (Latest.TryGetValue(candidate.Method.Id, out var old) && old.Hash == candidate.Hash &&
+        if (_latest.TryGetValue(candidate.Method.Id, out var old) && old.Hash == candidate.Hash &&
             old.Method.Name == candidate.Method.Name && old.Parameters.SequenceEqual(candidate.Parameters))
         {
             candidate.Dispose();
         }
         else
         {
-            prepared.Add(candidate.Method, candidate);
-            Latest[candidate.Method.Id] = candidate;
+            _prepared.Add(candidate.Method, candidate);
+            _latest[candidate.Method.Id] = candidate;
         }
-        Denied.Remove(candidate.Method.Id);
+        _denied.Remove(candidate.Method.Id);
     }
 
+    /// <summary>Downloads and validates content required to prepare an application or script release.</summary>
+    /// <param name="methodId">Server identifier of the script method to retrieve.</param>
+    /// <param name="types">Expected parameter types for the script entry point.</param>
+    /// <param name="expectedGeneration">Cache generation that must remain current before publishing results.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>A prepared script version compiled from the current authorized source.</returns>
     private async Task<Version> DownloadAsync(Guid methodId, Type?[] types, int expectedGeneration, CancellationToken token)
     {
         var script = await FetchAsync(methodId, false, token);
@@ -318,9 +379,9 @@ internal sealed class GXAgentScripts
                 Versions = localVersions.OrderBy(v => v.Key, StringComparer.Ordinal)
             })));
             byte[]? image = null;
-            lock (Gate)
+            lock (_gate)
             {
-                if (compilations.TryGetValue(source.Id, out var cached) && cached.Key == key)
+                if (_compilations.TryGetValue(source.Id, out var cached) && cached.Key == key)
                 {
                     image = cached.Image;
                 }
@@ -340,13 +401,13 @@ internal sealed class GXAgentScripts
                     return bytes;
                 }, token);
                 token.ThrowIfCancellationRequested();
-                lock (Gate)
+                lock (_gate)
                 {
-                    if (generation != expectedGeneration)
+                    if (_generation != expectedGeneration)
                     {
                         throw new OperationCanceledException("Script catalog was reset.");
                     }
-                    compilations[source.Id] = new Compilation(key, image);
+                    _compilations[source.Id] = new Compilation(key, image);
                 }
             }
             script = source;
@@ -375,9 +436,14 @@ internal sealed class GXAgentScripts
         }
     }
 
+    /// <summary>Fetches script metadata or source from the configured AMI server.</summary>
+    /// <param name="methodId">Server identifier of the script method to retrieve.</param>
+    /// <param name="source">Original value copied without sharing mutable state.</param>
+    /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+    /// <returns>Script metadata or source returned for the requested method.</returns>
     private async Task<GXScript> FetchAsync(Guid methodId, bool source, CancellationToken token)
     {
-        using var response = await client.PostAsJsonAsync("/api/Script/List", new ListScripts
+        using var response = await _client.PostAsJsonAsync("/api/Script/List", new ListScripts
         {
             Select = source ? ["Assembly", "SourceCode", "CompilationDependencies"] : ["Assembly", "CompilationDependencies"],
             Filter = new GXScript { Methods = [new GXScriptMethod { Id = methodId }] }
@@ -388,6 +454,10 @@ internal sealed class GXAgentScripts
             ?? throw new HttpRequestException($"Script method {methodId} is no longer accessible.", null, HttpStatusCode.Forbidden);
     }
 
+    /// <summary>Checks that both script versions reference the same dependency names and versions.</summary>
+    /// <param name="first">Dependencies of the previously prepared script version.</param>
+    /// <param name="second">Dependencies reported by the candidate script version.</param>
+    /// <returns>Whether dependency identities and versions match for both scripts.</returns>
     private static bool SameDependencies(List<GXScriptDependency> first, List<GXScriptDependency>? second)
         => second != null && first.OrderBy(d => d.Name, StringComparer.Ordinal)
             .Select(d => (d.Name, d.AssemblyVersion)).SequenceEqual(second.OrderBy(d => d.Name, StringComparer.Ordinal)
@@ -396,45 +466,64 @@ internal sealed class GXAgentScripts
     /// <summary>Releases unused contexts on worker shutdown; running contexts retain their own lifetimes.</summary>
     internal void Clear()
     {
-        lock (Gate)
+        lock (_gate)
         {
-            ++generation;
-            foreach (var version in prepared.Select(p => p.Value).Distinct())
+            ++_generation;
+            foreach (var version in _prepared.Select(p => p.Value).Distinct())
             {
                 version.Dispose();
             }
 
-            prepared = [];
-            Latest.Clear();
-            compilations.Clear();
-            Denied.Clear();
+            _prepared = [];
+            _latest.Clear();
+            _compilations.Clear();
+            _denied.Clear();
         }
     }
 
+    /// <summary>Owns a compiled script version and its pool of isolated load contexts.</summary>
     private sealed class Version : IDisposable
     {
+        /// <summary>Number of isolated script load contexts kept ready for execution.</summary>
         private const int WarmContexts = 2;
+        /// <summary>Script method represented by this prepared version.</summary>
         internal readonly GXScriptMethod Method;
+        /// <summary>Compiled assembly bytes loaded into isolated execution contexts.</summary>
         internal readonly byte[] Image;
+        /// <summary>Expected parameter types for the prepared script method.</summary>
         internal readonly Type?[] Parameters;
+        /// <summary>Content hash identifying the compiled script version.</summary>
         internal readonly string Hash;
+        /// <summary>Gets the script identifier currently configured for notification processing.</summary>
         internal Guid ScriptId => Method.Script!.Id;
-        private readonly Channel<AssemblyLoadContext> ready = Channel.CreateUnbounded<AssemblyLoadContext>();
-        private readonly Lock gate = new();
-        private bool disposed, refilling;
-        private Exception? failure;
+        /// <summary>Pool of isolated assembly contexts available for script invocation.</summary>
+        private readonly Channel<AssemblyLoadContext> _ready = Channel.CreateUnbounded<AssemblyLoadContext>();
+        /// <summary>Protects concurrent access to the owning object's mutable state.</summary>
+        private readonly Lock _gate = new();
+        /// <summary>Indicates that owned resources have been released.</summary>
+        private bool _disposed;
+        /// <summary>Indicates that replacement script load contexts are being prepared in the background.</summary>
+        private bool _refilling;
+        /// <summary>Failure encountered while preparing a replacement script context.</summary>
+        private Exception? _failure;
 
+        /// <summary>Owns a compiled script version and its pool of isolated load contexts.</summary>
+        /// <param name="method">Script method prepared for isolated execution.</param>
+        /// <param name="types">Expected parameter types for the script entry point.</param>
         internal Version(GXScriptMethod method, Type?[] types)
         { Method = method; Image = [.. method.Script!.ByteAssembly!]; Parameters = [.. types]; Hash = Convert.ToHexString(SHA256.HashData(Image)); }
 
+        /// <summary>Prepares the initial pool of isolated script execution contexts.</summary>
         internal void FillInitial()
         {
             for (int i = 0; i < WarmContexts; ++i)
             {
-                ready.Writer.TryWrite(PrepareContext());
+                _ready.Writer.TryWrite(PrepareContext());
             }
         }
 
+        /// <summary>Loads a compiled script image into an isolated collectible assembly context.</summary>
+        /// <returns>A collectible load context containing the compiled script assembly.</returns>
         private AssemblyLoadContext PrepareContext()
         {
             var context = new AssemblyLoadContext($"AMI.{Method.Id}.{Hash[..12]}", true);
@@ -477,10 +566,13 @@ internal sealed class GXAgentScripts
             }
         }
 
+        /// <summary>Takes a prepared isolated script context and schedules a replacement for the pool.</summary>
+        /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+        /// <returns>A prepared isolated assembly context ready for a single invocation.</returns>
         internal async Task<AssemblyLoadContext> RentAsync(CancellationToken token)
         {
             ScheduleRefill();
-            var context = await ready.Reader.ReadAsync(token);
+            var context = await _ready.Reader.ReadAsync(token);
             try
             {
                 ScheduleRefill();
@@ -493,18 +585,19 @@ internal sealed class GXAgentScripts
             }
         }
 
+        /// <summary>Starts asynchronous replacement of consumed script load contexts.</summary>
         private void ScheduleRefill()
         {
-            lock (gate)
+            lock (_gate)
             {
-                ObjectDisposedException.ThrowIf(disposed, nameof(Version));
+                ObjectDisposedException.ThrowIf(_disposed, nameof(Version));
 
-                if (refilling || failure != null || ready.Reader.Count >= WarmContexts)
+                if (_refilling || _failure != null || _ready.Reader.Count >= WarmContexts)
                 {
                     return;
                 }
 
-                refilling = true;
+                _refilling = true;
             }
             _ = Task.Run(() =>
             {
@@ -512,18 +605,18 @@ internal sealed class GXAgentScripts
                 {
                     while (true)
                     {
-                        lock (gate)
+                        lock (_gate)
                         {
-                            if (disposed || ready.Reader.Count >= WarmContexts)
+                            if (_disposed || _ready.Reader.Count >= WarmContexts)
                             {
                                 break;
                             }
                         }
 
                         var context = PrepareContext();
-                        lock (gate)
+                        lock (_gate)
                         {
-                            if (disposed || !ready.Writer.TryWrite(context))
+                            if (_disposed || !_ready.Writer.TryWrite(context))
                             {
                                 context.Unload();
                             }
@@ -532,18 +625,18 @@ internal sealed class GXAgentScripts
                 }
                 catch (Exception error)
                 {
-                    lock (gate)
+                    lock (_gate)
                     {
-                        failure = error;
-                        ready.Writer.TryComplete(error);
+                        _failure = error;
+                        _ready.Writer.TryComplete(error);
                     }
                 }
                 finally
                 {
-                    lock (gate)
+                    lock (_gate)
                     {
-                        refilling = false;
-                        if (!disposed && failure == null && ready.Reader.Count < WarmContexts)
+                        _refilling = false;
+                        if (!_disposed && _failure == null && _ready.Reader.Count < WarmContexts)
                         {
                             ScheduleRefill();
                         }
@@ -552,24 +645,26 @@ internal sealed class GXAgentScripts
             });
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
-            lock (gate)
+            lock (_gate)
             {
-                if (disposed)
+                if (_disposed)
                 {
                     return;
                 }
 
-                disposed = true;
-                ready.Writer.TryComplete();
-                while (ready.Reader.TryRead(out var context))
+                _disposed = true;
+                _ready.Writer.TryComplete();
+                while (_ready.Reader.TryRead(out var context))
                 {
                     context.Unload();
                 }
             }
             GC.SuppressFinalize(this);
         }
+        /// <summary>Releases cached script load contexts if explicit disposal was omitted.</summary>
         ~Version() { Dispose(); }
     }
 }

@@ -74,24 +74,40 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// New task is received.
         /// </summary>
         private readonly AutoResetEvent _newTask;
+        /// <summary>SignalR connection used to receive server notifications.</summary>
         private HubConnection? _hubConnection = null;
+        /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
         private ILogger? _logger;
+        /// <summary>Routes newly available task signals to registered device connections.</summary>
         private IGXTaskNotification? _taskNotification;
-        private IDisposable? taskSubscription;
-        private System.Threading.Tasks.Task? taskPoller;
-        private GXTaskCompletionOutbox? completionOutbox;
-        private readonly GXAgentRuntimeMetrics runtimeMetrics = new();
-        private CancellationTokenSource lifetime = new();
-        private readonly SemaphoreSlim settingsGate = new(1, 1);
-        private readonly SemaphoreSlim updateGate = new(1, 1);
-        private bool restartPending;
+        /// <summary>Subscription that wakes the worker when server tasks change.</summary>
+        private IDisposable? _taskSubscription;
+        /// <summary>Background fallback poller for server task availability.</summary>
+        private System.Threading.Tasks.Task? _taskPoller;
+        /// <summary>Durable queue for task completion reports awaiting server acknowledgement.</summary>
+        private GXTaskCompletionOutbox? _completionOutbox;
+        /// <summary>Collects worker queue, device and request measurements.</summary>
+        private readonly GXAgentRuntimeMetrics _runtimeMetrics = new();
+        /// <summary>Cancellation lifetime shared by this component's work.</summary>
+        private readonly CancellationTokenSource _lifetime = new();
+        /// <summary>Serializes configuration updates and persistence notifications.</summary>
+        private readonly SemaphoreSlim _settingsGate = new(1, 1);
+        /// <summary>Serializes release preparation and updater handoff.</summary>
+        private readonly SemaphoreSlim _updateGate = new(1, 1);
+        /// <summary>Indicates that a prepared release is awaiting host restart handoff.</summary>
+        private bool _restartPending;
+        /// <summary>Gets the in-process notification dispatcher used by runtime services.</summary>
         internal GXAgentNotification Notification { get; private set; } = new();
+        /// <summary>Reports persistence, authentication and update events to the host.</summary>
         private IGXAgentHostNotifications? _hostNotifications;
+        /// <summary>Owns services created by the worker for its current runtime configuration.</summary>
         IServiceProvider? _services;
-        private GXAgentCapabilities capabilities = new(Array.Empty<string>());
+        /// <summary>Transport capabilities published by the current worker configuration.</summary>
+        private GXAgentCapabilities _capabilities = new([]);
         /// <inheritdoc />
-        public GXAgentCapabilities Capabilities => capabilities;
-        private CancellationToken cancellationToken = new();
+        public GXAgentCapabilities Capabilities => _capabilities;
+        /// <summary>Cancels operations when the enclosing host or connection stops.</summary>
+        private CancellationToken _cancellationToken = new();
 
         /// <summary>
         /// Gets the HTTP client used by this worker and its dependencies.
@@ -101,23 +117,34 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// A supplied client remains owned by its caller and is accessed through an authentication-monitoring wrapper.
         /// </remarks>
 
-        public HttpClient client { get; }
-        private readonly HttpClient? suppliedClient;
+        public HttpClient Client { get; }
+        /// <summary>Optional caller-owned HTTP client reused by the worker.</summary>
+        private readonly HttpClient? _suppliedClient;
+        /// <summary>Gets the prepared script cache owned by the worker.</summary>
         internal GXAgentScripts Scripts { get; private set; }
 
+        /// <summary>Tracks scheduled meter reads until completion.</summary>
         ActionBlock<GXActionBlock> _meterReads;
 
         /// <inheritdoc />
         public bool PollTasks { get; set; }
 
+        /// <summary>Groups a device connection, assigned tasks and queue accounting for execution.</summary>
         internal class GXActionBlock
         {
+            /// <summary>Tasks assigned to this device action block.</summary>
             public required IEnumerable<GXTask> Tasks;
+            /// <summary>Signals newly assigned work for the device action block.</summary>
             public AutoResetEvent? NewTask;
+            /// <summary>Transport retained by the device action block.</summary>
             public IGXMedia? Media;
+            /// <summary>Gateway used to reach the device, when applicable.</summary>
             public Guid? GatewayId;
+            /// <summary>Cancellation lifetime applied to the device action block.</summary>
             public CancellationToken CancellationToken;
+            /// <summary>Timestamp recorded when the action block entered the work queue.</summary>
             internal long QueuedAt;
+            /// <summary>Indicates whether this action block contributes to queue metrics.</summary>
             internal int QueueCounted;
         }
 
@@ -132,22 +159,27 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <remarks>The worker owns a monitoring wrapper but does not dispose the supplied client. Initialization updates both clients' base address and authorization header.</remarks>
         public GXAgentWorker(HttpClient httpClient) : this(new GXHostHttpHandler(httpClient ?? throw new ArgumentNullException(nameof(httpClient))), httpClient) { }
 
-        private readonly GXAuthenticationState authentication;
-        internal bool AuthenticationRejected => authentication.IsRejected;
+        /// <summary>Shares permanent authentication rejection across worker HTTP requests.</summary>
+        private readonly GXAuthenticationState _authentication;
+        /// <summary>Gets whether worker authentication requires replacement credentials.</summary>
+        internal bool AuthenticationRejected => _authentication.IsRejected;
 
+        /// <summary>Coordinates agent lifecycle, validated configuration and device task execution.</summary>
+        /// <param name="transport">HTTP transport used by worker requests.</param>
+        /// <param name="httpClient">Optional caller-owned HTTP client whose settings are reused.</param>
         private GXAgentWorker(HttpMessageHandler transport, HttpClient? httpClient)
         {
-            authentication = new GXAuthenticationState(() => _hostNotifications?.NotifyAuthenticationRequired());
-            suppliedClient = httpClient;
-            client = new HttpClient(new GXAgentHttpMetricsHandler(new GXAuthenticationHandler(transport, authentication), runtimeMetrics));
+            _authentication = new GXAuthenticationState(() => _hostNotifications?.NotifyAuthenticationRequired());
+            _suppliedClient = httpClient;
+            Client = new HttpClient(new GXAgentHttpMetricsHandler(new GXAuthenticationHandler(transport, _authentication), _runtimeMetrics));
             if (httpClient != null)
             {
-                client.BaseAddress = httpClient.BaseAddress;
-                client.Timeout = httpClient.Timeout;
-                client.DefaultRequestVersion = httpClient.DefaultRequestVersion;
-                client.DefaultVersionPolicy = httpClient.DefaultVersionPolicy;
+                Client.BaseAddress = httpClient.BaseAddress;
+                Client.Timeout = httpClient.Timeout;
+                Client.DefaultRequestVersion = httpClient.DefaultRequestVersion;
+                Client.DefaultVersionPolicy = httpClient.DefaultVersionPolicy;
             }
-            Scripts = new GXAgentScripts(client);
+            Scripts = new GXAgentScripts(Client);
             _closing = new ManualResetEvent(false);
             _newTask = new AutoResetEvent(true);
             _meterReads = new ActionBlock<GXActionBlock>(action => ReadMeter(action));
@@ -157,14 +189,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         public void ConfigureServices(IServiceCollection services)
         {
             ArgumentNullException.ThrowIfNull(services);
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             services.TryAddSingleton(new GXAgentUpdaterOptions());
             services.TryAddSingleton(new GXCompletionOutboxOptions());
             services.TryAddSingleton(new GXScriptExecutionOptions());
             services.TryAddSingleton(new GXRawDeliveryOptions());
             services.TryAddSingleton<IGXAgentUpdateService, GXAgentUpdateService>();
             services.AddSingleton(this);
-            services.AddSingleton(client);
+            services.AddSingleton(Client);
             services.AddSingleton<GXNotifyService>();
             services.AddSingleton<GXRawNotificationService>();
             services.AddSingleton<GXAutoConnectService>();
@@ -184,17 +216,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(options);
             ArgumentNullException.ThrowIfNull(notifications);
-            ObjectDisposedException.ThrowIf(disposed, this);
-            if (initialized || stopping)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_initialized || _stopping)
                 {
                 throw new InvalidOperationException("A worker instance can only be initialized once, before it is stopped.");
             }
             options.Validate(requireAgentId: false);
             PublishConfiguration(options, requireAgentId: false);
-            cancellationToken = lifetime.Token;
+            _cancellationToken = _lifetime.Token;
 
             Scripts.Clear();
-            Scripts = new GXAgentScripts(client, services.GetService<GXScriptExecutionOptions>(), lifetime.Token);
+            Scripts = new GXAgentScripts(Client, services.GetService<GXScriptExecutionOptions>(), _lifetime.Token);
             Notification = new GXAgentNotification();
             _meterReads.Complete();
             _meterReads = CreateMeterReads(RuntimeOptions.ReaderSettings?.Threads ?? 1);
@@ -205,8 +237,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 EnsureCompletionOutbox();
             }
             _taskNotification = _services.GetRequiredService<IGXTaskNotification>();
-            taskSubscription?.Dispose();
-            taskSubscription = Notification.On("task.add", () =>
+            _taskSubscription?.Dispose();
+            _taskSubscription = Notification.On("task.add", () =>
             {
                 _logger?.LogInformation("New task added.");
                 _newTask.Set();
@@ -214,35 +246,35 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 _taskNotification.NotifyAll();
             });
             _hostNotifications = notifications;
-            client.BaseAddress = new Uri(RuntimeOptions.Address);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeOptions.Token);
-            if (suppliedClient != null)
+            Client.BaseAddress = new Uri(RuntimeOptions.Address);
+            Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeOptions.Token);
+            if (_suppliedClient != null)
             {
-                suppliedClient.BaseAddress = client.BaseAddress;
-                suppliedClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
+                _suppliedClient.BaseAddress = Client.BaseAddress;
+                _suppliedClient.DefaultRequestHeaders.Authorization = Client.DefaultRequestHeaders.Authorization;
             }
-            initialized = true;
-            Volatile.Write(ref workerState, (int)GXAgentWorkerState.Initialized);
+            _initialized = true;
+            Volatile.Write(ref _workerState, (int)AgentWorkerState.Initialized);
         }
 
         /// <inheritdoc />
         public async Task<Guid> AddAgentAsync(string name, CancellationToken cancellationToken = default)
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            if (!initialized || stopping)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!_initialized || _stopping)
                 {
                 throw new InvalidOperationException("Initialize an active worker before registration.");
             }
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
             cancellationToken.ThrowIfCancellationRequested();
-            using var registration = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lifetime.Token);
+            using var registration = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
             GXAgent agent = new() { Name = name };
             UpdateAgent req = new() { Agents = [agent] };
-            if (client.DefaultRequestHeaders.Authorization == null && RuntimeOptions.Token != null)
+            if (Client.DefaultRequestHeaders.Authorization == null && RuntimeOptions.Token != null)
             {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeOptions.Token);
+                Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", RuntimeOptions.Token);
             }
-            UpdateAgentResponse? response = await client.PostAsJson<UpdateAgentResponse>("/api/Agent/Add", req, registration.Token);
+            UpdateAgentResponse? response = await Client.PostAsJson<UpdateAgentResponse>("/api/Agent/Add", req, registration.Token);
             if (response == null || response.AgentIds == null || !response.AgentIds.Any())
             {
                 return Guid.Empty;
@@ -255,13 +287,16 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             return id;
         }
 
-        private bool updaterWarningLogged;
+        /// <summary>Prevents repeated warnings for unavailable updater infrastructure.</summary>
+        private bool _updaterWarningLogged;
 
+        /// <summary>Retrieves the registered agent and rejects missing registration data.</summary>
+        /// <returns>The server registration for the current agent identity.</returns>
         private async Task<GXAgent> ReadRegisteredAgentAsync()
         {
             try
             {
-                var response = await client.GetAsJsonAsync<GetAgentResponse>($"/api/Agent/?Id={RuntimeOptions.Id}", cancellationToken);
+                var response = await Client.GetAsJsonAsync<GetAgentResponse>($"/api/Agent/?Id={RuntimeOptions.Id}", _cancellationToken);
                 return response?.Item ?? throw MissingRegistration();
             }
             catch (HttpRequestException error) when (error.StatusCode == HttpStatusCode.NotFound)
@@ -270,31 +305,36 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
+        /// <summary>Creates an actionable registration failure while retaining the original cause.</summary>
+        /// <param name="inner">Original failure or inner HTTP transport retained by the wrapper.</param>
+        /// <returns>An exception explaining that agent registration must be completed again.</returns>
         private InvalidOperationException MissingRegistration(Exception? inner = null) => new(
             $"Registered agent {RuntimeOptions.Id} was not found or is not accessible on the AMI server. " +
             "The saved registration and PAT have been retained. Check the server address and access rights, " +
             "or run the agent with Configure to register again.", inner);
 
+        /// <summary>Checks the server release and stages an application update when a newer version is available.</summary>
+        /// <returns>Whether a verified application update has been prepared for handoff.</returns>
         private async Task<bool> CheckForApplicationUpdateAsync()
         {
-            await updateGate.WaitAsync(cancellationToken);
+            await _updateGate.WaitAsync(_cancellationToken);
             try
             {
-                if (restartPending)
+                if (_restartPending)
                     {
                     return true;
                 }
-                if (completionOutbox?.Status.UnpersistedCount > 0)
+                if (_completionOutbox?.Status.UnpersistedCount > 0)
                 {
                     _logger?.LogWarning("Deferring application update until in-memory task results are persisted");
                     return false;
                 }
                 var agent = await ReadRegisteredAgentAsync();
-                await ApplyAgentOptionsAsync(agent, restartServices: State == GXAgentWorkerState.Running);
+                await ApplyAgentOptionsAsync(agent, restartServices: State == AgentWorkerState.Running);
                 await UpdateAgentSerialPorts(agent.SerialPorts);
                 if (string.IsNullOrWhiteSpace(agent.UpdateVersion) || agent.UpdateVersion == RuntimeOptions.Version)
                 {
-                    if (State == GXAgentWorkerState.Running)
+                    if (State == AgentWorkerState.Running)
                         {
                         await ConfirmRunningVersionAsync();
                     }
@@ -303,34 +343,36 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 var updater = _services!.GetRequiredService<IGXAgentUpdateService>();
                 if (updater.UnavailableReason is string reason)
                 {
-                    if (!updaterWarningLogged)
+                    if (!_updaterWarningLogged)
                         {
                         _logger?.LogWarning("Agent update remains pending: {Reason}", reason);
                     }
-                    updaterWarningLogged = true;
+                    _updaterWarningLogged = true;
                     return false;
                 }
                 try
                 {
-                    var download = await client.PostAsJson<DownloadAgentResponse>("/api/Agent/Download", new DownloadAgent
-                    { Agent = new GXAgent { Id = agent.Id, UpdateVersion = agent.UpdateVersion } }, cancellationToken);
+                    var download = await Client.PostAsJson<DownloadAgentResponse>("/api/Agent/Download", new DownloadAgent
+                    { Agent = new GXAgent { Id = agent.Id, UpdateVersion = agent.UpdateVersion } }, _cancellationToken);
                     await UpdateAgentStatusAsync(AgentStatus.Downloading);
-                    await updater.PrepareAsync(agent.UpdateVersion, download?.Urls ?? [], cancellationToken);
+                    await updater.PrepareAsync(agent.UpdateVersion, download?.Urls ?? [], _cancellationToken);
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested) { throw; }
                 catch (Exception error)
                 {
                     _logger?.LogError(error, "Preparing the application update failed; the current agent keeps running and the requested version remains pending");
                     return false;
                 }
-                restartPending = true;
+                _restartPending = true;
                 MarkRestartPending();
                 _hostNotifications?.NotifyVersionAvailable();
                 return true;
             }
-            finally { updateGate.Release(); }
+            finally { _updateGate.Release(); }
         }
 
+        /// <summary>Reports the running application version and confirms a successful staged installation.</summary>
+        /// <returns>A task representing this operation: Reports the running application version and confirms a successful staged installation.</returns>
         private async System.Threading.Tasks.Task ConfirmRunningVersionAsync()
         {
             var agent = await ReadRegisteredAgentAsync();
@@ -348,7 +390,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <returns></returns>
         private async System.Threading.Tasks.Task TaskPoller()
         {
-            while (!cancellationToken.IsCancellationRequested && !_closing.WaitOne(0))
+            while (!_cancellationToken.IsCancellationRequested && !_closing.WaitOne(0))
             {
                 try
                 {
@@ -373,14 +415,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         continue;
                     }
 
-                    var next = await ClaimPolledTasksAsync(cancellationToken);
+                    var next = await ClaimPolledTasksAsync(_cancellationToken);
                     if (next != null)
                     {
-                        await QueueMeterReadAsync(next, cancellationToken);
+                        await QueueMeterReadAsync(next, _cancellationToken);
                         _newTask.Set();
                     }
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
@@ -396,12 +438,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
             }
         }
+        /// <summary>Persists agent registration changes to the AMI server.</summary>
+        /// <param name="agent">Server agent registration used to update local configuration.</param>
+        /// <returns>A task representing this operation: Persists agent registration changes to the AMI server.</returns>
         private async System.Threading.Tasks.Task UpdateAgentAsync(GXAgent agent)
         {
             // Status/serial-port reports can advance the concurrency stamp after
             // the update check read this agent. Merge only runtime-owned fields
             // into the latest record, preserving edits and newer update requests.
-            var response = await client.GetAsJsonAsync<GetAgentResponse>($"/api/Agent/?Id={agent.Id}", cancellationToken);
+            var response = await Client.GetAsJsonAsync<GetAgentResponse>($"/api/Agent/?Id={agent.Id}", _cancellationToken);
             var current = response?.Item ?? throw new GXAmiNotFoundException("Unknown agent.");
             current.Version = agent.Version;
             if (current.UpdateVersion == agent.Version)
@@ -417,9 +462,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 Agents = [current]
             };
-            await client.PostAsJson("/api/Agent/Update", req, cancellationToken);
+            await Client.PostAsJson("/api/Agent/Update", req, _cancellationToken);
         }
 
+        /// <summary>Publishes the worker's current runtime status to the AMI server.</summary>
+        /// <param name="status">HTTP or runtime status being recorded.</param>
+        /// <returns>A task representing this operation: Publishes the worker's current runtime status to the AMI server.</returns>
         private async System.Threading.Tasks.Task UpdateAgentStatusAsync(AgentStatus status)
         {
             UpdateAgentStatus req = new()
@@ -427,18 +475,19 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 Id = RuntimeOptions.Id,
                 Status = status
             };
-            await client.PostAsJson("/api/Agent/UpdateStatus", req, cancellationToken);
+            await Client.PostAsJson("/api/Agent/UpdateStatus", req, _cancellationToken);
         }
 
         /// <summary>
         /// Serial ports are added or removed from the agent.
         /// </summary>
         /// <returns></returns>
+        /// <param name="reportedPorts">Inbound transport ports reported by the current listener configuration.</param>
         private async System.Threading.Tasks.Task UpdateAgentSerialPorts(string? reportedPorts)
         {
-            capabilities = new GXAgentCapabilities(GXSerial.GetPortNames());
-            string ports = string.Join(";", capabilities.SerialPorts);
-            if (!capabilities.SerialPorts.SequenceEqual(new GXAgentCapabilities((reportedPorts ?? "").Split(';')).SerialPorts))
+            _capabilities = new GXAgentCapabilities(GXSerial.GetPortNames());
+            string ports = string.Join(";", _capabilities.SerialPorts);
+            if (!_capabilities.SerialPorts.SequenceEqual(new GXAgentCapabilities((reportedPorts ?? "").Split(';')).SerialPorts))
             {
                 UpdateAgentStatus req = new()
                 {
@@ -446,11 +495,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     Status = AgentStatus.SerialPortChange,
                     Data = ports
                 };
-                await client.PostAsJson("/api/Agent/UpdateStatus", req, cancellationToken);
+                await Client.PostAsJson("/api/Agent/UpdateStatus", req, _cancellationToken);
             }
         }
 
 
+        /// <summary>Executes a device task and records its completion or failure for reliable acknowledgement.</summary>
+        /// <param name="dev">Device whose assigned protocol task is executed.</param>
+        /// <param name="reader">Protocol reader connected to the target device.</param>
+        /// <param name="cl">Secure DLMS client configured for the current association.</param>
+        /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
+        /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+        /// <returns>A task representing this operation: Executes a device task and records its completion or failure for reliable acknowledgement.</returns>
         private async System.Threading.Tasks.Task ExecuteTasks(GXDevice dev, GXDLMSReader reader, GXDLMSSecureClient cl, GXTask task, CancellationToken token)
         {
             try
@@ -469,6 +525,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
+        /// <summary>Dispatches a device task to its protocol read, write, action or script implementation.</summary>
+        /// <param name="dev">Device whose assigned protocol task is executed.</param>
+        /// <param name="reader">Protocol reader connected to the target device.</param>
+        /// <param name="cl">Secure DLMS client configured for the current association.</param>
+        /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
+        /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
+        /// <returns>A task representing this operation: Dispatches a device task to its protocol read, write, action or script implementation.</returns>
         private async System.Threading.Tasks.Task ExecuteTasksCore(GXDevice dev, GXDLMSReader reader, GXDLMSSecureClient cl, GXTask task, CancellationToken token)
         {
             if (IsPasswordChange(task, out _))
@@ -554,17 +617,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         {
                             obj.SetUIDataType(task.Attribute.Template.Index, (DataType)task.Attribute.Template.UIDataType);
                         }
-                        task.Object = task.Attribute.Object;
-                        if (task.Object == null)
-                        {
-                            throw new ArgumentException("Task object is missing.");
-                        }
-                        if (task.Object.Attributes == null)
-                        {
-                            task.Object.Attributes = [];
-                        }
+                        task.Object = task.Attribute.Object ?? throw new ArgumentException("Task object is missing.");
+                        task.Object.Attributes ??= [];
                         task.Object.Attributes.Add(task.Attribute);
-                        await Reader.Read(client, _logger, reader, task, obj, token);
+                        await Reader.Read(Client, _logger, reader, task, obj, token);
                         if (task.Attribute.Template.DataType == 0)
                         {
                             task.Attribute.Template.DataType = (int)obj.GetDataType(task.Index.GetValueOrDefault(0));
@@ -585,7 +641,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                     }
                                 ]
                             };
-                            await client.PostAsJson("/api/Attribute/UpdateDatatype", u, token);
+                            await Client.PostAsJson("/api/Attribute/UpdateDatatype", u, token);
                         }
                     }
                     else if (task.Object != null)
@@ -618,7 +674,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 obj.SetUIDataType(attribute.Template.Index, (DataType)attribute.Template.UIDataType);
                             }
                             task.Object = task.Object;
-                            await Reader.Read(client, _logger, reader, task, obj, token);
+                            await Reader.Read(Client, _logger, reader, task, obj, token);
                             if (attribute.Template.DataType == 0)
                             {
                                 attribute.Template.DataType = (int)obj.GetDataType(task.Index.GetValueOrDefault(0));
@@ -639,7 +695,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                     }
                                 ]
                                 };
-                                await client.PostAsJson("/api/Attribute/UpdateDatatype", u, token);
+                                await Client.PostAsJson("/api/Attribute/UpdateDatatype", u, token);
                             }
                         }
                     }
@@ -656,23 +712,26 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
+        /// <summary>Reads a queued device while measuring duration and recording execution failures.</summary>
+        /// <param name="action">Queued device work or repository action being processed.</param>
+        /// <param name="listenerSettings">Transport settings associated with the accepted connection.</param>
+        /// <returns>The processed device, or null when no device could be resolved.</returns>
         internal async Task<GXDevice?> ReadMeter(GXActionBlock action,
-            bool autoConnect = false,
             ListenerSettings? listenerSettings = null)
         {
-            using var readLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, action.CancellationToken);
+            using var readLifetime = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, action.CancellationToken);
             action.CancellationToken = readLifetime.Token;
             if (Interlocked.Exchange(ref action.QueueCounted, 0) != 0)
             {
-                runtimeMetrics.QueueRemoved();
+                _runtimeMetrics.QueueRemoved();
             }
-            long started = runtimeMetrics.ReadStarted(action.QueuedAt);
+            long started = _runtimeMetrics.ReadStarted(action.QueuedAt);
             string outcome = "error";
             try
             {
                 action.CancellationToken.ThrowIfCancellationRequested();
-                var result = await ReadMeterCore(action, autoConnect, listenerSettings);
-                outcome = action.Tasks.Any(t => !string.IsNullOrEmpty(t.Result)) ? "error" : "success";
+                var result = await ReadMeterCore(action, listenerSettings);
+                outcome = action.Tasks.Any(t => !string.IsNullOrEmpty(t.Error)) ? "error" : "success";
                 return result;
             }
             catch (OperationCanceledException)
@@ -681,7 +740,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 var pending = action.Tasks.Where(t => t.Ready == null).ToArray();
                 foreach (var task in pending)
                     {
-                    task.Result = "Read cancelled.";
+                    task.Error = "Read cancelled.";
                 }
                 try
                 { if (pending.Length != 0) {
@@ -707,12 +766,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             finally
             {
-                runtimeMetrics.ReadFinished(started, outcome);
+                _runtimeMetrics.ReadFinished(started, outcome);
                 action.NewTask?.Set();
             }
         }
+        /// <summary>Connects to the device and processes its admitted task session.</summary>
+        /// <param name="action">Queued device work or repository action being processed.</param>
+        /// <param name="listenerSettings">Transport settings associated with the accepted connection.</param>
+        /// <returns>The device resolved and processed by the connection, or null if unresolved.</returns>
         private async Task<GXDevice?> ReadMeterCore(GXActionBlock action,
-            bool autoConnect = false,
             ListenerSettings? listenerSettings = null)
         {
             using var passwordChange = new PasswordChangeLease();
@@ -721,7 +783,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             IGXMedia? media = action.Media;
             int pos;
             GXDLMSReader? reader = null;
-            IEnumerable<GXTask> tasks = action.Tasks.OrderBy(t => IsPasswordChange(t, out _) ? 0 : 1).ToArray();
+            IEnumerable<GXTask> tasks = [.. action.Tasks.OrderBy(t => IsPasswordChange(t, out _) ? 0 : 1)];
             GXTask firstTask = tasks.First();
             GXDevice dev;
             GetDeviceResponse? ret;
@@ -744,7 +806,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
                 else
                 {
-                    ret = await client.GetAsJsonAsync<GetDeviceResponse>(string.Format("/api/Device/?Id={0}&includeKeys=true", firstTask.TargetDevice), cancellationToken: action.CancellationToken);
+                    ret = await Client.GetAsJsonAsync<GetDeviceResponse>(string.Format("/api/Device/?Id={0}&includeKeys=true", firstTask.TargetDevice), cancellationToken: action.CancellationToken);
                 }
                 dev = ret.Item ?? throw new KeyNotFoundException("Device was not returned.");
             }
@@ -836,7 +898,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         if (media is GXSerial serial)
                         {
                             //Update used serial port from the agent options.
-                            serial.PortName = options.SerialPort;
+                            if (options.SerialPort != null)
+                            {
+                                serial.PortName = options.SerialPort;
+                            }
                         }
                         media.Open();
                     }
@@ -948,7 +1013,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     cl.Ciphering.InvocationCounter = settings.InvocationCounter;
                     reader = new GXDLMSReader(cl, media, _logger,
                         consoleTrace, deviceTrace, passwordChange.Work == null ? dev.WaitTime : Math.Clamp(dev.WaitTime, 1, 120),
-                        passwordChange.Work == null ? dev.ResendCount : 1, dev, client)
+                        passwordChange.Work == null ? dev.ResendCount : 1, dev, Client)
                     { CancellationToken = action.CancellationToken };
                     try
                     {
@@ -990,7 +1055,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     try
                     {
                         await ExecuteTasks(dev, reader, cl, task, action.CancellationToken);
-                        taskOutcome = string.IsNullOrEmpty(task.Result) ? "success" : "error";
+                        taskOutcome = string.IsNullOrEmpty(task.Error) ? "success" : "error";
                     }
                     catch (OperationCanceledException) { taskOutcome = "cancelled"; throw; }
                     catch (Exception error)
@@ -998,10 +1063,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         GXTaskFailure.Record(task, dev, error.Message);
                         await ReportDeviceException(dev, error, "Failed to execute task " + task);
                     }
-                    finally { runtimeMetrics.TaskFinished(taskStarted, taskOutcome); }
+                    finally { _runtimeMetrics.TaskFinished(taskStarted, taskOutcome); }
                     task.Ready = DateTimeOffset.UtcNow;
                     await ReportDone([task]);
-                    if (IsPasswordChange(task, out _) && !string.IsNullOrEmpty(task.Result))
+                    if (IsPasswordChange(task, out _) && !string.IsNullOrEmpty(task.Error))
                     {
                         var blocked = await SealMeterSessionAsync(session);
                         foreach (var pending in blocked)
@@ -1047,6 +1112,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             return dev;
         }
 
+        /// <summary>Creates the secure DLMS client using the device addressing and authentication settings.</summary>
+        /// <param name="settings">Device protocol and authentication settings.</param>
+        /// <param name="templateSettings">Template settings providing protocol defaults.</param>
+        /// <param name="deviceAddress">Transport address of the target device.</param>
+        /// <returns>A secure DLMS client initialized with the effective device settings.</returns>
         private static GXDLMSSecureClient CreateDeviceClient(AMI.Shared.DTOs.Device.GXDLMSSettings settings,
             AMI.Shared.DTOs.Device.GXDLMSSettings templateSettings, int deviceAddress)
         {
@@ -1065,6 +1135,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <param name="dev">Executed device.</param>
         /// <param name="ex">Exception.</param>
         /// <param name="message">Exception message.</param>
+        /// <returns>A task completing after the device failure is queued for server acknowledgement.</returns>
         private async System.Threading.Tasks.Task ReportDeviceException(
             GXDevice dev,
             Exception ex,
@@ -1087,24 +1158,28 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 _logger.LogError("{Message}", DateTime.Now + "\t" + error.Logs.FirstOrDefault()?.Message);
             }
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await client.PostAsJson("/api/Log/Add?source=device-error", error, deadline.Token);
+            await Client.PostAsJson("/api/Log/Add?source=device-error", error, deadline.Token);
         }
 
         /// <summary>
         /// Report that task is done.
         /// </summary>
         /// <param name="tasks">Executed tasks.</param>
+        /// <returns>A task completing after the task result is queued for server acknowledgement.</returns>
         private System.Threading.Tasks.Task ReportDone(IEnumerable<GXTask> tasks) => EnsureCompletionOutbox().ReportAsync(tasks);
 
+        /// <summary>Gets whether durable completion storage can accept additional task results.</summary>
         internal bool CanClaimTasks => EnsureCompletionOutbox().CanAcceptTasks;
 
+        /// <summary>Creates the durable completion queue on first use and returns the shared instance.</summary>
+        /// <returns>The shared durable queue used to acknowledge completed device tasks.</returns>
         private GXTaskCompletionOutbox EnsureCompletionOutbox()
         {
-            lock (lifetime)
+            lock (_lifetime)
             {
-                if (completionOutbox != null)
+                if (_completionOutbox != null)
                     {
-                    return completionOutbox;
+                    return _completionOutbox;
                 }
                 var options = RuntimeOptions;
                 if (options.Id == Guid.Empty)
@@ -1117,10 +1192,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     {
                     root = AppContext.BaseDirectory;
                 }
-                completionOutbox = new GXTaskCompletionOutbox(client,
+                _completionOutbox = new GXTaskCompletionOutbox(Client,
                     Path.Combine(root, "Gurux", "DLMS.AMI", "task-completions", server, options.Id.ToString("N")),
                     _logger, TimeSpan.FromSeconds(2), _services?.GetService<GXCompletionOutboxOptions>());
-                return completionOutbox;
+                return _completionOutbox;
             }
         }
         /// <inheritdoc />
@@ -1144,7 +1219,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             _hubConnection = new HubConnectionBuilder()
             .WithUrl(uri, o =>
             {
-                o.HttpMessageHandlerFactory = handler => new GXAuthenticationHandler(new GXMaintenanceHandler(handler), authentication);
+                o.HttpMessageHandlerFactory = handler => new GXAuthenticationHandler(new GXMaintenanceHandler(handler), _authentication);
                 o.AccessTokenProvider = async () =>
                 {
                     return RuntimeOptions.Token;
@@ -1183,7 +1258,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
 
                 if (batch.Any(u => u.Type == "agent.edit" && u.Id == RuntimeOptions.Id.ToString()))
                 {
-                    var response = await client.GetAsJsonAsync<GetAgentResponse>($"/api/Agent/?Id={RuntimeOptions.Id}", cancellationToken);
+                    var response = await Client.GetAsJsonAsync<GetAgentResponse>($"/api/Agent/?Id={RuntimeOptions.Id}", _cancellationToken);
                     if (response?.Item != null)
                     {
                         await ApplyAgentUpdatesAsync([response.Item]);
@@ -1204,10 +1279,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             _hubConnection.Reconnecting += HubConnectionReconnecting;
             _hubConnection.Reconnected += HubConnectionReconnected;
             _hubConnection.Closed += HubConnectionClosed;
-            SetConnectionState(GXAgentConnectionState.Connecting);
-            await _hubConnection.StartAsync(cancellationToken);
-            await _hubConnection.InvokeAsync("RegisterAgent", RuntimeOptions.Id, cancellationToken);
-            SetConnectionState(GXAgentConnectionState.Connected);
+            SetConnectionState(AgentConnectionState.Connecting);
+            await _hubConnection.StartAsync(_cancellationToken);
+            await _hubConnection.InvokeAsync("RegisterAgent", RuntimeOptions.Id, _cancellationToken);
+            SetConnectionState(AgentConnectionState.Connected);
             _logger?.LogInformation("Waiting tasks from the Gurux.DLMS.AMI.");
             //Check new versions to install.
             if (await CheckForApplicationUpdateAsync())
@@ -1217,32 +1292,35 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             GXNotifyService? ns = _services?.GetRequiredService<GXNotifyService>();
             if (ns != null)
             {
-                await ns.StartAsync(cancellationToken);
+                await ns.StartAsync(_cancellationToken);
             }
 
             GXAutoConnectService? ac = _services?.GetRequiredService<GXAutoConnectService>();
             if (ac != null)
             {
-                await ac.StartAsync(cancellationToken);
+                await ac.StartAsync(_cancellationToken);
             }
 
             GXGatewayService? gw = _services?.GetRequiredService<GXGatewayService>();
             if (gw != null)
             {
-                await gw.StartAsync(cancellationToken);
+                await gw.StartAsync(_cancellationToken);
             }
 
             var rawService = _services?.GetRequiredService<GXRawNotificationService>();
             if (rawService != null)
             {
-                await rawService.StartAsync(cancellationToken);
+                await rawService.StartAsync(_cancellationToken);
             }
 
             await ConfirmRunningVersionAsync();
-            taskPoller = System.Threading.Tasks.Task.Run(TaskPoller);
+            _taskPoller = System.Threading.Tasks.Task.Run(TaskPoller);
             _logger?.LogInformation("Agent started");
         }
 
+        /// <summary>Applies server configuration updates matching this registered agent.</summary>
+        /// <param name="agents">Server agent registrations included in the update notification.</param>
+        /// <returns>A task representing this operation: Applies server configuration updates matching this registered agent.</returns>
         private async System.Threading.Tasks.Task ApplyAgentUpdatesAsync(IEnumerable<GXAgent> agents)
         {
             foreach (var agent in agents)
@@ -1255,12 +1333,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 _newTask.Set();
             }
         }
+        /// <summary>Marks server notifications disconnected and retries establishing their connection.</summary>
+        /// <param name="error">Failure associated with the current operation, if available.</param>
+        /// <returns>A task representing this operation: Marks server notifications disconnected and retries establishing their connection.</returns>
         private async System.Threading.Tasks.Task HubConnectionClosed(Exception? error)
         {
-            SetConnectionState(GXAgentConnectionState.Reconnecting);
+            SetConnectionState(AgentConnectionState.Reconnecting);
             Exception? lastError = error;
             bool maintenanceRetry = error is GXMaintenanceException;
-            while (!cancellationToken.IsCancellationRequested && !_closing.WaitOne(0))
+            while (!_cancellationToken.IsCancellationRequested && !_closing.WaitOne(0))
             {
                 var hub = _hubConnection;
                 if (hub == null)
@@ -1272,17 +1353,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 {
                     if (lastError is GXMaintenanceException maintenance)
                     {
-                        await GXMaintenanceRetry.WaitAsync(maintenance, cancellationToken);
+                        await GXMaintenanceRetry.WaitAsync(maintenance, _cancellationToken);
                     }
                     else
                     {
-                        await System.Threading.Tasks.Task.Delay(maintenanceRetry ? 60000 : 1000, cancellationToken);
+                        await System.Threading.Tasks.Task.Delay(maintenanceRetry ? 60000 : 1000, _cancellationToken);
                     }
                     // Registration or refresh can fail after the transport has connected.
                     // Retry those operations without starting an already connected hub.
                     if (hub.State == HubConnectionState.Disconnected)
                     {
-                        await hub.StartAsync(cancellationToken);
+                        await hub.StartAsync(_cancellationToken);
                     }
                     if (hub.State != HubConnectionState.Connected)
                     {
@@ -1291,7 +1372,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     await HubConnectionReconnected(hub.ConnectionId);
                     return;
                 }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested)
                 {
                     return;
                 }
@@ -1303,17 +1384,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
             }
         }
+        /// <summary>Invalidates and refreshes cached script methods after a server update notification.</summary>
+        /// <param name="scriptId">Identifier of the script invalidated by the server.</param>
+        /// <returns>A task representing this operation: Invalidates and refreshes cached script methods after a server update notification.</returns>
         private async System.Threading.Tasks.Task PrepareScriptUpdateAsync(Guid scriptId)
         {
             try
             {
-                await Scripts.RefreshAsync(scriptId, cancellationToken);
+                await Scripts.RefreshAsync(scriptId, _cancellationToken);
                 if (_logger?.IsEnabled(LogLevel.Information) == true)
                 {
                     _logger.LogInformation("Script {Script} prepared for new connections", scriptId);
                 }
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested)
             {
             }
             catch (Exception error)
@@ -1322,10 +1406,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
+        /// <summary>Publishes restored connectivity and refreshes work after SignalR reconnects.</summary>
+        /// <param name="arg">SignalR connection identity or reconnect failure supplied by the callback.</param>
+        /// <returns>A task representing this operation: Publishes restored connectivity and refreshes work after SignalR reconnects.</returns>
         private async System.Threading.Tasks.Task HubConnectionReconnected(string? arg)
         {
-            await _hubConnection!.InvokeAsync("RegisterAgent", RuntimeOptions.Id, cancellationToken);
-            SetConnectionState(GXAgentConnectionState.Connected);
+            await _hubConnection!.InvokeAsync("RegisterAgent", RuntimeOptions.Id, _cancellationToken);
+            SetConnectionState(AgentConnectionState.Connected);
             if (await CheckForApplicationUpdateAsync())
                 {
                 return;
@@ -1338,28 +1425,33 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 await PrepareScriptUpdateAsync(scriptId);
             }
         }
+        /// <summary>Publishes temporary disconnection while SignalR attempts to reconnect.</summary>
+        /// <param name="arg">SignalR connection identity or reconnect failure supplied by the callback.</param>
+        /// <returns>A task representing this operation: Publishes temporary disconnection while SignalR attempts to reconnect.</returns>
         private System.Threading.Tasks.Task HubConnectionReconnecting(Exception? arg)
         {
-            SetConnectionState(GXAgentConnectionState.Reconnecting);
+            SetConnectionState(AgentConnectionState.Reconnecting);
             _logger?.LogInformation("Reconnecting for the Gurux.DLMS.AMI.");
             return System.Threading.Tasks.Task.CompletedTask;
         }
 
-        /// <inheritdoc />
+        /// <summary>Stops runtime services and releases connection resources before checking task-result persistence.</summary>
+        /// <returns>A task that completes after cleanup and the persistence safety check finish.</returns>
+        /// <exception cref="IOException">Task results remain only in memory after shutdown cleanup.</exception>
         private async System.Threading.Tasks.Task StopCoreAsync()
         {
             _logger?.LogInformation("Stopping Gurux.DLMS.Agent.Worker.");
             _closing.Set();
             _newTask.Set();
             _taskNotification?.Close();
-            taskSubscription?.Dispose();
-            taskSubscription = null;
+            _taskSubscription?.Dispose();
+            _taskSubscription = null;
             // Let in-flight settings/update callbacks leave their critical sections before
             // stopping their services or releasing synchronization resources.
-            await settingsGate.WaitAsync();
-            settingsGate.Release();
-            await updateGate.WaitAsync();
-            updateGate.Release();
+            await _settingsGate.WaitAsync();
+            _settingsGate.Release();
+            await _updateGate.WaitAsync();
+            _updateGate.Release();
             // The host controls its shutdown deadline. Cleanup remains alive if the caller stops waiting.
             try
             {
@@ -1373,25 +1465,25 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             finally
             {
-                lifetime.Cancel();
-                if (taskPoller != null)
+                _lifetime.Cancel();
+                if (_taskPoller != null)
                 {
-                    await StopServiceAsync(() => taskPoller, "task poller");
+                    await StopServiceAsync(() => _taskPoller, "task poller");
                 }
 
                 _meterReads.Complete();
                 await StopServiceAsync(() => _meterReads.Completion, "meter reads");
 
-                if (completionOutbox != null)
+                if (_completionOutbox != null)
                 {
                     await StopServiceAsync(async () =>
                     {
                         try
                         {
                             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                            await completionOutbox.FlushAsync(deadline.Token);
+                            await _completionOutbox.FlushAsync(deadline.Token);
                         }
-                        finally { await completionOutbox.DisposeAsync(); }
+                        finally { await _completionOutbox.DisposeAsync(); }
                     }, "task completions");
                 }
                 Scripts.Clear();
@@ -1401,20 +1493,24 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 {
                     await StopServiceAsync(() => hub.DisposeAsync().AsTask(), "server notifications");
                 }
-                if (completionOutbox?.Status.UnpersistedCount > 0)
-                    {
-                    throw new IOException("Cannot complete shutdown safely while task results remain only in memory.");
-                }
+            }
+            if (_completionOutbox?.Status.UnpersistedCount > 0)
+            {
+                throw new IOException("Cannot complete shutdown safely while task results remain only in memory.");
             }
         }
 
+        /// <summary>Stops a runtime service and records any shutdown failure with its service name.</summary>
+        /// <param name="stop">Asynchronous callback that shuts down the runtime service.</param>
+        /// <param name="name">Display name identifying the agent or runtime service.</param>
+        /// <returns>A task representing this operation: Stops a runtime service and records any shutdown failure with its service name.</returns>
         private async System.Threading.Tasks.Task StopServiceAsync(Func<System.Threading.Tasks.Task> stop, string name)
         {
             try
             {
                 await stop();
             }
-            catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
+            catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
             {
                 // Normal lifetime cancellation is expected during shutdown.
             }

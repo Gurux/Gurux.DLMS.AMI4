@@ -30,8 +30,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect;
 /// <summary>Routes task wake-ups to the current owner of each connection.</summary>
 internal interface IGXTaskNotification
 {
+    /// <summary>Creates an independently owned task notification registration for the device.</summary>
+    /// <param name="id">Identity of the agent, device or registered work being processed.</param>
+    /// <returns>A registration owning its own task wake-up and close signals.</returns>
     GXTaskRegistration Register(Guid id);
+    /// <summary>Signals task availability for the selected registration.</summary>
+    /// <param name="id">Identity of the agent, device or registered work being processed.</param>
     void Set(Guid id);
+    /// <summary>Wakes every registered device connection to check for available tasks.</summary>
     void NotifyAll();
+    /// <summary>Closes notification input and wakes consumers so their waits can finish.</summary>
     void Close();
 }

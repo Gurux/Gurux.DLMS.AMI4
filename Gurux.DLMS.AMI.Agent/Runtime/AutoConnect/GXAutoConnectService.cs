@@ -32,61 +32,78 @@ using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.Net.Enums;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
 {
+    /// <summary>Accepts automatically connecting meters and owns their bounded connection sessions.</summary>
+    /// <param name="logger">Records operation diagnostics without exposing authentication secrets.</param>
+    /// <param name="serviceProvider">Resolves services used by accepted transport sessions.</param>
+    /// <param name="taskNotification">Routes available task signals to the identified connection.</param>
+    /// <param name="worker">Agent runtime being registered or reconfigured.</param>
     internal class GXAutoConnectService(ILogger<GXAutoConnectService> logger,
         IServiceProvider serviceProvider,
         IGXTaskNotification taskNotification, GXAgentWorker worker) : IHostedService, IDisposable
     {
+        /// <summary>Resolves transport and repository services for this component.</summary>
         private readonly IServiceProvider _serviceProvider = serviceProvider;
+        /// <summary>Routes newly available task signals to registered device connections.</summary>
         private readonly IGXTaskNotification _taskNotification = taskNotification;
+        /// <summary>Records runtime diagnostics without exposing authentication credentials.</summary>
         private readonly ILogger _logger = logger;
+        /// <summary>Optional script used to identify an automatically connecting meter.</summary>
         private GXScriptMethod? _autoConnectionIdentificationScript;
+        /// <summary>Optional script used to identify a connecting gateway.</summary>
         private GXScriptMethod? _gatewayIdentificationScript;
 
         //Listener wait incoming connections from the meters.
-        GXNet? listener;
-        private GXConnectionTasks? sessions;
-        private readonly SemaphoreSlim lifecycle = new(1, 1);
-        private Task? shutdown;
+        /// <summary>Accepts inbound transport connections for the service.</summary>
+        GXNet? _listener;
+        /// <summary>Tracks active connections or script sessions until their work completes.</summary>
+        private GXConnectionTasks? _sessions;
+        /// <summary>Serializes service startup and shutdown operations.</summary>
+        private readonly SemaphoreSlim _lifecycle = new(1, 1);
+        /// <summary>Shared shutdown operation awaited by concurrent stop requests.</summary>
+        private Task? _shutdown;
+        /// <summary>Transport settings applied to the active connection.</summary>
         ListenerSettings? _settings;
 
+        /// <inheritdoc/>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await lifecycle.WaitAsync(cancellationToken);
+            await _lifecycle.WaitAsync(cancellationToken);
             try
             {
-                if (shutdown != null)
+                if (_shutdown != null)
                 {
-                    await shutdown.WaitAsync(cancellationToken);
-                    shutdown = null;
+                    await _shutdown.WaitAsync(cancellationToken);
+                    _shutdown = null;
                 }
-                if (sessions != null) {
+                if (_sessions != null) {
                     return;
                 }
                 _settings = worker.RuntimeOptions.ListenerSettings;
-                sessions = new GXConnectionTasks(worker.RuntimeOptions.MaxIncomingConnections, cancellationToken,
+                _sessions = new GXConnectionTasks(worker.RuntimeOptions.MaxIncomingConnections, cancellationToken,
                     error => _logger.LogError(error, "Incoming connection failed."));
                 if (_settings != null && _settings.Enabled)
                 {
-                    listener = new GXNet
+                    _listener = new GXNet
                     {
                         Settings = _settings.MediaSettings,
                         Server = true
                     };
-                    if (listener.Protocol == NetworkType.Tcp)
+                    if (_listener.Protocol == NetworkType.Tcp)
                     {
-                        listener.OnClientConnected += OnClientConnected;
-                        listener.OnClientDisconnected += OnClientDisconnected;
+                        _listener.OnClientConnected += OnClientConnected;
+                        _listener.OnClientDisconnected += OnClientDisconnected;
                     }
                     else
                     {
-                        listener.OnReceived += OnOnReceived;
+                        _listener.OnReceived += OnOnReceived;
                     }
                     if (_logger.IsEnabled(LogLevel.Information) == true)
                     {
-                        _logger.LogInformation("{Message}", "Listening incoming connections in port:" + listener.Port);
+                        _logger.LogInformation("{Message}", "Listening incoming connections in port:" + _listener.Port);
                     }
                     if (_settings?.ScriptMethod != null)
                     {
@@ -115,39 +132,60 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         _gatewayIdentificationScript = null;
                     }
 
-                    listener.Open();
+                    _listener.Open();
                 }
                 else
                 {
-                    listener?.Close();
+                    _listener?.Close();
                 }
-                if (listener == null || !listener.IsOpen)
+                if (_listener == null || !_listener.IsOpen)
                 {
                     _logger.LogInformation("Auto connect service is not used.");
                 }
             }
-            finally { lifecycle.Release(); }
+            finally { _lifecycle.Release(); }
         }
 
-        internal void OnClientConnected(object sender, Gurux.Common.ConnectionEventArgs e)
+        /// <summary>Starts a tracked session for a newly accepted transport connection.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Transport event data identifying the connection, received bytes or trace packet.</param>
+        internal void OnClientConnected(object? sender, Gurux.Common.ConnectionEventArgs e)
         {
-            try { StartSession(((GXNet)sender).Attach(e), e.Info); }
+            try { string info = e.Info ?? throw new ArgumentException("Connection endpoint is missing.");
+                GXNet attached = ((GXNet)(sender ?? throw new ArgumentNullException(nameof(sender)))).Attach(info);
+                StartSession(attached, info); }
             catch (Exception error) { _logger.LogError(error, "Attaching incoming meter failed."); }
         }
 
-        internal void OnClientDisconnected(object sender, Gurux.Common.ConnectionEventArgs e)
-            => sessions?.Disconnect(e.Info);
-
-        internal void OnOnReceived(object sender, Gurux.Common.ReceiveEventArgs e)
+        /// <summary>Cancels the session belonging to the disconnected transport connection.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Transport event data identifying the connection, received bytes or trace packet.</param>
+        internal void OnClientDisconnected(object? sender, Gurux.Common.ConnectionEventArgs e)
         {
-            try { StartSession(((GXNet)sender).Attach(e), e.SenderInfo); }
+            if (e.Info != null)
+            {
+                _sessions?.Disconnect(e.Info);
+            }
+        }
+
+        /// <summary>Starts or wakes the tracked session for received transport data.</summary>
+        /// <param name="sender">Transport identity or event source that produced the notification.</param>
+        /// <param name="e">Transport event data identifying the connection, received bytes or trace packet.</param>
+        internal void OnOnReceived(object? sender, Gurux.Common.ReceiveEventArgs e)
+        {
+            try { string info = e.SenderInfo ?? throw new ArgumentException("Connection endpoint is missing.");
+                GXNet attached = ((GXNet)(sender ?? throw new ArgumentNullException(nameof(sender)))).Attach(info);
+                StartSession(attached, info); }
             catch (Exception error) { _logger.LogError(error, "Attaching incoming meter failed."); }
         }
 
+        /// <summary>Admits an accepted transport connection to bounded session processing.</summary>
+        /// <param name="media">Accepted transport used for connection protocol exchanges.</param>
+        /// <param name="info">Process start settings or transport description used by the operation.</param>
         private void StartSession(GXNet media, string info)
         {
-            var owner = sessions;
-            void OnStateChanged(object sender, Gurux.Common.MediaStateEventArgs e)
+            var owner = _sessions;
+            void OnStateChanged(object? sender, Gurux.Common.MediaStateEventArgs e)
             {
                 if (e.State == Gurux.Common.MediaState.Closed) {
                     owner?.Disconnect(info);
@@ -167,25 +205,30 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             }
         }
 
+        /// <inheritdoc/>
         public async Task StopAsync(CancellationToken cancellationToken)
         {
             Task pending;
-            await lifecycle.WaitAsync();
-            try { pending = shutdown ??= StopCoreAsync(); }
-            finally { lifecycle.Release(); }
+            // Always request shutdown; the caller's token only cancels its wait below.
+            await _lifecycle.WaitAsync(CancellationToken.None);
+            try { pending = _shutdown ??= StopCoreAsync(); }
+            finally { _lifecycle.Release(); }
             await pending.WaitAsync(cancellationToken);
         }
 
+        /// <summary>Stops the listener and waits for all owned connection sessions to finish.</summary>
+        /// <returns>A task representing this operation: Stops the listener and waits for all owned connection sessions to finish.</returns>
         private async Task StopCoreAsync()
         {
             await Task.Yield();
-            var pending = sessions?.StopAsync() ?? Task.CompletedTask;
-            try { listener?.Close(); }
+            var pending = _sessions?.StopAsync() ?? Task.CompletedTask;
+            try { _listener?.Close(); }
             finally { await pending; }
-            listener?.Dispose();
-            listener = null;
-            sessions = null;
+            _listener?.Dispose();
+            _listener = null;
+            _sessions = null;
         }
+        /// <inheritdoc/>
         public void Dispose()
         {
             StopAsync(CancellationToken.None).GetAwaiter().GetResult();

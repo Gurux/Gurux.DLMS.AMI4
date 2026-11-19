@@ -32,31 +32,36 @@ namespace Gurux.DLMS.AMI.Agent.Worker;
 /// <summary>Routes server update types to disposable agent event subscriptions.</summary>
 internal sealed class GXAgentNotification
 {
-    private readonly Lock gate = new();
-    private readonly Dictionary<string, List<Action>> handlers = new(StringComparer.Ordinal);
+    /// <summary>Protects concurrent access to the owning object's mutable state.</summary>
+    private readonly Lock _gate = new();
+    /// <summary>Subscriptions grouped by their notification identifier.</summary>
+    private readonly Dictionary<string, List<Action>> _handlers = new(StringComparer.Ordinal);
 
     /// <summary>Subscribes to one update type. Dispose the result when its service stops.</summary>
+    /// <param name="type">Protocol data type or notification category processed by this operation.</param>
+    /// <param name="handler">Callback invoked when the subscribed notification is published.</param>
+    /// <returns>A subscription whose disposal removes the callback.</returns>
     internal IDisposable On(string type, Action handler)
     {
-        lock (gate)
+        lock (_gate)
         {
-            if (!handlers.TryGetValue(type, out var listeners))
+            if (!_handlers.TryGetValue(type, out var listeners))
             {
-                handlers[type] = listeners = [];
+                _handlers[type] = listeners = [];
             }
 
             listeners.Add(handler);
         }
         return new Subscription(() =>
         {
-            lock (gate)
+            lock (_gate)
             {
-                if (handlers.TryGetValue(type, out var listeners))
+                if (_handlers.TryGetValue(type, out var listeners))
                 {
                     listeners.Remove(handler);
                     if (listeners.Count == 0)
                     {
-                        handlers.Remove(type);
+                        _handlers.Remove(type);
                     }
                 }
             }
@@ -64,14 +69,15 @@ internal sealed class GXAgentNotification
     }
 
     /// <summary>Wakes each event type once per server batch, including mixed task and raw events.</summary>
+    /// <param name="updates">Identifiers whose subscribers must be notified of changed data.</param>
     internal void Publish(IEnumerable<GXTarget> updates)
     {
         foreach (var type in updates.Select(n => n.Type).Distinct(StringComparer.Ordinal))
         {
             Action[] listeners;
-            lock (gate)
+            lock (_gate)
             {
-                listeners = handlers.TryGetValue(type, out var values) ? [.. values] : [];
+                listeners = _handlers.TryGetValue(type, out var values) ? [.. values] : [];
             }
 
             foreach (var listener in listeners)
@@ -81,9 +87,13 @@ internal sealed class GXAgentNotification
         }
     }
 
+    /// <summary>Removes a notification callback when its owner releases the subscription.</summary>
+    /// <param name="remove">Callback that unregisters the notification subscription.</param>
     private sealed class Subscription(Action remove) : IDisposable
     {
-        private Action? dispose = remove;
-        public void Dispose() => Interlocked.Exchange(ref dispose, null)?.Invoke();
+        /// <summary>Removes this subscription when disposal first occurs.</summary>
+        private Action? _dispose = remove;
+        /// <inheritdoc/>
+        public void Dispose() => Interlocked.Exchange(ref _dispose, null)?.Invoke();
     }
 }

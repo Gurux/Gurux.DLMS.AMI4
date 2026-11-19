@@ -39,6 +39,7 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
     /// <summary>
     /// This class implements gateway repository that can be called from the gateway script.
     /// </summary>
+    /// <param name="http">Configured HTTP client used for server communication.</param>
     class GXGatewayRepository(HttpClient http) : IGatewayRepository
     {
         /// <inheritdoc/>

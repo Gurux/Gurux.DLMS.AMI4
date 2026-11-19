@@ -30,8 +30,11 @@ using System.Net;
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
 // SignalR otherwise discards the maintenance problem details when negotiation fails.
+/// <summary>Converts temporary server maintenance responses into retryable request failures.</summary>
+/// <param name="innerHandler">HTTP transport wrapped by maintenance response handling.</param>
 internal sealed class GXMaintenanceHandler(HttpMessageHandler innerHandler) : DelegatingHandler(innerHandler)
 {
+    /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var response = await base.SendAsync(request, cancellationToken);

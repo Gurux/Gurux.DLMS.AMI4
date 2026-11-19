@@ -27,31 +27,8 @@
 
 namespace Gurux.DLMS.AMI.Agent.Shared;
 
-/// <summary>Worker lifecycle state, independent of server connectivity.</summary>
-public enum GXAgentWorkerState
-{
-    /// <summary>Not initialized.</summary>
-    Created,
-    /// <summary>Ready for registration or startup.</summary>
-    Initialized,
-    /// <summary>Startup is in progress.</summary>
-    Starting,
-    /// <summary>Worker services are running, possibly while disconnected.</summary>
-    Running,
-    /// <summary>A complete application update is staged and awaits host handoff to the external updater.</summary>
-    RestartPending,
-    /// <summary>Shutdown is in progress.</summary>
-    Stopping,
-    /// <summary>Shutdown completed; create a new instance to restart.</summary>
-    Stopped,
-    /// <summary>Startup, service reconfiguration or shutdown failed.</summary>
-    Faulted,
-    /// <summary>Worker-owned resources were released.</summary>
-    Disposed
-}
-
 /// <summary>Server notification connection state; a disconnection does not mean the worker has stopped.</summary>
-public enum GXAgentConnectionState
+public enum AgentConnectionState
 {
     /// <summary>No active server notification connection.</summary>
     Disconnected,

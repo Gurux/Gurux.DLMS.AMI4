@@ -27,9 +27,15 @@
 
 namespace Gurux.DLMS.AMI.Agent;
 
+/// <summary>Resolves the application version from trusted installed package metadata.</summary>
 internal static class AgentRuntimeVersion
 {
     // Parameters retained for source compatibility with startup checks; runtime files no longer select code.
+    /// <summary>Chooses the installed application version, falling back to host-provided version values.</summary>
+    /// <param name="baseDirectory">Installed application directory containing release metadata.</param>
+    /// <param name="configuredVersion">Version recorded in persisted host configuration, if available.</param>
+    /// <param name="executableVersion">Version reported by the running executable, if available.</param>
+    /// <returns>Installed application version, or the available configured or executable fallback.</returns>
     internal static string? Resolve(string baseDirectory, string? configuredVersion, string? executableVersion)
         => string.IsNullOrWhiteSpace(executableVersion) ? null : executableVersion.Split('+')[0];
 }

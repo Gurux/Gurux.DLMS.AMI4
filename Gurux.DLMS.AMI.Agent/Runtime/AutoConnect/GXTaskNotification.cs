@@ -29,95 +29,74 @@ using System.Threading.Channels;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect;
 
+/// <summary>Routes task availability to independently owned device connection registrations.</summary>
 internal sealed class GXTaskNotification : IGXTaskNotification
 {
-    private readonly Dictionary<Guid, GXTaskRegistration> registrations = [];
+    /// <summary>Current task notification registrations indexed by device identifier.</summary>
+    private readonly Dictionary<Guid, GXTaskRegistration> _registrations = [];
 
+    /// <summary>Creates an independently owned task notification registration for the device.</summary>
+    /// <param name="id">Identity of the agent, device or registered work being processed.</param>
+    /// <returns>A registration owning its own task wake-up and close signals.</returns>
     public GXTaskRegistration Register(Guid id)
     {
-        lock (registrations)
+        lock (_registrations)
         {
-            if (registrations.Remove(id, out var previous))
+            if (_registrations.Remove(id, out var previous))
                 {
                 previous.Close();
             }
             var registration = new GXTaskRegistration(this, id);
-            registrations.Add(id, registration);
+            _registrations.Add(id, registration);
             return registration;
         }
     }
 
+    /// <summary>Signals task availability for the selected registration.</summary>
+    /// <param name="id">Identity of the agent, device or registered work being processed.</param>
     public void Set(Guid id)
     {
-        lock (registrations)
-            if (registrations.TryGetValue(id, out var registration))
+        lock (_registrations)
+            if (_registrations.TryGetValue(id, out var registration))
                 {
                 registration.Set();
             }
     }
 
+    /// <summary>Wakes every registered device connection to check for available tasks.</summary>
     public void NotifyAll()
     {
-        lock (registrations)
-            foreach (var registration in registrations.Values)
+        lock (_registrations)
+            foreach (var registration in _registrations.Values)
                 {
                 registration.Set();
             }
     }
 
+    /// <summary>Closes notification input and wakes consumers so their waits can finish.</summary>
     public void Close()
     {
-        lock (registrations)
+        lock (_registrations)
         {
-            foreach (var registration in registrations.Values)
+            foreach (var registration in _registrations.Values)
                 {
                 registration.Close();
             }
-            registrations.Clear();
+            _registrations.Clear();
         }
     }
 
+    /// <summary>Removes a task registration only if it still owns the device identity.</summary>
+    /// <param name="registration">Owned device task registration to remove.</param>
     internal void Unregister(GXTaskRegistration registration)
     {
-        lock (registrations)
+        lock (_registrations)
         {
-            if (registrations.TryGetValue(registration.Id, out var current) && ReferenceEquals(current, registration))
+            if (_registrations.TryGetValue(registration.Id, out var current) && ReferenceEquals(current, registration))
                 {
-                registrations.Remove(registration.Id);
+                _registrations.Remove(registration.Id);
             }
             registration.Close();
         }
     }
-}
-
-/// <summary>A connection owns its wake-up queue. Replacing or closing it ends its wait.</summary>
-internal sealed class GXTaskRegistration(GXTaskNotification owner, Guid id) : IDisposable
-{
-    private readonly Channel<bool> signal = Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
-    { FullMode = BoundedChannelFullMode.DropWrite, AllowSynchronousContinuations = false });
-    internal Guid Id { get; } = id;
-    private int closed;
-    internal void Set() => signal.Writer.TryWrite(true);
-    internal void Close()
-    {
-        Interlocked.Exchange(ref closed, 1);
-        signal.Writer.TryComplete();
-    }
-    internal async Task<bool> WaitAsync(CancellationToken token)
-    {
-        if (Volatile.Read(ref closed) != 0)
-            {
-            return false;
-        }
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-        timeout.CancelAfter(TimeSpan.FromMinutes(1));
-        try
-        {
-            await signal.Reader.ReadAsync(timeout.Token);
-            return Volatile.Read(ref closed) == 0;
-        }
-        catch (ChannelClosedException) { return false; }
-        catch (OperationCanceledException) when (!token.IsCancellationRequested) { return Volatile.Read(ref closed) == 0; }
-    }
-    public void Dispose() => owner.Unregister(this);
 }

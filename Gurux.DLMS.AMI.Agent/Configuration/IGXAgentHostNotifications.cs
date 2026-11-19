@@ -27,20 +27,6 @@
 
 namespace Gurux.DLMS.AMI.Agent.Shared;
 
-/// <summary>Changes the host must handle. Multiple changes may be delivered together.</summary>
-[Flags]
-public enum GXAgentHostChange
-{
-    /// <summary>No pending change.</summary>
-    None = 0,
-    /// <summary>A complete application release is staged for external installation.</summary>
-    VersionAvailable = 1,
-    /// <summary>The current configuration must be persisted.</summary>
-    SettingsChanged = 2,
-    /// <summary>The server rejected the PAT; stop the runtime and request new credentials.</summary>
-    AuthenticationRequired = 4
-}
-
 /// <summary>Notifies the host without exposing thread synchronization primitives.</summary>
 public interface IGXAgentHostNotifications
 {
@@ -58,5 +44,5 @@ public interface IGXAgentHostNotifications
     /// <remarks>The returned flags consume all changes accumulated for this single consumer.</remarks>
     /// <exception cref="OperationCanceledException">The wait is canceled before pending changes are consumed.</exception>
     /// <exception cref="ObjectDisposedException">The notification source is disposed before changes can be read.</exception>
-    ValueTask<GXAgentHostChange> WaitForChangeAsync(CancellationToken cancellationToken = default);
+    ValueTask<AgentHostChange> WaitForChangeAsync(CancellationToken cancellationToken = default);
 }

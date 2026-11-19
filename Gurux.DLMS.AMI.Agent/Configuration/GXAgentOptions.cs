@@ -142,36 +142,36 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         public IReadOnlyList<GXAgentValidationError> GetValidationErrors(bool requireAgentId = true)
         {
             var errors = new List<GXAgentValidationError>();
-            void Error(GXAgentValidationErrorCode code, string name, string rule) => errors.Add(new GXAgentValidationError(code, name, rule));
+            void Error(AgentValidationErrorCode code, string name, string rule) => errors.Add(new GXAgentValidationError(code, name, rule));
             void Nonnegative(string name, int? value) { if (value < 0) {
-                Error(GXAgentValidationErrorCode.NegativeValue, name, "must not be negative.");
+                Error(AgentValidationErrorCode.NegativeValue, name, "must not be negative.");
             } }
             void Threads(string name, int value) { if (value < 1) {
-                Error(GXAgentValidationErrorCode.InvalidThreadCount, name, "must be at least one.");
+                Error(AgentValidationErrorCode.InvalidThreadCount, name, "must be at least one.");
             } }
             void Media(string name, string? value) { if (string.IsNullOrWhiteSpace(value)) {
-                Error(GXAgentValidationErrorCode.MediaSettingsRequired, name, "is required when enabled.");
+                Error(AgentValidationErrorCode.MediaSettingsRequired, name, "is required when enabled.");
             } }
             if (!Uri.TryCreate(Address, UriKind.Absolute, out var uri) ||
                 (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
                 !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
                 {
-                Error(GXAgentValidationErrorCode.InvalidAddress, nameof(Address), "must be an absolute HTTP or HTTPS address without credentials, query or fragment.");
+                Error(AgentValidationErrorCode.InvalidAddress, nameof(Address), "must be an absolute HTTP or HTTPS address without credentials, query or fragment.");
             }
             if (string.IsNullOrWhiteSpace(Token) || Token.Any(char.IsWhiteSpace))
                 {
-                Error(GXAgentValidationErrorCode.InvalidToken, nameof(Token), "must contain a nonempty access token without whitespace.");
+                Error(AgentValidationErrorCode.InvalidToken, nameof(Token), "must contain a nonempty access token without whitespace.");
             }
             if (requireAgentId && Id == Guid.Empty) {
-                Error(GXAgentValidationErrorCode.AgentIdRequired, nameof(Id), "is required after registration.");
+                Error(AgentValidationErrorCode.AgentIdRequired, nameof(Id), "is required after registration.");
             }
             if (!string.IsNullOrEmpty(Version) && (Version.Length > 128 ||
                 Version.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('.' or '-' or '_' or '+'))))
                 {
-                Error(GXAgentValidationErrorCode.InvalidVersion, nameof(Version), "must be a version identifier without path separators or special filename characters.");
+                Error(AgentValidationErrorCode.InvalidVersion, nameof(Version), "must be a version identifier without path separators or special filename characters.");
             }
             if (!Enum.IsDefined(TraceLevel)) {
-                Error(GXAgentValidationErrorCode.InvalidTraceLevel, nameof(TraceLevel), "is invalid.");
+                Error(AgentValidationErrorCode.InvalidTraceLevel, nameof(TraceLevel), "is invalid.");
             }
             Threads(nameof(MaxIncomingConnections), MaxIncomingConnections);
             if (ReaderSettings is { Enabled: true } reader)
@@ -206,7 +206,7 @@ namespace Gurux.DLMS.AMI.Agent.Shared
                 Threads("RawNotificationSettings.Threads", raw.Threads);
                 if (raw.ScriptMethod is null || raw.ScriptMethod == Guid.Empty)
                     {
-                    Error(GXAgentValidationErrorCode.ScriptMethodRequired, "RawNotificationSettings.ScriptMethod", "is required when enabled.");
+                    Error(AgentValidationErrorCode.ScriptMethodRequired, "RawNotificationSettings.ScriptMethod", "is required when enabled.");
                 }
             }
             return errors.AsReadOnly();

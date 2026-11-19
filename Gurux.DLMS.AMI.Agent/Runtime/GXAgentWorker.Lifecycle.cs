@@ -29,46 +29,60 @@ using Gurux.DLMS.AMI.Agent.Shared;
 
 namespace Gurux.DLMS.AMI.Agent.Worker;
 
+/// <summary>Coordinates agent lifecycle, validated configuration and device task execution.</summary>
 public partial class GXAgentWorker
 {
-    private readonly SemaphoreSlim lifecycleGate = new(1, 1);
-    private bool initialized;
-    private bool stopping;
-    private bool disposed;
-    private Task? startupTask;
-    private Task? stopTask;
-    private CancellationTokenRegistration hostCancellation;
-    private int workerState = (int)GXAgentWorkerState.Created;
-    private int connectionState = (int)GXAgentConnectionState.Disconnected;
+    /// <summary>Serializes initialization, startup and shutdown transitions.</summary>
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
+    /// <summary>Indicates successful initialization of worker-owned services.</summary>
+    private bool _initialized;
+    /// <summary>Prevents new work after shutdown begins.</summary>
+    private bool _stopping;
+    /// <summary>Indicates that owned resources have been released.</summary>
+    private bool _disposed;
+    /// <summary>Shared task representing the current startup operation.</summary>
+    private Task? _startupTask;
+    /// <summary>Shared task representing the current shutdown operation.</summary>
+    private Task? _stopTask;
+    /// <summary>Registration forwarding host cancellation into worker shutdown.</summary>
+    private CancellationTokenRegistration _hostCancellation;
+    /// <summary>Atomically published worker lifecycle state.</summary>
+    private int _workerState = (int)AgentWorkerState.Created;
+    /// <summary>Atomically published server connectivity state.</summary>
+    private int _connectionState = (int)AgentConnectionState.Disconnected;
 
     /// <inheritdoc />
-    public GXAgentWorkerState State => (GXAgentWorkerState)Volatile.Read(ref workerState);
+    public AgentWorkerState State => (AgentWorkerState)Volatile.Read(ref _workerState);
     /// <inheritdoc />
-    public GXAgentConnectionState ConnectionState => (GXAgentConnectionState)Volatile.Read(ref connectionState);
+    public AgentConnectionState ConnectionState => (AgentConnectionState)Volatile.Read(ref _connectionState);
 
-    private void SetConnectionState(GXAgentConnectionState value) => Volatile.Write(ref connectionState,
-        (int)(cancellationToken.IsCancellationRequested ? GXAgentConnectionState.Disconnected : value));
+    /// <summary>Publishes the server connection state while preserving rejected authentication state.</summary>
+    /// <param name="value">New configuration or state value to publish.</param>
+    private void SetConnectionState(AgentConnectionState value) => Volatile.Write(ref _connectionState,
+        (int)(_cancellationToken.IsCancellationRequested ? AgentConnectionState.Disconnected : value));
 
+    /// <summary>Transitions the worker to a faulted state unless shutdown already owns its lifecycle.</summary>
     private void SetFaulted()
     {
-        while (State is GXAgentWorkerState.Initialized or GXAgentWorkerState.Starting or GXAgentWorkerState.Running or GXAgentWorkerState.RestartPending)
+        while (State is AgentWorkerState.Initialized or AgentWorkerState.Starting or AgentWorkerState.Running or AgentWorkerState.RestartPending)
         {
             var previous = State;
-            if (previous is GXAgentWorkerState.Stopping or GXAgentWorkerState.Stopped or GXAgentWorkerState.Disposed) {
+            if (previous is AgentWorkerState.Stopping or AgentWorkerState.Stopped or AgentWorkerState.Disposed) {
                 return;
             }
-            if (Interlocked.CompareExchange(ref workerState, (int)GXAgentWorkerState.Faulted, (int)previous) == (int)previous) {
+            if (Interlocked.CompareExchange(ref _workerState, (int)AgentWorkerState.Faulted, (int)previous) == (int)previous) {
                 return;
             }
         }
     }
 
+    /// <summary>Publishes that a verified application release awaits host update handoff.</summary>
     private void MarkRestartPending()
     {
         var previous = State;
-        while (previous is GXAgentWorkerState.Starting or GXAgentWorkerState.Running)
+        while (previous is AgentWorkerState.Starting or AgentWorkerState.Running)
         {
-            var actual = (GXAgentWorkerState)Interlocked.CompareExchange(ref workerState, (int)GXAgentWorkerState.RestartPending, (int)previous);
+            var actual = (AgentWorkerState)Interlocked.CompareExchange(ref _workerState, (int)AgentWorkerState.RestartPending, (int)previous);
             if (actual == previous) {
                 return;
             }
@@ -87,44 +101,46 @@ public partial class GXAgentWorker
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         Task startup;
-        await lifecycleGate.WaitAsync(cancellationToken);
+        await _lifecycleGate.WaitAsync(cancellationToken);
         try
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            if (!initialized || stopping)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!_initialized || _stopping)
                 {
                 throw new InvalidOperationException("Initialize a new worker instance before starting. A stopped worker cannot be restarted.");
             }
             RuntimeOptions.Validate();
-            if (startupTask == null)
+            if (_startupTask == null)
             {
-                Volatile.Write(ref workerState, (int)GXAgentWorkerState.Starting);
-                hostCancellation = cancellationToken.Register(() => lifetime.Cancel());
-                startupTask = RunStartupAsync();
+                Volatile.Write(ref _workerState, (int)AgentWorkerState.Starting);
+                _hostCancellation = cancellationToken.Register(() => _lifetime.Cancel());
+                _startupTask = RunStartupAsync();
             }
-            startup = startupTask;
+            startup = _startupTask;
         }
-        finally { lifecycleGate.Release(); }
+        finally { _lifecycleGate.Release(); }
         await startup.WaitAsync(cancellationToken);
     }
 
+    /// <summary>Starts worker services and establishes server notification connectivity.</summary>
+    /// <returns>A task representing this operation: Starts worker services and establishes server notification connectivity.</returns>
     private async Task RunStartupAsync()
     {
         try
         {
             await StartCoreAsync();
-            Interlocked.CompareExchange(ref workerState, (int)(restartPending ? GXAgentWorkerState.RestartPending : GXAgentWorkerState.Running), (int)GXAgentWorkerState.Starting);
+            Interlocked.CompareExchange(ref _workerState, (int)(_restartPending ? AgentWorkerState.RestartPending : AgentWorkerState.Running), (int)AgentWorkerState.Starting);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (_cancellationToken.IsCancellationRequested)
         {
-            Interlocked.CompareExchange(ref workerState, (int)GXAgentWorkerState.Stopping, (int)GXAgentWorkerState.Starting);
-            SetConnectionState(GXAgentConnectionState.Disconnected);
+            Interlocked.CompareExchange(ref _workerState, (int)AgentWorkerState.Stopping, (int)AgentWorkerState.Starting);
+            SetConnectionState(AgentConnectionState.Disconnected);
             throw;
         }
         catch
         {
             SetFaulted();
-            SetConnectionState(GXAgentConnectionState.Disconnected);
+            SetConnectionState(AgentConnectionState.Disconnected);
             throw;
         }
     }
@@ -141,43 +157,45 @@ public partial class GXAgentWorker
     {
         Task shutdown;
         // Even an already canceled caller requests shutdown; its token only cancels waiting.
-        await lifecycleGate.WaitAsync();
+        await _lifecycleGate.WaitAsync(CancellationToken.None);
         try
         {
-            if (disposed) {
+            if (_disposed) {
                 return;
             }
-            if (stopTask == null)
+            if (_stopTask == null)
             {
-                stopping = true;
-                Volatile.Write(ref workerState, (int)GXAgentWorkerState.Stopping);
-                lifetime.Cancel();
-                stopTask = StopAfterStartupAsync();
+                _stopping = true;
+                Volatile.Write(ref _workerState, (int)AgentWorkerState.Stopping);
+                _lifetime.Cancel();
+                _stopTask = StopAfterStartupAsync();
             }
-            shutdown = stopTask;
+            shutdown = _stopTask;
         }
-        finally { lifecycleGate.Release(); }
+        finally { _lifecycleGate.Release(); }
         await shutdown.WaitAsync(cancellationToken);
     }
 
+    /// <summary>Waits for startup to settle before stopping and releasing worker services.</summary>
+    /// <returns>A task representing this operation: Waits for startup to settle before stopping and releasing worker services.</returns>
     private async Task StopAfterStartupAsync()
     {
-        if (startupTask != null)
+        if (_startupTask != null)
         {
-            try { await startupTask; }
+            try { await _startupTask; }
             catch { /* The startup caller receives the original failure. Partial startup still needs cleanup. */ }
         }
         try
         {
             await StopCoreAsync();
-            Volatile.Write(ref workerState, (int)GXAgentWorkerState.Stopped);
+            Volatile.Write(ref _workerState, (int)AgentWorkerState.Stopped);
         }
         catch
         {
-            Volatile.Write(ref workerState, (int)GXAgentWorkerState.Faulted);
+            Volatile.Write(ref _workerState, (int)AgentWorkerState.Faulted);
             throw;
         }
-        finally { SetConnectionState(GXAgentConnectionState.Disconnected); }
+        finally { SetConnectionState(AgentConnectionState.Disconnected); }
     }
 
     /// <summary>Stops the worker and releases its own resources. Does not dispose the host's provider or notifications.</summary>
@@ -186,29 +204,29 @@ public partial class GXAgentWorker
     public async ValueTask DisposeAsync()
     {
         await StopAsync();
-        await lifecycleGate.WaitAsync();
+        await _lifecycleGate.WaitAsync(CancellationToken.None);
         try
         {
-            if (disposed) {
+            if (_disposed) {
                 return;
             }
-            disposed = true;
-            Volatile.Write(ref workerState, (int)GXAgentWorkerState.Disposed);
-            hostCancellation.Dispose();
-            lifetime.Dispose();
+            _disposed = true;
+            Volatile.Write(ref _workerState, (int)AgentWorkerState.Disposed);
+            _hostCancellation.Dispose();
+            _lifetime.Dispose();
             _closing.Dispose();
             _newTask.Dispose();
-            settingsGate.Dispose();
-            updateGate.Dispose();
-            meterQueueGate.Dispose();
-            taskClaimGate.Dispose();
-            taskRequestGate.Dispose();
-            runtimeMetrics.Dispose();
-            client.Dispose();
+            _settingsGate.Dispose();
+            _updateGate.Dispose();
+            _meterQueueGate.Dispose();
+            _taskClaimGate.Dispose();
+            _taskRequestGate.Dispose();
+            _runtimeMetrics.Dispose();
+            Client.Dispose();
             _services = null;
             _hostNotifications = null;
         }
-        finally { lifecycleGate.Release(); }
+        finally { _lifecycleGate.Release(); }
     }
 
 }

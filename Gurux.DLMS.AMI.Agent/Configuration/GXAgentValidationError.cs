@@ -29,45 +29,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Agent.Shared;
 
-/// <summary>Stable, locale-independent configuration error codes. Existing values must not be renumbered.</summary>
-public enum GXAgentValidationErrorCode
-{
-    /// <summary>The server address is invalid.</summary>
-    InvalidAddress = 1,
-    /// <summary>The access token is missing or malformed.</summary>
-    InvalidToken = 2,
-    /// <summary>A registered agent identifier is required.</summary>
-    AgentIdRequired = 3,
-    /// <summary>The worker version identifier is invalid.</summary>
-    InvalidVersion = 4,
-    /// <summary>The diagnostic trace level is invalid.</summary>
-    InvalidTraceLevel = 5,
-    /// <summary>A worker thread count is invalid.</summary>
-    InvalidThreadCount = 6,
-    /// <summary>A nonnegative value is required.</summary>
-    NegativeValue = 7,
-    /// <summary>Enabled transport settings are missing.</summary>
-    MediaSettingsRequired = 8,
-    /// <summary>An enabled raw parser requires a script method.</summary>
-    ScriptMethodRequired = 9
-}
-
 /// <summary>A structured configuration error without user-supplied secret values.</summary>
 /// <param name="Code">Stable error identifier for UI translation and programmatic handling.</param>
 /// <param name="PropertyPath">Configuration property path.</param>
 /// <param name="Message">Human-readable diagnostic message.</param>
-public sealed record GXAgentValidationError(GXAgentValidationErrorCode Code, string PropertyPath, string Message);
-
-/// <summary>Preserves structured errors when configuration validation fails.</summary>
-public sealed class GXAgentOptionsValidationException : ValidationException
-{
-    /// <summary>Creates an exception from configuration errors.</summary>
-    /// <param name="errors">Configuration errors.</param>
-    public GXAgentOptionsValidationException(IEnumerable<GXAgentValidationError> errors)
-        : this(errors?.ToArray() ?? throw new ArgumentNullException(nameof(errors))) { }
-    private GXAgentOptionsValidationException(GXAgentValidationError[] errors)
-        : base(string.Join(Environment.NewLine, errors.Select(e => $"{e.PropertyPath}: {e.Message}")))
-        => Errors = Array.AsReadOnly(errors);
-    /// <summary>Gets the original error codes and property paths.</summary>
-    public IReadOnlyList<GXAgentValidationError> Errors { get; }
-}
+public sealed record GXAgentValidationError(AgentValidationErrorCode Code, string PropertyPath, string Message);
