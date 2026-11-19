@@ -130,3 +130,7 @@ finally {
     }
     Remove-Item -LiteralPath $processTestRoot
 }
+
+# The expected authentication failure above leaves a nonzero native exit code.
+# Report success to the GitHub pwsh wrapper only after all checks and cleanup pass.
+$global:LASTEXITCODE = 0
