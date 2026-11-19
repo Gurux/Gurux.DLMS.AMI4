@@ -72,22 +72,27 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
     [CascadingParameter]
     private ComponentView? ComponentViewParent { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXComponentViewGroup>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXComponentViewGroup>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXComponentViewGroup>? _selectionContainer;
 
     /// <summary>
     /// ComponentView group filter.
     /// </summary>
-    private GXComponentViewGroup filter = new GXComponentViewGroup(null);
+    private GXComponentViewGroup _filter = new GXComponentViewGroup(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -107,13 +112,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.SearchSelectedByName");
         }
     }
 
@@ -123,14 +128,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.SearchByName");
         }
     }
 
@@ -142,32 +147,32 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.UserGroups = null;
+                    _filter.UserGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    GXUserGroup? ug = _filter.UserGroups?.FirstOrDefault();
                     if (ug == null)
                     {
                         user = new GXUser();
                         ug = new GXUserGroup();
-                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        _filter.UserGroups = new(new GXUserGroup[] { ug });
                         ug.Users = new(new GXUser[] { user });
                     }
                     else
                     {
-                        user = GXFilterHelpers.GetOrAddUser(filter.UserGroups ??= []);
+                        user = GXFilterHelpers.GetOrAddUser(_filter.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.SearchByUser");
         }
     }
 
@@ -189,14 +194,14 @@
     private async ValueTask<ItemsProviderResult<GXComponentViewGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
         try
         {
             ListComponentViewGroups req = new ListComponentViewGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -214,15 +219,15 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
@@ -232,8 +237,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
-            NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
+            _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroupsSelector.OnInitializedAsync");
             CrudAction action;
             if (UserGroupParent?.Active?.ComponentViewGroups != null)
             {
@@ -279,7 +284,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroupsSelector.OnInitializedAsync");
         }
     }
 }

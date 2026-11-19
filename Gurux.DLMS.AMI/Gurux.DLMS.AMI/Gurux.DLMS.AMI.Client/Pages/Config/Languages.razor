@@ -101,7 +101,7 @@
 <h2>@Properties.Resources.Installed</h2>
 @if (AvailableLanguages != null)
 {
-    <GXViewTable ViewName="Config.Languages" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXLanguagePolicies.View })" TItem="GXLanguage" @ref="table"
+    <GXViewTable ViewName="Config.Languages" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXLanguagePolicies.View })" TItem="GXLanguage" @ref="table"
              Context="item"
              ItemsProvider="@GetItems"
              SelectionMode="SelectionMode.Single"
@@ -146,7 +146,8 @@
 }
 @code {
     [CascadingParameter] public ConfigurationLanguages Owner { get; set; } = default!;
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Icon") { Position = 0, Description = "Icon", Visibility = (byte)Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
@@ -155,9 +156,12 @@
     ];
 
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter]
     public List<GXLanguage> AvailableLanguages { get; set; } = new List<GXLanguage>();
@@ -172,6 +176,7 @@
     /// </summary>
     protected GXTable<GXLanguage>? table;
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
     /// <summary>
@@ -187,6 +192,7 @@
     }
 
     private GXLanguage? _active { get; set; } = null;
+    /// <summary>Retains the language whose localized values are currently being edited.</summary>
     private GXLanguage? _editingLanguage;
     //If language is not active it can't be the default language.
     protected string? IsActive(GXLanguage selected)
@@ -213,8 +219,8 @@
         try
         {
             AvailableLanguages.Clear();
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingLanguage);
-            NotificationService?.RemoveByKey("Pages/Config/Languages.Updated");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.SavingLanguage);
+            _notificationService?.RemoveByKey("Pages/Config/Languages.Updated");
             var tmp = (await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages())).Languages;
             if (tmp != null)
             {
@@ -224,7 +230,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Languages.Updated");
+            _notificationService?.ReportError(ex, "Pages/Config/Languages.Updated");
         }
     }
 
@@ -242,7 +248,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -253,7 +259,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Config/Languages.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Config/Languages.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -266,25 +272,25 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Config/Languages.OnEdit");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingLanguages);
-            NotificationService?.RemoveByKey("Pages/Config/Languages.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingLanguages);
+            _notificationService?.RemoveByKey("Pages/Config/Languages.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -305,7 +311,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Config/Languages.OnInitializedAsync");
         }
     }
 
@@ -322,8 +328,8 @@
     {
         try
         {
-            using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingLanguage);
-            NotificationService?.RemoveByKey("Pages/Config/Languages.OnRefresh");
+            using var progressScope4 = _progress?.ProgressStart(GXProgress.SavingLanguage);
+            _notificationService?.RemoveByKey("Pages/Config/Languages.OnRefresh");
             List<GXLanguage> list = new List<GXLanguage>();
             //Only active language IDs are send.
             foreach (var it in AvailableLanguages)
@@ -335,11 +341,11 @@
             }
             RefreshLocalization req = new RefreshLocalization();
             await Http.PostAsJson("api/Localization/Refresh", req);
-            NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.Refreshed, string.Empty, Closable: false));
+            _notificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.Refreshed, string.Empty, Closable: false));
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Languages.OnRefresh");
+            _notificationService?.ReportError(ex, "Pages/Config/Languages.OnRefresh");
         }
     }
 
@@ -374,7 +380,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -396,6 +402,6 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

@@ -35,14 +35,25 @@ using Microsoft.Extensions.Configuration;
 
 namespace Gurux.DLMS.AMI.Server.Module;
 
+/// <summary>Coordinates module generations, dependency availability, event delivery, and lifecycle operations.</summary>
 public sealed partial class GXModuleRuntime
 {
+    /// <summary>Distinguishes failures raised by downstream middleware from module execution failures.</summary>
+    /// <param name="error">Failure raised by the downstream middleware.</param>
     private sealed class DownstreamFailure(Exception error) : Exception("Downstream request failed.", error);
 
     // Rejected input, access denial, an unavailable dependency, and cancellation are controlled operation errors.
+    /// <summary>Distinguishes module execution faults from expected argument, authorization, request, availability, and cancellation failures.</summary>
+    /// <param name="error">Failure that determines module fault or startup status.</param>
+    /// <returns>True when the exception should fault the module generation.</returns>
     private static bool IsModuleFault(Exception error) => error is not
         (ArgumentException or UnauthorizedAccessException or BadHttpRequestException or AmiModuleUnavailableException or OperationCanceledException);
 
+    /// <summary>Observes a background service task and faults its module unless cancellation belongs to normal shutdown.</summary>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <param name="entry">Loaded module generation whose lifecycle resources and call counts are managed.</param>
+    /// <param name="execution">Background service execution task to observe.</param>
+    /// <returns>A task that completes after execution ends and any failure has been handled.</returns>
     private async Task ObserveBackgroundAsync(string id, Entry entry, Task execution)
     {
         try
@@ -58,12 +69,17 @@ public sealed partial class GXModuleRuntime
         }
     }
 
+    /// <summary>Marks a failed provider and its dependent modules as stopping, removes their published endpoints, and schedules cleanup.</summary>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <param name="entry">Loaded module generation whose lifecycle resources and call counts are managed.</param>
+    /// <param name="error">Failure that determines module fault or startup status.</param>
+    /// <returns>A task that completes after affected module shutdown has been initiated.</returns>
     private async Task FaultAsync(string id, Entry entry, Exception error)
     {
         var affected = new List<(string Id, Entry Entry)>();
-        lock (sync)
+        lock (_sync)
         {
-            if (!ReferenceEquals(entries.GetValueOrDefault(id), entry) || entry.State is AmiModuleState.Stopping or AmiModuleState.Failed)
+            if (!ReferenceEquals(_entries.GetValueOrDefault(id), entry) || entry.State is AmiModuleState.Stopping or AmiModuleState.Failed)
             {
                 return;
             }
@@ -73,7 +89,7 @@ public sealed partial class GXModuleRuntime
             queue.Enqueue(id);
             while (queue.TryDequeue(out var provider))
             {
-                foreach (var dependent in dependencyGraph.GetBlockingDependents(provider))
+                foreach (var dependent in _dependencyGraph.GetBlockingDependents(provider))
                 {
                     if (ids.Add(dependent))
                     {
@@ -82,9 +98,9 @@ public sealed partial class GXModuleRuntime
                 }
             }
 
-            foreach (var moduleId in dependencyGraph.GetStopOrder(ids))
+            foreach (var moduleId in _dependencyGraph.GetStopOrder(ids))
             {
-                if (!entries.TryGetValue(moduleId, out var item))
+                if (!_entries.TryGetValue(moduleId, out var item))
                 {
                     continue;
                 }
@@ -94,16 +110,16 @@ public sealed partial class GXModuleRuntime
                 item.State = AmiModuleState.Stopping;
                 item.OwnedEndpoints.Clear();
                 item.Sources = [];
-                manifests[moduleId] = item.Manifest = item.Manifest with
+                _manifests[moduleId] = item.Manifest = item.Manifest with
                 {
                     State = AmiModuleState.Failed,
                     Error = moduleId == id ? error.Message : $"Required module '{id}' failed: {error.Message}"
                 };
                 foreach (var contract in item.Exports)
                 {
-                    if (exports.GetValueOrDefault(contract) == moduleId)
+                    if (_exports.GetValueOrDefault(contract) == moduleId)
                     {
-                        exports.Remove(contract);
+                        _exports.Remove(contract);
                     }
                 }
 
@@ -125,7 +141,7 @@ public sealed partial class GXModuleRuntime
         var timeout = TimeSpan.FromSeconds(configuration.GetValue("Modules:StopTimeoutSeconds", 30));
         foreach (var item in affected)
         {
-            lock (sync)
+            lock (_sync)
             {
                 var cleanup = item.Entry.Cleanup ??= ScheduleCleanup(item.Id, item.Entry);
                 item.Entry.ForcedSignal ??= SignalForcedCancellationAsync(item.Entry, cleanup, timeout, item.Id);
@@ -158,16 +174,16 @@ public sealed partial class GXModuleRuntime
     /// <param name="error">The error.</param>
     public void RecordStartupFailure(string id, string name, Exception error)
     {
-        lock (sync)
+        lock (_sync)
         {
-            if (entries.ContainsKey(id))
+            if (_entries.ContainsKey(id))
             {
                 return;
             }
 
-            completedHealth.Remove(id);
-            var manifest = manifests.GetValueOrDefault(id) ?? new AmiModuleManifest(id, name, "", "", AmiModuleState.Failed, []);
-            manifests[id] = manifest with
+            _completedHealth.Remove(id);
+            var manifest = _manifests.GetValueOrDefault(id) ?? new AmiModuleManifest(id, name, "", "", AmiModuleState.Failed, []);
+            _manifests[id] = manifest with
             {
                 State = AmiModuleState.Failed,
                 Error = error.Message

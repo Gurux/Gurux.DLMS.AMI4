@@ -42,22 +42,26 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <summary>Reads registered notification sources and updates their server-wide delivery settings.</summary>
 public sealed class NotificationSourceRepository : INotificationSourceRepository
 {
-    private readonly ClaimsPrincipal user;
-    private readonly IAuthorizationService authorization;
-    private readonly IDbConnectionFactory factory;
-    private readonly NotificationCache cache;
+    /// <summary>Principal whose identity and claims govern repository access.</summary>
+    private readonly ClaimsPrincipal _user;
+    /// <summary>Evaluates policies before accessing protected data.</summary>
+    private readonly IAuthorizationService _authorization;
+    /// <summary>Creates database connections used by this operation.</summary>
+    private readonly IDbConnectionFactory _factory;
+    /// <summary>Caches frequently reused results and their expiration state.</summary>
+    private readonly NotificationCache _cache;
 
     /// <summary>Creates a repository for the current authenticated user.</summary>
     public NotificationSourceRepository(IHttpContextAccessor accessor, IAuthorizationService authorizationService,
         IDbConnectionFactory dbFactory, NotificationCache notificationCache)
     {
-        user = accessor.HttpContext?.User ?? throw new UnauthorizedAccessException();
-        if (user.Identity?.IsAuthenticated != true) {
+        _user = accessor.HttpContext?.User ?? throw new UnauthorizedAccessException();
+        if (_user.Identity?.IsAuthenticated != true) {
             throw new UnauthorizedAccessException();
         }
-        authorization = authorizationService;
-        factory = dbFactory;
-        cache = notificationCache;
+        _authorization = authorizationService;
+        _factory = dbFactory;
+        _cache = notificationCache;
     }
 
     /// <inheritdoc />
@@ -65,7 +69,7 @@ public sealed class NotificationSourceRepository : INotificationSourceRepository
         ListNotificationSourcesResponse? response = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await authorization.EnsureAnyPolicyAsync(user, GXConfigurationPolicies.View);
+        await _authorization.EnsureAnyPolicyAsync(_user, GXConfigurationPolicies.View);
         if (request?.Index < 0 || request?.Count < 0) {
             throw new ArgumentException("Paging values cannot be negative.", nameof(request));
         }
@@ -106,7 +110,7 @@ public sealed class NotificationSourceRepository : INotificationSourceRepository
             query.OrderBy.Add<GXNotificationSource>(s => s.Id);
         }
         query.Descending = request?.Descending == true;
-        await using var connection = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var connection = await _factory.GetHistoryConnectionAsync(cancellationToken);
         if (response != null)
         {
             var count = GXSelectArgs.Select<GXNotificationSource>(s => GXSql.Count(1));
@@ -125,7 +129,7 @@ public sealed class NotificationSourceRepository : INotificationSourceRepository
     public async Task SetEnabledAsync(IEnumerable<int> ids, bool enabled, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await authorization.EnsureAnyPolicyAsync(user, GXConfigurationPolicies.Edit);
+        await _authorization.EnsureAnyPolicyAsync(_user, GXConfigurationPolicies.Edit);
         ArgumentNullException.ThrowIfNull(ids);
         var selected = ids.Distinct().ToArray();
         if (selected.Length == 0 || selected.Any(id => id <= 0))
@@ -134,9 +138,9 @@ public sealed class NotificationSourceRepository : INotificationSourceRepository
         }
         // Source snapshots contain only scalar Id/Enabled values; read them directly
         // so history capture does not impose an additional configuration.view grant.
-        await GXHistoryMutation.RunIdsAsync<GXNotificationSource, int>(factory, user, null, selected, async () =>
+        await GXHistoryMutation.RunIdsAsync<GXNotificationSource, int>(_factory, _user, null, selected, async () =>
         {
-            await using var connection = await factory.GetHistoryConnectionAsync(cancellationToken);
+            await using var connection = await _factory.GetHistoryConnectionAsync(cancellationToken);
             // Validate the entire batch before changing any setting. Only Enabled is mutable.
             foreach (var batch in selected.Chunk(500))
             {
@@ -153,7 +157,7 @@ public sealed class NotificationSourceRepository : INotificationSourceRepository
             }
             var sources = await connection.SelectAsync<GXNotificationSource>(GXSelectArgs.SelectAll<GXNotificationSource>(), cancellationToken);
             // ConfigureSources joins the history transaction's after-commit queue.
-            cache.ConfigureSources(sources);
+            _cache.ConfigureSources(sources);
         }, cancellationToken);
     }
 }

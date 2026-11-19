@@ -59,13 +59,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ManufacturerRepository : IManufacturerRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for manufacturer group records.</summary>
         private readonly IManufacturerGroupRepository _manufacturerGroupRepository;
+        /// <summary>Provides persistence and access checks for device template records.</summary>
         private readonly IDeviceTemplateRepository _deviceTemplateRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -85,7 +93,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
             _manufacturerGroupRepository = manufacturerGroupRepository;
@@ -94,6 +102,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXManufacturer), id, action, GXManufacturerPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -101,9 +115,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? manufacturerId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByManufacturer(s => s.Id!,
-                ServerHelpers.GetUserId(User), manufacturerId);
+                ServerHelpers.GetUserId(_user), manufacturerId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (manufacturerId != null)
             {
@@ -112,7 +126,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -122,13 +136,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByManufacturers(s => s.Id!,
-                ServerHelpers.GetUserId(User), manufacturerIds);
+                ServerHelpers.GetUserId(_user), manufacturerIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -140,13 +154,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             manufacturers = manufacturers.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXManufacturer, Guid>(_dbFactory, User, _serviceProvider, manufacturers,
+            await GXHistoryMutation.RunDeleteAsync<GXManufacturer, Guid>(_dbFactory, _user, _serviceProvider, manufacturers,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.Delete);
                 GXSelectArgs arg = GXSelectArgs.Select<GXManufacturer>(a => a.Id, q => manufacturers.Contains(q.Id));
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 List<GXManufacturer> list = connection.Select<GXManufacturer>(arg);
@@ -210,7 +224,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListManufacturersResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXManufacturer>();
             bool joinAdded = false;
             if (request?.Filter != null)
@@ -332,9 +346,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.View);
                 GXSelectArgs arg;
-                if (User.IsInRole(GXRoles.Admin))
+                if (_user.IsInRole(GXRoles.Admin))
                 {
                     //Admin can see all the manufacturers.
                     arg = GXSelectArgs.SelectAll<GXManufacturer>();
@@ -345,7 +359,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetManufacturersByUser(s => "*", userId, id);
                 }
                 arg.Where.And<GXManufacturer>(w => w.Id == id);
@@ -405,14 +419,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXManufacturer, object>>? columns, CancellationToken cancellationToken = default)
         {
             manufacturers = manufacturers.ToArray();
-            return await GXHistoryMutation.RunAsync<GXManufacturer, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, manufacturers,
+            return await GXHistoryMutation.RunAsync<GXManufacturer, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, manufacturers,
         async () =>
         {
             manufacturers = manufacturers.ToArray();
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.Add, GXManufacturerPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.Add, GXManufacturerPolicies.Edit);
                 DateTime now = DateTime.Now;
                 List<Guid> list = [];
                 List<(List<string> Users, GXTarget Target)> notifications = [];
@@ -421,7 +435,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 var originals = new Dictionary<Guid, GXManufacturer>();
                 foreach (var manufacturer in manufacturers)
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, manufacturer.Id == Guid.Empty ? GXManufacturerPolicies.Add : GXManufacturerPolicies.Edit);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, manufacturer.Id == Guid.Empty ? GXManufacturerPolicies.Add : GXManufacturerPolicies.Edit);
                     if (string.IsNullOrEmpty(manufacturer.Name))
                     {
                         throw new ArgumentException(Properties.Resources.InvalidName);
@@ -446,11 +460,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                     if (manufacturer.Id == Guid.Empty || columns == null || ServerHelpers.Contains(columns, nameof(GXManufacturer.ProfilePicture)))
                         {
-                        await GXProfilePictures.ValidateAsync(connection, _authorizationService, User, manufacturer.ProfilePicture?.Id, cancellationToken);
+                        await GXProfilePictures.ValidateAsync(connection, _authorizationService, _user, manufacturer.ProfilePicture?.Id, cancellationToken);
                     }
                     foreach (var model in manufacturer.Models ?? [])
                         {
-                        await GXProfilePictures.ValidateAsync(connection, _authorizationService, User, model.ProfilePicture?.Id, cancellationToken);
+                        await GXProfilePictures.ValidateAsync(connection, _authorizationService, _user, model.ProfilePicture?.Id, cancellationToken);
                     }
                     if (manufacturer.Id != Guid.Empty)
                         {
@@ -652,7 +666,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             HttpClient client = new();
             client.DefaultRequestHeaders.Add("User-Agent", "C# App");
-            //Define request data format  
+            //Define request data format
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpResponseMessage response = await client.GetAsync(settings.Location);
             response.EnsureSuccessStatusCode();
@@ -832,6 +846,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             connection.Update(transaction, args);
         }
 
+        /// <summary>Reads the appearance identity referenced by a manufacturer's profile picture.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="id">Manufacturer identity whose profile-picture reference is read.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The referenced appearance, or null when no picture is associated with the manufacturer.</returns>
         private static async Task<GXAppearance?> ReadManufacturerPictureAsync(GXDbConnection connection, Guid id, CancellationToken token)
         {
             var query = GXSelectArgs.Select<GXAppearance>(a => a.Id);
@@ -840,6 +859,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return await connection.SingleOrDefaultAsync<GXAppearance>(query, token);
         }
 
+        /// <summary>Reads the user identity referenced by a manufacturer's creator.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="id">Manufacturer identity whose creator reference is read.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The creator identity, or null when no referenced creator exists.</returns>
         private static async Task<GXUser?> ReadManufacturerCreatorAsync(GXDbConnection connection, Guid id, CancellationToken token)
         {
             var query = GXSelectArgs.Select<GXUser>(u => u.Id!);
@@ -848,6 +872,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return await connection.SingleOrDefaultAsync<GXUser>(query, token);
         }
 
+        /// <summary>Reads the user identity referenced by a device model's creator.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="id">Device model identity whose creator reference is read.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The creator identity, or null when no referenced creator exists.</returns>
         private static async Task<GXUser?> ReadModelCreatorAsync(GXDbConnection connection, Guid id, CancellationToken token)
         {
             var query = GXSelectArgs.Select<GXUser>(u => u.Id!);
@@ -856,6 +885,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return await connection.SingleOrDefaultAsync<GXUser>(query, token);
         }
 
+        /// <summary>Reads the appearance identity referenced by a device model's profile picture.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="id">Device model identity whose profile-picture reference is read.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The referenced appearance, or null when the model has no associated picture.</returns>
         private static async Task<GXAppearance?> ReadModelPictureAsync(GXDbConnection connection, Guid id, CancellationToken token)
         {
             var query = GXSelectArgs.Select<GXAppearance>(a => a.Id);
@@ -867,8 +901,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXDeviceModel> ReadModelAsync(Guid id, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.View);
+            bool isAdmin = _user.IsInRole(GXRoles.Admin);
             GXSelectArgs arg;
             if (isAdmin)
             {
@@ -879,7 +913,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetManufacturersByUser(s => "*", userId, id);
             }
             arg.Where.And<GXDeviceModel>(w => w.Id == id);
@@ -898,9 +932,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXDeviceVersion> ReadVersionAsync(Guid id, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.View);
             GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the manufacturers.
                 arg = GXSelectArgs.SelectAll<GXDeviceVersion>(w => w.Id == id);
@@ -909,7 +943,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetManufacturersByUser(s => "*", userId, id);
             }
             arg.Columns.Add<GXDeviceModel>(c => c.Id);
@@ -927,10 +961,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXDeviceVersion>? versions,
             IEnumerable<GXDeviceSettings>? settings, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXManufacturerPolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXManufacturerPolicies.Add);
             DateTime now = DateTime.UtcNow;
             GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the manufacturers.
                 arg = GXSelectArgs.SelectAll<GXManufacturer>();
@@ -940,7 +974,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetManufacturersByUser(s => "*", userId);
             }
             if (manufacturers != null && manufacturers.Any())

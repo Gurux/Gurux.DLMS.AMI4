@@ -44,23 +44,31 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <summary>Manages persistent history type identities and their recording settings.</summary>
 public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
 {
-    private readonly IDbConnectionFactory factory;
-    private readonly IAuthorizationService authorization;
-    private readonly ClaimsPrincipal user;
+    /// <summary>Creates database connections used by this operation.</summary>
+    private readonly IDbConnectionFactory _factory;
+    /// <summary>Evaluates policies before accessing protected data.</summary>
+    private readonly IAuthorizationService _authorization;
+    /// <summary>Principal whose identity and claims govern repository access.</summary>
+    private readonly ClaimsPrincipal _user;
 
     /// <summary>Creates a repository for the authenticated caller.</summary>
     public ChangeHistoryTypeRepository(IDbConnectionFactory factory, IAuthorizationService authorization,
         IHttpContextAccessor accessor)
     {
-        this.factory = factory;
-        this.authorization = authorization;
-        user = accessor.HttpContext?.User ?? throw new UnauthorizedAccessException();
-        if (user.Identity?.IsAuthenticated != true)
+        this._factory = factory;
+        this._authorization = authorization;
+        _user = accessor.HttpContext?.User ?? throw new UnauthorizedAccessException();
+        if (_user.Identity?.IsAuthenticated != true)
         {
             throw new UnauthorizedAccessException();
         }
     }
 
+    /// <summary>Ensures the standard history entity types exist within the supplied transaction.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after all standard history types have been resolved.</returns>
     internal static async Task EnsureDefaultsAsync(GXDbConnection db, IDbTransaction transaction,
         CancellationToken token = default)
     {
@@ -71,6 +79,8 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
         }
     }
 
+    /// <summary>Selects the built-in schedule, device, user, gateway, script, and agent history types.</summary>
+    /// <returns>History type metadata for the application defaults.</returns>
     private static GXChangeHistoryType[] DefaultTypes() =>
         new[] { "Schedule", "Device", "User", "Gateway", "Script", "Agent" }
             .Select(name => GXHistoryEntities.Get(name).HistoryType).ToArray();
@@ -80,7 +90,7 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
     {
         EnsureAdministrator();
         cancellationToken.ThrowIfCancellationRequested();
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         await using var transaction = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         await EnsureDefaultsAsync(db, transaction, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -99,7 +109,7 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
             throw new ValidationException("Select existing built-in history type GUIDs to reset.");
         }
 
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         await using var transaction = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var rows = await db.SelectAsync<GXChangeHistoryType>(transaction,
             GXSelectArgs.Select<GXChangeHistoryType>(t => t.Id, t => selected.Contains(t.Id)), cancellationToken);
@@ -121,7 +131,7 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
     public async Task<IEnumerable<GXChangeHistoryType>> ListAsync(ListChangeHistoryTypes? request = null,
         ListChangeHistoryTypesResponse? response = null, CancellationToken cancellationToken = default)
     {
-        await authorization.EnsureAnyPolicyAsync(user, GXChangeHistoryPolicies.View);
+        await _authorization.EnsureAnyPolicyAsync(_user, GXChangeHistoryPolicies.View);
         if (request?.Index < 0 || request?.Count < 0)
         {
             throw new ValidationException("Paging values cannot be negative.");
@@ -164,7 +174,7 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
         }
 
         query.Descending = request?.Descending == true;
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         if (response != null)
         {
             var count = GXSelectArgs.Select<GXChangeHistoryType>(t => GXSql.Count(1));
@@ -186,8 +196,8 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
     public async Task<GXChangeHistoryType> ReadAsync(Guid id,
         Expression<Func<GXChangeHistoryType, object>>? columns = null, CancellationToken cancellationToken = default)
     {
-        await authorization.EnsureAnyPolicyAsync(user, GXChangeHistoryPolicies.View);
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await _authorization.EnsureAnyPolicyAsync(_user, GXChangeHistoryPolicies.View);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         var query = columns == null
             ? GXSelectArgs.Select<GXChangeHistoryType>(t => new { t.Id, t.Name, t.RecordHistory }, t => t.Id == id)
             : GXSelectArgs.Select(columns, t => t.Id == id);
@@ -212,7 +222,7 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
             throw new ValidationException("History type GUIDs must be unique.");
         }
 
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         foreach (var item in items)
         {
@@ -260,15 +270,17 @@ public sealed class ChangeHistoryTypeRepository : IChangeHistoryTypeRepository
             return;
         }
 
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         await using var tx = await db.BeginTransactionAsync(cancellationToken);
         await db.DeleteAsync(tx, GXDeleteArgs.Delete<GXChangeHistoryType>(t => ids.Contains(t.Id)), cancellationToken);
         await tx.CommitAsync(cancellationToken);
     }
 
+    /// <summary>Rejects attempts to change history type settings unless the caller is an administrator.</summary>
+    /// <exception cref="UnauthorizedAccessException">The caller is not an administrator.</exception>
     private void EnsureAdministrator()
     {
-        if (!user.IsInRole(GXRoles.Admin))
+        if (!_user.IsInRole(GXRoles.Admin))
         {
             throw new UnauthorizedAccessException("Only administrators can change history type settings.");
         }

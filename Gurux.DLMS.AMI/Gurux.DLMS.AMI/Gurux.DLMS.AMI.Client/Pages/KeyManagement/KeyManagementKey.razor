@@ -60,7 +60,7 @@
                     <div class="form-group">
                         <div class="col-auto">
                             <label>@Properties.Resources.KeyManagementKeyType</label>
-                            <GXInputDropdown class="form-select" @bind-Value="KeyType" Disabled="@(Active.Id != Guid.Empty)" RememberValue="false" Items="@(KeyTypes.Select(it => (int)it))" Formatter="@(value => ClientHelpers.GetKeyTypeDescription((KeyManagementType)value))" />
+                            <GXInputDropdown class="form-select" @bind-Value="KeyType" Disabled="@(Active.Id != Guid.Empty)" RememberValue="false" Items="@(_keyTypes.Select(it => (int)it))" Formatter="@(value => ClientHelpers.GetKeyTypeDescription((KeyManagementType)value))" />
                         </div>
                         <ValidationMessage For="@(() => KeyType)" />
                     </div>
@@ -136,8 +136,10 @@
 }
 @code {
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
     [Parameter]
@@ -178,7 +180,7 @@
     /// <summary>
     /// Available key types.
     /// </summary>
-    private List<KeyManagementType> KeyTypes = new List<KeyManagementType>(new[]
+    private List<KeyManagementType> _keyTypes = new List<KeyManagementType>(new[]
     { KeyManagementType.LLSPassword,
         KeyManagementType.HLSPassword,
         KeyManagementType.BlockCipher,
@@ -202,11 +204,11 @@
 
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKey.OnInitialized");
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKey.OnInitialized");
             if (Active == null || Parent?.KeyManagement?.Keys == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -218,7 +220,7 @@
             {
                 if (Active.KeyType == null)
                 {
-                    Active.KeyType = KeyTypes.FirstOrDefault();
+                    Active.KeyType = _keyTypes.FirstOrDefault();
                 }
             }
         }
@@ -228,7 +230,7 @@
             {
                 _validator.AddError(() => Active.Key, ex.Message);
             }
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKey.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKey.OnInitialized");
         }
     }
 
@@ -248,17 +250,17 @@
             {
                 sender.AddError(() => KeyType, Properties.Resources.SelectADLMSKeyRole);
             }
-        
+
             if (Parent.KeyManagement.Id == Guid.Empty)
             {
                 sender.AddError(() => Active!.ExternalId, Properties.Resources.SaveTheKeyManagementAndItsKMIPConnectionBeforeBindingARemoteObject);
             }
-        
+
             if (string.IsNullOrWhiteSpace(Active?.ExternalId))
             {
                 sender.AddError(() => Active!.ExternalId, Properties.Resources.ARemoteObjectIdentifierIsRequired);
             }
-        
+
             return;
         }
         if (Active != null)
@@ -318,7 +320,7 @@
             {
                 return;
             }
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKey.OnSave");
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKey.OnSave");
             if (Parent?.KeyAction == CrudAction.Create)
             {
                 if (Parent.KeyManagement.ProviderId == "KmipClient")
@@ -349,7 +351,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKey.OnSave");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKey.OnSave");
         }
     }
 

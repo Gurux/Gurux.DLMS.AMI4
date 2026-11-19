@@ -42,6 +42,8 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Diagnostics;
 using System.Text;
 
+using System.Globalization;
+
 namespace Gurux.DLMS.AMI.Client
 {
     /// <summary>
@@ -50,12 +52,19 @@ namespace Gurux.DLMS.AMI.Client
     public class GXAmiNotifierService : Gurux.UI.Components.GXNotifierService, IGXNotifier2, IAsyncDisposable
     {
 
+        /// <summary>Navigation source used to publish page lifecycle events when available.</summary>
         private readonly NavigationManager? _navigationManager;
+        /// <summary>Registration removed when the client notification scope is disposed.</summary>
         private readonly IDisposable? _locationChangingRegistration;
+        /// <summary>Prevents navigation callbacks and new connection starts after disposal.</summary>
         private bool _disposed;
+        /// <summary>Serializes creation of the shared asynchronous disposal operation.</summary>
         private readonly object _disposalSync = new();
+        /// <summary>Cleanup operation reused by repeated disposal requests.</summary>
         private Task? _disposalTask;
+        /// <summary>Serializes connection startup and shutdown.</summary>
         private readonly SemaphoreSlim _connectionLifecycle = new(1, 1);
+        /// <summary>Records notification transport and cleanup failures for diagnostics.</summary>
         private readonly ILogger _logger;
         /// <summary>
         /// List of active BADGE notification sources.
@@ -65,8 +74,11 @@ namespace Gurux.DLMS.AMI.Client
         /// List of toaster notifications that are used to show or hide toasts.
         /// </summary>
         private List<string> _userToasterNotifications = [];
+        /// <summary>Optional service that displays notifications selected by the user&apos;s preferences.</summary>
         private readonly IGXToasterService? _toasterService;
+        /// <summary>Client services used to obtain resource storage and related notification dependencies.</summary>
         private readonly IServiceProvider _services;
+        /// <summary>Prevents overlapping reads of notification preferences.</summary>
         private readonly SemaphoreSlim _notificationRefresh = new(1, 1);
 
         /// <summary>
@@ -75,8 +87,9 @@ namespace Gurux.DLMS.AMI.Client
         public string[]? Notifications;
 
         /// <summary>
-        /// Constructor.
+        /// Creates notification services and registers navigation callbacks when navigation is available.
         /// </summary>
+        /// <param name="services">Services used to resolve notification and resource dependencies for this client scope.</param>
         public GXAmiNotifierService(IServiceProvider services)
         {
             _services = services;
@@ -100,6 +113,9 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
+        /// <summary>Publishes a page-changed event while this notification scope is active.</summary>
+        /// <param name="sender">Object that raised the navigation event; it can be null.</param>
+        /// <param name="args">Details of the navigation change.</param>
         private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
         {
             if (!_disposed)
@@ -109,6 +125,7 @@ namespace Gurux.DLMS.AMI.Client
         }
 
         /// <summary>Releases AMI navigation registrations, base subscriptions and the server connection.</summary>
+        /// <returns>An operation representing the shared asynchronous cleanup.</returns>
         public ValueTask DisposeAsync()
         {
             lock (_disposalSync)
@@ -118,6 +135,8 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
+        /// <summary>Removes navigation and event subscriptions, then stops the server connection.</summary>
+        /// <returns>A task that completes when notification cleanup finishes.</returns>
         private async Task DisposeCoreAsync()
         {
             _disposed = true;
@@ -151,6 +170,9 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
+        /// <summary>Awaits background disposal and logs any cleanup failure.</summary>
+        /// <param name="cleanup">Asynchronous cleanup operation whose errors should be observed.</param>
+        /// <returns>A task that completes after cleanup has been observed.</returns>
         private async Task ObserveCleanupAsync(ValueTask cleanup)
         {
             try
@@ -163,6 +185,9 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
+        /// <summary>Publishes the pending navigation context before a page transition.</summary>
+        /// <param name="context">Navigation context exposed to listeners before the page changes.</param>
+        /// <returns>A completed operation after synchronous navigation listeners have run.</returns>
         private ValueTask OnLocationChanging(LocationChangingContext context)
         {
             if (!_disposed)
@@ -175,13 +200,21 @@ namespace Gurux.DLMS.AMI.Client
         /// <summary>
         /// Listen events from the server.
         /// </summary>
-        private HubConnection? hubConnection;
+        private HubConnection? _hubConnection;
 
         /// <summary>
         /// List of user stamps.
         /// </summary>
         readonly List<GXUserStamp> _stamps = [];
 
+        /// <summary>Updates notification counters for an enabled source and publishes the resulting badge.</summary>
+        /// <param name="type">Resource or notification source identifier.</param>
+        /// <param name="datetime">Latest event time, or null to reset the target&apos;s counters.</param>
+        /// <param name="errors">Number of error events to add.</param>
+        /// <param name="warnings">Number of warning events to add.</param>
+        /// <param name="informational">Number of informational events to add.</param>
+        /// <param name="verbose">Number of verbose events to add.</param>
+        /// <returns>A task that completes after badge listeners have received the update.</returns>
         public Task UpdateUserStamp(
             string type,
             DateTimeOffset? datetime,
@@ -191,6 +224,15 @@ namespace Gurux.DLMS.AMI.Client
             int verbose)
             => UpdateUserStamp(type, datetime, errors, warnings, informational, verbose, type);
 
+        /// <summary>Updates notification counters for an enabled source and publishes the resulting badge.</summary>
+        /// <param name="type">Resource or notification source identifier.</param>
+        /// <param name="datetime">Latest event time, or null to reset the target&apos;s counters.</param>
+        /// <param name="errors">Number of error events to add.</param>
+        /// <param name="warnings">Number of warning events to add.</param>
+        /// <param name="informational">Number of informational events to add.</param>
+        /// <param name="verbose">Number of verbose events to add.</param>
+        /// <param name="source">Notification source checked against the user&apos;s enabled badge preferences.</param>
+        /// <returns>A task that completes after badge listeners have received the update.</returns>
         private async Task UpdateUserStamp(
             string type,
             DateTimeOffset? datetime,
@@ -379,9 +421,15 @@ namespace Gurux.DLMS.AMI.Client
             return result;
         }
 
+        /// <summary>Publishes snapshots filtered by the user&apos;s enabled badge sources.</summary>
+        /// <param name="stamps">Badge source snapshots to filter and publish.</param>
+        /// <returns>A task that completes when badge update listeners finish.</returns>
         private Task PublishBadgeStampsAsync(IEnumerable<GXUserStamp> stamps)
             => ChangedAsync(nameof(IGXHubEvents.StampUpdate), stamps.Select(BadgeStamp).ToArray());
 
+        /// <summary>Returns badge snapshots restricted to the user&apos;s enabled notification sources.</summary>
+        /// <param name="type">Resource or notification source identifier.</param>
+        /// <returns>A badge snapshot, or independent snapshots for the requested target types.</returns>
         public GXUserStamp GetUserStamps(string type)
         {
             lock (_stamps)
@@ -391,9 +439,16 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
+        /// <summary>Returns badge snapshots restricted to the user&apos;s enabled notification sources.</summary>
+        /// <param name="types">Target types for which badge snapshots are requested; null returns no snapshots.</param>
+        /// <returns>A badge snapshot, or independent snapshots for the requested target types.</returns>
         public IEnumerable<GXUserStamp> GetUserStamps(IEnumerable<string>? types)
             => types?.Distinct().Select(GetUserStamps).ToArray() ?? [];
 
+        /// <summary>Formats notification items for display in a toaster description.</summary>
+        /// <param name="items">Resource items or update notifications to process.</param>
+        /// <typeparam name="T">Type of notification item formatted in the toaster description.</typeparam>
+        /// <returns>The formatted notification item text.</returns>
         private static string ToString<T>(IEnumerable<T>? items)
         {
             StringBuilder sb = new();
@@ -414,16 +469,25 @@ namespace Gurux.DLMS.AMI.Client
             return sb.ToString();
         }
 
+        /// <summary>Checks whether a notification source is absent from the enabled source list.</summary>
+        /// <param name="type">Resource or notification source identifier.</param>
+        /// <returns>True when the source is disabled or the preference list is unavailable.</returns>
         bool IsIgnored(string type)
         {
             return Notifications == null || !Notifications.Contains(type);
         }
 
+        /// <summary>Formats notification items for display in a toaster description.</summary>
+        /// <param name="items">Resource items or update notifications to process.</param>
+        /// <returns>The formatted notification item text.</returns>
         private static string ToString(IEnumerable<GXTarget> items)
         {
             return string.Join(", ", items);
         }
 
+        /// <summary>Maps a target&apos;s diagnostic level to the corresponding notification color.</summary>
+        /// <param name="value">Input value to convert or classify.</param>
+        /// <returns>The danger, warning, information, secondary or default primary color.</returns>
         private static Color GetColor(GXTarget value)
         {
             return (TraceLevel?)value.Level switch
@@ -436,6 +500,10 @@ namespace Gurux.DLMS.AMI.Client
             };
         }
 
+        /// <summary>Applies resource changes to badge counters, resource caches and enabled toaster notifications.</summary>
+        /// <param name="resourceStorage">Client resource storage whose cached data is invalidated by updates.</param>
+        /// <param name="items">Resource items or update notifications to process.</param>
+        /// <returns>A task that completes after all supplied updates are processed.</returns>
         private async Task UpdateUserStamps(IGXResourceStorage resourceStorage, IEnumerable<GXTarget> items)
         {
             foreach (var it in items)
@@ -455,7 +523,7 @@ namespace Gurux.DLMS.AMI.Client
                             await UpdateUserStamp(target, null, 0, 0, 0, 0, it.Type);
                             if ((_userToasterNotifications.Contains(it.Type) || _userToasterNotifications.Contains(target)))
                             {
-                                _toasterService?.Add(new GXToast(it.Title ?? target + " cleared", it.ToString(), GetColor(it), 15));
+                                _toasterService?.Add(new GXToast(it.Title ?? string.Format(CultureInfo.CurrentCulture, Properties.Resources.NotificationTargetCleared, target), it.ToString(), GetColor(it), 15));
                             }
                             break;
                         case "add":
@@ -467,7 +535,7 @@ namespace Gurux.DLMS.AMI.Client
                                 badgeItems.Where(w => w.Level == (int)TraceLevel.Verbose).Count(), it.Type);
                             if ((_userToasterNotifications.Contains(it.Type) || _userToasterNotifications.Contains(target)))
                             {
-                                _toasterService?.Add(new GXToast(it.Title ?? target + " added", it.ToString(), GetColor(it), 15));
+                                _toasterService?.Add(new GXToast(it.Title ?? string.Format(CultureInfo.CurrentCulture, Properties.Resources.NotificationTargetAdded, target), it.ToString(), GetColor(it), 15));
                             }
                             break;
                         case "edit":
@@ -479,13 +547,13 @@ namespace Gurux.DLMS.AMI.Client
                                 badgeItems.Where(w => w.Level == (int)TraceLevel.Verbose).Count(), it.Type);
                             if ((_userToasterNotifications.Contains(it.Type) || _userToasterNotifications.Contains(target)))
                             {
-                                _toasterService?.Add(new GXToast(it.Title ?? target + " edited", it.ToString(), GetColor(it), 15));
+                                _toasterService?.Add(new GXToast(it.Title ?? string.Format(CultureInfo.CurrentCulture, Properties.Resources.NotificationTargetEdited, target), it.ToString(), GetColor(it), 15));
                             }
                             break;
                         case "close":
                             if ((_userToasterNotifications.Contains(it.Type) || _userToasterNotifications.Contains(target)))
                             {
-                                _toasterService?.Add(new GXToast(it.Title ?? target + " closed", it.ToString(), GetColor(it), 15));
+                                _toasterService?.Add(new GXToast(it.Title ?? string.Format(CultureInfo.CurrentCulture, Properties.Resources.NotificationTargetClosed, target), it.ToString(), GetColor(it), 15));
                             }
                             break;
                         case "delete":
@@ -497,7 +565,7 @@ namespace Gurux.DLMS.AMI.Client
                                 badgeItems.Where(w => w.Level == (int)TraceLevel.Verbose).Count(), it.Type);
                             if ((_userToasterNotifications.Contains(it.Type) || _userToasterNotifications.Contains(target)))
                             {
-                                _toasterService?.Add(new GXToast(it.Title ?? target + " deleted", it.ToString(), Color.Warning, 15));
+                                _toasterService?.Add(new GXToast(it.Title ?? string.Format(CultureInfo.CurrentCulture, Properties.Resources.NotificationTargetDeleted, target), it.ToString(), Color.Warning, 15));
                             }
                             break;
                         case "cron":
@@ -515,6 +583,9 @@ namespace Gurux.DLMS.AMI.Client
 
 
         /// <summary>Reloads active notification sources, replacing the previous selections.</summary>
+        /// <param name="http">HTTP transport used to access the AMI API.</param>
+        /// <param name="cancellationToken">Token that cancels this caller&apos;s operation or wait.</param>
+        /// <returns>A task that completes after notification preferences have been refreshed.</returns>
         public async Task RefreshNotificationsAsync(HttpClient http, CancellationToken cancellationToken = default)
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -573,6 +644,11 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
+        /// <summary>Starts the SignalR connection and restores user stamps and notification preferences.</summary>
+        /// <param name="scope">Scope supplying resource services used by the notification connection.</param>
+        /// <param name="http">HTTP transport used to access the AMI API.</param>
+        /// <param name="navigationManager">Navigation service used to resolve the notification hub address.</param>
+        /// <returns>A task that completes after connection startup and initial preference refresh have been attempted.</returns>
         public async Task StartAsync(IServiceScope scope,
             HttpClient http,
             NavigationManager navigationManager)
@@ -581,14 +657,14 @@ namespace Gurux.DLMS.AMI.Client
             try
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                if (hubConnection == null)
+                if (_hubConnection == null)
                 {
-                    hubConnection = new HubConnectionBuilder()
+                    _hubConnection = new HubConnectionBuilder()
                    .WithUrl(navigationManager.ToAbsoluteUri("/guruxami"))
                    .WithAutomaticReconnect()
                    .Build();
                     var resourceStorage = scope.ServiceProvider.GetRequiredService<IGXResourceStorage>();
-                    hubConnection.On<IEnumerable<GXTarget>>(nameof(IGXHubEvents.OnUpdate), async (items) =>
+                    _hubConnection.On<IEnumerable<GXTarget>>(nameof(IGXHubEvents.OnUpdate), async (items) =>
                     {
                         try
                         {
@@ -605,17 +681,17 @@ namespace Gurux.DLMS.AMI.Client
                             _logger.LogError(ex, "Unable to process notification updates.");
                         }
                     });
-                    hubConnection.Closed += ex =>
+                    _hubConnection.Closed += ex =>
                     {
                         Console.WriteLine($"Closed: {ex?.Message}");
                         return Task.CompletedTask;
                     };
-                    hubConnection.Reconnecting += ex =>
+                    _hubConnection.Reconnecting += ex =>
                     {
                         Console.WriteLine($"Reconnecting: {ex?.Message}");
                         return Task.CompletedTask;
                     };
-                    hubConnection.Reconnected += async _ =>
+                    _hubConnection.Reconnected += async _ =>
                     {
                         await RefreshNotificationsAsync(http);
                     };
@@ -652,15 +728,15 @@ namespace Gurux.DLMS.AMI.Client
                     {
                     }
                     // Connect first: a slow preferences API must not prevent SignalR delivery.
-                    await hubConnection.StartAsync();
+                    await _hubConnection.StartAsync();
                     await RefreshNotificationsAsync(http);
                 }
             }
             catch (Exception ex) when (!_disposed)
             {
                 _logger.LogError(ex, "Unable to start the notification connection.");
-                var failed = hubConnection;
-                hubConnection = null;
+                var failed = _hubConnection;
+                _hubConnection = null;
                 if (failed != null)
                 {
                     await failed.DisposeAsync();
@@ -672,16 +748,16 @@ namespace Gurux.DLMS.AMI.Client
         /// <summary>
         /// Stop listening the server events.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A task that completes after the active notification connection has been disposed.</returns>
         public async Task StopAsync()
         {
             await _connectionLifecycle.WaitAsync();
             try
             {
-                if (hubConnection != null)
+                if (_hubConnection != null)
                 {
-                    var connection = hubConnection;
-                    hubConnection = null;
+                    var connection = _hubConnection;
+                    _hubConnection = null;
                     await connection.DisposeAsync();
                 }
             }
@@ -696,18 +772,21 @@ namespace Gurux.DLMS.AMI.Client
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action<string?>? _onProgressStart;
+        /// <summary>Compatibility event for listeners that receive the start of an operation&apos;s progress.</summary>
         public event Action<string?>? OnProgressStart { add { _onProgressStart += value; } remove { _onProgressStart -= value; } }
         /// <summary>
         /// Progress has ended.
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action<string?>? _onProgressEnd;
+        /// <summary>Compatibility event for listeners that receive completion of an operation&apos;s progress.</summary>
         public event Action<string?>? OnProgressEnd { add { _onProgressEnd += value; } remove { _onProgressEnd -= value; } }
         /// <summary>
         /// Status has cleared.
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action? _onClearStatus;
+        /// <summary>Compatibility event for listeners that clear displayed operation status.</summary>
         public event Action? OnClearStatus { add { _onClearStatus += value; } remove { _onClearStatus -= value; } }
 
         /// <summary>
@@ -720,24 +799,28 @@ namespace Gurux.DLMS.AMI.Client
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action<Exception>? _onProcessError;
+        /// <summary>Compatibility event for listeners that receive a processing exception.</summary>
         public event Action<Exception>? OnProcessError { add { _onProcessError += value; } remove { _onProcessError -= value; } }
         /// <summary>
         /// Script logs has occurred.
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action<IEnumerable<object>>? _onProcessErrors;
+        /// <summary>Compatibility event for listeners that receive multiple script processing errors.</summary>
         public event Action<IEnumerable<object>>? OnProcessErrors { add { _onProcessErrors += value; } remove { _onProcessErrors -= value; } }
         /// <summary>
         /// Show information.
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action<string, bool>? _onShowInformation;
+        /// <summary>Compatibility event for listeners that display informational feedback.</summary>
         public event Action<string, bool>? OnShowInformation { add { _onShowInformation += value; } remove { _onShowInformation -= value; } }
         /// <summary>
         /// Maintenance mode is updated.
         /// </summary>
         // Legacy compatibility event; notifications use On/ChangedAsync subscriptions.
         private Action<bool>? _onMaintenanceMode;
+        /// <summary>Compatibility event for listeners that receive maintenance mode changes.</summary>
         public event Action<bool>? OnMaintenanceMode { add { _onMaintenanceMode += value; } remove { _onMaintenanceMode -= value; } }
     }
 }

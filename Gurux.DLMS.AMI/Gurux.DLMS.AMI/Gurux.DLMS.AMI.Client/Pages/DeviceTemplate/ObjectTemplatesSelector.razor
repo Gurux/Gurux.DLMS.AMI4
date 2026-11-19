@@ -95,8 +95,10 @@
 
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     /// <summary>
@@ -126,17 +128,20 @@
     [Parameter]
     public List<GXObjectTemplate>? Templates { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXObjectTemplate>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXObjectTemplate>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXObjectTemplate>? _selectionContainer;
     /// <summary>
     /// Object filter.
     /// </summary>
-    private GXObjectTemplate filter = new GXObjectTemplate(null);
+    private GXObjectTemplate _filter = new GXObjectTemplate(null);
     /// <summary>
     /// Selected object filter.
     /// </summary>
-    private string? selectedNameFilter;
+    private string? _selectedNameFilter;
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -144,13 +149,13 @@
         {
             if (_selected != null)
             {
-                selectedNameFilter = name;
+                _selectedNameFilter = name;
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -160,14 +165,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
         }
     }
 
@@ -179,22 +184,22 @@
             {
                 if (string.IsNullOrEmpty(deviceName))
                 {
-                    filter.DeviceTemplate = null;
+                    _filter.DeviceTemplate = null;
                 }
                 else
                 {
-                    filter.DeviceTemplate = new GXDeviceTemplate()
+                    _filter.DeviceTemplate = new GXDeviceTemplate()
                         {
                             Name = deviceName
                         };
                 }
-                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
+                _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
         }
     }
 
@@ -206,23 +211,23 @@
             {
                 if (string.IsNullOrEmpty(deviceType))
                 {
-                    filter.DeviceTemplate = null;
+                    _filter.DeviceTemplate = null;
                 }
                 else
                 {
-                    if (filter.DeviceTemplate == null)
+                    if (_filter.DeviceTemplate == null)
                     {
-                        filter.DeviceTemplate = new GXDeviceTemplate();
+                        _filter.DeviceTemplate = new GXDeviceTemplate();
                     }
-                    filter.DeviceTemplate.Name = deviceType;
+                    _filter.DeviceTemplate.Name = deviceType;
                 }
-                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
+                _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
         }
     }
 
@@ -308,9 +313,9 @@
     {
         List<GXObjectTemplate> objects = GetObjects();
         int total = objects.Count;
-        if (!string.IsNullOrEmpty(selectedNameFilter))
+        if (!string.IsNullOrEmpty(_selectedNameFilter))
         {
-            objects = objects.Where(w => (w.Name ?? string.Empty).ToLower().Contains(selectedNameFilter.ToLower())).ToList();
+            objects = objects.Where(w => (w.Name ?? string.Empty).ToLower().Contains(_selectedNameFilter.ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXObjectTemplate>(objects.Skip(request.StartIndex).Take(request.Count), total));
     }
@@ -318,14 +323,14 @@
     private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
         try
         {
             ListObjectTemplates req = new ListObjectTemplates()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Select = new string[] { "Device" },
@@ -356,22 +361,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
             if (_selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -392,7 +397,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
         }
     }
 }

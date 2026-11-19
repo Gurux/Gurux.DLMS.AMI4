@@ -72,21 +72,26 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private Gurux.DLMS.AMI.Client.Pages.Script.Script? ScriptParent { get; set; }
     [CascadingParameter]
     private WorkflowGroup? WorkflowGroupParent { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXWorkflow>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXWorkflow>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXWorkflow>? _selectionContainer;
     /// <summary>
     /// Workflow filter.
     /// </summary>
-    private GXWorkflow filter = new GXWorkflow(null);
+    private GXWorkflow _filter = new GXWorkflow(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -106,13 +111,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.SearchSelectedByName");
         }
     }
 
@@ -122,14 +127,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.SearchByName");
         }
     }
 
@@ -141,12 +146,12 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.WorkflowGroups = null;
+                    _filter.WorkflowGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXWorkflowGroup? wg = filter.WorkflowGroups?.FirstOrDefault();
+                    GXWorkflowGroup? wg = _filter.WorkflowGroups?.FirstOrDefault();
                     if (wg == null)
                     {
                         wg = new GXWorkflowGroup();
@@ -154,7 +159,7 @@
                         GXUserGroup? ug = new GXUserGroup();
                         wg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                         ug.Users = new List<GXUser>(new GXUser[] { user });
-                        filter.WorkflowGroups = new List<GXWorkflowGroup>(new GXWorkflowGroup[] { wg });
+                        _filter.WorkflowGroups = new List<GXWorkflowGroup>(new GXWorkflowGroup[] { wg });
                     }
                     else
                     {
@@ -162,13 +167,13 @@
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.SearchByUser");
         }
     }
 
@@ -190,14 +195,14 @@
     private async ValueTask<ItemsProviderResult<GXWorkflow>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingWorkflows);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingWorkflows);
         try
         {
             ListWorkflows req = new ListWorkflows()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -215,22 +220,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            NotificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.OnInitializedAsync");
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingWorkflows);
+            _notificationService?.RemoveByKey("Pages/Workflow/WorkflowsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingWorkflows);
             if (_selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -256,7 +261,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowsSelector.OnInitializedAsync");
         }
     }
 }

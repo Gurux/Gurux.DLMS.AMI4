@@ -61,20 +61,25 @@
 </CascadingValue>
 
 @code {
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
-        ["Active"] = Active!,
-        ["Action"] = action
+        ["Active"] = _active!,
+        ["Action"] = _action
     };
 
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
-    private GXTrigger? Active;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
+    private GXTrigger? _active;
 
     /// <summary>
     /// User action.
@@ -82,7 +87,8 @@
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
+    private CrudAction _action;
     /// <summary>
     /// Selected item.
     /// </summary>
@@ -91,20 +97,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTrigger);
-            NotificationService?.RemoveByKey("Pages/Trigger/Trigger.OnInitializedAsync");
-            if (Active == null && Id != null)
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingTrigger);
+            _notificationService?.RemoveByKey("Pages/Trigger/Trigger.OnInitializedAsync");
+            if (_active == null && Id != null)
             {
                 //Get trigger data.
                 var tmp = (await Http.GetAsJsonAsync<GetTriggerResponse>("api/Trigger?id=" + Id));
                 if (tmp?.Item != null)
                 {
-                    Active = tmp.Item;
+                    _active = tmp.Item;
                 }
                 else
                 {
@@ -112,13 +118,13 @@
                     return;
                 }
             }
-            if (Active == null)
+            if (_active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            action = ClientHelpers.GetAction(NavigationManager, Action);
+            _action = ClientHelpers.GetAction(NavigationManager, Action);
             _editorMenu ??= new GXEditorMenu(SharedMenuService);
-            _editorMenu.Set(Active, action, OnSave, OnCancel);
+            _editorMenu.Set(_active, _action, OnSave, OnCancel);
             _ready = true;
         }
         catch (AccessTokenNotAvailableException exception)
@@ -127,7 +133,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Trigger/Trigger.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Trigger/Trigger.OnInitializedAsync");
         }
     }
 
@@ -144,17 +150,17 @@
     {
         try
         {
-            if (Active == null || action != CrudAction.Update)
+            if (_active == null || _action != CrudAction.Update)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            using var progressScope = Progress?.ProgressStart(GXProgress.SavingTrigger);
-            NotificationService?.RemoveByKey("Pages/Trigger/Trigger.OnSave");
+            using var progressScope = _progress?.ProgressStart(GXProgress.SavingTrigger);
+            _notificationService?.RemoveByKey("Pages/Trigger/Trigger.OnSave");
             await Http.PostAsJson<UpdateTriggerResponse>("api/Trigger/Update", new UpdateTrigger
             {
-                Triggers = [Active]
+                Triggers = [_active]
             });
-            GXEditContexts.For(Active).MarkAsUnmodified();
+            GXEditContexts.For(_active).MarkAsUnmodified();
             ClientHelpers.NavigateToLastPage(NavigationManager);
         }
         catch (AccessTokenNotAvailableException exception)
@@ -163,7 +169,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Trigger/Trigger.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Trigger/Trigger.OnSave");
         }
     }
 

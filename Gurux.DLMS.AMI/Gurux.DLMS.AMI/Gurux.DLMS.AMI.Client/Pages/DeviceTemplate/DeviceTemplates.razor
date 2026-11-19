@@ -63,22 +63,22 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="DeviceTemplate.DeviceTemplates" ViewColumns="ViewColumnDefaults"
+<GXViewTable ViewName="DeviceTemplate.DeviceTemplates" ViewColumns="_viewColumnDefaults"
              ViewPolicies="@(new List<string> { GXDeviceTemplatePolicies.View })" TItem="GXDeviceTemplate" @ref="table"
              Context="template" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter"
              ShowAllUsers="@Header" ShowRemoved="@Header" CanEdit="@CanEdit" Columns="@Columns" OnSearch="@Updated">
     <FilterContent>
         <GXFh Id="Manufacturer">
             @*Manufacturer*@
-            @if (filter.Manufacturer != null)
+            @if (_filter.Manufacturer != null)
             {
                 <input class="form-control" placeholder="@Properties.Resources.Manufacturer" type="text"
-                       @onchange="@((ChangeEventArgs __e) => filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => _filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
             }
         </GXFh>
         <GXFh Id="Model">
             @*Model*@
-            @if (filter.Manufacturer?.Models?.FirstOrDefault() is GXDeviceModel mod)
+            @if (_filter.Manufacturer?.Models?.FirstOrDefault() is GXDeviceModel mod)
             {
                 <input class="form-control" placeholder="@Properties.Resources.Model" type="text"
                        @onchange="@((ChangeEventArgs __e) => mod.Name = Convert.ToString(__e.Value))" />
@@ -86,7 +86,7 @@
         </GXFh>
         <GXFh Id="Version">
             @*Version*@
-            @if (filter.Manufacturer?.Models?.FirstOrDefault()?.Versions?.FirstOrDefault() is GXDeviceVersion ver)
+            @if (_filter.Manufacturer?.Models?.FirstOrDefault()?.Versions?.FirstOrDefault() is GXDeviceVersion ver)
             {
                 <input class="form-control" placeholder="@Properties.Resources.Version" type="text"
                        @onchange="@((ChangeEventArgs __e) => ver.Name = Convert.ToString(__e.Value))" />
@@ -94,16 +94,16 @@
         </GXFh>
         <GXFh Id="Name">
             <input class="form-control" placeholder="@Properties.Resources.FilterByName" type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
-            <GXDateTimeSelector Id="DeviceTemplates-CreationTime" @bind-Value="@filter.CreationTime"
+            <GXDateTimeSelector Id="DeviceTemplates-CreationTime" @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdatedTime" type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -136,10 +136,11 @@
 </GXViewTable>
 <br />
 
-<DeviceTemplateCommunityDialog @ref="communityDialog" />
+<DeviceTemplateCommunityDialog @ref="_communityDialog" />
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Manufacturer") { Position = 0, Description = "Manufacturer", Visibility = (byte)Visibility.All },
         new("Model") { Position = 1, Description = "Model", Visibility = (byte)Visibility.All },
@@ -149,9 +150,12 @@
         new("Updated") { Position = 5, Description = "Updated", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     private string GetVersionName(GXDeviceTemplate template)
@@ -236,7 +240,7 @@
     /// <summary>
     /// Device template filter.
     /// </summary>
-    private GXDeviceTemplate filter = new GXDeviceTemplate();
+    private GXDeviceTemplate _filter = new GXDeviceTemplate();
 
     /// <summary>
     /// Active item.
@@ -249,8 +253,10 @@
         }
     }
 
-    private bool publishingCommunity;
-    private DeviceTemplateCommunityDialog? communityDialog;
+    /// <summary>Prevents overlapping requests while publishing community is in progress.</summary>
+    private bool _publishingCommunity;
+    /// <summary>References the dialog used to publish a device template to the community catalog.</summary>
+    private DeviceTemplateCommunityDialog? _communityDialog;
 
     /// <summary>
     /// Table reference.
@@ -266,22 +272,22 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.Updated");
+                _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.Updated");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -289,14 +295,14 @@
         GXDeviceVersion version = new GXDeviceVersion(null);
         GXDeviceModel model = new GXDeviceModel(null);
         (model.Versions ??= []).Add(version);
-        filter.Manufacturer = new GXManufacturer(null);
-        (filter.Manufacturer.Models ??= []).Add(model);
+        _filter.Manufacturer = new GXManufacturer(null);
+        (_filter.Manufacturer.Models ??= []).Add(model);
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
         await Task.Delay(1);
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -321,29 +327,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.OnInitializedAsync");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDeviceTemplates);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDeviceTemplates);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListDeviceTemplates req = new ListDeviceTemplates()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
@@ -364,7 +370,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -376,7 +382,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.OnAdd");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager, "/DeviceTemplate/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -385,7 +391,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.OnAdd");
         }
     }
 
@@ -396,7 +402,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.OnEdit");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplates.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -409,7 +415,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplates.OnEdit");
         }
     }
 
@@ -435,7 +441,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -448,7 +454,7 @@
         {
             try
             {
-                using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingDeviceTemplate);
+                using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingDeviceTemplate);
                 RemoveDeviceTemplate req = new RemoveDeviceTemplate()
                 {
                     Delete = args.Delete,
@@ -462,7 +468,7 @@
             }
             catch (Exception ex)
             {
-                NotificationService?.ReportError(ex);
+                _notificationService?.ReportError(ex);
             }
         }
     }
@@ -470,12 +476,12 @@
     /// <summary>Confirms anonymous publication of one saved device template before sending it for review.</summary>
     public async Task OnPublishCommunity()
     {
-        if (publishingCommunity) { return; }
-        publishingCommunity = true;
+        if (_publishingCommunity) { return; }
+        _publishingCommunity = true;
         const string key = "Pages/DeviceTemplate/PublishCommunity";
         try
         {
-            NotificationService?.RemoveByKey(key);
+            _notificationService?.RemoveByKey(key);
             var selected = table?.SingleOrDefault().ToArray() ?? [];
             if (selected.Length != 1)
             {
@@ -483,7 +489,7 @@
             }
             // Capture the selected template before asking for public metadata.
             var template = selected[0];
-            var request = await (communityDialog ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget)).ShowAsync(template);
+            var request = await (_communityDialog ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget)).ShowAsync(template);
             if (request == null)
             {
                 return;
@@ -491,7 +497,7 @@
             var result = await Confirmation.ConfirmAsync(Properties.Resources.PublishToCommunity, Properties.Resources.PublishDeviceTemplateCommunityConfirmation,
                 new AmiConfirmationOptions { ConfirmText = Properties.Resources.PublishToCommunity, Items = [template.Name] });
             if (!result.Confirm) { return; }
-            using var progress = Progress?.ProgressStart(Properties.Resources.PublishToCommunity);
+            using var progress = _progress?.ProgressStart(Properties.Resources.PublishToCommunity);
             request.AcceptPublication = true;
             await Services.GetRequiredService<GXScriptCommunityNotifications>().PublishDeviceTemplateAsync(request);
         }
@@ -501,9 +507,9 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, key, NotificationScope.Global);
+            _notificationService?.ReportError(ex, key, NotificationScope.Global);
         }
-        finally { publishingCommunity = false; }
+        finally { _publishingCommunity = false; }
     }
 
     public void Dispose()
@@ -513,7 +519,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

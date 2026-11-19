@@ -217,12 +217,16 @@
     </EditForm>
 }
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     [CascadingParameter]
@@ -248,7 +252,8 @@
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
+    private CrudAction _action;
     /// <summary>
     /// Selected item.
     /// </summary>
@@ -303,14 +308,15 @@
     }
 
 
+    /// <summary>Retains the attribute template currently being edited.</summary>
     private GXAttributeTemplate? _activeAttribute;
 
     /// <summary>
     /// List of the modified items.
     /// </summary>
-    private Dictionary<GXAttributeTemplate, GXAttributeTemplate> Modified = new Dictionary<GXAttributeTemplate, GXAttributeTemplate>();
+    private Dictionary<GXAttributeTemplate, GXAttributeTemplate> _modified = new Dictionary<GXAttributeTemplate, GXAttributeTemplate>();
 
-    private bool IsEditing(GXAttributeTemplate attribute) => Modified.Values.Any(working => ReferenceEquals(working, attribute));
+    private bool IsEditing(GXAttributeTemplate attribute) => _modified.Values.Any(working => ReferenceEquals(working, attribute));
 
     /// <summary>
     /// Get attributes.
@@ -324,7 +330,7 @@
         {
             foreach (var it in Active.Attributes)
             {
-                if (Modified.TryGetValue(it, out modified))
+                if (_modified.TryGetValue(it, out modified))
                 {
                     list.Add(modified);
                 }
@@ -339,8 +345,11 @@
 
     class GXAction
     {
+        /// <summary>Tracks the selected position in the displayed sequence.</summary>
         public int Index;
+        /// <summary>Contains the description entered for the selected item.</summary>
         public string? Description;
+        /// <summary>Contains the access-level text displayed by the permission editor.</summary>
         public string? AccessLevel;
     }
 
@@ -402,7 +411,7 @@
     {
         //Find key with modified item.
         GXAttributeTemplate? key = null;
-        foreach (var it in Modified)
+        foreach (var it in _modified)
         {
             if (it.Value == modified)
             {
@@ -418,9 +427,9 @@
         {
             ClientHelpers.Copy(modified, key);
         }
-        if (Modified.ContainsKey(key))
+        if (_modified.ContainsKey(key))
         {
-            Modified.Remove(key);
+            _modified.Remove(key);
         }
     }
 
@@ -437,7 +446,7 @@
     {
         get
         {
-            if (action != CrudAction.Delete)
+            if (_action != CrudAction.Delete)
             {
                 return null;
             }
@@ -467,23 +476,24 @@
         return str;
     }
 
-    private List<GXScript> Scripts = new();
+    /// <summary>Caches the scripts available for the displayed connection or automation settings.</summary>
+    private List<GXScript> _scripts = new();
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            action = ClientHelpers.GetAction(NavigationManager, Action);
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplate);
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnInitializedAsync");
+            _action = ClientHelpers.GetAction(NavigationManager, Action);
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplate);
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnInitializedAsync");
             MenuService.Clear();
             if (Active?.ObjectType.GetValueOrDefault(0) == 0 && Id != null)
             {
@@ -509,7 +519,7 @@
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
 
-            if (action == CrudAction.Delete)
+            if (_action == CrudAction.Delete)
             {
                 MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
             }
@@ -525,14 +535,14 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplate.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplate.OnInitializedAsync");
         }
     }
 
     public void OnEdit(GXAttributeTemplate template)
     {
         GXAttributeTemplate tmp = ClientHelpers.Clone<GXAttributeTemplate>(template);
-        Modified.Add(template, tmp);
+        _modified.Add(template, tmp);
         InvokeAsync(StateHasChanged);
     }
 
@@ -547,20 +557,20 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingObjectTemplate);
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnSave");
-            if (action == CrudAction.Delete)
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingObjectTemplate);
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnSave");
+            if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAgentResponse>("api/ObjectTemplate/Delete", new RemoveAgent() { Ids = new Guid[] { Active.Id } });
             }
             else
             {
                 string address;
-                if (action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
                     address = "api/ObjectTemplate/Add";
                 }
-                else if (action == CrudAction.Update)
+                else if (_action == CrudAction.Update)
                 {
                     address = "api/ObjectTemplate/Update";
                 }
@@ -578,7 +588,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplate.OnSave");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplate.OnSave");
         }
     }
 

@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class WorkflowGroupController(
         IWorkflowGroupRepository WorkflowGroupRepository) : ControllerBase
     {
-        private readonly IWorkflowGroupRepository _WorkflowGroupRepository = WorkflowGroupRepository;
+        /// <summary>Provides persistence and access checks for workflow group records.</summary>
+        private readonly IWorkflowGroupRepository _workflowGroupRepository = WorkflowGroupRepository;
 
         /// <summary>
         /// Get workflow group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetWorkflowGroupResponse()
             {
-                Item = await _WorkflowGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _workflowGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -72,7 +73,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new AddWorkflowGroupResponse()
             {
-                Ids = await _WorkflowGroupRepository.UpsertAsync(request.WorkflowGroups, null, cancellationToken)
+                Ids = await _workflowGroupRepository.UpsertAsync(request.WorkflowGroups, null, cancellationToken)
             };
         }
 
@@ -86,7 +87,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListWorkflowGroupsResponse ret = new();
-            await _WorkflowGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _workflowGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -97,7 +98,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXWorkflowGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveWorkflowGroupResponse>> Post(RemoveWorkflowGroup request, CancellationToken cancellationToken = default)
         {
-            await _WorkflowGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _workflowGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveWorkflowGroupResponse();
         }
     }

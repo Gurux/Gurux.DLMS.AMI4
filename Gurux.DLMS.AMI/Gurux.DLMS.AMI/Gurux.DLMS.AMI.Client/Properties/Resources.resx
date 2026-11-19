@@ -3243,4 +3243,42 @@
   <data name="RawNotificationProcessing" xml:space="preserve">
     <value>Raw notification processing</value>
   </data>
+  <data name="ConfirmationDialogHostAlreadyAttached" xml:space="preserve">
+    <value>A confirmation dialog host is already attached.</value>
+  </data>
+  <data name="SavedViewCouldNotBeRead" xml:space="preserve">
+    <value>The saved view could not be read.</value>
+  </data>
+  <data name="NotificationTargetCleared" xml:space="preserve">
+    <value>{0} was cleared.</value>
+  </data>
+  <data name="NotificationTargetAdded" xml:space="preserve">
+    <value>{0} was added.</value>
+  </data>
+  <data name="NotificationTargetEdited" xml:space="preserve">
+    <value>{0} was edited.</value>
+  </data>
+  <data name="NotificationTargetClosed" xml:space="preserve">
+    <value>{0} was closed.</value>
+  </data>
+  <data name="NotificationTargetDeleted" xml:space="preserve">
+    <value>{0} was deleted.</value>
+  </data>
+  <data name="CommunityPublicationApprovedForName" xml:space="preserve">
+    <value>{0}: Community publication approved</value>
+  </data>
+  <data name="CommunityPublicationRejectedForName" xml:space="preserve">
+    <value>{0}: Community publication rejected</value>
+  </data>
+  <data name="CommunitySubmissionFailedForName" xml:space="preserve">
+    <value>{0}: Community submission could not be tracked</value>
+  </data>
+  <data name="CommunityReviewPendingForName" xml:space="preserve">
+    <value>{0}: Awaiting community review</value>
+  </data>
+  <data name="WriteTasksQueued" xml:space="preserve"><value>Write tasks queued.</value></data>
+  <data name="WriteTasksInProgress" xml:space="preserve"><value>Write tasks in progress.</value></data>
+  <data name="WriteTasksProgress" xml:space="preserve"><value>{0} of {1} write tasks completed.</value></data>
+  <data name="WriteTasksFailed" xml:space="preserve"><value>Writing failed.</value></data>
+  <data name="WriteTasksUnavailable" xml:space="preserve"><value>Write task status is unavailable.</value></data>
 </root>

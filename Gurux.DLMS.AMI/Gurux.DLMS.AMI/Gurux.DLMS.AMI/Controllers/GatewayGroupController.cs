@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class GatewayGroupController(
         IGatewayGroupRepository GatewayGroupRepository) : ControllerBase
     {
-        private readonly IGatewayGroupRepository _GatewayGroupRepository = GatewayGroupRepository;
+        /// <summary>Provides persistence and access checks for gateway group records.</summary>
+        private readonly IGatewayGroupRepository _gatewayGroupRepository = GatewayGroupRepository;
 
         /// <summary>
         /// Get gateway group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetGatewayGroupResponse()
             {
-                Item = (await _GatewayGroupRepository.ReadAsync(id, null, cancellationToken))
+                Item = (await _gatewayGroupRepository.ReadAsync(id, null, cancellationToken))
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXGatewayGroupPolicies.Add)]
         public async Task<ActionResult<AddGatewayGroupResponse>> Post(AddGatewayGroup request, CancellationToken cancellationToken = default)
         {
-            await _GatewayGroupRepository.UpsertAsync(request.GatewayGroups, null, cancellationToken);
+            await _gatewayGroupRepository.UpsertAsync(request.GatewayGroups, null, cancellationToken);
             return new AddGatewayGroupResponse() { Ids = [.. request.GatewayGroups.Select(s => s.Id)] };
         }
 
@@ -84,7 +85,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListGatewayGroupsResponse ret = new();
-            await _GatewayGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _gatewayGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXGatewayGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveGatewayGroupResponse>> Post(RemoveGatewayGroup request, CancellationToken cancellationToken = default)
         {
-            await _GatewayGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _gatewayGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveGatewayGroupResponse();
         }
     }

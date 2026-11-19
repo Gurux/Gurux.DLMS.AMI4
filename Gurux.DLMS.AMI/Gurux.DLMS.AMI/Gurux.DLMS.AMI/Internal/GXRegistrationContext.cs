@@ -33,14 +33,20 @@ namespace Gurux.DLMS.AMI.Server.Internal;
 /// <summary>Authorizes fixed registration defaults without changing the user's stored roles or sign-in principal.</summary>
 internal sealed class GXRegistrationContext : IDisposable
 {
-    private readonly HttpContext context;
-    private readonly ClaimsPrincipal original;
-    private bool disposed;
+    /// <summary>Context associated with the current operation.</summary>
+    private readonly HttpContext _context;
+    /// <summary>Caller principal restored when the temporary identity scope ends.</summary>
+    private readonly ClaimsPrincipal _original;
+    /// <summary>Indicates that disposal has begun and this instance can no longer accept work.</summary>
+    private bool _disposed;
 
+    /// <summary>Temporarily assigns the registering principal to the current HTTP context.</summary>
+    /// <param name="context">Context whose identity or transaction is temporarily enlisted.</param>
+    /// <param name="owner">Principal or module generation that owns the scoped operation.</param>
     private GXRegistrationContext(HttpContext context, ClaimsPrincipal owner)
     {
-        this.context = context;
-        original = context.User;
+        this._context = context;
+        _original = context.User;
         var provisioning = new ClaimsPrincipal(owner.Identities.Select(identity => new ClaimsIdentity(identity)));
         var identity = provisioning.Identities.FirstOrDefault(candidate => candidate.IsAuthenticated)
             ?? throw new InvalidOperationException("Default provisioning requires an authenticated owner identity.");
@@ -51,14 +57,19 @@ internal sealed class GXRegistrationContext : IDisposable
         context.User = provisioning;
     }
 
+    /// <summary>Temporarily replaces the request principal while AMI provisions registration defaults.</summary>
+    /// <param name="context">HTTP request context whose principal is temporarily replaced.</param>
+    /// <param name="owner">Owner identity or module generation restricting the scoped operation.</param>
+    /// <returns>A scope that restores the original principal on disposal.</returns>
     internal static IDisposable Begin(HttpContext context, ClaimsPrincipal owner) => new GXRegistrationContext(context, owner);
 
+    /// <inheritdoc />
     public void Dispose()
     {
-        if (!disposed)
+        if (!_disposed)
         {
-            context.User = original;
-            disposed = true;
+            _context.User = _original;
+            _disposed = true;
         }
     }
 }

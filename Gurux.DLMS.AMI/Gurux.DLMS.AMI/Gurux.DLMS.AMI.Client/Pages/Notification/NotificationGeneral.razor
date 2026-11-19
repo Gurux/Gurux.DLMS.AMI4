@@ -110,7 +110,7 @@
                                 break;
                             case "Notifications":
                                 <div class="table-responsive">
-                                    <GXViewTable ViewName="Notification.NotificationGeneral" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXNotificationPolicies.View })"
+                                    <GXViewTable ViewName="Notification.NotificationGeneral" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXNotificationPolicies.View })"
                                                  TItem="PermissionGroup" @ref="table" Context="it"
                                                  ItemsProvider="@GetItems"
                                                  OnSearch="@Update"
@@ -122,7 +122,7 @@
                                                 <GXSearch Placeholder="@Properties.Resources.FilterByName"
                                                         Id="permissions.filter"
                                                         Immediate="true"
-                                                        @bind-Value="@Filter"
+                                                        @bind-Value="@_filter"
                                                         @bind-Value:after="Update" />
                                             </GXFh>
                                             <GXFh Id="Notifications"></GXFh>
@@ -177,7 +177,8 @@
     </EditForm>
 }
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Notifications") { Position = 1, Description = "Notifications", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -198,6 +199,7 @@
             ?? NotificationTypeChoices.First();
         set => SelectedTypeId = value.Id;
     }
+    /// <summary>Prevents overlapping requests while loading type is in progress.</summary>
     private bool _loadingType;
 
     private async Task NotificationTypeChangedAsync()
@@ -229,12 +231,16 @@
 
     [CascadingParameter] public Notification? Editor { get; set; }
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
-    private string? Filter;
+    /// <summary>Carries the criteria used to filter the displayed records.</summary>
+    private string? _filter;
     private bool IsToaster => string.Equals(Active?.Type?.Code, "toaster", StringComparison.OrdinalIgnoreCase);
     private bool IsEmail => string.Equals(Active?.Type?.Code, "smtp", StringComparison.OrdinalIgnoreCase)
         || string.Equals(Active?.Type?.Code, "email", StringComparison.OrdinalIgnoreCase);
@@ -278,9 +284,9 @@
                 Name = g.Key,
                 Permissions = g.OrderBy(p => PermissionAction(p.Name!), StringComparer.Ordinal).ToList()
             })
-            .Where(g => string.IsNullOrWhiteSpace(Filter)
-                || (ClientHelpers.KebabToTitle(g.Name) ?? string.Empty).Contains(Filter, StringComparison.OrdinalIgnoreCase)
-                || g.Permissions.Any(p => p.Name!.Contains(Filter, StringComparison.OrdinalIgnoreCase)))
+            .Where(g => string.IsNullOrWhiteSpace(_filter)
+                || (ClientHelpers.KebabToTitle(g.Name) ?? string.Empty).Contains(_filter, StringComparison.OrdinalIgnoreCase)
+                || g.Permissions.Any(p => p.Name!.Contains(_filter, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(g => g.Name, StringComparer.Ordinal)
             .ToList();
     /// <summary>
@@ -326,13 +332,13 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.Update");
+                _notificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.Update");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.Update");
+            _notificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.Update");
         }
     }
 
@@ -340,6 +346,7 @@
     /// Selected notification.
     /// </summary>
     private GXNotification? _active;
+    /// <summary>Tracks the notification sources selected in the subscription editor.</summary>
     private readonly HashSet<string> _selectedSources = new(StringComparer.Ordinal);
     private bool IsSelected(GXPermission permission) => permission.Name != null && _selectedSources.Contains(permission.Name);
     private void SetSelected(GXPermission permission, bool selected)
@@ -394,7 +401,7 @@
     /// <summary>
     ///Notification types.
     /// </summary>
-    List<NotificationAction> notificationTypes = new List<NotificationAction>();
+    List<NotificationAction> _notificationTypes = new List<NotificationAction>();
 
     public string? IsDeleting
     {
@@ -415,20 +422,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            notificationTypes.AddRange(Enum.GetValues<NotificationAction>());
-            notificationTypes.Remove(NotificationAction.None);
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingNotification);
-            NotificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.OnInitializedAsync");
+            _notificationTypes.AddRange(Enum.GetValues<NotificationAction>());
+            _notificationTypes.Remove(NotificationAction.None);
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingNotification);
+            _notificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.OnInitializedAsync");
 
             if (Active == null && Id != null)
             {
@@ -458,7 +465,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.OnInitializedAsync");
         }
     }
 

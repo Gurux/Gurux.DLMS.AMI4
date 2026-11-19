@@ -74,8 +74,10 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
@@ -83,14 +85,17 @@
     [CascadingParameter]
     private KeyManagement? KeyManagementParent { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXKeyManagementGroup>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXKeyManagementGroup>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXKeyManagementGroup>? _selectionContainer;
 
     /// <summary>
     /// KeyManagement group filter.
     /// </summary>
-    private GXKeyManagementGroup filter = new GXKeyManagementGroup(null);
+    private GXKeyManagementGroup _filter = new GXKeyManagementGroup(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -110,13 +115,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.SearchSelectedByName");
         }
     }
 
@@ -126,14 +131,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.SearchByName");
         }
     }
 
@@ -145,32 +150,32 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.UserGroups = null;
+                    _filter.UserGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    GXUserGroup? ug = _filter.UserGroups?.FirstOrDefault();
                     if (ug == null)
                     {
                         user = new GXUser();
                         ug = new GXUserGroup();
-                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        _filter.UserGroups = new(new GXUserGroup[] { ug });
                         ug.Users = new(new GXUser[] { user });
                     }
                     else
                     {
-                        user = GXFilterHelpers.GetOrAddUser(filter.UserGroups ??= []);
+                        user = GXFilterHelpers.GetOrAddUser(_filter.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.SearchByUser");
         }
     }
 
@@ -192,14 +197,14 @@
     private async ValueTask<ItemsProviderResult<GXKeyManagementGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
         try
         {
             ListKeyManagementGroups req = new ListKeyManagementGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -217,15 +222,15 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
@@ -235,8 +240,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroupsSelector.OnInitializedAsync");
             CrudAction action;
             if (UserGroupParent?.Active?.KeyManagementGroups != null)
             {
@@ -281,7 +286,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroupsSelector.OnInitializedAsync");
         }
     }
 }

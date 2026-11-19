@@ -142,7 +142,9 @@
         }
     }
 
+    /// <summary>Controls whether the associated details are hidden from the rendered view.</summary>
     bool _hide;
+    /// <summary>Records whether the current user is authenticated.</summary>
     bool _authenticated;
 
     /// <summary>
@@ -174,13 +176,14 @@
         }
     }
 
-    private bool isClient;
+    /// <summary>Records whether the first interactive render has enabled loading the user's favorites.</summary>
+    private bool _isClient;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            isClient = true;
+            _isClient = true;
             await LoadFavoritesAsync(await AuthStateProvider.GetAuthenticationStateAsync());
         }
     }
@@ -194,7 +197,7 @@
 
     private async Task LoadFavoritesAsync(AuthenticationState state)
     {
-        if (!isClient)
+        if (!_isClient)
         {
             return;
         }

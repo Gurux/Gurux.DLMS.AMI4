@@ -25,6 +25,7 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,6 +34,8 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Gurux.DLMS.AMI.Server.Controllers;
 
 /// <summary>Provides same-origin access to configured public feeds, data and raster images.</summary>
+/// <param name="configuration">Provides the persisted host proxy policy.</param>
+/// <param name="proxy">Retrieves permitted resources using bounded downloads and caching.</param>
 [ApiController]
 [Authorize]
 [Route("api/HttpProxy")]
@@ -40,6 +43,9 @@ namespace Gurux.DLMS.AMI.Server.Controllers;
 public sealed class HttpProxyController(GXHttpProxyConfiguration configuration, GXHttpProxyService proxy) : ControllerBase
 {
     /// <summary>Retrieves an allowlisted HTTP/HTTPS resource without forwarding user credentials.</summary>
+    /// <param name="url">The allowlisted resource URL to retrieve.</param>
+    /// <param name="cancellationToken">Cancels configuration retrieval and the proxied request.</param>
+    /// <returns>The downloaded content, or problem details with the proxy failure status.</returns>
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string url, CancellationToken cancellationToken)
     {
@@ -54,9 +60,9 @@ public sealed class HttpProxyController(GXHttpProxyConfiguration configuration, 
             // Keep client caching disabled: changing the allowlist or disabling the proxy takes effect immediately.
             return File(result.Body, result.ContentType);
         }
-        catch (GXHttpProxyException ex)
+        catch (GXHttpException ex)
         {
-            return Problem(statusCode: ex.StatusCode, title: ex.Message);
+            return Problem(statusCode: (int)(ex.StatusCode ?? System.Net.HttpStatusCode.BadGateway), title: ex.Message);
         }
     }
 }

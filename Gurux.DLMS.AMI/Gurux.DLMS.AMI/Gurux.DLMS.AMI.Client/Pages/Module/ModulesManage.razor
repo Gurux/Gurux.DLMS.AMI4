@@ -58,7 +58,7 @@
 </AuthorizeView>
 
 <label><input type="checkbox" @bind="_includePrereleases" @bind:after="ChannelChangedAsync" /> Show prereleases</label>
-<GXViewTable ViewName="Module.ModulesManage" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXModulePolicies.View })"
+<GXViewTable ViewName="Module.ModulesManage" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXModulePolicies.View })"
          TItem="GXModule" @ref="table"
          Context="module"
          ItemsProvider="@GetItems"
@@ -72,26 +72,26 @@
         </GXFh>
         <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value) ?? string.Empty)" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Id = Convert.ToString(__e.Value) ?? string.Empty)" />
         </GXFh>
         <GXFh Id="Version">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByVersion"
-                   @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Version = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="AvailableVersion">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByLatestVersion"
-                   @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.AvailableVersion = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="ModulesManage-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdatedTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = Convert.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = Convert.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -134,7 +134,8 @@
         var version = _versions[id].First(version => version.Id.ToString() == value);
         return version.Number + (version.Prerelease ? " (prerelease)" : "");
     }
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Image") { Position = 0, Description = "Image", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -144,16 +145,22 @@
         new("Updated") { Position = 5, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// System error filter.
     /// </summary>
-    private GXModule filter = new GXModule();
+    private GXModule _filter = new GXModule();
+    /// <summary>Controls whether prerelease versions are included in the available updates.</summary>
     private bool _includePrereleases;
+    /// <summary>Caches the release versions available for each displayed module.</summary>
     private Dictionary<string,List<ModuleReleaseInfo>> _versions=new();
+    /// <summary>Maps each selected module to the release chosen for installation.</summary>
     private readonly Dictionary<string,Guid> _selectedVersions=new();
     private string SelectedVersion(string id)=>_selectedVersions.TryGetValue(id,out var version)?version.ToString():"";
     private void SelectVersion(string id,object? value){
@@ -189,32 +196,32 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Module/ModulesManage.Updated");
+                _notificationService?.RemoveByKey("Pages/Module/ModulesManage.Updated");
                 table.ResetPage();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.Updated");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesManage.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModulesManage);
-            NotificationService?.RemoveByKey("Pages/Module/ModulesManage.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingModulesManage);
+            _notificationService?.RemoveByKey("Pages/Module/ModulesManage.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -235,14 +242,14 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingModulesManage);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingModulesManage);
         using var linked=CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken,(progressScope2?.CancellationToken ?? CancellationToken.None));
         try
         {
@@ -252,7 +259,7 @@
                 IncludePrereleases = _includePrereleases,
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -269,7 +276,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -281,8 +288,8 @@
     {
         try
         {
-            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingModulesManage);
-            NotificationService?.RemoveByKey("Pages/Module/ModulesManage.OnInstall");
+            using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingModulesManage);
+            _notificationService?.RemoveByKey("Pages/Module/ModulesManage.OnInstall");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
@@ -301,7 +308,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnInstall");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnInstall");
         }
     }
 
@@ -312,7 +319,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Module/ModulesManage.OnAdd");
+            _notificationService?.RemoveByKey("Pages/Module/ModulesManage.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager,  "/config/Module/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -321,7 +328,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesManage.OnAdd");
         }
     }
 
@@ -337,6 +344,6 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

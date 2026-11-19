@@ -83,7 +83,7 @@
                 <div class="form-group">
                     <GXLabel>@Properties.Resources.Language</GXLabel>
                     <GXDropdownSearch class="form-control"
-                                    @ref="Languages"
+                                    @ref="_languageSelector"
                                     Id="user-language"
                                     RememberValue="false"
                                     @bind-Value="Language"
@@ -97,11 +97,11 @@
                                  ValueChanged="@((string value) => Active.TimeZone = string.IsNullOrEmpty(value) ? null : value)"
                                  ValueExpression="@(() => Active.TimeZone)">
                         <option value="">@Properties.Resources.Default</option>
-                        @if (!string.IsNullOrEmpty(Active.TimeZone) && !TimeZones.ContainsKey(Active.TimeZone))
+                        @if (!string.IsNullOrEmpty(Active.TimeZone) && !_timeZones.ContainsKey(Active.TimeZone))
                         {
                             <option value="@Active.TimeZone">@Active.TimeZone</option>
                         }
-                        @foreach (var zone in TimeZones.Values)
+                        @foreach (var zone in _timeZones.Values)
                         {
                             <option value="@zone.Id">@zone.DisplayName</option>
                         }
@@ -157,15 +157,20 @@
 @code {
     /// <summary>Form state shared by the user tabs without adding fields to the user DTO.</summary>
     protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.NoUserIsSelected));
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>Role editor used to refresh the assignments after user changes.</summary>
     protected RoleEditor? _roleEditor;
+    /// <summary>Caches the roles offered by the role editor.</summary>
     private string? _availableRoles;
-    private GXDropdownSearch<GXLanguage>? Languages;
+    /// <summary>References the language selector used by the user profile editor.</summary>
+    private GXDropdownSearch<GXLanguage>? _languageSelector;
 
-    private static readonly IReadOnlyDictionary<string, TimeZoneInfo> TimeZones =
+    /// <summary>Caches the time-zone choices offered by the user profile editor.</summary>
+    private static readonly IReadOnlyDictionary<string, TimeZoneInfo> _timeZones =
         TimeZoneInfo.GetSystemTimeZones().ToDictionary(zone => zone.Id);
 
     [Parameter, EditorRequired]
@@ -195,7 +200,9 @@
         }
     }
 
+    /// <summary>Caches the installed languages offered by the user profile editor.</summary>
     private IEnumerable<GXLanguage>? _languages = null;
+    /// <summary>Delays language controls until their choices have been retrieved.</summary>
     private bool _languagesReady;
 
     private GXLanguage? Language
@@ -216,7 +223,7 @@
     private async ValueTask<ItemsProviderResult<GXLanguage?>> GetLanguages(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUser);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingUser);
         try
         {
             ListLanguages req = new ListLanguages()
@@ -265,7 +272,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -356,8 +363,8 @@
 
     protected override void OnInitialized()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
     }
 
     protected override async Task OnInitializedAsync()

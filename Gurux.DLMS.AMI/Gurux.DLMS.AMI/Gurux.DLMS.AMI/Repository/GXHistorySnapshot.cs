@@ -40,10 +40,14 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <summary>Version-one configuration snapshots with explicit root fields and identity-only references.</summary>
 internal static class GXHistorySnapshot
 {
-    private static readonly ConditionalWeakTable<object, HashSet<string>> Presence = new();
-    private static readonly ConditionalWeakTable<object, IReadOnlyList<GXHistoryModuleSetting>> ModuleSettings = new();
+    /// <summary>Tracks which properties were present in deserialized entity payloads.</summary>
+    private static readonly ConditionalWeakTable<object, HashSet<string>> _presence = new();
+    /// <summary>Associates captured entities with their module settings snapshots.</summary>
+    private static readonly ConditionalWeakTable<object, IReadOnlyList<GXHistoryModuleSetting>> _moduleSettings = new();
+    /// <summary>Shared entity property names accepted by history serialization.</summary>
     private const string Common = "Id Name Description Enabled Default AccessVisibility Policies ProfilePicture Coordinates StreetAddress PostalCode StateOrProvince Country TraceLevel";
-    private static readonly Dictionary<string, string> Fields = new(StringComparer.Ordinal)
+    /// <summary>Database column mappings used when constructing queries.</summary>
+    private static readonly Dictionary<string, string> _fields = new(StringComparer.Ordinal)
     {
         ["GXAgent"] = "Type Template AgentGroups ReaderSettings ListenerSettings NotifySettings RawNotificationSettings GatewaySettings CacheExpiration Concurrently Properties",
         ["GXAgentGroup"] = "Agents UserGroups DeviceGroups",
@@ -96,7 +100,8 @@ internal static class GXHistorySnapshot
         ["GXWorkflow"] = "Properties TriggerActivity Phase TriggerMethod User UserGroup Device DeviceGroup ExecutionIdentity ExecutionUserId ScriptMethods Modules WorkflowGroups",
         ["GXWorkflowGroup"] = "UserGroups Workflows"
     };
-    private static readonly Dictionary<string, string> Owned = new(StringComparer.Ordinal)
+    /// <summary>Entity types whose mutations are owned by the history subsystem.</summary>
+    private static readonly Dictionary<string, string> _owned = new(StringComparer.Ordinal)
     {
         ["GXAttributeListItem"] = "Id UIValue Value MaskSize Shift",
         ["GXDeviceModel"] = "Id Name Url Picture AccessVisibility ProfilePicture Versions",
@@ -122,19 +127,23 @@ internal static class GXHistorySnapshot
         ["GXObjectTemplate"] = "Id ObjectType Version Name LogicalName ShortName ExpirationTime Attributes ActionAccessLevels",
         ["GXAttributeTemplate"] = "Id Index Name ListItems ExpirationTime AccessLevel DataType UIDataType Weight DefaultValue Scaler Unit"
     };
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = false, MaxDepth = 64 };
+    /// <summary>Strict serializer settings used when reading stored JSON payloads.</summary>
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = false, MaxDepth = 64 };
 
+    /// <summary>Creates a history snapshot containing only the allowed entity state.</summary>
+    /// <param name="entity">Entity instance to inspect or serialize.</param>
+    /// <returns>Serialized snapshot JSON with protected properties excluded.</returns>
     internal static string Serialize(object entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
-        if (!Fields.ContainsKey(entity.GetType().Name))
+        if (!_fields.ContainsKey(entity.GetType().Name))
         {
             throw new ArgumentException("The entity type has no history snapshot contract.");
         }
 
         var node = (JsonObject)Project(entity, entity.GetType(), true, 0)!;
         AppendModuleSettings(entity, node);
-        return node.ToJsonString(JsonOptions);
+        return node.ToJsonString(_jsonOptions);
     }
 
     /// <summary>Captures scalar columns and known reference identities without inventing unloaded collection states.</summary>
@@ -157,7 +166,7 @@ internal static class GXHistorySnapshot
                             !(id is Guid guid && guid == Guid.Empty) && !(id is string text && string.IsNullOrWhiteSpace(text)) &&
                             !(id is int number && number == 0) && !(id is long longNumber && longNumber == 0))
             {
-                node[property.Name] = new JsonObject { ["Id"] = JsonSerializer.SerializeToNode(id, id.GetType(), JsonOptions) };
+                node[property.Name] = new JsonObject { ["Id"] = JsonSerializer.SerializeToNode(id, id.GetType(), _jsonOptions) };
             }
             else
             {
@@ -171,14 +180,18 @@ internal static class GXHistorySnapshot
         }
 
         AppendModuleSettings(entity, node);
-        return node.ToJsonString(JsonOptions);
+        return node.ToJsonString(_jsonOptions);
     }
 
+    /// <summary>Validates and deserializes a stored history snapshot into its allowed entity type.</summary>
+    /// <param name="json">Serialized history snapshot to deserialize.</param>
+    /// <param name="entityType">Allowed CLR entity type for the snapshot.</param>
+    /// <returns>The validated entity reconstructed from the snapshot.</returns>
     internal static object Deserialize(string json, Type entityType)
     {
         try
         {
-            if (!Fields.ContainsKey(entityType.Name))
+            if (!_fields.ContainsKey(entityType.Name))
             {
                 throw new ArgumentException("The entity type has no history snapshot contract.");
             }
@@ -192,11 +205,11 @@ internal static class GXHistorySnapshot
             }
 
             Validate(node, entityType, true, 0);
-            var entity = node.Deserialize(entityType, JsonOptions) ?? throw new ArgumentException("The snapshot contains no entity.");
+            var entity = node.Deserialize(entityType, _jsonOptions) ?? throw new ArgumentException("The snapshot contains no entity.");
             RegisterPresence(entity, node, entityType, true);
             if (settings != null)
             {
-                ModuleSettings.AddOrUpdate(entity, settings);
+                _moduleSettings.AddOrUpdate(entity, settings);
             }
 
             return entity;
@@ -204,6 +217,10 @@ internal static class GXHistorySnapshot
         catch (JsonException e) { throw new ArgumentException("Invalid entity snapshot JSON.", nameof(json), e); }
     }
 
+    /// <summary>Associates a schedule snapshot with ordered copies of its module configuration values.</summary>
+    /// <param name="entity">Entity whose persistence or natural-key identity must be tracked.</param>
+    /// <param name="settings">Schedule-module settings copied and retained in module-id order.</param>
+    /// <exception cref="ArgumentException">Module settings are attached to an entity that is not a schedule.</exception>
     internal static void SetModuleSettings(object entity, IEnumerable<GXScheduleModule> settings)
     {
         if (entity is not GXSchedule)
@@ -211,16 +228,22 @@ internal static class GXHistorySnapshot
             throw new ArgumentException("Module settings belong to a schedule snapshot.");
         }
 
-        ModuleSettings.AddOrUpdate(entity, settings.OrderBy(s => s.ModuleId, StringComparer.Ordinal)
+        _moduleSettings.AddOrUpdate(entity, settings.OrderBy(s => s.ModuleId, StringComparer.Ordinal)
             .Select(s => new GXHistoryModuleSetting(s.ModuleId, s.Settings)).ToArray());
     }
 
+    /// <summary>Retrieves module configuration captured alongside an entity snapshot.</summary>
+    /// <param name="entity">Entity instance to inspect or serialize.</param>
+    /// <returns>Captured module settings, or null when no settings are associated with the entity.</returns>
     internal static IReadOnlyList<GXHistoryModuleSetting>? GetModuleSettings(object entity)
-        => ModuleSettings.TryGetValue(entity, out var settings) ? settings : null;
+        => _moduleSettings.TryGetValue(entity, out var settings) ? settings : null;
 
+    /// <summary>Adds captured module settings to the serialized entity snapshot.</summary>
+    /// <param name="entity">Entity instance to inspect or serialize.</param>
+    /// <param name="node">JSON representation to inspect or sanitize.</param>
     private static void AppendModuleSettings(object entity, JsonObject node)
     {
-        if (!ModuleSettings.TryGetValue(entity, out var settings))
+        if (!_moduleSettings.TryGetValue(entity, out var settings))
         {
             return;
         }
@@ -234,6 +257,9 @@ internal static class GXHistorySnapshot
         node["$moduleSettings"] = array;
     }
 
+    /// <summary>Reads captured module settings from their reserved snapshot JSON representation.</summary>
+    /// <param name="node">JSON representation to inspect or sanitize.</param>
+    /// <returns>The module settings retained in the snapshot JSON.</returns>
     private static IReadOnlyList<GXHistoryModuleSetting> ParseModuleSettings(JsonNode? node)
     {
         if (node is not JsonArray array)
@@ -267,6 +293,9 @@ internal static class GXHistorySnapshot
         return values;
     }
 
+    /// <summary>Builds a typed update-column expression from the allowed root snapshot properties, excluding the identifier.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <returns>The columns that history restoration is permitted to update.</returns>
     internal static Expression<Func<T, object>> Columns<T>()
     {
         var p = Expression.Parameter(typeof(T), "entity");
@@ -284,25 +313,37 @@ internal static class GXHistorySnapshot
         }
 
         MergeObject(current, saved, true, 0);
-        if (ModuleSettings.TryGetValue(saved, out var settings))
+        if (_moduleSettings.TryGetValue(saved, out var settings))
         {
-            ModuleSettings.AddOrUpdate(current, settings);
+            _moduleSettings.AddOrUpdate(current, settings);
         }
 
         return current;
     }
 
+    /// <summary>Selects the allowed entity properties included in a history snapshot.</summary>
+    /// <param name="type">CLR entity type to inspect.</param>
+    /// <param name="root">Whether the entity is the root of the snapshot.</param>
+    /// <returns>The allowed properties in the snapshot projection.</returns>
     internal static PropertyInfo[] CaptureProperties(Type type, bool root = true) => Properties(type, root);
-    internal static bool IsOwned(Type type) => Owned.ContainsKey(type.Name);
+    /// <summary>Checks whether history manages mutations for the given entity type.</summary>
+    /// <param name="type">CLR entity type to inspect.</param>
+    /// <returns>True when the entity type has a registered history ownership mapping.</returns>
+    internal static bool IsOwned(Type type) => _owned.ContainsKey(type.Name);
 
+    /// <summary>Selects serializable entity properties according to snapshot ownership and root rules.</summary>
+    /// <param name="type">CLR entity type to inspect.</param>
+    /// <param name="root">Whether the entity is the root of the snapshot.</param>
+    /// <param name="expandOwned">Whether owned child entities are included in the projection.</param>
+    /// <returns>The properties permitted by snapshot serialization rules.</returns>
     private static PropertyInfo[] Properties(Type type, bool root, bool expandOwned = true)
     {
         string names;
-        if (root && Fields.TryGetValue(type.Name, out var extra))
+        if (root && _fields.TryGetValue(type.Name, out var extra))
         {
             names = type.Name == "GXNotificationSource" ? "Id Enabled" : (type.Name == "GXModule" ? Common.Replace(" Enabled", "", StringComparison.Ordinal) : Common) + " " + extra;
         }
-        else if (expandOwned && Owned.TryGetValue(type.Name, out var owned))
+        else if (expandOwned && _owned.TryGetValue(type.Name, out var owned))
         {
             names = owned;
         }
@@ -319,6 +360,9 @@ internal static class GXHistorySnapshot
         return type.GetProperties().Where(p => p.CanRead && p.CanWrite && selection.Contains(p.Name) && !Secret(p.Name)).OrderBy(p => p.Name, StringComparer.Ordinal).ToArray();
     }
 
+    /// <summary>Identifies property names excluded from history because they may contain secrets.</summary>
+    /// <param name="name">Identifier to validate or normalize.</param>
+    /// <returns>True when the property name denotes protected data.</returns>
     private static bool Secret(string name)
     {
         var key = new string(name.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
@@ -327,6 +371,9 @@ internal static class GXHistorySnapshot
             key.Contains("securitystamp") || key.Contains("concurrencystamp") || key is "connectionstring" or "apikey" or "keybytes" or "key" or "keyencryptionkey" or "presharedkey";
     }
 
+    /// <summary>Checks whether a CLR type is represented directly as a scalar snapshot value.</summary>
+    /// <param name="type">CLR entity type to inspect.</param>
+    /// <returns>True when no recursive object projection is required for the type.</returns>
     private static bool Scalar(Type type)
     {
         type = Nullable.GetUnderlyingType(type) ?? type;
@@ -334,6 +381,14 @@ internal static class GXHistorySnapshot
             type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan) || type == typeof(DateOnly) || type == typeof(TimeOnly) || type == typeof(byte[]);
     }
 
+    /// <summary>Projects allowed entity state into bounded-depth JSON while scrubbing secret-bearing values.</summary>
+    /// <param name="value">Current entity value to project; null produces a null JSON node.</param>
+    /// <param name="type">Declared CLR type used to select permitted properties.</param>
+    /// <param name="root">Whether validation or projection applies to the root entity rather than a nested object.</param>
+    /// <param name="depth">Current recursion depth used to enforce the snapshot graph limit.</param>
+    /// <param name="expandOwned">Whether owned child entities may be expanded in this projection.</param>
+    /// <returns>The snapshot JSON node, or null for a null input value.</returns>
+    /// <exception cref="ArgumentException">The projected graph exceeds the snapshot depth limit.</exception>
     private static JsonNode? Project(object? value, Type type, bool root, int depth, bool expandOwned = false)
     {
         if (value == null)
@@ -354,7 +409,7 @@ internal static class GXHistorySnapshot
         if (Scalar(type))
         {
             if (value is string text && TryJson(text, out var json)) { Scrub(json); return JsonValue.Create(json!.ToJsonString()); }
-            return JsonSerializer.SerializeToNode(value, type, JsonOptions);
+            return JsonSerializer.SerializeToNode(value, type, _jsonOptions);
         }
         if (value is JsonElement element) { var node = JsonNode.Parse(element.GetRawText()); Scrub(node); return node; }
         if (value is IDictionary map)
@@ -384,7 +439,7 @@ internal static class GXHistorySnapshot
         var sensitiveProperty = value.GetType().GetProperty("Name")?.GetValue(value) is string name && Secret(name);
         foreach (var p in Properties(type, root, expandOwned))
         {
-            if (Presence.TryGetValue(value, out var present) && !present.Contains(p.Name))
+            if (_presence.TryGetValue(value, out var present) && !present.Contains(p.Name))
             {
                 continue;
             }
@@ -399,6 +454,10 @@ internal static class GXHistorySnapshot
         return result;
     }
 
+    /// <summary>Attempts to parse JSON without propagating a malformed-input exception.</summary>
+    /// <param name="text">Text to parse without propagating JSON parsing errors.</param>
+    /// <param name="node">JSON representation to inspect or sanitize.</param>
+    /// <returns>True when parsing succeeds; otherwise false.</returns>
     private static bool TryJson(string text, out JsonNode? node)
     {
         node = null;
@@ -412,6 +471,8 @@ internal static class GXHistorySnapshot
         catch (JsonException) { return false; }
     }
 
+    /// <summary>Removes secret-bearing properties from a JSON snapshot recursively.</summary>
+    /// <param name="node">JSON representation to inspect or sanitize.</param>
     private static void Scrub(JsonNode? node)
     {
         if (node is JsonObject obj)
@@ -437,6 +498,13 @@ internal static class GXHistorySnapshot
         }
     }
 
+    /// <summary>Validates snapshot shape, property allowlists, depth, and protected values before deserialization.</summary>
+    /// <param name="node">Snapshot JSON whose allowed properties and presence information are inspected.</param>
+    /// <param name="type">Allowed CLR type whose snapshot shape and properties must match the JSON.</param>
+    /// <param name="root">Whether validation or projection applies to the root entity rather than a nested object.</param>
+    /// <param name="depth">Current recursion depth used to enforce the snapshot graph limit.</param>
+    /// <param name="expandOwned">Whether owned child entities may be expanded in this projection.</param>
+    /// <exception cref="ArgumentException">Snapshot shape, properties, protected values, or recursion depth violate the restoration contract.</exception>
     private static void Validate(JsonNode? node, Type type, bool root, int depth, bool expandOwned = false)
     {
         if (node == null)
@@ -492,6 +560,12 @@ internal static class GXHistorySnapshot
         }
     }
 
+    /// <summary>Records which JSON properties were supplied so restoration can preserve members absent from an older snapshot.</summary>
+    /// <param name="value">Deserialized entity graph associated with the supplied JSON.</param>
+    /// <param name="node">Snapshot JSON whose allowed properties and presence information are inspected.</param>
+    /// <param name="type">Declared type used to traverse the deserialized object graph.</param>
+    /// <param name="root">Whether validation or projection applies to the root entity rather than a nested object.</param>
+    /// <param name="expandOwned">Whether owned child entities may be expanded in this projection.</param>
     private static void RegisterPresence(object? value, JsonNode? node, Type type, bool root, bool expandOwned = false)
     {
         if (value == null || node == null || Scalar(type) || type.IsValueType || type == typeof(object))
@@ -509,7 +583,7 @@ internal static class GXHistorySnapshot
         }
         else if (node is JsonObject obj)
         {
-            Presence.AddOrUpdate(value, obj.Select(p => p.Key).ToHashSet(StringComparer.Ordinal));
+            _presence.AddOrUpdate(value, obj.Select(p => p.Key).ToHashSet(StringComparer.Ordinal));
             foreach (var property in Properties(type, root, expandOwned))
             {
                 if (obj.TryGetPropertyValue(property.Name, out var child))
@@ -520,6 +594,8 @@ internal static class GXHistorySnapshot
         }
     }
 
+    /// <summary>Rejects snapshot JSON that attempts to restore protected secret values.</summary>
+    /// <param name="node">JSON representation to inspect or sanitize.</param>
     private static void RejectSecrets(JsonNode? node)
     {
         if (node is JsonObject obj)
@@ -543,6 +619,12 @@ internal static class GXHistorySnapshot
         }
     }
 
+    /// <summary>Merges explicitly present snapshot properties into current state while preserving identities and protected values.</summary>
+    /// <param name="current">Current entity state whose identifiers and protected values must be preserved.</param>
+    /// <param name="saved">Saved entity state whose explicitly present allowed values are restored.</param>
+    /// <param name="root">Whether validation or projection applies to the root entity rather than a nested object.</param>
+    /// <param name="depth">Current recursion depth used to enforce the snapshot graph limit.</param>
+    /// <exception cref="ArgumentException">The merge exceeds the snapshot depth limit.</exception>
     private static void MergeObject(object current, object saved, bool root, int depth)
     {
         if (depth > 16)
@@ -553,7 +635,7 @@ internal static class GXHistorySnapshot
         var sensitiveProperty = saved.GetType().GetProperty("Name")?.GetValue(saved) is string name && Secret(name);
         foreach (var p in Properties(saved.GetType(), root))
         {
-            if (Presence.TryGetValue(saved, out var present) && !present.Contains(p.Name))
+            if (_presence.TryGetValue(saved, out var present) && !present.Contains(p.Name))
             {
                 continue;
             }
@@ -573,7 +655,7 @@ internal static class GXHistorySnapshot
                 for (var index = 0; index != savedList.Count; ++index)
                 {
                     var item = savedList[index];
-                    if (item == null || !Owned.ContainsKey(item.GetType().Name))
+                    if (item == null || !_owned.ContainsKey(item.GetType().Name))
                     {
                         continue;
                     }
@@ -602,6 +684,10 @@ internal static class GXHistorySnapshot
         }
     }
 
+    /// <summary>Detects a generic Value property whose companion Name identifies secret-bearing data.</summary>
+    /// <param name="obj">JSON object containing the selected property and its companion Name field.</param>
+    /// <param name="key">Property name checked for a Value member holding secret-bearing data.</param>
+    /// <returns>True when the selected Value member must not be restored from history.</returns>
     private static bool SecretValue(JsonObject obj, string key)
     {
         if (!key.Equals("Value", StringComparison.OrdinalIgnoreCase))
@@ -613,6 +699,10 @@ internal static class GXHistorySnapshot
         return name is JsonValue value && value.TryGetValue<string>(out var text) && Secret(text);
     }
 
+    /// <summary>Merges saved settings while preserving protected values from the current configuration.</summary>
+    /// <param name="current">Current stored state whose preserved values take precedence.</param>
+    /// <param name="saved">Saved snapshot state to merge or restore.</param>
+    /// <returns>Merged configuration with the current protected values retained.</returns>
     internal static string? RestoreSettings(string? current, string? saved)
     {
         if (current != null && saved != null && TryJson(current, out var old) && TryJson(saved, out var state))
@@ -624,6 +714,9 @@ internal static class GXHistorySnapshot
         return saved;
     }
 
+    /// <summary>Merges saved JSON properties into the current configuration while retaining protected values.</summary>
+    /// <param name="current">Current stored state whose preserved values take precedence.</param>
+    /// <param name="saved">Saved snapshot state to merge or restore.</param>
     private static void MergeJson(JsonNode? current, JsonNode? saved)
     {
         if (current is JsonArray targetArray && saved is JsonArray sourceArray)
@@ -696,5 +789,3 @@ internal static class GXHistorySnapshot
         }
     }
 }
-
-internal sealed record GXHistoryModuleSetting(string ModuleId, string? Settings);

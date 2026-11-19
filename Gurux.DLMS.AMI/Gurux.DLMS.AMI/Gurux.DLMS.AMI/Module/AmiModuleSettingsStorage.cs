@@ -37,22 +37,37 @@ namespace Gurux.DLMS.AMI.Server.Module;
 /// <summary>Coordinates configuration and server-state writes to module settings.</summary>
 internal static class AmiModuleSettingsStorage
 {
+    /// <summary>Reserved JSON key containing host-managed module state.</summary>
     internal const string StateKey = "$state";
+    /// <summary>Reserved JSON key containing host-managed module resources.</summary>
     internal const string ResourcesKey = "$resources";
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Per-key synchronization that prevents concurrent mutations of the same resource.</summary>
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _gates = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Acquires the process-wide settings write gate for a single module identity.</summary>
+    /// <param name="moduleId">Module whose configuration and host state must be updated serially.</param>
+    /// <param name="token">Cancels waiting for an existing writer.</param>
+    /// <returns>A lease that releases the gate when disposed.</returns>
+    /// <exception cref="OperationCanceledException">Cancellation is requested before the gate is acquired.</exception>
     internal static async Task<IDisposable> LockAsync(string moduleId, CancellationToken token)
     {
-        var gate = Gates.GetOrAdd(moduleId, _ => new SemaphoreSlim(1, 1));
+        var gate = _gates.GetOrAdd(moduleId, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(token);
         return new Releaser(gate);
     }
 
+    /// <summary>Parses module configuration as a JSON object, treating omitted configuration as empty.</summary>
+    /// <param name="settings">Serialized module configuration, or null or whitespace for an empty object.</param>
+    /// <returns>The parsed configuration object.</returns>
+    /// <exception cref="InvalidOperationException">Nonempty configuration is not represented by a JSON object.</exception>
     internal static JsonObject Parse(string? settings) => string.IsNullOrWhiteSpace(settings)
         ? [] : JsonNode.Parse(settings) as JsonObject
             ?? throw new InvalidOperationException("Module settings must be a JSON object.");
 
     /// <summary>Ordinary edits may omit the schema marker; retain its persisted version without inventing one for legacy data.</summary>
+    /// <param name="incoming">Configuration submitted by the caller.</param>
+    /// <param name="stored">Previously persisted configuration containing authoritative host metadata.</param>
+    /// <returns>Submitted configuration with the relevant persisted host metadata retained.</returns>
     internal static string? PreserveSchemaVersion(string? incoming, string? stored)
     {
         var persisted = Parse(stored);
@@ -70,6 +85,9 @@ internal static class AmiModuleSettingsStorage
     }
 
     /// <summary>Only the host can replace reserved state; omitted schema metadata retains its persisted version.</summary>
+    /// <param name="incoming">Configuration submitted by the caller.</param>
+    /// <param name="stored">Previously persisted configuration containing authoritative host metadata.</param>
+    /// <returns>Submitted configuration with the relevant persisted host metadata retained.</returns>
     internal static string? PreserveState(string? incoming, string? stored)
     {
         incoming = PreserveSchemaVersion(incoming, stored);
@@ -90,6 +108,12 @@ internal static class AmiModuleSettingsStorage
         return settings.ToJsonString();
     }
 
+    /// <summary>Reads a module and its persisted properties using the supplied connection and transaction.</summary>
+    /// <param name="connection">Connection used for the module and property query.</param>
+    /// <param name="moduleId">Module identity to read.</param>
+    /// <param name="token">Cancels the database query.</param>
+    /// <param name="transaction">Existing transaction, when the read participates in a settings mutation.</param>
+    /// <returns>The module with an initialized property collection, or null if it does not exist.</returns>
     internal static async Task<GXModule?> ReadModuleAsync(GXDbConnection connection, string moduleId,
         CancellationToken token, IDbTransaction? transaction = null)
     {
@@ -105,6 +129,14 @@ internal static class AmiModuleSettingsStorage
         return module;
     }
 
+    /// <summary>Reconciles module properties by name, deleting removed values and checking optimistic concurrency on updates.</summary>
+    /// <param name="connection">Connection used to read and persist module properties.</param>
+    /// <param name="module">Module containing the desired property collection; null properties leave storage unchanged.</param>
+    /// <param name="token">Cancels the database work.</param>
+    /// <param name="transaction">Existing transaction, or null to create and commit a transaction for this write.</param>
+    /// <returns>A task that completes after the property collection has been reconciled.</returns>
+    /// <exception cref="ArgumentException">Property names are empty, exceed 64 characters, or are duplicated.</exception>
+    /// <exception cref="InvalidOperationException">A property was concurrently modified by another operation.</exception>
     internal static async Task SavePropertiesAsync(GXDbConnection connection, GXModule module,
         CancellationToken token, IDbTransaction? transaction = null)
     {
@@ -162,8 +194,11 @@ internal static class AmiModuleSettingsStorage
             }
         }
     }
+    /// <summary>Releases a held semaphore when the owning scope is disposed.</summary>
+    /// <param name="gate">Held semaphore released when this object is disposed.</param>
     private sealed class Releaser(SemaphoreSlim gate) : IDisposable
     {
+        /// <inheritdoc />
         public void Dispose() => gate.Release();
     }
 }

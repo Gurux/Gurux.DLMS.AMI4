@@ -65,23 +65,56 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     class TaskRepository : ITaskRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Loads and manages ASP.NET Identity user records.</summary>
         private readonly UserManager<ApplicationUser> _userManager;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for attribute records.</summary>
         private readonly IAttributeRepository _attributeRepository;
+        /// <summary>Provides persistence and access checks for object records.</summary>
         private readonly IObjectRepository _objectRepository;
+        /// <summary>Provides persistence and access checks for device records.</summary>
         private readonly IDeviceRepository _deviceRepository;
+        /// <summary>Resolves deferred task values before execution.</summary>
         private readonly ITaskLateBindHandler _taskHandler;
+        /// <summary>Provides persistence and access checks for script records.</summary>
         private readonly IScriptRepository _scriptRepository;
+        /// <summary>Provides module installation and configuration operations.</summary>
         private readonly IGXModuleService _moduleService;
+        /// <summary>Provides persistence and access checks for schedule records.</summary>
         private readonly IScheduleRepository _scheduleRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Provides persistence and access checks for enum type records.</summary>
         private readonly IEnumTypeRepository _enumTypeRepository;
+        /// <summary>Provides persistence and access checks for log records.</summary>
         private readonly ILogRepository _systemLogRepository;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
+        /// <summary>Initializes authorized task persistence with workflow, script, and device dependencies.</summary>
+        /// <param name="authorizationService">Evaluates policies before task data is accessed or changed.</param>
+        /// <param name="dbFactory">Creates database connections for persistence operations.</param>
+        /// <param name="httpContextAccessor">Provides the current authenticated HTTP request.</param>
+        /// <param name="userRepository">Resolves users and their task access permissions.</param>
+        /// <param name="userManager">Loads and manages authenticated identity users.</param>
+        /// <param name="serviceProvider">Resolves the dependencies required by this component.</param>
+        /// <param name="attributeRepository">Reads attribute metadata needed to construct task operations.</param>
+        /// <param name="objectRepository">Reads object definitions referenced by tasks.</param>
+        /// <param name="deviceRepository">Reads device definitions referenced by tasks.</param>
+        /// <param name="taskHandler">Resolves deferred task values before execution.</param>
+        /// <param name="scriptRepository">Loads scripts referenced by scheduled tasks.</param>
+        /// <param name="moduleService">Resolves module-provided task functionality.</param>
+        /// <param name="scheduleRepository">Loads schedule definitions associated with tasks.</param>
+        /// <param name="notificationCache">Publishes task change notifications to connected users.</param>
+        /// <param name="enumTypeRepository">Resolves enumeration metadata for task parameters.</param>
+        /// <param name="systemLogRepository">Writes operational errors and execution diagnostics.</param>
         public TaskRepository(
             IAuthorizationService authorizationService,
             IDbConnectionFactory dbFactory,
@@ -104,7 +137,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userManager = userManager;
             _userRepository = userRepository;
@@ -122,6 +155,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXTask), id, action, GXTaskPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -129,10 +168,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(IEnumerable<Guid> tasks, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             IEnumerable<GXTask> exists;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 GXSelectArgs arg = GXSelectArgs.Select<GXTask>(s => new { s.Id }, w => tasks.Contains(w.Id));
                 exists = connection.Select<GXTask>(arg);
@@ -140,7 +179,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Check that the user has access rights to the removed agent groups.
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 var arg = GXQuery.GetTasksByUser(s => s.Id, userId, null, null, tasks);
                 exists = connection.Select<GXTask>(arg);
             }
@@ -197,9 +236,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListTasksResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the tasks.
                 arg = GXSelectArgs.SelectAll<GXTask>();
@@ -207,7 +246,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Get all tasks that user has created.
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 GXUser user = new() { Id = userId };
                 arg = GXSelectArgs.SelectAll<GXTask>(w => w.Creator == user);
             }
@@ -381,7 +420,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.View);
 
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXTask>(where => where.Id == id);
                 arg.Distinct = true;
@@ -577,8 +616,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken)
         {
             GXWorkflowService.ThrowIfExecutionCancelled();
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.Add);
-            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Add);
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
             DateTime now = DateTime.Now;
             GXSelectArgs arg;
             GXDevice? dev;
@@ -622,9 +661,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             {
                             throw new UnauthorizedAccessException("Scheduled operation correlation requires a visible schedule.");
                         }
-                        await _authorizationService.EnsureAnyPolicyAsync(User, GXSchedulePolicies.View);
+                        await _authorizationService.EnsureAnyPolicyAsync(_user, GXSchedulePolicies.View);
                         Guid scheduleId = invocation.TriggerSchedule.Id;
-                        var visibleSchedule = User.IsInRole(GXRoles.Admin)
+                        var visibleSchedule = _user.IsInRole(GXRoles.Admin)
                             ? GXSelectArgs.Select<GXSchedule>(q => q.Id, q => q.Id == scheduleId && q.Removed == null)
                             : GXQuery.GetSchedulesByUser(q => q.Id, creator.Id, scheduleId);
                         if (await connection.SingleOrDefaultAsync<GXSchedule>(transaction, visibleSchedule, cancellationToken) == null)
@@ -644,7 +683,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         continue;
                     }
                     IEnumerable<GXDevice> devices = scheduled.DeviceGroup != null
-                        ? DeviceGroupRepository.GetDevicessByDeviceGroupId(connection, transaction, User, scheduled.DeviceGroup.Id)
+                        ? DeviceGroupRepository.GetDevicessByDeviceGroupId(connection, transaction, _user, scheduled.DeviceGroup.Id)
                         : new[] { scheduled.Device! };
                     foreach (var device in devices)
                     {
@@ -681,7 +720,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (it.DeviceGroup != null)
                     {
                         //Get devices that belong to this device group.
-                        var devices = DeviceGroupRepository.GetDevicessByDeviceGroupId(connection, transaction, User, it.DeviceGroup.Id);
+                        var devices = DeviceGroupRepository.GetDevicessByDeviceGroupId(connection, transaction, _user, it.DeviceGroup.Id);
                         //If user wants to read attributes from the selected device groups.
                         if (it.Object?.Attributes != null && it.Object.Attributes.Count != 0)
                         {
@@ -700,7 +739,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                     t.Creator = it.Creator;
                                     tasks2.Add(t);
                                 }
-                                _taskHandler.AddRange(User, tasks2);
+                                _taskHandler.AddRange(_user, tasks2);
                             }
                         }
                         else
@@ -714,7 +753,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 t.Creator = it.Creator;
                                 tasks2.Add(t);
                             }
-                            _taskHandler.AddRange(User, tasks2);
+                            _taskHandler.AddRange(_user, tasks2);
                         }
                         removed.Add(it);
                     }
@@ -736,7 +775,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 t.Creator = it.Creator;
                                 tasks2.Add(t);
                             }
-                            _taskHandler.AddRange(User, tasks2);
+                            _taskHandler.AddRange(_user, tasks2);
                         }
                         else
                         {
@@ -746,7 +785,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             t.TargetDevice = it.Device.Id;
                             t.Creator = it.Creator;
                             tasks2.Add(t);
-                            _taskHandler.AddRange(User, tasks2);
+                            _taskHandler.AddRange(_user, tasks2);
                         }
                         removed.Add(it);
                     }
@@ -986,7 +1025,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //If script is triggered by user.
                     if (it.TriggerSchedule == null && it.TriggerScript == null)
                     {
-                        it.TriggerUser = new GXUser() { Id = ServerHelpers.GetUserId(User) };
+                        it.TriggerUser = new GXUser() { Id = ServerHelpers.GetUserId(_user) };
                     }
                     else
                     {
@@ -1085,7 +1124,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     _notificationCache.Add(users, new GXTarget(GXTaskPolicies.Add));
                 }
                 var insert = GXInsertArgs.InsertRange(tasks3);
-                insert.Exclude<GXTask>(e => new { e.Ready, e.Result, e.Updated, e.Start, e.OperatingAgent });
+                insert.Exclude<GXTask>(e => new { e.Ready, e.Result, e.Error, e.Updated, e.Start, e.OperatingAgent });
                 insert.Exclude<GXAttribute>(e => new { e.Object, e.Template });
                 insert.Exclude<GXObject>(e => new { e.Device, e.Template });
                 await connection.InsertAsync(transaction, insert, cancellationToken);
@@ -1119,10 +1158,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new Exception("Device is unknown.");
             }
             //Save occurred exception or clear the old one.
-            if (!string.IsNullOrEmpty(executedTask.Result))
+            if (!string.IsNullOrEmpty(executedTask.Error))
             {
                 obj.LastError = executedTask.Ready;
-                obj.LastErrorMessage = executedTask.Result;
+                obj.LastErrorMessage = executedTask.Error;
             }
             else
             {
@@ -1173,12 +1212,26 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Selects the workflow operation code prefix from the task target and lowercases its task type.</summary>
+        /// <param name="task">Claimed task whose operation identity or workflow record is created.</param>
+        /// <returns>The device- or task-scoped operation code.</returns>
         private static string TaskOperationCode(GXTask task)
             => (task.TargetDevice != null ? "device." : "task.") + task.TaskType.GetValueOrDefault().ToString().ToLowerInvariant();
 
-        private static string TaskOperationKey(GXTask task)
+        /// <summary>Builds an idempotency key from the task operation code, identity, and claim timestamp.</summary>
+        /// <param name="task">Claimed task whose operation identity or workflow record is created.</param>
+        /// <returns>The key identifying the specific task claim.</returns>
+        internal static string TaskOperationKey(GXTask task)
             => $"{TaskOperationCode(task)}:{task.Id:N}:{task.Start!.Value.ToUnixTimeMilliseconds()}";
 
+        /// <summary>Starts a workflow operation for a claimed task, advancing its claim timestamp if needed to avoid an existing idempotency key.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="task">Claimed task whose operation identity or workflow record is created.</param>
+        /// <param name="actorId">Optional user or agent identity attributed to the new workflow operation.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The persisted workflow operation associated with the unique task claim.</returns>
+        /// <exception cref="InvalidOperationException">The task has no active claim timestamp or operating agent.</exception>
         internal static async Task<GXWorkflowOperation> StartTaskOperationAsync(GXDbConnection connection, IDbTransaction transaction,
             GXTask task, string? actorId, CancellationToken token)
         {
@@ -1201,21 +1254,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }, token);
         }
 
+        /// <summary>Validates task claim reports, persists completion atomically, and completes their associated workflow operations.</summary>
+        /// <param name="reports">Task completion reports that must match the current persisted claims.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>Task reports accepted and completed by the operation.</returns>
         internal async Task<IReadOnlyList<GXTask>> CompleteOperationsAsync(IEnumerable<GXTask> reports, CancellationToken token)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Edit);
             ArgumentNullException.ThrowIfNull(reports);
-            var tasks = reports.Select(t => new GXTask { Id = t.Id, Start = t.Start, Result = t.Result, Data = t.Data }).ToArray();
+            var tasks = reports.Select(t => new GXTask { Id = t.Id, Start = t.Start, Result = t.Result, Error = t.Error, Data = t.Data }).ToArray();
             var completed = new Dictionary<Guid, GXWorkflowOperation>();
             await WorkflowOperationRepository.Gate.WaitAsync(token);
             try
             {
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync(token);
                 await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, token);
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 foreach (var report in tasks)
                 {
-                    var query = GXSelectArgs.Select<GXTask>(t => new { t.Id, t.Start, t.Ready, t.Result, t.Data,
+                    var query = GXSelectArgs.Select<GXTask>(t => new { t.Id, t.Start, t.Ready, t.Result, t.Error, t.Data,
                         t.TargetDevice, t.TaskType, t.WorkflowOperationId }, t => t.Id == report.Id);
                     query.Joins.AddInnerJoin<GXTask, GXAgent>(t => t.OperatingAgent!, a => a.Id);
                     query.Columns.Add<GXAgent>(a => a.Id);
@@ -1240,14 +1297,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         task.Ready = DateTimeOffset.UtcNow;
                         task.Result = report.Result;
+                        task.Error = report.Error;
                         task.Data = report.Data;
-                        await connection.UpdateAsync(transaction, GXUpdateArgs.Update(task, t => new { t.Ready, t.Result, t.Data }), token);
+                        await connection.UpdateAsync(transaction, GXUpdateArgs.Update(task, t => new { t.Ready, t.Result, t.Error, t.Data }), token);
                         operation = await WorkflowOperationRepository.FinishRecordAsync(connection, transaction, operation.Id,
-                            string.IsNullOrEmpty(task.Result) ? WorkflowOperationState.Completed : WorkflowOperationState.Failed,
-                            string.IsNullOrEmpty(task.Result) ? null : "task-failed", task.Result?[..Math.Min(task.Result.Length, 2048)], token);
+                            string.IsNullOrEmpty(task.Error) ? WorkflowOperationState.Completed : WorkflowOperationState.Failed,
+                            string.IsNullOrEmpty(task.Error) ? null : "task-failed", task.Error?[..Math.Min(task.Error.Length, 2048)], token);
                     }
                     report.Ready = task.Ready;
                     report.Result = task.Result;
+                    report.Error = task.Error;
                     report.Data = task.Data;
                     completed[operation.Id] = operation;
                 }
@@ -1273,7 +1332,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     _serviceProvider.GetRequiredService<IWorkflowHandler>(), task, cancellationToken);
                 if (task.Attribute != null)
                 {
-                    if (!string.IsNullOrEmpty(it.Result))
+                    if (!string.IsNullOrEmpty(it.Error))
                     {
                         task.Attribute.LastError = it.Ready;
                     }
@@ -1281,7 +1340,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         task.Attribute.LastError = null;
                     }
-                    task.Attribute.Exception = it.Result;
+                    task.Attribute.Exception = it.Error;
                     Expression<Func<GXAttribute, object>> columns;
                     switch (task.TaskType)
                     {
@@ -1332,7 +1391,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         if (att != null)
                         {
                             att.Object = task.Object;
-                            if (!string.IsNullOrEmpty(it.Result))
+                            if (!string.IsNullOrEmpty(it.Error))
                             {
                                 att.LastError = it.Ready;
                             }
@@ -1340,7 +1399,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             {
                                 att.LastError = null;
                             }
-                            att.Exception = it.Result;
+                            att.Exception = it.Error;
                             Expression<Func<GXAttribute, object>> columns;
                             switch (task.TaskType)
                             {
@@ -1373,7 +1432,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task RestartAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Edit);
             ArgumentNullException.ThrowIfNull(tasks);
             var identifiers = tasks.Select(t => t.Id).Distinct().ToArray();
             await WorkflowOperationRepository.Gate.WaitAsync(cancellationToken);
@@ -1383,7 +1442,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
                 var operations = new List<GXWorkflowOperation>();
                 var notifications = new List<(Guid Id, List<string> Users)>();
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 foreach (Guid id in identifiers)
                 {
                     var task = await connection.SingleOrDefaultAsync<GXTask>(transaction,
@@ -1391,7 +1450,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         ?? throw new UnauthorizedAccessException("The task is unavailable.");
                     var members = await GXRepositoryUsers.GetUsersAsync(connection, typeof(GXTask), id,
                         transaction, token: cancellationToken);
-                    if (!User.IsInRole(GXRoles.Admin) && !members.Contains(userId))
+                    if (!_user.IsInRole(GXRoles.Admin) && !members.Contains(userId))
                         {
                         throw new UnauthorizedAccessException("The task is unavailable.");
                     }
@@ -1410,12 +1469,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     task.OperatingAgent = null;
                     task.Start = task.Ready = null;
                     task.Result = null;
+                    task.Error = null;
                     if (!Gurux.DLMS.AMI.Client.Shared.GXProfileReadIntent.IsSerializedIntent(task.Data))
                         {
                         task.Data = null;
                     }
                     await connection.UpdateAsync(transaction, GXUpdateArgs.Update(task,
-                        q => new { q.Start, q.Ready, q.Result, q.Data, q.OperatingAgent }), cancellationToken);
+                        q => new { q.Start, q.Ready, q.Result, q.Error, q.Data, q.OperatingAgent }), cancellationToken);
                     notifications.Add((id, await GetNotifiedUsers(id, NotificationAction.Edit, connection, transaction)));
                 }
                 await transaction.CommitAsync(cancellationToken);
@@ -1440,6 +1500,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try { return await GetNextCoreAsync(connectionInfo, agentId, DeviceId, gatewayId, listener, cancellationToken); }
             finally { WorkflowOperationRepository.Gate.Release(); }
         }
+        /// <summary>Authorizes an active agent, claims its next eligible tasks in a serializable transaction, and starts corresponding workflow operations.</summary>
+        /// <param name="connectionInfo">Optional connection details retained with the agent status or task claim.</param>
+        /// <param name="agentId">Identity of the agent whose status or task claims are changed.</param>
+        /// <param name="DeviceId">Optional device identity restricting the next eligible task claims.</param>
+        /// <param name="gatewayId">Optional gateway identity restricting the next eligible task claims.</param>
+        /// <param name="listener">Whether task selection is performed for a listener connection.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The task claims selected for the agent and requested device or gateway scope.</returns>
         private async Task<IEnumerable<GXTask>> GetNextCoreAsync(
             string? connectionInfo,
             Guid agentId,
@@ -1447,7 +1515,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Guid? gatewayId,
             bool listener, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Edit);
             //Check that agent is active and not removed.
             GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(c => c.Id, q => q.Id == agentId && q.Enabled == true && q.Removed == null);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
@@ -1462,7 +1530,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     throw new UnauthorizedAccessException();
                 }
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 var membership = GXRepositoryUsers.Query(typeof(GXAgent), agentId);
                 membership.Where.And<GXUser>(u => u.Id == userId);
                 if ((await connection.SelectAsync<GXUser>(transaction, membership, cancellationToken)).Count == 0)
@@ -1547,14 +1615,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task ClearAsync(CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTaskPolicies.Clear);
-            bool admin = User.IsInRole(GXRoles.Admin);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Clear);
+            bool admin = _user.IsInRole(GXRoles.Admin);
             GXSelectArgs arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddLeftJoin<GXUser, GXTask>(y => y.Id!, x => x.TriggerUser!);
             if (!admin)
             {
-                string id = ServerHelpers.GetUserId(User);
+                string id = ServerHelpers.GetUserId(_user);
                 arg.Where.And<GXUser>(w => w.Id == id);
             }
             //Clear enum types.
@@ -1587,7 +1655,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await transaction.CommitAsync(cancellationToken);
                 throw;
             }
-            if (await _authorizationService.CanAccessPolicyAsync(User, GXSystemLogPolicies.Add))
+            if (await _authorizationService.CanAccessPolicyAsync(_user, GXSystemLogPolicies.Add))
             {
                 //Add clean to the clear to log.
                 await _systemLogRepository.AddAsync(TargetType.Task, [new GXLog(TraceLevel.Info) { Message = Properties.Resources.Clear }], cancellationToken);

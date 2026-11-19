@@ -33,17 +33,29 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <summary>Shares the history transaction with Identity instead of opening a competing writer.</summary>
 internal sealed class GXHistoryIdentityScope : IAsyncDisposable
 {
-    private readonly DbContext context;
-    private readonly string? connectionString;
-    private readonly IDbContextTransaction enlistment;
+    /// <summary>Context associated with the current operation.</summary>
+    private readonly DbContext _context;
+    /// <summary>Connection string used when opening the backing database.</summary>
+    private readonly string? _connectionString;
+    /// <summary>Entity Framework transaction enlisted in the surrounding database operation.</summary>
+    private readonly IDbContextTransaction _enlistment;
 
+    /// <summary>Enlists identity persistence in the connection and transaction used by history restoration.</summary>
+    /// <param name="context">Context whose identity or transaction is temporarily enlisted.</param>
+    /// <param name="connectionString">Original connection string restored after the identity scope ends.</param>
+    /// <param name="enlistment">Entity Framework transaction wrapper enlisted in the shared transaction.</param>
     private GXHistoryIdentityScope(DbContext context, string? connectionString, IDbContextTransaction enlistment)
     {
-        this.context = context;
-        this.connectionString = connectionString;
-        this.enlistment = enlistment;
+        this._context = context;
+        this._connectionString = connectionString;
+        this._enlistment = enlistment;
     }
 
+    /// <summary>Enlists an identity DbContext in the active history transaction without transferring connection ownership.</summary>
+    /// <param name="context">Optional identity DbContext to enlist in the current history transaction.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A restoration scope, or null when enlistment is unnecessary.</returns>
+    /// <exception cref="InvalidOperationException">Identity is already enlisted in a different transaction or cannot join the active history transaction.</exception>
     internal static async Task<GXHistoryIdentityScope?> JoinAsync(DbContext? context, CancellationToken token = default)
     {
         var transaction = GXHistoryScope.CurrentTransaction;
@@ -77,10 +89,11 @@ internal sealed class GXHistoryIdentityScope : IAsyncDisposable
         }
     }
 
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await enlistment.DisposeAsync();
-        context.Database.SetDbConnection(null, contextOwnsConnection: true);
-        context.Database.SetConnectionString(connectionString);
+        await _enlistment.DisposeAsync();
+        _context.Database.SetDbConnection(null, contextOwnsConnection: true);
+        _context.Database.SetConnectionString(_connectionString);
     }
 }

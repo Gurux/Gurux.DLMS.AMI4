@@ -114,7 +114,7 @@
                             }
                             else
                             {
-                                <label>@Value</label>
+                                <label>@_value</label>
                             }
                         </div>
                     </div>
@@ -125,9 +125,11 @@
 }
 @code {
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
-    private object? Value;
+    /// <summary>Retains the value currently being displayed or edited.</summary>
+    private object? _value;
 
     private bool IsHexString
     {
@@ -147,11 +149,11 @@
     {
         get
         {
-            return Value as byte[];
+            return _value as byte[];
         }
         set
         {
-            Value = value;
+            _value = value;
         }
     }
 
@@ -159,11 +161,11 @@
     {
         get
         {
-            return GXDLMSTranslator.HexToBytes(Value as string);
+            return GXDLMSTranslator.HexToBytes(_value as string);
         }
         set
         {
-            Value = GXDLMSTranslator.ToHex(value);
+            _value = GXDLMSTranslator.ToHex(value);
         }
     }
 
@@ -171,11 +173,11 @@
     {
         get
         {
-            return (int?)Value ?? 0;
+            return (int?)_value ?? 0;
         }
         set
         {
-            Value = value;
+            _value = value;
         }
     }
 
@@ -183,11 +185,11 @@
     {
         get
         {
-            return (byte?)Value ?? 0;
+            return (byte?)_value ?? 0;
         }
         set
         {
-            Value = Convert.ToByte(value);
+            _value = Convert.ToByte(value);
         }
     }
 
@@ -195,11 +197,11 @@
     {
         get
         {
-            return (bool?)Value ?? false;
+            return (bool?)_value ?? false;
         }
         set
         {
-            Value = value;
+            _value = value;
         }
     }
 
@@ -207,14 +209,15 @@
     {
         get
         {
-            return (string?)Value ?? string.Empty;
+            return (string?)_value ?? string.Empty;
         }
         set
         {
-            Value = value;
+            _value = value;
         }
     }
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
     [Parameter]
@@ -230,20 +233,20 @@
 
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AdvancedEdit.OnInitialized");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/AdvancedEdit.OnInitialized");
             if (Active == null || Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Value = Active.GetValue(Parent?.Settings ?? throw new InvalidOperationException(Properties.Resources.DeviceTemplateSettingsAreMissing));
+            _value = Active.GetValue(Parent?.Settings ?? throw new InvalidOperationException(Properties.Resources.DeviceTemplateSettingsAreMissing));
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AdvancedEdit.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/AdvancedEdit.OnInitialized");
         }
     }
 
@@ -272,10 +275,10 @@
             {
                 return;
             }
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AdvancedEdit.OnSave");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/AdvancedEdit.OnSave");
             if (Parent?.Action == CrudAction.Update)
             {
-                Active.SetValue(Parent.Settings, Value);
+                Active.SetValue(Parent.Settings, _value);
             }
             else
             {
@@ -286,7 +289,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AdvancedEdit.OnSave");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/AdvancedEdit.OnSave");
         }
     }
 

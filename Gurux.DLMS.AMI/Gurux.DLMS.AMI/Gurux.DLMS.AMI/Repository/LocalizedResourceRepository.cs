@@ -66,15 +66,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
         IConfigurationRepository configurationRepository,
         NotificationCache notificationCache) : ILocalizedResourceRepository
     {
-        private readonly ClaimsPrincipal? User = httpContextAccessor.HttpContext?.User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal? _user = httpContextAccessor.HttpContext?.User;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory = dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository = userRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache = notificationCache;
+        /// <summary>Provides persistence and access checks for enum type records.</summary>
         private readonly IEnumTypeRepository _enumTypeRepository = enumTypeRepository;
+        /// <summary>Provides persistence and access checks for log records.</summary>
         private readonly ILogRepository _systemLogRepository = systemLogRepository.ForSource("system");
+        /// <summary>Provides persistence and access checks for configuration records.</summary>
         private readonly IConfigurationRepository _configurationRepository = configurationRepository;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService = authorizationService;
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private async Task<List<string>> GetNotifiedUsers(Guid id, NotificationAction action)
         {
             _ = id;
@@ -88,13 +100,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> resources, CancellationToken cancellationToken = default)
         {
             resources = resources.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXLocalizedResource, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, resources,
+            await GXHistoryMutation.RunDeleteAsync<GXLocalizedResource, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, resources,
         async () =>
         {
             try
             {
 
-                if (User?.IsInRole(GXRoles.Admin) != true)
+                if (_user?.IsInRole(GXRoles.Admin) != true)
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -151,7 +163,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListLocalizedResourcesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            bool isAdmin = User?.IsInRole(GXRoles.Admin) == true;
+            bool isAdmin = _user?.IsInRole(GXRoles.Admin) == true;
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXLocalizedResource>();
             arg.Columns.Add<GXLanguage>(s => new { s.Id });
             arg.Columns.Exclude<GXLanguage>(s => new { s.Resources });
@@ -307,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (!string.IsNullOrEmpty(text))
                     {
                         //If the resource is Unknown.
-                        if (User?.Identity?.IsAuthenticated != true)
+                        if (_user?.Identity?.IsAuthenticated != true)
                         {
                             //Return value for unauthenticated users.
                             return new GXLocalizedResource()
@@ -316,7 +328,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 Hash = hash,
                             };
                         }
-                        GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                        GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                         GXLog log = new(TraceLevel.Error)
                         {
                             Type = await _enumTypeRepository.GetLogTypeAsync(TargetType.SystemLog, TargetType.LocalizedResource, cancellationToken),
@@ -373,13 +385,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXLocalizedResource> resources, CancellationToken cancellationToken = default)
         {
             resources = resources.ToArray();
-            return await GXHistoryMutation.RunAsync<GXLocalizedResource, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, resources,
+            return await GXHistoryMutation.RunAsync<GXLocalizedResource, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, resources,
         async () =>
         {
             try
             {
 
-                if (User?.IsInRole(GXRoles.Admin) != true)
+                if (_user?.IsInRole(GXRoles.Admin) != true)
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -429,7 +441,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         resource.ConcurrencyStamp = Guid.NewGuid().ToString();
                         GXUpdateArgs args = GXUpdateArgs.Update(resource);
                         //Hash is not updated after the creation.
-                        if (User.IsInRole(GXRoles.Admin) && resource.Creator?.Id != null)
+                        if (_user.IsInRole(GXRoles.Admin) && resource.Creator?.Id != null)
                         {
                             args.Exclude<GXLocalizedResource>(e => new { e.CreationTime, e.Hash });
                         }

@@ -150,7 +150,7 @@ else if (Active != null)
                             <p>
                             </p>
                             <div class="form-group">
-                                <InputRadioGroup @bind-Value="DeleteTarget">
+                                <InputRadioGroup @bind-Value="_deleteTarget">
                                     <InputRadio Value="false">
                                     </InputRadio>
                                     <label>@Properties.Resources.TargetDisableQuestion</label><br>
@@ -177,18 +177,21 @@ else if (Active != null)
     [Parameter] public EventCallback ImageChanged { get; set; }
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
     }
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     [Parameter]
@@ -202,6 +205,7 @@ else if (Active != null)
         }
     }
 
+    /// <summary>References the icon selector so its choices can be refreshed when the pack changes.</summary>
     GXInputDropdown<(string, string)>? _icons;
     private ImageType ImageType { get; set; }
 
@@ -238,7 +242,8 @@ else if (Active != null)
     /// </summary>
     [Parameter]
     public Guid? Id { get; set; }
-    private bool DeleteTarget;
+    /// <summary>Records whether the selected target should also be deleted when its link is removed.</summary>
+    private bool _deleteTarget;
     private byte[]? _value { get; set; }
 
     private HtmlSymbol _htmlSymbol
@@ -248,11 +253,11 @@ else if (Active != null)
             HtmlSymbol? tmp = null;
             if (!string.IsNullOrEmpty(Active?.Value))
             {
-                tmp = Symbols.Where(w => w.NumericCode == Active.Value).SingleOrDefault();
+                tmp = _symbols.Where(w => w.NumericCode == Active.Value).SingleOrDefault();
             }
             if (tmp == null)
             {
-                tmp = Symbols[0];
+                tmp = _symbols[0];
             }
             return tmp;
         }
@@ -275,11 +280,11 @@ else if (Active != null)
             (string, string) tmp = default;
             if (!string.IsNullOrEmpty(Active?.Value))
             {
-                tmp = Icons.Where(w => w.Item1 == Active.Value).SingleOrDefault();
+                tmp = _availableIcons.Where(w => w.Item1 == Active.Value).SingleOrDefault();
             }
             if (tmp == default)
             {
-                tmp = Icons.FirstOrDefault();
+                tmp = _availableIcons.FirstOrDefault();
             }
             return tmp;
         }
@@ -299,7 +304,8 @@ else if (Active != null)
         string NumericCode
     );
 
-    private readonly List<HtmlSymbol> Symbols =
+    /// <summary>Contains the HTML symbol choices offered by the icon editor.</summary>
+    private readonly List<HtmlSymbol> _symbols =
  [
     new("Registered trademark","&#174;"),
     new("Trademark","&#8482;"),
@@ -362,7 +368,7 @@ else if (Active != null)
         if (!string.IsNullOrEmpty(request.Filter))
         {
             string filter = request.Filter.ToLower();
-            foreach (var it in Symbols)
+            foreach (var it in _symbols)
             {
                 if (it.ToString().ToLower().Contains(filter))
                 {
@@ -372,12 +378,13 @@ else if (Active != null)
         }
         else
         {
-            list.AddRange(Symbols);
+            list.AddRange(_symbols);
         }
-        return new(new ItemsProviderResult<HtmlSymbol>(list, Symbols.Count));
+        return new(new ItemsProviderResult<HtmlSymbol>(list, _symbols.Count));
     }
 
-    private readonly List<(string, string)> Icons = new();
+    /// <summary>Caches the icon names and markup offered by the selected icon pack.</summary>
+    private readonly List<(string, string)> _availableIcons = new();
 
     private ValueTask<ItemsProviderResult<(string, string)>> GetIcons(GXItemsProviderRequest request)
     {
@@ -385,10 +392,10 @@ else if (Active != null)
         {
             if (!string.IsNullOrEmpty(_iconPack?.Name))
             {
-                Icons.Clear();
-                Icons.AddRange(ClientHelpers.GetIconPackIcons(_iconPack.Name));
-                IEnumerable<(string, string)> icons = Icons;
-                int total = Icons.Count;
+                _availableIcons.Clear();
+                _availableIcons.AddRange(ClientHelpers.GetIconPackIcons(_iconPack.Name));
+                IEnumerable<(string, string)> icons = _availableIcons;
+                int total = _availableIcons.Count;
                 if (!string.IsNullOrEmpty(request.Filter))
                 {
                     icons = icons.Where(w => w.Item2.ToLower().Contains(request.Filter.ToLower()));
@@ -421,7 +428,7 @@ else if (Active != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -449,7 +456,7 @@ else if (Active != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
     /// <summary>
@@ -487,14 +494,14 @@ else if (Active != null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingImageEditor);
-            NotificationService?.RemoveByKey("Pages/Appearance/ImageEditor.OnSave");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.SavingImageEditor);
+            _notificationService?.RemoveByKey("Pages/Appearance/ImageEditor.OnSave");
             if (Action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveAppearanceResponse>("api/Appearance/Delete", new RemoveAppearance()
                 {
                     Ids = new Guid[] { Active.Id },
-                    Delete = DeleteTarget
+                    Delete = _deleteTarget
                 });
             }
             else
@@ -523,7 +530,7 @@ else if (Active != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Appearance/ImageEditor.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Appearance/ImageEditor.OnSave");
         }
     }
 

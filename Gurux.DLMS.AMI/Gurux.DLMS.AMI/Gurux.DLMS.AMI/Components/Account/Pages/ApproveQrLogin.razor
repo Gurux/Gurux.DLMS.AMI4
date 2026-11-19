@@ -40,10 +40,10 @@
 
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ApproveComputerLogin</PageTitle>
 <h1>@Gurux.DLMS.AMI.Properties.Resources.ApproveComputerLogin</h1>
-@if (info is not null && !approved)
+@if (_info is not null && !_approved)
 {
     <p>@Gurux.DLMS.AMI.Properties.Resources.ApproveOnlyALoginYouJustStartedOnYourOwnComputer</p>
-    <p>Computer address: @info.RemoteAddress. Expires: @info.ExpiresAt.ToString("HH:mm:ss 'UTC'").</p>
+    <p>Computer address: @_info.RemoteAddress. Expires: @_info.ExpiresAt.ToString("HH:mm:ss 'UTC'").</p>
     <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" method="post" FormName="approve-qr-login" OnValidSubmit="ApproveAsync">
         <DataAnnotationsValidator />
         <label for="qr-number">@Gurux.DLMS.AMI.Properties.Resources.EnterTheSixDigitNumberShownOnYourComputer</label>
@@ -52,16 +52,20 @@
         <button type="submit" class="btn btn-primary">@Gurux.DLMS.AMI.Properties.Resources.ApproveLogin</button>
     </EditForm>
 }
-<p role="status">@message</p>
+<p role="status">@_message</p>
 
 @code {
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
     [SupplyParameterFromQuery] public string? Id { get; set; }
     [SupplyParameterFromForm] private ApprovalInput Input { get; set; } = default!;
-    private AmiQrLoginInfo? info;
-    private string? userId;
-    private bool approved;
-    private string message = Gurux.DLMS.AMI.Properties.Resources.TheRequestIsUnavailableExpiredOrBelongsToAnotherAccount;
+    /// <summary>Contains the QR-login details displayed before approving the requesting browser.</summary>
+    private AmiQrLoginInfo? _info;
+    /// <summary>Identifies the account authorized to approve the QR-login request.</summary>
+    private string? _userId;
+    /// <summary>Records whether the QR-login approval has completed successfully.</summary>
+    private bool _approved;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string _message = Gurux.DLMS.AMI.Properties.Resources.TheRequestIsUnavailableExpiredOrBelongsToAnotherAccount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,21 +79,21 @@
         {
             return;
         }
-        userId = user.Id;
+        _userId = user.Id;
         try
         {
-            info = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginInfo?>((service, _) => Task.FromResult(service.GetForApproval(Id, userId)), HttpContext.RequestAborted);
-            if (info is not null)
+            _info = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginInfo?>((service, _) => Task.FromResult(service.GetForApproval(Id, _userId)), HttpContext.RequestAborted);
+            if (_info is not null)
             {
                 var session = await HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
-                if (QrLoginFlow.SessionStartedAt(session.Properties) is not { } issuedAt || issuedAt > info.CreatedAt)
+                if (QrLoginFlow.SessionStartedAt(session.Properties) is not { } issuedAt || issuedAt > _info.CreatedAt)
                 {
-                    info = null;
-                    message = Gurux.DLMS.AMI.Properties.Resources.SignInOnYourPhoneFirstThenStartANewLoginOnYourComputer;
+                    _info = null;
+                    _message = Gurux.DLMS.AMI.Properties.Resources.SignInOnYourPhoneFirstThenStartANewLoginOnYourComputer;
                 }
                 else
                 {
-                    message = "";
+                    _message = "";
                 }
             }
         }
@@ -100,19 +104,19 @@
 
     private async Task ApproveAsync()
     {
-        if (info is null || userId is null || Id is null)
+        if (_info is null || _userId is null || Id is null)
         {
             return;
         }
         try
         {
-            approved = await ModuleServices.InvokeAsync<IGXAmiQrLogin, bool>((service, _) => Task.FromResult(service.Approve(Id, userId, Input.Number)), HttpContext.RequestAborted);
-            message = approved ? Gurux.DLMS.AMI.Properties.Resources.LoginApprovedReturnToYourComputer : Gurux.DLMS.AMI.Properties.Resources.TheNumberIsIncorrectOrTheRequestIsNoLongerAvailable;
+            _approved = await ModuleServices.InvokeAsync<IGXAmiQrLogin, bool>((service, _) => Task.FromResult(service.Approve(Id, _userId, Input.Number)), HttpContext.RequestAborted);
+            _message = _approved ? Gurux.DLMS.AMI.Properties.Resources.LoginApprovedReturnToYourComputer : Gurux.DLMS.AMI.Properties.Resources.TheNumberIsIncorrectOrTheRequestIsNoLongerAvailable;
         }
         catch (AmiModuleUnavailableException)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailable;
-            info = null;
+            _message = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailable;
+            _info = null;
         }
     }
 

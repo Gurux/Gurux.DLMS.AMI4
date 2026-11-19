@@ -47,12 +47,20 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
     where T : class, IGXProperty, new()
     where TOwner : class, IUnique<TKey>
 {
-    private readonly PropertyInfo ownerProperty = (PropertyInfo)((MemberExpression)ownerColumn.Body).Member;
-    private static readonly PropertyInfo CreationTime = typeof(T).GetProperty("CreationTime")!;
-    private static readonly PropertyInfo Updated = typeof(T).GetProperty("Updated")!;
-    private static readonly Expression<Func<T, object>> ValueAndUpdated = UpdateColumns(true);
-    private static readonly Expression<Func<T, object>> UpdatedOnly = UpdateColumns(false);
+    /// <summary>Reflected ownership property used to scope entity access.</summary>
+    private readonly PropertyInfo _ownerProperty = (PropertyInfo)((MemberExpression)ownerColumn.Body).Member;
+    /// <summary>Reflected creation timestamp property used by generic persistence operations.</summary>
+    private static readonly PropertyInfo _creationTime = typeof(T).GetProperty("CreationTime")!;
+    /// <summary>Reflected modification timestamp property used by generic persistence operations.</summary>
+    private static readonly PropertyInfo _updated = typeof(T).GetProperty("Updated")!;
+    /// <summary>Column selection that updates both the value and its modification timestamp.</summary>
+    private static readonly Expression<Func<T, object>> _valueAndUpdated = UpdateColumns(true);
+    /// <summary>Column selection that updates only the modification timestamp.</summary>
+    private static readonly Expression<Func<T, object>> _updatedOnly = UpdateColumns(false);
 
+    /// <summary>Creates the typed column selection used for property updates.</summary>
+    /// <param name="includeValue">Whether the value column is updated along with its timestamp.</param>
+    /// <returns>A column selection containing the timestamp and optionally the value.</returns>
     private static Expression<Func<T, object>> UpdateColumns(bool includeValue)
     {
         var p = Expression.Parameter(typeof(T), "p");
@@ -61,6 +69,9 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         return Expression.Lambda<Func<T, object>>(Expression.NewArrayInit(typeof(object), columns), p);
     }
 
+    /// <summary>Rejects property names that are blank or longer than 64 characters.</summary>
+    /// <param name="name">Property name required to contain between 1 and 64 characters.</param>
+    /// <exception cref="ArgumentException">The name is blank or exceeds 64 characters.</exception>
     [global::System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Preserves the existing instance API used by repository consumers.")]
 
     internal void ValidateName(string? name)
@@ -71,6 +82,11 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         }
     }
 
+    /// <summary>Validates property owner identity, immutable ownership, property name, and optional module identity.</summary>
+    /// <param name="owner">Entity owning the property; its identity must be valid and immutable.</param>
+    /// <param name="property">Owner-scoped property record to validate, save, or delete.</param>
+    /// <exception cref="ArgumentNullException">The owner or property is null.</exception>
+    /// <exception cref="ArgumentException">Owner, name, module, or immutable ownership checks fail.</exception>
     private void Validate(TOwner owner, T property)
     {
         ArgumentNullException.ThrowIfNull(owner);
@@ -81,7 +97,7 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
             throw new ArgumentException("A valid property owner identifier is required.");
         }
         ValidateName(property.Name);
-        if (ownerProperty.GetValue(property) is TOwner supplied &&
+        if (_ownerProperty.GetValue(property) is TOwner supplied &&
             !EqualityComparer<TKey>.Default.Equals(supplied.Id, owner.Id))
         {
             throw new ArgumentException("A property cannot be moved to another owner.");
@@ -92,14 +108,19 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         }
     }
 
+    /// <summary>Creates the predicate matching properties to their owning entity.</summary>
+    /// <param name="owner">Entity whose identifier scopes the stored properties.</param>
+    /// <returns>A predicate selecting only properties owned by the supplied entity.</returns>
     private Expression<Func<T, bool>> OwnerPredicate(TOwner owner)
     {
         var parameter = Expression.Parameter(typeof(T), "p");
         Expression<Func<TOwner>> value = () => owner;
         return Expression.Lambda<Func<T, bool>>(Expression.Equal(
-            Expression.Property(parameter, ownerProperty), value.Body), parameter);
+            Expression.Property(parameter, _ownerProperty), value.Body), parameter);
     }
 
+    /// <summary>Restricts a query to records that have not been removed.</summary>
+    /// <param name="query">Query whose filtering or selected columns are updated.</param>
     private static void ActiveOnly(GXSelectArgs query)
     {
         if (typeof(T).GetProperty("Removed") is not { } removed)
@@ -111,6 +132,12 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
             Expression.Property(parameter, removed), Expression.Constant(null, removed.PropertyType)), parameter));
     }
 
+    /// <summary>Reads active properties for an owner and materializes their module identities.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose active properties are read.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>Active owner-scoped property records.</returns>
     internal async Task<List<T>> ListAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, CancellationToken cancellationToken = default)
     {
@@ -122,12 +149,20 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         var rows = await connection.SelectAsync<T>(transaction, query, cancellationToken);
         foreach (var row in rows)
         {
-            ownerProperty.SetValue(row, owner);
+            _ownerProperty.SetValue(row, owner);
         }
 
         return rows;
     }
 
+    /// <summary>Finds an active property by its owner, optional module, and property name.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose natural-key property is selected.</param>
+    /// <param name="module">Optional module identity forming part of the property natural key.</param>
+    /// <param name="name">Property name forming part of the owner and module natural key.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The matching property with owner and module references populated, or null if absent.</returns>
     internal async Task<T?> FindAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, GXModule? module, string name, CancellationToken cancellationToken = default)
     {
@@ -139,12 +174,20 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         var row = await connection.SingleOrDefaultAsync<T>(transaction, query, cancellationToken);
         if (row != null)
         {
-            ownerProperty.SetValue(row, owner);
+            _ownerProperty.SetValue(row, owner);
             row.Module = module;
         }
         return row;
     }
 
+    /// <summary>Validates a property, resolves its existing natural-key record, and inserts or updates it with concurrency checks.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose property is inserted or updated.</param>
+    /// <param name="property">Owner-scoped property record to validate, save, or delete.</param>
+    /// <param name="columns">Optional selected columns retained by the persistence or query contract.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>True when the stored property was changed.</returns>
     internal async Task<bool> UpsertAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, T property, Expression<Func<T, object>>? columns = null,
         CancellationToken cancellationToken = default)
@@ -155,6 +198,16 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
     }
 
     // Existing is read in the caller's transaction so it can authorize Add or Edit before writing.
+    /// <summary>Persists a validated property with immutable natural-key identity, optimistic concurrency, and an optional predetermined insert identifier.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose immutable identity scopes the property write.</param>
+    /// <param name="property">Owner-scoped property record to validate, save, or delete.</param>
+    /// <param name="existing">Current persisted property matching the natural key, or null for a new record.</param>
+    /// <param name="columns">Optional selected columns retained by the persistence or query contract.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="insertId">Optional predetermined identifier to use when inserting a new property.</param>
+    /// <returns>True when persistence changed the property record.</returns>
     [global::System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "Preserves the established argument order used by repository and transaction callers.")]
     internal async Task<bool> SaveAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, T property, T? existing, Expression<Func<T, object>>? columns = null,
@@ -180,11 +233,11 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
                 throw new ArgumentException("The property was edited by another operation.");
             }
             property.Id = existing.Id;
-            ownerProperty.SetValue(property, owner);
-            CreationTime.SetValue(property, CreationTime.GetValue(existing));
-            Updated.SetValue(property, DateTimeOffset.UtcNow);
+            _ownerProperty.SetValue(property, owner);
+            _creationTime.SetValue(property, _creationTime.GetValue(existing));
+            _updated.SetValue(property, DateTimeOffset.UtcNow);
             // Metadata, ownership and logical keys are never client-writable.
-            var selected = columns == null || IncludesValue(columns.Body) ? ValueAndUpdated : UpdatedOnly;
+            var selected = columns == null || IncludesValue(columns.Body) ? _valueAndUpdated : _updatedOnly;
             var update = GXUpdateArgs.Update(property, selected);
             update.Where.And<T>(p => p.ConcurrencyStamp == expectedVersion);
             update.Where.And(OwnerPredicate(owner));
@@ -204,13 +257,21 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         var key = JsonSerializer.Serialize(new[] { Convert.ToString(owner.Id, CultureInfo.InvariantCulture), property.Module?.Id, property.Name });
         property.Id = insertId ?? new Guid(SHA256.HashData(Encoding.UTF8.GetBytes(key)).AsSpan(0, 16));
         property.ConcurrencyStamp = null; // Gurux Service generates the insert/update version.
-        CreationTime.SetValue(property, DateTimeOffset.UtcNow);
-        Updated.SetValue(property, null);
-        ownerProperty.SetValue(property, owner);
+        _creationTime.SetValue(property, DateTimeOffset.UtcNow);
+        _updated.SetValue(property, null);
+        _ownerProperty.SetValue(property, owner);
         await connection.InsertAsync(transaction, GXInsertArgs.Insert(property), cancellationToken);
         return true;
     }
 
+    /// <summary>Deletes an owner-scoped property only when its concurrency stamp still matches and reports stale writes as an error.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose property deletion is authorized by its persisted owner identity.</param>
+    /// <param name="property">Owner-scoped property record to validate, save, or delete.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after the property is deleted.</returns>
+    /// <exception cref="ArgumentException">The matching property was changed or deleted by another operation.</exception>
     internal async Task DeleteAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, T property, CancellationToken cancellationToken = default)
     {
@@ -220,6 +281,13 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         }
     }
 
+    /// <summary>Attempts an owner- and concurrency-scoped property deletion without converting a stale write into an exception.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose property deletion is scoped by owner identity.</param>
+    /// <param name="property">Owner-scoped property record to validate, save, or delete.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>True when exactly one matching property was deleted.</returns>
     internal async Task<bool> TryDeleteAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, T property, CancellationToken cancellationToken = default)
     {
@@ -232,10 +300,27 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         return await connection.DeleteAsync(transaction, delete, cancellationToken) == 1;
     }
 
+    /// <summary>Replaces the owner's complete property collection, deleting active properties omitted by the caller.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose active property collection is replaced.</param>
+    /// <param name="properties">Desired owner-scoped property collection replacing the active stored set.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after the property set is reconciled.</returns>
     internal Task ReplaceAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, IEnumerable<T> properties, CancellationToken cancellationToken = default)
         => ReplacePreservingAsync(connection, transaction, owner, properties, cancellationToken, null);
 
+    /// <summary>Reconciles an owner's property collection while retaining records selected by the preservation predicate.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="owner">Entity whose active property collection is reconciled.</param>
+    /// <param name="properties">Desired owner-scoped property collection replacing the active stored set.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="preserve">Optional predicate selecting existing properties that replacement must retain.</param>
+    /// <returns>A task that completes after validated inserts, updates, and eligible deletions.</returns>
+    /// <exception cref="ArgumentNullException">The replacement property collection is null.</exception>
+    /// <exception cref="ArgumentException">A property is invalid or the replacement contains a duplicate natural key.</exception>
     internal async Task ReplacePreservingAsync(GXDbConnection connection, IDbTransaction? transaction,
         TOwner owner, IEnumerable<T> properties, CancellationToken cancellationToken, Func<T, bool>? preserve)
     {
@@ -270,6 +355,9 @@ internal sealed class GXPropertyStore<T, TOwner, TKey>(Expression<Func<T, TOwner
         }
     }
 
+    /// <summary>Checks whether a column selection includes the stored value property.</summary>
+    /// <param name="expression">Column-selection expression to inspect.</param>
+    /// <returns>True when the selection includes the value column.</returns>
     private static bool IncludesValue(Expression expression) => expression switch
     {
         MemberExpression member => member.Member.Name == nameof(IGXProperty.Value),

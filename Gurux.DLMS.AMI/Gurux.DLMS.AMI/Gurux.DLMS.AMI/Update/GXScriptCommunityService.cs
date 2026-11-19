@@ -1,3 +1,30 @@
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
@@ -18,10 +45,22 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
     public const string RemoteBase = "https://ami.gurux.fi/api/modules/Gurux.AMI.ScriptManagement/";
     /// <summary>Anonymous device profile receiver owned by the DeviceProfiles module.</summary>
     public const string DeviceProfilesBase = "https://ami.gurux.fi/api/modules/Gurux.DLMS.AMI.DeviceProfiles/";
-    private static readonly SemaphoreSlim Gate = new(1, 1);
-    private readonly IDataProtector protector = protection.CreateProtector("Gurux.AMI.ScriptCommunity.v1");
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    /// <summary>Serializes operations that mutate shared state in this component.</summary>
+    private static readonly SemaphoreSlim _gate = new(1, 1);
+    /// <summary>Protects stored community credentials with the configured data protection provider.</summary>
+    private readonly IDataProtector _protector = protection.CreateProtector("Gurux.AMI.ScriptCommunity.v1");
+    /// <summary>Serializer settings shared by requests or persisted state in this component.</summary>
+    private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+    /// <summary>Submission receipt and opaque tracking credential returned by the community service.</summary>
+    /// <param name="Id">Remote identity assigned to the community submission.</param>
+    /// <param name="Kind">Community content category assigned to the receipt.</param>
+    /// <param name="Message">Public status explanation returned by the community service.</param>
+    /// <param name="TrackingToken">Opaque credential used to refresh the submission status.</param>
     private sealed record Receipt(Guid Id, string? Kind, string? Message, string? TrackingToken);
+    /// <summary>Public status and approved version returned for a remote community submission.</summary>
+    /// <param name="Id">Remote identity assigned to the community submission.</param>
+    /// <param name="Status">Current remote submission review or publishing state.</param>
+    /// <param name="Version">Catalog or assembly version represented by this record.</param>
     private sealed record RemoteStatus(Guid Id, string Status, string? Version);
 
     /// <summary>Returns only the requesting owner’s unacknowledged receipts.</summary>
@@ -53,7 +92,7 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
         // Include the publication license so an older GPL receipt cannot suppress a CC0 submission.
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("CC0-1.0\0" + script.SourceCode)));
-        await Gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         {
             var existing = (await store.ReadAsync(token)).FirstOrDefault(row => row.OwnerId == owner && row.ContentType != "DeviceTemplate" && row.ScriptId == id && row.SourceHash == hash);
@@ -86,7 +125,7 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
                 scriptId = identifier, fileName, source = script.SourceCode,
                 description = string.IsNullOrWhiteSpace(script.Description) ? script.Name : script.Description,
                 author = "Anonymous", license = "CC0-1.0", amiVersionRange = "[4.1,5.0)", baseVersion = script.CatalogVersion
-            }, Json);
+            }, _json);
             var row = existing ?? new GXScriptCommunityRecord
             {
                 Id = Guid.NewGuid(), OwnerId = owner, ScriptId = id, SourceHash = hash,
@@ -105,7 +144,7 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
         finally
         {
-            Gate.Release();
+            _gate.Release();
         }
     }
 
@@ -115,9 +154,9 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         var repository = services.GetRequiredService<IDeviceTemplateRepository>();
         var template = await repository.ReadAsync(request.Id, null, token);
         var payload = GXDeviceTemplateCommunityExport.Create(template, request);
-        var body = JsonSerializer.Serialize(payload, Json);
+        var body = JsonSerializer.Serialize(payload, _json);
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body)));
-        await Gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         {
             var existing = (await store.ReadAsync(token)).FirstOrDefault(row => row.OwnerId == owner &&
@@ -144,14 +183,14 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
         finally
         {
-            Gate.Release();
+            _gate.Release();
         }
     }
 
     /// <summary>Acknowledges a terminal outcome belonging to the requesting owner.</summary>
     public async Task AcknowledgeAsync(string owner, Guid id, CancellationToken token)
     {
-        await Gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         {
             var row = (await store.ReadAsync(token)).FirstOrDefault(row => row.OwnerId == owner && row.Id == id);
@@ -163,14 +202,14 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
         finally
         {
-            Gate.Release();
+            _gate.Release();
         }
     }
 
     /// <summary>Refreshes known receipts without resending ambiguous publications.</summary>
     public async Task RefreshAsync(CancellationToken token)
     {
-        await Gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         {
             foreach (var row in (await store.ReadAsync(token)).Where(row => row.Status is "Publishing" or "Pending"))
@@ -190,10 +229,15 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
         finally
         {
-            Gate.Release();
+            _gate.Release();
         }
     }
 
+    /// <summary>Publishes an explicitly supplied community submission or refreshes the tracked submission's remote status.</summary>
+    /// <param name="row">The tracked community submission whose receipt or status is refreshed.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <param name="sourceRequest">The explicit JSON publication payload required for a new remote submission.</param>
+    /// <returns>A task that completes after the submission record has been updated from the remote result.</returns>
     private async Task RefreshOneAsync(GXScriptCommunityRecord row, CancellationToken token, string? sourceRequest = null)
     {
         try
@@ -212,14 +256,14 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
                     throw new InvalidDataException("Invalid community submission receipt.");
                 }
                 row.RemoteId = receipt.Id;
-                row.ProtectedToken = protector.Protect(receipt.TrackingToken);
+                row.ProtectedToken = _protector.Protect(receipt.TrackingToken);
                 row.Status = "Pending";
             }
             else
             {
                 using var request = new HttpRequestMessage(HttpMethod.Post, remoteBase + "submission-status")
                 {
-                    Content = JsonContent.Create(new { id = row.RemoteId, trackingToken = protector.Unprotect(row.ProtectedToken!) })
+                    Content = JsonContent.Create(new { id = row.RemoteId, trackingToken = _protector.Unprotect(row.ProtectedToken!) })
                 };
                 var status = await SendAsync<RemoteStatus>(client, request, token);
                 if (status.Id != row.RemoteId || status.Status is not ("Pending" or "Publishing" or "Approved" or "Rejected") || status.Version?.Length > 64)
@@ -264,6 +308,12 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
     }
 
+    /// <summary>Sends a bounded community API request with a timeout and deserializes its receipt or status response.</summary>
+    /// <typeparam name="T">The callback result or deserialized response type.</typeparam>
+    /// <param name="client">The configured community API client used to send the request.</param>
+    /// <param name="request">The community API request to send with bounded response buffering.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the deserialized non-null community API response.</returns>
     private static async Task<T> SendAsync<T>(HttpClient client, HttpRequestMessage request, CancellationToken token)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -290,8 +340,9 @@ public sealed class GXScriptCommunityService(IGXScriptCommunityStore store, ISer
         }
         response.EnsureSuccessStatusCode();
         await response.Content.LoadIntoBufferAsync(16 * 1024, token);
-        return await response.Content.ReadFromJsonAsync<T>(Json, token) ?? throw new InvalidDataException("Empty community response.");
+        return await response.Content.ReadFromJsonAsync<T>(_json, token) ?? throw new InvalidDataException("Empty community response.");
     }
+    /// <summary>Signals that a community profile submission conflicts with an existing published profile.</summary>
     private sealed class CommunityProfileAlreadyExistsException : Exception;
 
 }

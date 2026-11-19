@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class LogTypeController(
         ILogTypeRepository LogTypeRepository) : ControllerBase
     {
-        private readonly ILogTypeRepository _LogTypeRepository = LogTypeRepository;
+        /// <summary>Provides persistence and access checks for log type records.</summary>
+        private readonly ILogTypeRepository _logTypeRepository = LogTypeRepository;
 
         /// <summary>
         /// Get Log group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetLogTypeResponse()
             {
-                Item = await _LogTypeRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _logTypeRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize]
         public async Task<ActionResult<AddLogTypeResponse>> Post(AddLogType request, CancellationToken cancellationToken = default)
         {
-            await _LogTypeRepository.UpsertAsync(request.LogTypes, null, cancellationToken);
+            await _logTypeRepository.UpsertAsync(request.LogTypes, null, cancellationToken);
             return new AddLogTypeResponse() { Ids = [.. request.LogTypes.Select(s => s.PublicId)] };
         }
 
@@ -83,7 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListLogTypes request, CancellationToken cancellationToken)
         {
             ListLogTypesResponse ret = new();
-            await _LogTypeRepository.ListAsync(request, ret, cancellationToken);
+            await _logTypeRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXLogTypePolicies.Delete)]
         public async Task<ActionResult<RemoveLogTypeResponse>> Post(RemoveLogType request, CancellationToken cancellationToken = default)
         {
-            await _LogTypeRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _logTypeRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveLogTypeResponse();
         }
 
@@ -114,11 +115,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             if (request.Ids?.Any() == true)
             {
-                await _LogTypeRepository.ResetToDefaultsAsync(request.Ids, cancellationToken);
+                await _logTypeRepository.ResetToDefaultsAsync(request.Ids, cancellationToken);
             }
             else
             {
-                await _LogTypeRepository.EnsureDefaultsAsync(cancellationToken);
+                await _logTypeRepository.EnsureDefaultsAsync(cancellationToken);
             }
             return new RegenerateLogTypeResponse();
         }

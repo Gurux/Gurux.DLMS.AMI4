@@ -50,7 +50,7 @@
 <GXHelpContext Topic="UserGroup" />
 
 <h1>
-    @Title
+    @_title
 </h1>
 <CascadingValue Value="this">
     <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
@@ -72,6 +72,7 @@
 <ModuleViews Area="AmiViewArea.UserGroup" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 <ModuleViews Area="AmiViewArea.UserGroupSettings" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 @code {
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private CrudAction EditorAction => _action;
     public bool DeleteTarget { get; set; }
@@ -95,8 +96,8 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingUserGroup);
-            NotificationService?.RemoveByKey("Pages/User/UserGroupGeneral.OnSave");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingUserGroup);
+            _notificationService?.RemoveByKey("Pages/User/UserGroupGeneral.OnSave");
             if (EditorAction == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveUserGroupResponse>("api/UserGroup/Delete", new RemoveUserGroup()
@@ -134,10 +135,11 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroupGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroupGeneral.OnSave");
         }
     }
 
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
@@ -146,8 +148,10 @@
         ["Action"] = _action
     };
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -172,7 +176,7 @@
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -181,29 +185,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.UserGroup;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUserGroup);
-            NotificationService?.RemoveByKey("Pages/User/UserGroup.OnInitializedAsync");
+            _title += " " + Properties.Resources.UserGroup;
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingUserGroup);
+            _notificationService?.RemoveByKey("Pages/User/UserGroup.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get user group data.
@@ -228,7 +232,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroup.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroup.OnInitializedAsync");
         }
     }
 }

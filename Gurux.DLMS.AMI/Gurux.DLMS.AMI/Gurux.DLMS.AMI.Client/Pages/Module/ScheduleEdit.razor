@@ -58,6 +58,7 @@
 }
 
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
@@ -70,24 +71,35 @@
     [Parameter]
     public EventCallback Closed { get; set; }
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Caches the settings currently displayed by the editor.</summary>
     private GXScheduleModule? _settings;
+    /// <summary>Identifies the module-provided component type used to extend the current settings view.</summary>
     private Type? _extensionUI;
+    /// <summary>References the module view wrapper so module-specific content can be refreshed.</summary>
     private ModuleWrapper? _module;
+    /// <summary>Identifies the target for which the displayed state was loaded.</summary>
     private (string ModuleId, Guid ScheduleId)? _loadedTarget;
+    /// <summary>Avoids registering the page commands more than once.</summary>
     private bool _menuInitialized;
+    /// <summary>Prevents overlapping operations while an asynchronous command is running.</summary>
     private bool _busy;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private int _loadVersion;
+    /// <summary>Records whether the current user's permissions allow the save operation.</summary>
     private bool _canSave;
 
     protected override Task OnInitializedAsync()
     {
         Loader.Changed += LoaderChanged;
         Authentication.AuthenticationStateChanged += AuthenticationChanged;
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
         return Task.CompletedTask;
     }
 
@@ -122,7 +134,7 @@
         MenuService.Clear();
         try
         {
-            using var progress = Progress?.ProgressStart(GXProgress.RetrievingScheduleEdit);
+            using var progress = _progress?.ProgressStart(GXProgress.RetrievingScheduleEdit);
             if (!Loader.IsInitialized)
             {
                 await Loader.RefreshAsync(_lifetime.Token);
@@ -153,7 +165,7 @@
         catch (Exception error)
         {
             Logger.LogError(error, "Failed to load schedule module editor.");
-            NotificationService?.ReportError(error);
+            _notificationService?.ReportError(error);
         }
     }
 
@@ -189,7 +201,7 @@
         }
         _settings ??= new GXScheduleModule { ModuleId = Module.Id, ScheduleId = Schedule.Id };
         _settings.Settings = settings;
-        using var progress = Progress?.ProgressStart(GXProgress.SavingSchedule);
+        using var progress = _progress?.ProgressStart(GXProgress.SavingSchedule);
         await Http.PostAsJson<UpdateModuleSettingsResponse>("api/Schedule/UpdateModuleSettings",
             new UpdateModuleSettings { Item = _settings }, _lifetime.Token);
         // The update endpoint does not return the new concurrency stamp.
@@ -219,7 +231,7 @@
         }
         catch (Exception error)
         {
-            NotificationService?.ReportError(error);
+            _notificationService?.ReportError(error);
             Logger.LogError(error, "Failed to save schedule module settings.");
         }
         finally
@@ -245,7 +257,7 @@
         }
         catch (Exception error)
         {
-            NotificationService?.ReportError(error);
+            _notificationService?.ReportError(error);
             Logger.LogError(error, "Failed to cancel schedule module editing.");
         }
         finally

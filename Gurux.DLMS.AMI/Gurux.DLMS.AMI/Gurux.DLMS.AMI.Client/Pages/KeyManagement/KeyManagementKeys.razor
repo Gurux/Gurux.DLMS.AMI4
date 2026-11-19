@@ -75,7 +75,7 @@
     @*Show key.*@
     <KeyManagementKey Parent="this"></KeyManagementKey>
 }
-<GXViewTable ViewName="KeyManagement.KeyManagementKeys" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementPolicies.View })"
+<GXViewTable ViewName="KeyManagement.KeyManagementKeys" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementPolicies.View })"
          TItem="GXKeyManagementKey" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
@@ -117,7 +117,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("KeyType") { Position = 0, Description = "KeyManagementKeyType", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("State") { Position = 1, Description = "State", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -143,7 +144,9 @@
         }
     }
 
+    /// <summary>Controls whether the password-change editor is displayed.</summary>
     private bool _showPasswordChange;
+    /// <summary>References the password-change editor associated with the selected key.</summary>
     private PasswordChanges? _passwordChanges;
 
     private Task ChangePasswordAsync() => _passwordChanges?.ChangeAsync() ?? Task.CompletedTask;
@@ -169,11 +172,15 @@
         _passwordChanges = null;
     }
 
-    private IGXNotifier? Notifier;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
     internal CrudAction KeyAction;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     internal GXKeyManagementKey? Active;
 
     /// <summary>
@@ -199,7 +206,7 @@
     /// <summary>
     /// Key management key filter.
     /// </summary>
-    private GXKeyManagementKey filter = new GXKeyManagementKey();
+    private GXKeyManagementKey _filter = new GXKeyManagementKey();
 
     /// <summary>
     /// Table reference.
@@ -215,26 +222,26 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKeys.Updated");
+                _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementKeys.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKeys.Updated");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementKeys.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
-        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+        _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -267,7 +274,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -293,7 +300,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -312,7 +319,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -326,7 +333,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -347,7 +354,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -383,7 +390,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -410,7 +417,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -421,7 +428,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

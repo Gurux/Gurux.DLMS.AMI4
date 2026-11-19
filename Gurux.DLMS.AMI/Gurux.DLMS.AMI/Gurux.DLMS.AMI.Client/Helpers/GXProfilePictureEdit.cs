@@ -37,22 +37,32 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Coordinates an appearance image with its owning resource's Save action.</summary>
 public sealed class GXProfilePictureEdit
 {
-    private Guid? originalId;
-    private readonly string? ownerId;
+    /// <summary>Identifier of the image linked by the last successfully saved owner.</summary>
+    private Guid? _originalId;
+    /// <summary>Optional user identifier assigned as creator when saving a private image.</summary>
+    private readonly string? _ownerId;
 
     /// <summary>Captures the initially saved picture reference, without loading an image list.</summary>
+    /// <param name="id">Identifier of the saved appearance image.</param>
+    /// <param name="ownerId">Optional identifier of the user who owns newly uploaded private images.</param>
     public GXProfilePictureEdit(Guid? id, string? ownerId = null)
     {
-        originalId = id == Guid.Empty ? null : id;
-        this.ownerId = ownerId;
+        _originalId = id == Guid.Empty ? null : id;
+        this._ownerId = ownerId;
     }
 
     /// <summary>Saves a new appearance before its reference, then deletes the replaced image after unlinking.</summary>
+    /// <param name="http">Transport used to create, read and delete appearance images.</param>
+    /// <param name="pending">Selected appearance, including a newly uploaded image with an empty identifier.</param>
+    /// <param name="assign">Callback that updates the owner&apos;s selected appearance reference.</param>
+    /// <param name="saveOwner">Callback that persists the owner after the appearance has been prepared.</param>
+    /// <param name="reportCleanupError">Callback that reports cleanup failures without replacing the original save result.</param>
+    /// <returns>A task that completes after saving the owner and attempting cleanup of replaced or orphaned images.</returns>
     public async Task SaveAsync(HttpClient http, GXAppearance? pending, Action<GXAppearance?> assign,
         Func<Task> saveOwner, Action<Exception> reportCleanupError)
     {
         Guid? added = null;
-        var previous = originalId;
+        var previous = _originalId;
         var savedPicture = pending;
         try
         {
@@ -67,7 +77,7 @@ public sealed class GXProfilePictureEdit
                     Enabled = true,
                     Preload = false,
                     AccessVisibility = ResourceVisibility.Private,
-                    Creator = string.IsNullOrEmpty(ownerId) ? null : new Gurux.DLMS.AMI.Shared.DTOs.Authentication.GXUser { Id = ownerId }
+                    Creator = string.IsNullOrEmpty(_ownerId) ? null : new Gurux.DLMS.AMI.Shared.DTOs.Authentication.GXUser { Id = _ownerId }
                 };
                 var response = await http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Add",
                     new UpdateAppearance { Appearances = [image] });
@@ -93,8 +103,8 @@ public sealed class GXProfilePictureEdit
             }
             throw;
         }
-        originalId = savedPicture?.Id;
-        if (previous is Guid oldId && oldId != originalId)
+        _originalId = savedPicture?.Id;
+        if (previous is Guid oldId && oldId != _originalId)
         {
             try
             {
@@ -108,6 +118,10 @@ public sealed class GXProfilePictureEdit
         }
     }
 
+    /// <summary>Permanently removes an appearance that has been unlinked or created by a failed save.</summary>
+    /// <param name="http">Transport used to create, read and delete appearance images.</param>
+    /// <param name="id">Identifier of the saved appearance image.</param>
+    /// <returns>The appearance deletion response from the API.</returns>
     private static Task<RemoveAppearanceResponse> DeleteAsync(HttpClient http, Guid id)
         => http.PostAsJson<RemoveAppearanceResponse>("api/Appearance/Delete", new RemoveAppearance { Ids = [id], Delete = true });
 }

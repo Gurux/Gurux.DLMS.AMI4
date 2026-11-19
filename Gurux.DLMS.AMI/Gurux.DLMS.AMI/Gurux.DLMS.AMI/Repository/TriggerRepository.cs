@@ -54,12 +54,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class TriggerRepository : ITriggerRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for trigger group records.</summary>
         private readonly ITriggerGroupRepository _triggerGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
         /// <summary>
         /// Constructor.
@@ -76,7 +83,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
@@ -88,13 +95,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc/>
         public async Task<List<string>> GetUsersAsync(Guid? triggerId, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByTrigger(s => s.Id!,
-                ServerHelpers.GetUserId(User), triggerId);
+                ServerHelpers.GetUserId(_user), triggerId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (triggerId.HasValue && triggerId.Value != Guid.Empty)
                 {
-                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXTrigger), triggerId.Value, cancellationToken);
+                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXTrigger), triggerId.Value, cancellationToken);
             }
             if (triggerId != null)
             {
@@ -103,7 +110,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -113,20 +120,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc/>
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? triggerId, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByTriggers(s => s.Id!,
-                ServerHelpers.GetUserId(User), triggerId);
+                ServerHelpers.GetUserId(_user), triggerId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (triggerId != null)
                 {
                 foreach (var resourceId in triggerId.Distinct())
                     {
-                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXTrigger), resourceId, cancellationToken);
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXTrigger), resourceId, cancellationToken);
                 }
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -139,20 +146,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete, bool notify, CancellationToken cancellationToken)
         {
             triggers = triggers.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXTrigger, Guid>(_dbFactory, User, _serviceProvider, triggers,
+            await GXHistoryMutation.RunDeleteAsync<GXTrigger, Guid>(_dbFactory, _user, _serviceProvider, triggers,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.Delete);
                 GXSelectArgs arg = GXSelectArgs.Select<GXTrigger>(a => a.Id, q => triggers.Contains(q.Id));
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 List<GXTrigger> list = connection.Select<GXTrigger>(arg);
                 foreach (var resource in list)
                 {
-                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXTrigger), resource.Id, cancellationToken);
-                    await GXWorkflowIdentityAccess.ValidateTriggerMutationAsync(connection, User, resource.Id, cancellationToken);
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXTrigger), resource.Id, cancellationToken);
+                    await GXWorkflowIdentityAccess.ValidateTriggerMutationAsync(connection, _user, resource.Id, cancellationToken);
                 }
                 DateTime now = DateTime.Now;
                 Dictionary<GXTrigger, List<string>> updates = [];
@@ -203,6 +210,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXTrigger), id, action, GXTriggerPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -213,16 +226,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListTriggersResponse? response,
             CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.View);
             GXSelectArgs arg;
-            if (request != null && User.IsInRole(GXRoles.Admin))
+            if (request != null && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the triggers.
                 arg = GXSelectArgs.SelectAll<GXTrigger>();
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetTriggersByUser(s => "*", userId);
             }
             if (request != null)
@@ -240,8 +253,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXTrigger>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            await GXAutomationPolicyAccess.ApplyAsync(connection, _authorizationService, User, typeof(GXTrigger), arg, cancellationToken);
-            await GXTriggerActivityAccess.ApplyAsync(connection, _authorizationService, User, arg, cancellationToken);
+            await GXAutomationPolicyAccess.ApplyAsync(connection, _authorizationService, _user, typeof(GXTrigger), arg, cancellationToken);
+            await GXTriggerActivityAccess.ApplyAsync(connection, _authorizationService, _user, arg, cancellationToken);
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -281,7 +294,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //There can be multiple activities per trigger for this reason own query is used.
                 arg = GXSelectArgs.SelectAll<GXTriggerActivity>(w => w.Trigger == trigger);
                 arg.Columns.Exclude<GXTriggerActivity>(e => e.Trigger!);
-                trigger.Activities = await GXTriggerActivityAccess.FilterAsync(_authorizationService, User, trigger.ClassName,
+                trigger.Activities = await GXTriggerActivityAccess.FilterAsync(_authorizationService, _user, trigger.ClassName,
                     await connection.SelectAsync<GXTriggerActivity>(arg), cancellationToken);
             }
             if (response != null)
@@ -302,16 +315,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.View);
                 GXSelectArgs arg;
-                if (User.IsInRole(GXRoles.Admin))
+                if (_user.IsInRole(GXRoles.Admin))
                 {
                     //Admin can see all the triggers.
                     arg = GXSelectArgs.SelectAll<GXTrigger>(w => w.Id == id);
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetTriggersByUser(s => "*", userId, id);
                 }
                 //Get trigger activities.
@@ -320,9 +333,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Joins.AddInnerJoin<GXTrigger, GXTriggerActivity>(j => j.Id, j => j.Trigger!);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 GXTrigger? trigger = await connection.SingleOrDefaultAsync<GXTrigger>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
-                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXTrigger), id, cancellationToken);
+                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXTrigger), id, cancellationToken);
                 trigger.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXTrigger), id, cancellationToken);
-                trigger.Activities = await GXTriggerActivityAccess.FilterAsync(_authorizationService, User, trigger.ClassName, trigger.Activities, cancellationToken);
+                trigger.Activities = await GXTriggerActivityAccess.FilterAsync(_authorizationService, _user, trigger.ClassName, trigger.Activities, cancellationToken);
                 //Get creator with own query. It's faster for some DBs.
                 arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName });
                 arg.Distinct = true;
@@ -363,15 +376,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXTrigger, object>>? columns, CancellationToken cancellationToken)
         {
             triggers = triggers.ToArray();
-            return await GXHistoryMutation.RunAsync<GXTrigger, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, triggers,
+            return await GXHistoryMutation.RunAsync<GXTrigger, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, triggers,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.Add, GXTriggerPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.Add, GXTriggerPolicies.Edit);
                 DateTime now = DateTime.Now;
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 List<Guid> list = [];
                 Dictionary<GXTrigger, List<string>> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -379,10 +392,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     if (trigger.Id != Guid.Empty)
                     {
-                        await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXTrigger), trigger.Id, cancellationToken);
-                        await GXWorkflowIdentityAccess.ValidateTriggerMutationAsync(connection, User, trigger.Id, cancellationToken);
+                        await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXTrigger), trigger.Id, cancellationToken);
+                        await GXWorkflowIdentityAccess.ValidateTriggerMutationAsync(connection, _user, trigger.Id, cancellationToken);
                     }
-                    await _authorizationService.EnsureAnyPolicyAsync(User, trigger.Id == Guid.Empty ? GXTriggerPolicies.Add : GXTriggerPolicies.Edit);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, trigger.Id == Guid.Empty ? GXTriggerPolicies.Add : GXTriggerPolicies.Edit);
                     await GXResourcePolicyAccess.ValidateAsync(connection, trigger.Policies, cancellationToken);
                     if (string.IsNullOrEmpty(trigger.Name))
                     {
@@ -429,7 +442,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.CreationTime,
                             q.TriggerGroups
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                            trigger.Creator == null ||
                            string.IsNullOrEmpty(trigger.Creator.Id))
                         {
@@ -438,7 +451,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         connection.Update(transaction, args);
                         //Map trigger groups to trigger.
-                        await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerGroupPolicies.View);
+                        await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerGroupPolicies.View);
                     var joined = GXSelectArgs.SelectAll<GXTriggerGroup>(g => g.Removed == null);
                     joined.Joins.AddInnerJoin<GXTriggerGroup, GXTriggerGroupTrigger>(g => g.Id, map => map.TriggerGroupId);
                     joined.Where.And<GXTriggerGroupTrigger>(map => map.TriggerId == trigger.Id && map.Removed == null);
@@ -541,10 +554,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default)
         {
-            await GXHistoryMutation.RunAllAsync<GXTrigger>(_dbFactory, User, _serviceProvider,
+            await GXHistoryMutation.RunAllAsync<GXTrigger>(_dbFactory, _user, _serviceProvider,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTriggerPolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTriggerPolicies.Add);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             var changed = await GXTriggerDefaults.EnsureAsync(connection, transaction, typeof(AgentTrigger).Assembly, cancellationToken);

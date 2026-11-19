@@ -55,7 +55,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="View.Views" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXViewPolicies.View })"
+<GXViewTable ViewName="View.Views" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXViewPolicies.View })"
              TItem="GXView" @ref="table"
              Context="view"
              ItemsProvider="@GetItems"
@@ -68,7 +68,7 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -93,16 +93,20 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Title") { Position = 1, Description = "Title", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("PublishTime") { Position = 2, Description = "Publish", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected view ID.
@@ -176,7 +180,7 @@
     /// <summary>
     /// View filter.
     /// </summary>
-    private GXView filter = new GXView();
+    private GXView _filter = new GXView();
 
 
     /// <summary>
@@ -193,22 +197,22 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/View/Views.Updated");
+                _notificationService?.RemoveByKey("Pages/View/Views.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/View/Views.Updated");
+            _notificationService?.ReportError(ex, "Pages/View/Views.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -217,9 +221,9 @@
         await Task.Delay(1);
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingViews);
-            NotificationService?.RemoveByKey("Pages/View/Views.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingViews);
+            _notificationService?.RemoveByKey("Pages/View/Views.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -244,29 +248,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/View/Views.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/View/Views.OnInitializedAsync");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXView>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingViews);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingViews);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListViews req = new ListViews()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -285,7 +289,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -301,7 +305,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -312,7 +316,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/View/Views.OnEdit");
+            _notificationService?.RemoveByKey("Pages/View/Views.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -325,7 +329,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/View/Views.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/View/Views.OnEdit");
         }
     }
 
@@ -355,7 +359,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -382,7 +386,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -407,7 +411,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -420,14 +424,14 @@
         {
             if (args.Confirm)
             {
-                using var progress = Progress?.ProgressStart(Properties.Resources.Regenerate);
+                using var progress = _progress?.ProgressStart(Properties.Resources.Regenerate);
                 RegenerateView req = new RegenerateView()
                 {
                     Ids = table?.SingleOrDefault().Select(item => item.Id).ToArray()
                 };
                 await Http.PostAsJson<RegenerateViewResponse>("api/View/Regenerate", req,
                     progress?.CancellationToken ?? CancellationToken.None);
-                NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.ViewDefaultsHaveBeenApplied, string.Empty, Closable: true));
+                _notificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.ViewDefaultsHaveBeenApplied, string.Empty, Closable: true));
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -436,7 +440,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -447,7 +451,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

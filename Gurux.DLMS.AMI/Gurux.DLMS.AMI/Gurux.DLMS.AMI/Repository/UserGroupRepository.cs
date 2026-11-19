@@ -65,10 +65,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class UserGroupRepository : IUserGroupRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
 
         /// <summary>
@@ -86,12 +91,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new UnauthorizedAccessException();
             }
             _authorizationService = authorizationService;
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
             _notificationCache = notificationCache;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXUserGroup), id, action, GXUserGroupPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -100,15 +111,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default)
         {
             GXSelectArgs args;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 args = GXQuery.GetUsersByUserGroup(s => s.Id!, null, groupId);
             }
             else
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.View);
                 args = GXQuery.GetUsersByUserGroup(s => s.Id!,
-                    ServerHelpers.GetUserId(User), groupId);
+                    ServerHelpers.GetUserId(_user), groupId);
 
             }
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -125,8 +136,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.View);
-            GXSelectArgs args = GXQuery.GetUsersByUserGroups(s => s.Id!, ServerHelpers.GetUserId(User), groupId);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByUserGroups(s => s.Id!, ServerHelpers.GetUserId(_user), groupId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
@@ -139,13 +150,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             groups = groups.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXUserGroup, Guid>(_dbFactory, User, _serviceProvider, groups,
+            await GXHistoryMutation.RunDeleteAsync<GXUserGroup, Guid>(_dbFactory, _user, _serviceProvider, groups,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             IEnumerable<GXUserGroup> exists;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 GXSelectArgs arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => groups.Contains(w.Id));
                 exists = connection.Select<GXUserGroup>(arg);
@@ -153,7 +164,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Check that the user has access rights to the removed agent groups.
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 var arg = GXQuery.GetUserGroupsByUser(s => new { s.Id, s.Name }, userId, null, DateTimeOffset.MinValue,
                     null, groups);
                 exists = connection.Select<GXUserGroup>(arg);
@@ -408,9 +419,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListUserGroupsResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.View);
             GXSelectArgs arg;
-            bool allUsers = request != null && request.AllUsers && User.IsInRole(GXRoles.Admin);
+            bool allUsers = request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin);
             if (allUsers)
             {
                 //Admin can see all the user groups.
@@ -426,7 +437,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetUserGroupsByUser(s => s.Id, userId, null, request?.Filter?.Removed,
                     request?.Exclude, request?.Included);
                 arg.Columns.Clear();
@@ -496,16 +507,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.View);
                 GXSelectArgs arg;
-                if (User.IsInRole(GXRoles.Admin))
+                if (_user.IsInRole(GXRoles.Admin))
                 {
                     //Admin can see all the groups.
                     arg = GXSelectArgs.SelectAll<GXUserGroup>(w => w.Id == id);
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetUserGroupsByUser(s => s.Id, userId, id);
                     arg.Columns.Clear();
                     arg.Columns.Add<GXUserGroup>();
@@ -604,11 +615,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXUserGroup, object>>? columns, CancellationToken cancellationToken = default)
         {
             userGroups = userGroups.ToArray();
-            return await GXHistoryMutation.RunAsync<GXUserGroup, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, userGroups,
+            return await GXHistoryMutation.RunAsync<GXUserGroup, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, userGroups,
         async () =>
         {
             DateTime now = DateTime.Now;
-            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
             var newGroups = userGroups.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = userGroups.Where(w => w.Id != Guid.Empty).ToList();
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -617,7 +628,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 if (newGroups.Count != 0)
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.Add);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.Add);
                     foreach (var it in newGroups)
                     {
                         it.Creator = creator;
@@ -628,7 +639,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (updatedGroups.Count != 0)
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.Edit);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.Edit);
                     foreach (GXUserGroup userGroup in updatedGroups)
                     {
                         if (string.IsNullOrEmpty(userGroup.Name))
@@ -657,7 +668,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.DeviceGroups,
                             q.DeviceTemplateGroups,
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             userGroup.Creator == null ||
                             string.IsNullOrEmpty(userGroup.Creator.Id))
                         {
@@ -818,7 +829,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task AddUserToGroupsAsync(string userId, IEnumerable<Guid> groups)
         {
             groups = groups.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXUser, string>(_dbFactory, User, _serviceProvider, new[] { userId },
+            await GXHistoryMutation.RunIdsAsync<GXUser, string>(_dbFactory, _user, _serviceProvider, new[] { userId },
         async () =>
         {
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -1052,7 +1063,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<GXUserGroup>> GetDefaultUserGroupsAsync(string userId)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUserGroupsByUser(s => s.Id, userId);
             args.Where.And<GXUserGroup>(w => w.Default == true);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();

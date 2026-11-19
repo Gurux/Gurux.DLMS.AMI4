@@ -50,7 +50,7 @@
 </GXMenuControl>
 <PolicyForm @ref="_editor" OnSaved="Update" />
 <p class="small text-muted">Select one custom policy to edit, or custom policies to remove. Built-in policies are managed with @Properties.Resources.ApplyDefaults.</p>
-<GXViewTable ViewName="Config.PolicyList" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXPolicyPolicies.View })" TItem="GXPolicy" @ref="table" Context="policy" ItemsProvider="GetItems" OnSearch="Update"
+<GXViewTable ViewName="Config.PolicyList" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXPolicyPolicies.View })" TItem="GXPolicy" @ref="_table" Context="policy" ItemsProvider="GetItems" OnSearch="Update"
          ShowAllUsers="false" ShowRemoved="false" ShowAllData="false" Filter="true" SelectionMode="SelectionMode.Multiple">
     <FilterContent>
         <GXFh Id="Name">
@@ -115,11 +115,12 @@
 </GXViewTable>
 
 @code {
+    /// <summary>References the policy editor used to open or clear the selected policy.</summary>
     private PolicyForm? _editor;
     private Task Add() => _editor?.Open(new GXPolicy { Requirements = [], RequireAuthenticatedUser = true }) ?? Task.CompletedTask;
     private async Task Edit()
     {
-        var selected = table?.SingleOrDefault().ToArray() ?? [];
+        var selected = _table?.SingleOrDefault().ToArray() ?? [];
         if (selected.Length != 1 || selected[0].SystemDefined)
         {
             NotificationService.ReportError(new InvalidOperationException("Select one custom policy to edit. Built-in policies are managed with Apply defaults."));
@@ -130,6 +131,7 @@
             await _editor.Open(selected[0]);
         }
     }
+    /// <summary>Prevents overlapping requests while removing is in progress.</summary>
     private bool _removing;
     private async Task Remove()
     {
@@ -137,7 +139,7 @@
         {
             return;
         }
-        var selected = table?.SingleOrDefault().ToArray() ?? [];
+        var selected = _table?.SingleOrDefault().ToArray() ?? [];
         if (selected.Length == 0 || selected.Any(p => p.SystemDefined))
         {
             NotificationService.ReportError(new InvalidOperationException("Select custom policies to remove. Built-in policies cannot be removed."));
@@ -173,7 +175,8 @@
             _removing = false;
         }
     }
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
         new("RequirementOperator") { Position = 1, Description = "RequirementOperator", Visibility = (byte)Visibility.All },
@@ -183,8 +186,10 @@
         new("Description") { Position = 5, Description = "Description", Visibility = (byte)Visibility.All },
     ];
 
-    private GXViewTable<GXPolicy>? table;
+    /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
+    private GXViewTable<GXPolicy>? _table;
     private string? Filter { get; set; }
+    /// <summary>Prevents overlapping requests while applying defaults is in progress.</summary>
     private bool _applyingDefaults;
 
     public async Task OnRegenerate()
@@ -200,7 +205,7 @@
             {
                 return;
             }
-            var selected = table?.SingleOrDefault().ToArray() ?? [];
+            var selected = _table?.SingleOrDefault().ToArray() ?? [];
             var ids = selected.Select(p => p.Id).ToArray();
             var result = await Confirmation.ConfirmAsync(Properties.Resources.ApplyBuiltInDefaults,
                 Properties.Resources.SelectedItemsWillBeResetToDefaultsWithoutASelectionOnlyMissingDefaultsWillBeAdded,
@@ -232,10 +237,10 @@
     private async Task Update()
     {
         NotificationService.RemoveByKey("Pages/Config/PolicyList.GetItems");
-        if (table != null)
+        if (_table != null)
         {
-            table.ResetPage();
-            await table.RefreshDataAsync(true);
+            _table.ResetPage();
+            await _table.RefreshDataAsync(true);
         }
     }
 

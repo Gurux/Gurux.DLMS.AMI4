@@ -47,7 +47,7 @@
 <GXHelpContext Topic="Script" />
 
 <h1>
-    @Title
+    @_title
 </h1>
 <CascadingValue Value="this">
     <GXTabControl @key="Active" PersistSelectionInUrl="true" NavigateOnSelection="false">
@@ -65,6 +65,7 @@
 </CascadingValue>
 <br />
 @code {
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private CrudAction EditorAction => _action;
     public bool DeleteTarget { get; set; }
@@ -92,8 +93,8 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingScriptView);
-            NotificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnSave");
+            using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingScriptView);
+            _notificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnSave");
             if (EditorAction == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveScriptResponse>("api/Script/Delete", new RemoveScript()
@@ -131,12 +132,15 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnSave");
         }
     }
 
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
+    /// <summary>Identifies the request for which the current displayed data was retrieved.</summary>
     private (string? Action, Guid? Id, Guid? CopyFrom)? _loadedRequest;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private int _loadVersion;
 
     /// <summary>The authorized source to open as a new independent editable copy.</summary>
@@ -149,8 +153,10 @@
         ["Action"] = _action
     };
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -175,7 +181,7 @@
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -195,29 +201,29 @@
         _editorMenu?.Dispose();
         _editorMenu = null;
         Active = new GXScript(null) { Enabled = true };
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.Script;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScript);
-            NotificationService?.RemoveByKey("Pages/Script/Script.OnInitializedAsync");
+            _title += " " + Properties.Resources.Script;
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScript);
+            _notificationService?.RemoveByKey("Pages/Script/Script.OnInitializedAsync");
             bool copying = string.Equals(Action, "Add", StringComparison.OrdinalIgnoreCase) && CopyFrom.HasValue;
             if (copying || string.Compare(Action, "Add", true) != 0)
             {
@@ -250,7 +256,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/Script.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Script/Script.OnInitializedAsync");
         }
     }
 }

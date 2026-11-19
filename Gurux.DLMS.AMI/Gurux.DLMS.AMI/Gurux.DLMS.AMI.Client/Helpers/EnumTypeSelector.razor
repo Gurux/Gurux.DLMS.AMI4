@@ -38,7 +38,7 @@
 @inject ILogger<EnumTypeSelector<TItem>> Logger
 
 
-@if (Types != null)
+@if (_types != null)
 {
     <GXInputDropdown class="form-select"
                      Id="Tasks-Type"
@@ -50,9 +50,12 @@
 }
 
 @code {
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected value.
@@ -70,7 +73,7 @@
     {
         get
         {
-            return Types?.Select(s => s.Name) ?? Enumerable.Empty<string?>();
+            return _types?.Select(s => s.Name) ?? Enumerable.Empty<string?>();
         }
     }
 
@@ -80,7 +83,8 @@
     [Parameter]
     public string? Type { get; set; }
 
-    GXEnumType[]? Types;
+    /// <summary>Caches the enumeration types offered by the type selector.</summary>
+    GXEnumType[]? _types;
 
     private string? Selected { get; set; }
 
@@ -125,7 +129,7 @@
             }
             else
             {
-                GXEnumType? sel = Types?.Where(w => w.Name == value).SingleOrDefault();
+                GXEnumType? sel = _types?.Where(w => w.Name == value).SingleOrDefault();
                 if (sel != null)
                 {
                     var targetType = Nullable.GetUnderlyingType(typeof(TItem)) ?? typeof(TItem);
@@ -156,14 +160,14 @@
     /// <summary>
     /// Enum type filter.
     /// </summary>
-    private GXEnumType filter = new GXEnumType();
+    private GXEnumType _filter = new GXEnumType();
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -183,7 +187,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -193,13 +197,13 @@
     protected async Task Refresh()
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingEnumType);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingEnumType);
         try
         {
-            filter.Type = Type;
+            _filter.Type = Type;
             ListEnumTypes req = new ListEnumTypes()
             {
-                Filter = filter,
+                Filter = _filter,
             };
             var ret = await Http.PostAsJson<ListEnumTypesResponse>("api/EnumType/List", req);
             var tmp = new List<GXEnumType>();
@@ -209,7 +213,7 @@
                 tmp.Add(new GXEnumType() { Name = "-" });
                 tmp.AddRange(ret.Types);
             }
-            Types = tmp.ToArray();
+            _types = tmp.ToArray();
         }
         catch (TaskCanceledException)
         {
@@ -227,12 +231,12 @@
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(ex.ToString());
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

@@ -64,19 +64,19 @@
             <div class="mb-3">
                 <label for="profile-picture">@Gurux.DLMS.AMI.Properties.Resources.ProfilePicture</label>
                 <InputSelect id="profile-picture" class="form-select" @bind-Value="Input.ProfilePictureIndex">
-                    @for (var index = 0; index < profilePictureOptions.Length; ++index)
+                    @for (var index = 0; index < _profilePictureOptions.Length; ++index)
                     {
                         <option value="@index">@FormatProfilePicture(index)</option>
                     }
                 </InputSelect>
                 <InputText type="hidden" @bind-Value="Input.ProfilePictureOptions" />
-                @if (images.FirstOrDefault(image => image.Id == Input.ProfilePictureId) is { } selectedPicture)
+                @if (_images.FirstOrDefault(image => image.Id == Input.ProfilePictureId) is { } selectedPicture)
                 {
                     <Gurux.UI.Components.GXImage Value="@selectedPicture.Value" Alt="Profile picture" />
                 }
             </div>
             <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="@Gurux.DLMS.AMI.Properties.Resources.ChooseYourUsername" disabled />
+                <input type="text" value="@_username" id="username" class="form-control" placeholder="@Gurux.DLMS.AMI.Properties.Resources.ChooseYourUsername" disabled />
                 <label for="username" class="form-label">@Gurux.DLMS.AMI.Properties.Resources.Username</label>
             </div>
             <div class="form-floating mb-3">
@@ -90,12 +90,18 @@
 </div>
 
 @code {
-    private ApplicationUser user = default!;
-    private GXUser profile = default!;
-    private string? username;
-    private string? phoneNumber;
-    private GXAppearance[] images = [];
-    private Guid?[] profilePictureOptions = [];
+    /// <summary>Retains the authenticated Identity account used by this account-management operation.</summary>
+    private ApplicationUser _user = default!;
+    /// <summary>Retains the AMI user record used to load and save the profile picture.</summary>
+    private GXUser _profile = default!;
+    /// <summary>Contains the account name displayed by the profile editor.</summary>
+    private string? _username;
+    /// <summary>Contains the saved phone number used to initialize the profile form.</summary>
+    private string? _phoneNumber;
+    /// <summary>Caches appearance images offered by the profile-picture selector.</summary>
+    private GXAppearance[] _images = [];
+    /// <summary>Maps the profile-picture selector indexes to persisted appearance identifiers.</summary>
+    private Guid?[] _profilePictureOptions = [];
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -106,40 +112,40 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _username = await UserManager.GetUserNameAsync(_user);
+        _phoneNumber = await UserManager.GetPhoneNumberAsync(_user);
         await using (var connection = await DbFactory.GetConnectionAsync())
         {
-            profile = await connection.SingleOrDefaultAsync<GXUser>(
-                GXSelectArgs.Select<GXUser>(item => new { item.Id, item.ProfilePicture }, item => item.Id == user.Id))
+            _profile = await connection.SingleOrDefaultAsync<GXUser>(
+                GXSelectArgs.Select<GXUser>(item => new { item.Id, item.ProfilePicture }, item => item.Id == _user.Id))
                 ?? throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.TheProfileUserWasNotFound);
         }
 
-        Input.PhoneNumber ??= phoneNumber;
+        Input.PhoneNumber ??= _phoneNumber;
         if (!HttpMethods.IsPost(HttpContext.Request.Method))
         {
-            Input.ProfilePictureId = profile.ProfilePicture?.Id;
+            Input.ProfilePictureId = _profile.ProfilePicture?.Id;
         }
-        images = (await Appearances.ListAsync(new ListAppearances
+        _images = (await Appearances.ListAsync(new ListAppearances
         {
             Filter = new GXAppearance { ResourceType = (byte)ResourceType.Image }
         }, null)).ToArray();
         if (!HttpMethods.IsPost(HttpContext.Request.Method))
         {
             var options = new List<Guid?> { null };
-            if (profile.ProfilePicture?.Id is Guid currentId && !images.Any(image => image.Id == currentId))
+            if (_profile.ProfilePicture?.Id is Guid currentId && !_images.Any(image => image.Id == currentId))
             {
                 options.Add(currentId);
             }
-            options.AddRange(images.Select(image => (Guid?)image.Id));
-            profilePictureOptions = options.ToArray();
-            Input.ProfilePictureOptions = JsonSerializer.Serialize(profilePictureOptions);
-            Input.ProfilePictureIndex = Array.IndexOf(profilePictureOptions, Input.ProfilePictureId);
+            options.AddRange(_images.Select(image => (Guid?)image.Id));
+            _profilePictureOptions = options.ToArray();
+            Input.ProfilePictureOptions = JsonSerializer.Serialize(_profilePictureOptions);
+            Input.ProfilePictureIndex = Array.IndexOf(_profilePictureOptions, Input.ProfilePictureId);
         }
         else
         {
-            TryReadProfilePictureOptions(out profilePictureOptions);
+            TryReadProfilePictureOptions(out _profilePictureOptions);
         }
     }
 
@@ -164,10 +170,10 @@
 
     private string? FormatProfilePicture(int index)
     {
-        var pictureId = profilePictureOptions[index];
+        var pictureId = _profilePictureOptions[index];
         return pictureId == null
             ? Gurux.DLMS.AMI.Properties.Resources.NoPicture
-            : images.FirstOrDefault(image => image.Id == pictureId)?.Name
+            : _images.FirstOrDefault(image => image.Id == pictureId)?.Name
                 ?? Gurux.DLMS.AMI.Properties.Resources.CurrentPicture;
     }
 
@@ -182,7 +188,7 @@
         }
         Input.ProfilePictureId = submittedOptions[Input.ProfilePictureIndex];
         var pictureId = Input.ProfilePictureId;
-        if (pictureId != profile.ProfilePicture?.Id)
+        if (pictureId != _profile.ProfilePicture?.Id)
         {
             await using var connection = await DbFactory.GetConnectionAsync();
             try
@@ -194,19 +200,19 @@
                 RedirectManager.RedirectToCurrentPageWithStatus("Error: Select an accessible image.", HttpContext);
                 return;
             }
-            profile.ProfilePicture = pictureId == null ? null : new GXAppearance { Id = pictureId.Value };
-            await connection.UpdateAsync(GXUpdateArgs.Update(profile, item => item.ProfilePicture!));
+            _profile.ProfilePicture = pictureId == null ? null : new GXAppearance { Id = pictureId.Value };
+            await connection.UpdateAsync(GXUpdateArgs.Update(_profile, item => item.ProfilePicture!));
         }
-        if (Input.PhoneNumber != phoneNumber)
+        if (Input.PhoneNumber != _phoneNumber)
         {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(_user, Input.PhoneNumber);
             if (!setPhoneResult.Succeeded)
             {
                 RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
             }
         }
 
-        await SignInManager.RefreshSignInAsync(user);
+        await SignInManager.RefreshSignInAsync(_user);
         RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
     }
 

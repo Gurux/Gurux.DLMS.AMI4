@@ -65,6 +65,7 @@
 </CascadingValue>
 <br />
 @code {
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
@@ -73,8 +74,10 @@
         ["Action"] = _action
     };
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter]
     public string? Action { get; set; }
@@ -90,7 +93,8 @@
     [Parameter]
     public Guid? Id { get; set; }
 
-    private string? Title;
+    /// <summary>Contains the title displayed for the selected item.</summary>
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -99,29 +103,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.Gateway;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingGateway);
-            NotificationService?.RemoveByKey("Pages/Gateway/Gateway.OnInitializedAsync");
+            _title += " " + Properties.Resources.Gateway;
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingGateway);
+            _notificationService?.RemoveByKey("Pages/Gateway/Gateway.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get gateway data.
@@ -145,10 +149,11 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/Gateway.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Gateway/Gateway.OnInitializedAsync");
         }
     }
 
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     public bool DeleteTarget { get; set; }
     private void SetEditorMenu() { _editorMenu = new GXEditorMenu(SharedMenuService); _editorMenu.Set(Active, _action, OnSave, () => { OnCancel(); return Task.CompletedTask; }); }
@@ -166,8 +171,8 @@
                 _editorMenu?.AddValidationError(nameof(Active.Name), Properties.Resources.InvalidName);
                 return;
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingGateway);
-            NotificationService?.RemoveByKey("Pages/Gateway/GatewayGeneral.OnSave");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingGateway);
+            _notificationService?.RemoveByKey("Pages/Gateway/GatewayGeneral.OnSave");
             if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveGatewayResponse>("api/Gateway/Delete",
@@ -206,7 +211,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/GatewayGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Gateway/GatewayGeneral.OnSave");
         }
         finally
         {

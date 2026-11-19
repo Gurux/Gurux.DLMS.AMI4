@@ -64,7 +64,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="User.Users" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXUserPolicies.View })"
+<GXViewTable ViewName="User.Users" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXUserPolicies.View })"
              TItem="GXUser" @ref="table"
              @bind-@bind-Active="Active"
              Context="user"
@@ -79,15 +79,15 @@
     <FilterContent>
         <GXFh Id="GivenName">
             <input class="form-control" placeholder="@Properties.Resources.FilterByGivenName"
-                   @onchange="@((ChangeEventArgs __e) => filter.GivenName = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.GivenName = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Surname">
             <input class="form-control" placeholder="@Properties.Resources.FilterBySurname"
-                   @onchange="@((ChangeEventArgs __e) => filter.Surname = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Surname = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Email">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByEmail"
-                   @onchange="@((ChangeEventArgs __e) => filter.Email = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Email = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="EmailConfirmed">
         </GXFh>
@@ -95,19 +95,19 @@
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="users-creation-time"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <GXDateTimeSelector Id="users-updated-time"
-                                @bind-Value="@filter.Updated"
+                                @bind-Value="@_filter.Updated"
                                 Placeholder="@Properties.Resources.FilterByUpdated">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="LastLogin">
             <GXDateTimeSelector Id="users-last-login-time"
-                                @bind-Value="@filter.LastLogin"
+                                @bind-Value="@_filter.LastLogin"
                                 Placeholder="@Properties.Resources.FilterByLastLogin">
             </GXDateTimeSelector>
         </GXFh>
@@ -149,7 +149,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("GivenName") { Position = 0, Description = "GivenName", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Surname") { Position = 1, Description = "Surname", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -162,9 +163,12 @@
         new("AccessFailed") { Position = 8, Description = "AccessFailed", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected user ID.
@@ -268,12 +272,12 @@
 
     private void UpdateRoles(string roles)
     {
-        if (filter != null && filter.Roles != null)
+        if (_filter != null && _filter.Roles != null)
         {
-            filter.Roles.Clear();
+            _filter.Roles.Clear();
             if (!string.IsNullOrEmpty(roles))
             {
-                filter.Roles.AddRange(roles.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                _filter.Roles.AddRange(roles.Split(',', StringSplitOptions.RemoveEmptyEntries));
             }
         }
     }
@@ -281,7 +285,7 @@
     /// <summary>
     /// User filter.
     /// </summary>
-    private GXUser filter = new GXUser();
+    private GXUser _filter = new GXUser();
 
 
     /// <summary>
@@ -298,30 +302,30 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/User/Users.Updated");
+                _notificationService?.RemoveByKey("Pages/User/Users.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/Users.Updated");
+            _notificationService?.ReportError(ex, "Pages/User/Users.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/Users.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notificationService?.RemoveByKey("Pages/User/Users.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -346,29 +350,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/Users.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/User/Users.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXUser>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUsers);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingUsers);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListUsers req = new ListUsers()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = true
@@ -387,7 +391,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -399,7 +403,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/Users.OnAdd");
+            _notificationService?.RemoveByKey("Pages/User/Users.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager, "/User/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -408,7 +412,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/Users.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/User/Users.OnAdd");
         }
     }
 
@@ -419,7 +423,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/Users.OnEdit");
+            _notificationService?.RemoveByKey("Pages/User/Users.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -432,7 +436,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/Users.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/User/Users.OnEdit");
         }
     }
 
@@ -463,7 +467,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -476,7 +480,7 @@
         {
             if (table != null && args.Confirm)
             {
-                using var progressScope2 = Progress?.ProgressStart(GXProgress.RemovingUsers);
+                using var progressScope2 = _progress?.ProgressStart(GXProgress.RemovingUsers);
                 RemoveUser req = new RemoveUser()
                 {
                     Delete = args.Delete,
@@ -486,11 +490,11 @@
                 {
                     if (t.IsFaulted)
                     {
-                        NotificationService?.ReportError(t.Exception);
+                        _notificationService?.ReportError(t.Exception);
                     }
                     else
                     {
-                        NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.UsersRemoved, string.Empty, Closable: false));
+                        _notificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.UsersRemoved, string.Empty, Closable: false));
                         _ = Updated();
                     }
                 });
@@ -502,7 +506,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -514,7 +518,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/Users.OnActions");
+            _notificationService?.RemoveByKey("Pages/User/Users.OnActions");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -527,7 +531,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/Users.OnActions");
+            _notificationService?.ReportError(ex, "Pages/User/Users.OnActions");
         }
     }
 
@@ -538,7 +542,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/Users.OnAgents");
+            _notificationService?.RemoveByKey("Pages/User/Users.OnAgents");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -551,7 +555,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/Users.OnAgents");
+            _notificationService?.ReportError(ex, "Pages/User/Users.OnAgents");
         }
     }
 
@@ -562,7 +566,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

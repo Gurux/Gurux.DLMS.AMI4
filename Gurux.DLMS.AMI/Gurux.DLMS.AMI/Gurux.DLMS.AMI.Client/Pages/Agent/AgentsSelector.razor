@@ -89,8 +89,10 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXAgentGroup? Active { get; set; }
@@ -101,17 +103,20 @@
     [Parameter]
     public List<GXAgent>? Agents { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXAgent>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXAgent>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXAgent>? _selectionContainer;
     /// <summary>
     /// Agent filter.
     /// </summary>
-    private GXAgent filter = new GXAgent(null);
+    private GXAgent _filter = new GXAgent(null);
     /// <summary>
     /// Selected agent filter.
     /// </summary>
-    private GXAgent selectedFilter = new GXAgent();
+    private GXAgent _selectedFilter = new GXAgent();
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -119,13 +124,13 @@
         {
             if (_selected != null)
             {
-                selectedFilter.Name = name;
+                _selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -135,14 +140,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Agent/AgentsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Agent/AgentsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Agent/AgentsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Agent/AgentsSelector.SearchByName");
         }
     }
 
@@ -154,12 +159,12 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.AgentGroups = null;
+                    _filter.AgentGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXAgentGroup? ag = filter.AgentGroups?.FirstOrDefault();
+                    GXAgentGroup? ag = _filter.AgentGroups?.FirstOrDefault();
                     if (ag == null)
                     {
                         ag = new GXAgentGroup();
@@ -167,7 +172,7 @@
                         GXUserGroup? ug = new GXUserGroup();
                         ag.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                         ug.Users = new List<GXUser>(new GXUser[] { user });
-                        filter.AgentGroups = new List<GXAgentGroup>(new GXAgentGroup[] { ag });
+                        _filter.AgentGroups = new List<GXAgentGroup>(new GXAgentGroup[] { ag });
                     }
                     else
                     {
@@ -175,13 +180,13 @@
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Agent/AgentsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Agent/AgentsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Agent/AgentsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Agent/AgentsSelector.SearchByUser");
         }
     }
 
@@ -271,9 +276,9 @@
     {
         var agents = GetAgents();
         int total = agents.Count;
-        if (!string.IsNullOrEmpty(selectedFilter.Name))
+        if (!string.IsNullOrEmpty(_selectedFilter.Name))
         {
-            agents = agents.Where(w => (w.Name ?? string.Empty).ToLower().Contains((selectedFilter.Name ?? string.Empty).ToLower())).ToList();
+            agents = agents.Where(w => (w.Name ?? string.Empty).ToLower().Contains((_selectedFilter.Name ?? string.Empty).ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXAgent>(
         agents.Skip(request.StartIndex).Take(request.Count), total));
@@ -282,14 +287,14 @@
     private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAgents);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingAgents);
         try
         {
             ListAgents req = new ListAgents()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = GetAgents().Select(s => s.Id).ToArray()
@@ -307,22 +312,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingAgents);
-            NotificationService?.RemoveByKey("Pages/Agent/AgentsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingAgents);
+            _notificationService?.RemoveByKey("Pages/Agent/AgentsSelector.OnInitializedAsync");
             if (_selected != null)
             {
                 await _selected.RefreshDataAsync();
@@ -335,7 +340,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Agent/AgentsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Agent/AgentsSelector.OnInitializedAsync");
         }
     }
 }

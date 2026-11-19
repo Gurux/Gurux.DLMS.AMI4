@@ -66,7 +66,7 @@
                                      @ref=networkSettings></NetworkSettings>
                     <div class="form-group">
                         <label>@Properties.Resources.TraceLevel</label>
-                        <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(TraceLevels)" />
+                        <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(_traceLevels)" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.Gateway</label>
@@ -103,12 +103,14 @@
 
     protected override void OnInitialized()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
     }
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     //Available scripts.
     [Parameter]
@@ -117,9 +119,11 @@
     [Parameter]
     public GatewaySettings? Settings { get; set; }
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
-    TraceLevel[] TraceLevels = new TraceLevel[]
+    /// <summary>Lists the diagnostic trace levels offered by the connection editor.</summary>
+    TraceLevel[] _traceLevels = new TraceLevel[]
     {
         TraceLevel.Off,
         TraceLevel.Error,
@@ -166,6 +170,7 @@
         }
     }
 
+    /// <summary>Retains the gateway selected for the connection settings.</summary>
     private GXGateway? _selectedGateway;
     private GXGateway? SelectedGateway { get => _selectedGateway; set { _selectedGateway = value; if (Settings != null) {
         Settings.Id = value?.Id;
@@ -174,7 +179,7 @@
     private async ValueTask<ItemsProviderResult<GXGateway?>> GetGateways(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingGatewayOptions);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingGatewayOptions);
         try
         {
             ListGateways req = new ListGateways()
@@ -219,7 +224,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }

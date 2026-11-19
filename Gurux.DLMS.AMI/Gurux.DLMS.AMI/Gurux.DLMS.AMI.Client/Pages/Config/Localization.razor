@@ -49,26 +49,26 @@
 
 <GXHelpContext Topic="Localization" />
 
-@if (Active?.Language != null)
+@if (_active?.Language != null)
 {
     <GXDialog OnCancel="Cancel"
             CancelButtonTitle="@Properties.Resources.Cancel"
             OkButtonTitle="@Properties.Resources.Ok"
             OnOk="Save">
-        <EditForm EditContext="@GXEditContexts.For(Active)">
+        <EditForm EditContext="@GXEditContexts.For(_active)">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <GXValidator @ref="_validator" OnValidate="OnValidate" />
             <label>@Properties.Resources.Language</label>
-            <label class="form-control">@GetLanguage(Active)</label>
-            <GXCopyButton Value="@Active.Value">@Properties.Resources.Text</GXCopyButton>
-            <InputText id="description" @bind-Value="Active.Value" class="form-control" />
-            <GXInputSwitch Text="@Properties.Resources.Preload" @bind-Value="Active.Preload" />
+            <label class="form-control">@GetLanguage(_active)</label>
+            <GXCopyButton Value="@_active.Value">@Properties.Resources.Text</GXCopyButton>
+            <InputText id="description" @bind-Value="_active.Value" class="form-control" />
+            <GXInputSwitch Text="@Properties.Resources.Preload" @bind-Value="_active.Preload" />
         </EditForm>
     </GXDialog>
 }
 
-<GXViewTable ViewName="Config.Localization" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXLocalizationPolicies.View })" TItem="GXLocalizedResource" @ref="table"
+<GXViewTable ViewName="Config.Localization" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXLocalizationPolicies.View })" TItem="GXLocalizedResource" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Single"
@@ -80,24 +80,24 @@
             <GXSearch id="localization-search-value"
                     Immediate="true"
                     RememberValue="true"
-                    @bind-Value="filter.Value"
+                    @bind-Value="_filter.Value"
                     @bind-Value:after="Updated" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="localization-creationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="localization-updated"
-                                @bind-Value="@filter.Updated"
+                                @bind-Value="@_filter.Updated"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Status" Visibility="Visibility.Medium">
             <EnumTypeSelector Type="@TargetType.LocalizedResource"
-                              @bind-Value="@filter.Status"
+                              @bind-Value="@_filter.Status"
                               OnSelected="@((int? e) => Updated())">
             </EnumTypeSelector>
         </GXFh>
@@ -113,7 +113,7 @@
     </HeaderContent>
     <ItemContent>
         <GXTd Id="Value">
-            @if (item.Hash != null && LocalizedTexts.ContainsKey(item.Hash) && LocalizedTexts[item.Hash].Any())
+            @if (item.Hash != null && _localizedTexts.ContainsKey(item.Hash) && _localizedTexts[item.Hash].Any())
             {
                 <GXAccordion Id="content-type-authoring">
                     <HeaderTemplate>
@@ -122,7 +122,7 @@
                         </div>
                     </HeaderTemplate>
                     <ChildContent>
-                        @foreach (var it in LocalizedTexts[item.Hash])
+                        @foreach (var it in _localizedTexts[item.Hash])
                         {
                             <div class="form-group">
                                 <label>@GetLanguage(it)</label>
@@ -145,7 +145,8 @@
 <br />
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Value") { Position = 0, Description = "Value", Visibility = (byte)Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
@@ -153,15 +154,21 @@
         new("Status") { Position = 3, Description = "Status", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter]
     public List<GXLanguage> AvailableLanguages { get; set; } = new List<GXLanguage>();
-    private readonly Dictionary<string, List<GXLocalizedResource>> LocalizedTexts = new();
+    /// <summary>Groups localized resource values by language for the translation editor.</summary>
+    private readonly Dictionary<string, List<GXLocalizedResource>> _localizedTexts = new();
+    /// <summary>Caches the installed language records displayed by the localization editor.</summary>
     internal GXLanguage[]? Installedlanguages = null;
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
     /// <summary>
@@ -170,7 +177,8 @@
     [Parameter]
     public string? Id { get; set; }
 
-    GXLocalizedResource? Active;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
+    GXLocalizedResource? _active;
 
     /// <summary>
     /// Amount of the resources shown on the view.
@@ -181,7 +189,7 @@
     /// <summary>
     /// Resource filter.
     /// </summary>
-    private GXLocalizedResource filter = new GXLocalizedResource()
+    private GXLocalizedResource _filter = new GXLocalizedResource()
     {
     };
 
@@ -199,13 +207,13 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Config/Localization.Updated");
+                _notificationService?.RemoveByKey("Pages/Config/Localization.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Localization.Updated");
+            _notificationService?.ReportError(ex, "Pages/Config/Localization.Updated");
         }
     }
 
@@ -221,18 +229,18 @@
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingLocalization);
-            NotificationService?.RemoveByKey("Pages/Config/Localization.OnInitialized");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingLocalization);
+            _notificationService?.RemoveByKey("Pages/Config/Localization.OnInitialized");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -240,14 +248,14 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Localization.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Config/Localization.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXLocalizedResource>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingLocalization);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingLocalization);
         try
         {
             //Get enum types.
@@ -262,15 +270,15 @@
             };
             var lang = AvailableLanguages.Where(w => w.Enabled == true && w.Default == true).SingleOrDefault();
             req.Filter.Language = lang == null ? null : new() { Id = lang.Id };
-            req.Filter.Value = filter.Value;
-            req.Filter.Status = filter.Status;
-            if (filter.CreationTime != null && filter.CreationTime != DateTimeOffset.MinValue)
+            req.Filter.Value = _filter.Value;
+            req.Filter.Status = _filter.Status;
+            if (_filter.CreationTime != null && _filter.CreationTime != DateTimeOffset.MinValue)
             {
-                req.Filter.CreationTime = filter.CreationTime;
+                req.Filter.CreationTime = _filter.CreationTime;
             }
-            if (filter.Updated != null && filter.Updated != DateTimeOffset.MinValue)
+            if (_filter.Updated != null && _filter.Updated != DateTimeOffset.MinValue)
             {
-                req.Filter.Updated = filter.Updated;
+                req.Filter.Updated = _filter.Updated;
             }
             if (Count != 0)
             {
@@ -281,7 +289,7 @@
             var ret = await Http.PostAsJson<ListLocalizedResourcesResponse>("api/LocalizedResource/List", req, request.CancellationToken);
             if (ret.LocalizedResources != null)
             {
-                LocalizedTexts.Clear();
+                _localizedTexts.Clear();
                 List<GXLocalizedResource> tmp = new();
                 //Group texts by language.
                 foreach (var it in ret.LocalizedResources)
@@ -290,15 +298,15 @@
                     {
                         continue;
                     }
-                    if (LocalizedTexts.ContainsKey(it.Hash))
+                    if (_localizedTexts.ContainsKey(it.Hash))
                     {
                         //Localized language.
-                        LocalizedTexts[it.Hash].Add(it);
+                        _localizedTexts[it.Hash].Add(it);
                     }
                     else
                     {
                         //Default language.
-                        LocalizedTexts[it.Hash] = new();
+                        _localizedTexts[it.Hash] = new();
                         tmp.Add(it);
                     }
                 }
@@ -312,7 +320,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -323,7 +331,7 @@
 
     private void Edit(GXLocalizedResource value)
     {
-        Active = ClientHelpers.Clone<GXLocalizedResource>(value);
+        _active = ClientHelpers.Clone<GXLocalizedResource>(value);
         InvokeAsync(StateHasChanged);
     }
 
@@ -333,11 +341,11 @@
     /// <param name="sender"></param>
     private void OnValidate(GXValidator sender)
     {
-        if (Active != null)
+        if (_active != null)
         {
-            if (string.IsNullOrEmpty(Active.Value))
+            if (string.IsNullOrEmpty(_active.Value))
             {
-                sender.AddError(() => Active.Value, Properties.Resources.InvalidText);
+                sender.AddError(() => _active.Value, Properties.Resources.InvalidText);
             }
         }
     }
@@ -349,7 +357,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Config/Localization.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Config/Localization.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -362,7 +370,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Localization.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Config/Localization.OnEdit");
         }
     }
 
@@ -379,16 +387,16 @@
             {
                 return;
             }
-            if (Active == null)
+            if (_active == null)
             {
                 return;
             }
             UpdateLocalizedResource req = new UpdateLocalizedResource()
             {
-                LocalizedResources = [Active]
+                LocalizedResources = [_active]
             };
             await Http.PostAsJson<UpdateLocalizedResourceResponse>("api/LocalizedResource/Update", req);
-            Active = null;
+            _active = null;
             if (table != null)
             {
                 await table.RefreshDataAsync(true);
@@ -396,7 +404,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -406,13 +414,13 @@
     /// </summary>
     public void Cancel()
     {
-        Active = null;
+        _active = null;
         StateHasChanged();
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

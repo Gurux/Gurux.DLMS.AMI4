@@ -279,8 +279,8 @@ public sealed class GXPasswordChangeService(IDbConnectionFactory factory, IDevic
             await db.UpdateAsync(tx, GXUpdateArgs.Update(target, k => new { k.State, k.DestroyDate, k.Key }), token);
             operation.State = "Cancelled";
             await db.UpdateAsync(tx, GXUpdateArgs.Update(operation, r => r.State!), token);
-            var task = new GXTask { Id = operation.TaskId, Ready = DateTimeOffset.UtcNow, Result = "Password change cancelled." };
-            await db.UpdateAsync(tx, GXUpdateArgs.Update(task, t => new { t.Ready, t.Result }), token);
+            var task = new GXTask { Id = operation.TaskId, Ready = DateTimeOffset.UtcNow, Error = "Password change cancelled." };
+            await db.UpdateAsync(tx, GXUpdateArgs.Update(task, t => new { t.Ready, t.Error }), token);
             await db.DeleteAsync(tx, GXDeleteArgs.Delete<GXPasswordChangeLock>(r => r.Id == operation.DeviceId && r.OperationId == id), token);
             await tx.CommitAsync(token);
         }, token);
@@ -460,8 +460,9 @@ public sealed class GXPasswordChangeService(IDbConnectionFactory factory, IDevic
             task.Start = task.Ready = null;
             task.OperatingAgent = null;
             task.Result = null;
+            task.Error = null;
             task.Data = JsonSerializer.Serialize(new { PasswordChangeId = operation.Id });
-            await db.UpdateAsync(GXUpdateArgs.Update(task, t => new { t.Start, t.Ready, t.OperatingAgent, t.Result, t.Data }), token);
+            await db.UpdateAsync(GXUpdateArgs.Update(task, t => new { t.Start, t.Ready, t.OperatingAgent, t.Result, t.Error, t.Data }), token);
         }, token);
     }
 

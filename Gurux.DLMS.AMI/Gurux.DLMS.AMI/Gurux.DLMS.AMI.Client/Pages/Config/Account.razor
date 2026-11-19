@@ -83,14 +83,19 @@
 }
 
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
+    /// <summary>Coordinates configuration reloads without overlapping asynchronous requests.</summary>
     private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Parent component.
@@ -110,23 +115,24 @@
         InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>Caches the settings currently displayed by the editor.</summary>
     AccountSettings? _settings;
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAccount);
-            NotificationService?.RemoveByKey("Pages/Config/Account.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingAccount);
+            _notificationService?.RemoveByKey("Pages/Config/Account.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Account, configuration =>
                 {
@@ -135,7 +141,7 @@
                     }
                     Parent.Active.Settings = configuration.Settings;
                     Update();
-                }, () => MenuService.EditContext?.IsModified() != true, NotificationService));
+                }, () => MenuService.EditContext?.IsModified() != true, _notificationService));
             });
             MenuService.Clear();
             MenuService.AddMenuItems(new GXMenuItem()
@@ -165,7 +171,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Account.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Config/Account.OnInitialized");
         }
     }
 
@@ -174,8 +180,8 @@
     /// </summary>
     private async Task OnSave()
     {
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingAccount);
-        NotificationService?.RemoveByKey("Pages/Config/Account.OnSave");
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingAccount);
+        _notificationService?.RemoveByKey("Pages/Config/Account.OnSave");
         try
         {
             if (Parent?.Active == null)
@@ -191,7 +197,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Account.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Config/Account.OnSave");
         }
     }
 
@@ -207,6 +213,6 @@
     {
         _configurationRefresh.Dispose();
         MenuService.Dispose();
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

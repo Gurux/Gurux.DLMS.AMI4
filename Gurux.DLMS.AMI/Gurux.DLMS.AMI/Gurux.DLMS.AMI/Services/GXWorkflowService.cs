@@ -61,52 +61,30 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Gurux.DLMS.AMI.Server.Services
 {
-    /// <summary>
-    /// Action info is used to save detailed information from the invoked action.
-    /// </summary>
-    class GXActionInfo
-    {
-        /// <summary>
-        /// Trigger type.
-        /// </summary>
-        public required Type Trigger;
-        /// <summary>
-        /// Activity.
-        /// </summary>
-        public required string Activity;
-        /// <summary>
-        /// Invoker.
-        /// </summary>
-        public required object? Sender;
-        public Guid? WorkflowId;
-        public Guid EventId = Guid.NewGuid();
-        public DateTimeOffset QueuedAt = DateTimeOffset.UtcNow;
-        public string? ActorId;
-        public bool Manual;
-        public GXWorkflowEventContext? EventContext;
-        public Guid ChainId;
-        public int Depth;
-        public Guid DeliveryId;
-    }
 
     /// <summary>
     /// GXWorkflowService handles workflows.
     /// </summary>
     internal sealed partial class GXWorkflowService : BackgroundService, IWorkflowHandler
     {
+        /// <summary>Workflows selected to receive the queued event.</summary>
         internal readonly List<GXWorkflow> Workflows = [];
 
         /// <summary>
         /// List of actions.
         /// </summary>
         internal readonly List<GXActionInfo> Actions = [];
-        private readonly SemaphoreSlim signal = new(0);
+        /// <summary>Wakes the background processor when new work is available.</summary>
+        private readonly SemaphoreSlim _signal = new(0);
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
         /// <summary>
         /// Script are keeped loaded to improve the performance.
         /// </summary>
-        private readonly Dictionary<Guid, AssemblyLoadContext?> LoadedScripts = [];
+        private readonly Dictionary<Guid, AssemblyLoadContext?> _loadedScripts = [];
 
+        /// <summary>Queues and executes workflows while recording invocation identity and delivery state.</summary>
+        /// <param name="serviceProvider">Resolves the dependencies required by this component.</param>
         public GXWorkflowService(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
@@ -198,7 +176,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                         ActorId = actorId,
                         EventContext = context
                     });
-                    signal.Release();
+                    _signal.Release();
                 }
         }
 
@@ -225,6 +203,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
             Execute(trigger, activity, snapshot, actor);
         }
+        /// <inheritdoc />
         public void ExecuteWorkflow(Guid workflowId, ClaimsPrincipal actor)
         {
             if (workflowId == Guid.Empty || actor.Identity?.IsAuthenticated != true || GXWorkflowIdentityAccess.ActorId(actor) == null)
@@ -254,14 +233,14 @@ namespace Gurux.DLMS.AMI.Server.Services
                     ActorId = GXWorkflowIdentityAccess.ActorId(actor),
                     Manual = true
                 });
-                signal.Release();
+                _signal.Release();
             }
         }
 
         /// <summary>Consumes a queued invocation, retaining initiator and manual-run metadata.</summary>
         private GXActionInfo GetNextInvocation()
         {
-            signal.Wait();
+            _signal.Wait();
             lock (Actions)
             {
                 var action = Actions[0];
@@ -310,7 +289,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                         var delivery = await LeaseNextAsync(factory, stoppingToken);
                         if (delivery == null)
                         {
-                            await signal.WaitAsync(TimeSpan.FromSeconds(1), stoppingToken);
+                            await _signal.WaitAsync(TimeSpan.FromSeconds(1), stoppingToken);
                             continue;
                         }
                         using var lease = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
@@ -370,6 +349,9 @@ namespace Gurux.DLMS.AMI.Server.Services
             }, stoppingToken);
         }
 
+        /// <summary>Initializes workflow defaults and startup state after the default administrator becomes available.</summary>
+        /// <param name="stoppingToken">Cancels work when the workflow service is stopping.</param>
+        /// <returns>A task indicating whether workflow initialization could complete with an administrator account.</returns>
         private async Task<bool> InitializeAsync(CancellationToken stoppingToken)
         {
             var dbFactory = _serviceProvider.GetRequiredService<IDbConnectionFactory>();
@@ -437,6 +419,11 @@ namespace Gurux.DLMS.AMI.Server.Services
         internal Task<GXWorkflowExecution> ExecuteInvocationAsync(GXActionInfo invocation, IServiceProvider auditServices)
             => ExecuteInvocationCoreAsync(invocation, auditServices, CancellationToken.None);
 
+        /// <summary>Executes a workflow invocation with a deadline and records its outcome for auditing and durable delivery.</summary>
+        /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+        /// <param name="auditServices">The service scope used to authorize and audit the workflow execution.</param>
+        /// <param name="stoppingToken">Cancels work when the workflow service is stopping.</param>
+        /// <returns>A task containing the completed workflow execution record.</returns>
         private async Task<GXWorkflowExecution> ExecuteInvocationCoreAsync(GXActionInfo invocation, IServiceProvider auditServices, CancellationToken stoppingToken)
         {
             var history = new GXWorkflowExecution
@@ -464,8 +451,8 @@ namespace Gurux.DLMS.AMI.Server.Services
             var elapsed = Stopwatch.StartNew();
             var execution = Task.Run(async () =>
             {
-                var previous = Current.Value;
-                Current.Value = new InvocationScope(history.ChainId, invocation.Depth, invocation.DeliveryId, invocation.ActorId, executionToken);
+                var previous = _current.Value;
+                _current.Value = new InvocationScope(history.ChainId, invocation.Depth, invocation.DeliveryId, invocation.ActorId, executionToken);
                 try
                 {
                     var factory = _serviceProvider.GetRequiredService<IDbConnectionFactory>();
@@ -551,7 +538,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                         history.Status = WorkflowExecutionStatus.Succeeded;
                     }, executionToken);
                 }
-                finally { Current.Value = previous; }
+                finally { _current.Value = previous; }
             }, CancellationToken.None);
             try
             { await execution.WaitAsync(executionToken); }
@@ -584,6 +571,15 @@ namespace Gurux.DLMS.AMI.Server.Services
             return history;
         }
 
+        /// <summary>Loads and authorizes a compiled workflow method, then executes it as the invoking principal.</summary>
+        /// <param name="connection">The open database connection used for the operation.</param>
+        /// <param name="services">The service scope used to resolve authorization and script execution services.</param>
+        /// <param name="principal">The actor whose permissions govern the workflow method execution.</param>
+        /// <param name="methodId">The identifier of the compiled script method invoked by the workflow.</param>
+        /// <param name="sender">The event sender supplied to the script method.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+        /// <returns>A task containing the script method's result, which may be null.</returns>
+        /// <exception cref="InvalidOperationException">The method is unavailable, disabled, removed, uncompiled, or unnamed.</exception>
         private static async Task<object?> RunWorkflowMethodAsync(GXDbConnection connection, IServiceProvider services,
             ClaimsPrincipal principal, Guid methodId, object? sender, CancellationToken cancellationToken)
         {
@@ -619,7 +615,7 @@ namespace Gurux.DLMS.AMI.Server.Services
         /// <inheritdoc />
         public void AddScript(Guid id, AssemblyLoadContext alc)
         {
-            LoadedScripts[id] = alc;
+            _loadedScripts[id] = alc;
         }
 
         /// <inheritdoc />
@@ -628,7 +624,7 @@ namespace Gurux.DLMS.AMI.Server.Services
         {
             lock (Workflows)
             {
-                if (LoadedScripts.TryGetValue(id, out var alc))
+                if (_loadedScripts.TryGetValue(id, out var alc))
                 {
                     foreach (var it in Workflows)
                     {
@@ -642,7 +638,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                         }
                     }
                 }
-                LoadedScripts.Remove(id);
+                _loadedScripts.Remove(id);
                 if (alc != null)
                 {
                     WeakReference alcWeakRef = new(alc);
@@ -659,7 +655,7 @@ namespace Gurux.DLMS.AMI.Server.Services
         /// <inheritdoc />
         public AssemblyLoadContext? GetScript(Guid id)
         {
-            return LoadedScripts[id];
+            return _loadedScripts[id];
         }
     }
 }

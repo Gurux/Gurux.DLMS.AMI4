@@ -41,7 +41,7 @@
 
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.DeletePersonalData</PageTitle>
 
-<StatusMessage Message="@message" />
+<StatusMessage Message="@_message" />
 
 <h3>@Gurux.DLMS.AMI.Properties.Resources.DeletePersonalData</h3>
 
@@ -55,7 +55,7 @@
     <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post">
         <DataAnnotationsValidator />
         <ValidationSummary class="text-danger" role="alert" />
-        @if (requirePassword)
+        @if (_requirePassword)
         {
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="@Gurux.DLMS.AMI.Properties.Resources.PleaseEnterYourPassword" />
@@ -68,9 +68,12 @@
 </div>
 
 @code {
-    private string? message;
-    private ApplicationUser user = default!;
-    private bool requirePassword;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
+    /// <summary>Retains the authenticated Identity account used by this account-management operation.</summary>
+    private ApplicationUser _user = default!;
+    /// <summary>Controls whether account deletion requires the current local password.</summary>
+    private bool _requirePassword;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -82,19 +85,19 @@
     {
         Input ??= new();
         Input ??= new();
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        requirePassword = await UserManager.HasPasswordAsync(user);
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _requirePassword = await UserManager.HasPasswordAsync(_user);
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (requirePassword && !await UserManager.CheckPasswordAsync(user, Input.Password))
+        if (_requirePassword && !await UserManager.CheckPasswordAsync(_user, Input.Password))
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.ErrorIncorrectPassword;
+            _message = Gurux.DLMS.AMI.Properties.Resources.ErrorIncorrectPassword;
             return;
         }
 
-        var result = await UserManager.DeleteAsync(user);
+        var result = await UserManager.DeleteAsync(_user);
         if (!result.Succeeded)
         {
             throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.UnexpectedErrorOccurredDeletingUser);
@@ -102,7 +105,7 @@
 
         await SignInManager.SignOutAsync();
 
-        var userId = await UserManager.GetUserIdAsync(user);
+        var userId = await UserManager.GetUserIdAsync(_user);
         Logger.LogInformation("User with ID '{UserId}' deleted themselves.", userId);
 
         RedirectManager.RedirectToCurrentPage();

@@ -70,7 +70,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="Script.Scripts" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXScriptPolicies.View })"
+<GXViewTable ViewName="Script.Scripts" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXScriptPolicies.View })"
              TItem="GXScript" @ref="table"
              @bind-Active="Active"
              Context="script"
@@ -85,18 +85,18 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="Scripts-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -118,17 +118,22 @@
 
 <br />
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
-    private bool publishingCommunity;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
+    /// <summary>Prevents overlapping requests while publishing community is in progress.</summary>
+    private bool _publishingCommunity;
 
     /// <summary>
     /// Selected script ID.
@@ -137,6 +142,7 @@
     public Guid? Id { get; set; }
 
     private GXScript? Active { get; set; }
+    /// <summary>Caches whether script records are available for the displayed selection.</summary>
     private bool? _hasScripts;
 
     /// <summary>Reports whether the loaded script list contains items.</summary>
@@ -210,7 +216,7 @@
     /// <summary>
     /// Script filter.
     /// </summary>
-    private GXScript filter = new GXScript() { Enabled = null };
+    private GXScript _filter = new GXScript() { Enabled = null };
     /// <summary>
     /// Table reference.
     /// </summary>
@@ -225,31 +231,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Script/Scripts.Updated");
+                _notificationService?.RemoveByKey("Pages/Script/Scripts.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/Scripts.Updated");
+            _notificationService?.ReportError(ex, "Pages/Script/Scripts.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScripts);
-        NotificationService?.RemoveByKey("Pages/Script/Scripts.OnInitialized");
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScripts);
+        _notificationService?.RemoveByKey("Pages/Script/Scripts.OnInitialized");
         try
         {
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -274,29 +280,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/Scripts.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Script/Scripts.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXScript>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingScripts);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingScripts);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListScripts req = new ListScripts()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -322,7 +328,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -334,7 +340,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Script/Scripts.OnAdd");
+            _notificationService?.RemoveByKey("Pages/Script/Scripts.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager, "/Config/Script/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -343,7 +349,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/Scripts.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/Script/Scripts.OnAdd");
         }
     }
 
@@ -354,7 +360,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Script/Scripts.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Script/Scripts.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -367,7 +373,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/Scripts.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Script/Scripts.OnEdit");
         }
     }
 
@@ -398,7 +404,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -425,22 +431,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
     /// <summary>Confirms anonymous publication of one saved script before sending it for review.</summary>
     public async Task OnPublishCommunity()
     {
-        if (publishingCommunity)
+        if (_publishingCommunity)
         {
             return;
         }
-        publishingCommunity = true;
+        _publishingCommunity = true;
         const string key = "Pages/Script/Scripts.PublishCommunity";
         try
         {
-            NotificationService?.RemoveByKey(key);
+            _notificationService?.RemoveByKey(key);
             var selected = table?.SingleOrDefault().ToArray() ?? [];
             if (selected.Length != 1)
             {
@@ -454,7 +460,7 @@
             {
                 return;
             }
-            using var progress = Progress?.ProgressStart(Properties.Resources.PublishToCommunity);
+            using var progress = _progress?.ProgressStart(Properties.Resources.PublishToCommunity);
             await Services.GetRequiredService<GXScriptCommunityNotifications>().PublishAsync(script.Id);
         }
         catch (AccessTokenNotAvailableException exception)
@@ -463,11 +469,11 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, key, NotificationScope.Global);
+            _notificationService?.ReportError(ex, key, NotificationScope.Global);
         }
         finally
         {
-            publishingCommunity = false;
+            _publishingCommunity = false;
         }
     }
 
@@ -478,7 +484,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

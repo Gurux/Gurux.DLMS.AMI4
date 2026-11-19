@@ -78,11 +78,14 @@
     </EditForm>
 }
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -96,6 +99,7 @@
     [Parameter]
     public Guid? Id { get; set; }
 
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private GXDeviceTrace? _active;
 
     private string GetDirection()
@@ -105,13 +109,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDeviceTrace);
-            NotificationService?.RemoveByKey("Pages/Device/DeviceTrace.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDeviceTrace);
+            _notificationService?.RemoveByKey("Pages/Device/DeviceTrace.OnInitializedAsync");
             //Get selected item.
             if (Id == null)
             {
@@ -134,7 +138,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceTrace.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceTrace.OnInitializedAsync");
         }
     }
 

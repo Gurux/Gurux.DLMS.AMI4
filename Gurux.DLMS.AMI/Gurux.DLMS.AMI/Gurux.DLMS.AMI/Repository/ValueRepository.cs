@@ -52,11 +52,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class ValueRepository : IValueRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Schedules or executes workflow actions after repository changes.</summary>
         private readonly IWorkflowHandler? _workflowHandler;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -72,7 +78,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _notificationCache = notificationCache;
@@ -94,7 +100,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXValue> values, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Add, GXDevicePolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXComponentViewPolicies.Add, GXDevicePolicies.Add);
             values = values.ToArray();
             List<GXWorkflowEventContext> events = [];
             List<GXValue> recordedValues = [];
@@ -202,7 +208,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<Guid> list = [.. recordedValues.Select(v => v.Id)];
             await transaction.CommitAsync(cancellationToken);
             foreach (var context in events) {
-                _workflowHandler?.Publish(context, User);
+                _workflowHandler?.Publish(context, _user);
             }
             _notificationCache.Add(users, new GXTarget(GXValuePolicies.Add));
             if (objects != null)
@@ -222,7 +228,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await ProfileHistoryRepository.Gate.WaitAsync(cancellationToken);
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
                 HashSet<string> users = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
@@ -251,7 +257,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await ProfileHistoryRepository.Gate.WaitAsync(cancellationToken);
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
                 HashSet<string> users = [];
                 Guid[] guids = [.. devices.Select(s => s.Id)];
                 //Reset last read time for the attribute.
@@ -302,7 +308,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await ProfileHistoryRepository.Gate.WaitAsync(cancellationToken);
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
                 if (objects != null && objects.Any())
                 {
                     HashSet<string> users = [];
@@ -357,9 +363,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Authorizes value deletion, clears affected profile-history parameters, and deletes values in a serializable transaction.</summary>
+        /// <param name="values">Value record identities to delete together with affected profile-history parameters.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after deletion and related notifications.</returns>
         private async Task DeleteValuesAsync(IEnumerable<Guid> values, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXComponentViewPolicies.Add, GXDevicePolicies.Edit);
             var ids = values?.Distinct().ToArray() ?? [];
             if (ids.Length == 0) {
                 return;
@@ -397,12 +407,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListValuesResponse? response,
             CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXValuePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXValuePolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXValue>();
             arg.Distinct = true;
-            if (!User.IsInRole(GXRoles.Admin))
+            if (!_user.IsInRole(GXRoles.Admin))
             {
-                var attributes = GXQuery.GetAttributesByUser(a => GXSql.One, ServerHelpers.GetUserId(User));
+                var attributes = GXQuery.GetAttributesByUser(a => GXSql.One, ServerHelpers.GetUserId(_user));
                 attributes.Where.And<GXObject>(o => o.Removed == null);
                 arg.Where.And<GXValue>(v => GXSql.Exists<GXValue, GXAttribute>(v => v.Attribute!, a => a.Id, attributes));
             }

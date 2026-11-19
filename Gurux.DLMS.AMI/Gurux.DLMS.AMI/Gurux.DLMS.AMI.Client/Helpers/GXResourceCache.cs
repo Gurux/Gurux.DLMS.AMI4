@@ -38,35 +38,70 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
 /// <summary>Versioned resource groups shared by memory and browser storage.</summary>
+/// <param name="logger">Logger used to report recoverable client failures.</param>
 internal sealed class GXResourceCache(ILogger logger)
 {
+    /// <summary>In-memory values and validation state for one host-specific resource category.</summary>
     private sealed class Group
     {
+        /// <summary>Serializes reads and writes within the resource category.</summary>
         public readonly SemaphoreSlim Gate = new(1, 1);
+        /// <summary>Resource bodies indexed by their version-qualified key.</summary>
         public readonly Dictionary<string, string?> Values = [];
+        /// <summary>Last known server change timestamp for the category.</summary>
         public DateTimeOffset? Version;
+        /// <summary>Time at which server freshness was most recently checked.</summary>
         public DateTimeOffset Checked;
+        /// <summary>Invalidation counter incremented when notifications require a fresh read.</summary>
         public long Revision;
+        /// <summary>Invalidation counter covered by the most recent server freshness check.</summary>
         public long CheckedRevision = -1;
+        /// <summary>Whether a persisted conditional response has already been considered.</summary>
         public bool ConditionalLoaded;
+        /// <summary>Validated conditional response available for reuse or permitted offline use.</summary>
         public CachedResponse? ConditionalValue;
     }
 
+    /// <summary>Persisted response body with its HTTP entity tag and permission epoch.</summary>
+    /// <param name="ETag">HTTP entity tag associated with the saved response body.</param>
+    /// <param name="Body">Validated serialized resource response body.</param>
+    /// <param name="PermissionEpoch">Permission epoch under which the conditional response was validated.</param>
     private sealed record CachedResponse(string? ETag, string Body, string? PermissionEpoch = null);
 
-    private readonly ConcurrentDictionary<string, Group> groups = new();
+    /// <summary>Independent caches partitioned by API host and resource category.</summary>
+    private readonly ConcurrentDictionary<string, Group> _groups = new();
 
+    /// <summary>Snapshot of cache values and validation metadata captured before the initial resource request.</summary>
+    /// <param name="Category">Resource category represented by the initial snapshot.</param>
+    /// <param name="Revision">Invalidation revision captured before the request started.</param>
+    /// <param name="Version">Server version or entity tag associated with the captured values.</param>
+    /// <param name="Values">Independent snapshot of resource bodies keyed by resource name.</param>
+    /// <param name="Conditional">Whether the snapshot uses conditional entity-tag validation.</param>
+    /// <param name="PermissionEpoch">Permission epoch under which the conditional response was validated.</param>
+    /// <param name="UsableOffline">Whether the saved response was validated under the current permission epoch.</param>
     internal sealed record InitialState(string Category, long Revision, string? Version,
         Dictionary<string, string?> Values, bool Conditional, string? PermissionEpoch, bool UsableOffline);
 
+    /// <summary>Partitions browser resource storage by the API base address and resource category.</summary>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <param name="category">Resource category whose cache partition is accessed or invalidated.</param>
+    /// <returns>An escaped host-specific storage group identifier.</returns>
     private static string GroupKey(HttpClient http, string category) =>
         "ami-resource:v2:" + Uri.EscapeDataString(http.BaseAddress?.AbsoluteUri ?? "") + ":" + category;
 
+    /// <summary>Reads a snapshot of previously stored values for an initial batched resource request.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <param name="category">Resource category whose cache partition is accessed or invalidated.</param>
+    /// <param name="keys">Resource keys to include in the initial cache snapshot.</param>
+    /// <param name="conditional">Whether the category uses entity-tag based conditional response caching.</param>
+    /// <param name="validate">Optional callback that accepts valid cached or received resource representations.</param>
+    /// <returns>Cached values, their version and revision, and permission metadata used to validate the response.</returns>
     public async Task<InitialState> ReadInitialAsync(IGXLocalStorage storage, HttpClient http, string category,
         IEnumerable<string> keys, bool conditional = false, Func<string, bool>? validate = null)
     {
         var groupKey = GroupKey(http, category);
-        var group = groups.GetOrAdd(groupKey, _ => new Group());
+        var group = _groups.GetOrAdd(groupKey, _ => new Group());
         await group.Gate.WaitAsync();
         try
         {
@@ -127,11 +162,19 @@ internal sealed class GXResourceCache(ILogger logger)
         }
     }
 
+    /// <summary>Applies an initial server response only while its request and cache revision remain current.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <param name="state">Cache snapshot captured before the initial resource request.</param>
+    /// <param name="result">Initial resource-group response received from the server.</param>
+    /// <param name="isCurrent">Callback that reports whether the caller still represents the active view or session.</param>
+    /// <param name="validate">Optional callback that accepts valid cached or received resource representations.</param>
+    /// <returns>True when the response was validated and applied to the cache.</returns>
     public async Task<bool> ApplyInitialAsync(IGXLocalStorage storage, HttpClient http, InitialState state,
         GXInitialResourceGroup result, Func<bool> isCurrent, Func<string, bool>? validate = null)
     {
         var groupKey = GroupKey(http, state.Category);
-        var group = groups.GetOrAdd(groupKey, _ => new Group());
+        var group = _groups.GetOrAdd(groupKey, _ => new Group());
         await group.Gate.WaitAsync();
         try
         {
@@ -211,15 +254,28 @@ internal sealed class GXResourceCache(ILogger logger)
         }
     }
 
+    /// <summary>Changes the persisted menu permission epoch so old conditional bodies require revalidation.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <returns>A task that completes after the permission epoch write has been attempted.</returns>
     public Task InvalidateMenuPermissionsAsync(IGXLocalStorage storage, HttpClient http) =>
         WriteAsync(storage, "ami-resource:v2:" + Uri.EscapeDataString(http.BaseAddress?.AbsoluteUri ?? "") + ":menu",
             "PermissionEpoch", Guid.NewGuid().ToString("N"));
 
+    /// <summary>Revalidates a cached response with its entity tag and applies the caller&apos;s offline and permission rules.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <param name="category">Resource category whose cache partition is accessed or invalidated.</param>
+    /// <param name="url">API endpoint from which to load the resource representation.</param>
+    /// <param name="validate">Optional callback that accepts valid cached or received resource representations.</param>
+    /// <param name="isCurrent">Callback that reports whether the caller still represents the active view or session.</param>
+    /// <param name="allowOffline">Whether a cached response may be used when server revalidation fails.</param>
+    /// <returns>The validated or permitted cached body, or null when it cannot safely be used.</returns>
     public async Task<string?> GetConditionalAsync(IGXLocalStorage storage, HttpClient http, string category,
         string url, Func<string, bool> validate, Func<bool> isCurrent, bool allowOffline)
     {
         var groupKey = "ami-resource:v2:" + Uri.EscapeDataString(http.BaseAddress?.AbsoluteUri ?? "") + ":" + category;
-        var group = groups.GetOrAdd(groupKey, _ => new Group());
+        var group = _groups.GetOrAdd(groupKey, _ => new Group());
         await group.Gate.WaitAsync();
         try
         {
@@ -329,9 +385,11 @@ internal sealed class GXResourceCache(ILogger logger)
         }
     }
 
+    /// <summary>Marks all host partitions of the specified resource category for revalidation.</summary>
+    /// <param name="category">Resource category whose cache partition is accessed or invalidated.</param>
     public void Invalidate(string category)
     {
-        foreach (var pair in groups)
+        foreach (var pair in _groups)
         {
             if (pair.Key.EndsWith(":" + category, StringComparison.Ordinal) ||
             pair.Key.Contains(":" + category + ":", StringComparison.Ordinal))
@@ -341,12 +399,21 @@ internal sealed class GXResourceCache(ILogger logger)
         }
     }
 
+    /// <summary>Loads a versioned resource through memory, browser storage and the supplied server callbacks.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <param name="category">Resource category whose cache partition is accessed or invalidated.</param>
+    /// <param name="key">Resource key within the selected cache or browser storage group.</param>
+    /// <param name="getVersion">Callback that loads the server&apos;s current resource version.</param>
+    /// <param name="load">Callback that loads a resource body when no cached value is available.</param>
+    /// <param name="isCurrent">Callback that reports whether the caller still represents the active view or session.</param>
+    /// <returns>The current resource body, or null when unavailable or the caller becomes stale.</returns>
     public async Task<string?> GetAsync(IGXLocalStorage storage, HttpClient http, string category, string key,
         Func<Task<DateTimeOffset>> getVersion, Func<Task<string?>> load, Func<bool>? isCurrent = null)
     {
         // Browser storage can be shared by several AMI hosts under one origin.
         var groupKey = "ami-resource:v2:" + Uri.EscapeDataString(http.BaseAddress?.AbsoluteUri ?? "") + ":" + category;
-        var group = groups.GetOrAdd(groupKey, _ => new Group());
+        var group = _groups.GetOrAdd(groupKey, _ => new Group());
         await group.Gate.WaitAsync();
         try
         {
@@ -435,9 +502,18 @@ internal sealed class GXResourceCache(ILogger logger)
         }
     }
 
+    /// <summary>Reads the persisted epoch used to invalidate conditional menu permissions.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="http">HTTP transport used to access the AMI API.</param>
+    /// <returns>The stored permission epoch, or null when unavailable.</returns>
     internal Task<string?> PermissionEpochAsync(IGXLocalStorage storage, HttpClient http)
         => ReadAsync(storage, GroupKey(http, "menu"), "PermissionEpoch");
 
+    /// <summary>Reads browser storage and logs storage failures without preventing resource loading.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="group">Host-specific browser storage partition.</param>
+    /// <param name="key">Resource key within the selected cache or browser storage group.</param>
+    /// <returns>The stored value, or null when absent or unreadable.</returns>
     private async Task<string?> ReadAsync(IGXLocalStorage storage, string group, string key)
     {
         try
@@ -451,6 +527,12 @@ internal sealed class GXResourceCache(ILogger logger)
         }
     }
 
+    /// <summary>Writes browser storage and logs failures without interrupting the caller&apos;s resource operation.</summary>
+    /// <param name="storage">Browser storage service used to persist resource snapshots.</param>
+    /// <param name="group">Host-specific browser storage partition.</param>
+    /// <param name="key">Resource key within the selected cache or browser storage group.</param>
+    /// <param name="value">Serialized resource value to persist in browser storage.</param>
+    /// <returns>A task that completes after the storage write has been attempted.</returns>
     private async Task WriteAsync(IGXLocalStorage storage, string group, string key, string value)
     {
         try

@@ -35,7 +35,8 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Filters shared tab parameters using the target component's ordinary parameters.</summary>
 public static class GXTabParameters
 {
-    private static readonly ConcurrentDictionary<Type, HashSet<string>> ParameterNames = new();
+    /// <summary>Accepted non-cascading parameter names cached for each target component type.</summary>
+    private static readonly ConcurrentDictionary<Type, HashSet<string>> _parameterNames = new();
 
     /// <summary>Copies supported common values and applies explicit per-link overrides.</summary>
     /// <param name="componentType">Component whose declared and inherited parameters are accepted.</param>
@@ -50,12 +51,12 @@ public static class GXTabParameters
         var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         if (common?.Count > 0)
         {
-            if (!ParameterNames.TryGetValue(componentType, out var names))
+            if (!_parameterNames.TryGetValue(componentType, out var names))
             {
                 var declared = componentType.GetProperties(BindingFlags.Instance | BindingFlags.Public).Where(p => p.SetMethod?.IsPublic == true && p.GetIndexParameters().Length == 0 && Attribute.IsDefined(p, typeof(ParameterAttribute), inherit: true) && !Attribute.IsDefined(p, typeof(CascadingParameterAttribute), inherit: true)).Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                names = ParameterNames.GetOrAdd(componentType, declared);
+                names = _parameterNames.GetOrAdd(componentType, declared);
             }
-        
+
             foreach (var parameter in common)
             {
                 if (names.Contains(parameter.Key))

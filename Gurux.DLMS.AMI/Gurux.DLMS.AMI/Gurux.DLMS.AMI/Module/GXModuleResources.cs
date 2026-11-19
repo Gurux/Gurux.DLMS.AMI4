@@ -38,15 +38,17 @@ namespace Gurux.DLMS.AMI.Server.Module;
 /// <remarks>Creates a module binding that remains valid after its original request ends.</remarks>
 public sealed class GXModuleResources(string moduleId, IServiceProvider services) : IGXAmiModuleResources
 {
-    private readonly string moduleId = moduleId;
-    private readonly IServiceScopeFactory scopes = services.GetRequiredService<IServiceScopeFactory>();
+    /// <summary>Identifier of the module that owns this operation.</summary>
+    private readonly string _moduleId = moduleId;
+    /// <summary>Creates isolated dependency injection scopes for background operations.</summary>
+    private readonly IServiceScopeFactory _scopes = services.GetRequiredService<IServiceScopeFactory>();
 
     /// <inheritdoc />
     public async Task<string> GetLocalizedTextAsync(CultureInfo cultureInfo, string name)
     {
         ArgumentNullException.ThrowIfNull(cultureInfo);
         ArgumentNullException.ThrowIfNull(name);
-        await using var scope = scopes.CreateAsyncScope();
+        await using var scope = _scopes.CreateAsyncScope();
         var repository = scope.ServiceProvider.GetRequiredService<ILocalizedResourceRepository>();
         var resource = await repository.ReadAsync(
             cultureInfo.TwoLetterISOLanguageName, ClientHelpers.GetHashCode(name), name);
@@ -100,7 +102,7 @@ public sealed class GXModuleResources(string moduleId, IServiceProvider services
         {
             var type = await repositories.NotificationTypes.EnsureAsync(cancellationToken);
             await Internal.GXNotificationSourceStorage.RegisterAsync(repositories.Connection, repositories.Transaction,
-                moduleId, moduleId, cancellationToken);
+                _moduleId, _moduleId, cancellationToken);
             await repositories.UserNotifications.EnsureAdministratorsAsync(type, cancellationToken);
             return true;
         }, cancellationToken);
@@ -113,11 +115,16 @@ public sealed class GXModuleResources(string moduleId, IServiceProvider services
             return true;
         }, cancellationToken);
 
+    /// <summary>Runs a module resource mutation in an isolated service scope and commits its module repository transaction.</summary>
+    /// <typeparam name="T">Result produced by the supplied callback.</typeparam>
+    /// <param name="operation">Asynchronous operation executed using the validated connection or module repository scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The result produced by the committed resource operation.</returns>
     private async Task<T> ExecuteAsync<T>(Func<GXModuleRepositoryScope, Task<T>> operation, CancellationToken token)
     {
-        await using var services = scopes.CreateAsyncScope();
+        await using var services = _scopes.CreateAsyncScope();
         using var suppression = services.ServiceProvider.GetService<IGXAmiSqlEvents>()?.Suppress();
-        await using var repositories = await GXModuleRepositoryScope.OpenAsync(moduleId, services.ServiceProvider, token);
+        await using var repositories = await GXModuleRepositoryScope.OpenAsync(_moduleId, services.ServiceProvider, token);
         var result = await operation(repositories);
         await repositories.CommitAsync(token);
         return result;

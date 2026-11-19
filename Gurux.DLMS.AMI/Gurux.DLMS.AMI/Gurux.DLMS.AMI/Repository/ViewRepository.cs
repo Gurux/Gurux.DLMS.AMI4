@@ -53,12 +53,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class ViewRepository : IViewRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for view group records.</summary>
         private readonly IViewGroupRepository _viewGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
 
@@ -78,7 +85,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
@@ -87,6 +94,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXView), id, action, GXViewPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -94,9 +107,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? viewId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByView(s => s.Id!,
-                ServerHelpers.GetUserId(User), viewId);
+                ServerHelpers.GetUserId(_user), viewId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (viewId != null)
             {
@@ -105,7 +118,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -115,13 +128,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? viewIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByViews(s => s.Id!,
-                ServerHelpers.GetUserId(User), viewIds);
+                ServerHelpers.GetUserId(_user), viewIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -134,13 +147,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             views = views.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXView, Guid>(_dbFactory, User, _serviceProvider, views,
+            await GXHistoryMutation.RunDeleteAsync<GXView, Guid>(_dbFactory, _user, _serviceProvider, views,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.Delete);
                 GXSelectArgs arg = GXSelectArgs.Select<GXView>(a => a.Id, q => views.Contains(q.Id));
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 List<GXView> list = connection.Select<GXView>(arg);
@@ -204,10 +217,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListViewsResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.View);
 
             GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the views.
                 arg = GXSelectArgs.SelectAll<GXView>();
@@ -215,20 +228,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXView>(view => view.Removed == null);
                 }
-            
+
                 if (request?.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXView>(w => !request.Exclude.Contains(w.Id));
                 }
-            
+
                 if (request?.Included?.Any() == true)
                 {
                     arg.Where.And<GXView>(w => request.Included.Contains(w.Id));
                 }
             }
-            else if (User.Identity?.IsAuthenticated == true)
+            else if (_user.Identity?.IsAuthenticated == true)
             {
-                string? userId = ServerHelpers.GetUserId(User);
+                string? userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetViewsByUser(s => "*", userId, null, request?.Filter?.Removed, request?.Exclude, request?.Included);
             }
             else
@@ -263,13 +276,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXView>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            if (!User.IsInRole(GXRoles.Admin))
+            if (!_user.IsInRole(GXRoles.Admin))
             {
                 var allowed = new List<Guid>();
                 foreach (var candidate in await connection.SelectAsync<GXView>(GXSelectArgs.Select<GXView>(m => m.Id), cancellationToken))
                 {
                     candidate.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXView), candidate.Id, cancellationToken);
-                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, candidate.Policies, cancellationToken))
+                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, candidate.Policies, cancellationToken))
                     {
                         allowed.Add(candidate.Id);
                     }
@@ -370,13 +383,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXView> ReadAsync(Guid id, Expression<Func<GXView, object>>? columns = null, CancellationToken cancellationToken = default)
         {
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
-            var arg = User?.Identity?.IsAuthenticated == true && !User.IsInRole(GXRoles.Admin)
-                ? GXQuery.GetViewsByUser(q => "*", ServerHelpers.GetUserId(User), id)
+            var arg = _user?.Identity?.IsAuthenticated == true && !_user.IsInRole(GXRoles.Admin)
+                ? GXQuery.GetViewsByUser(q => "*", ServerHelpers.GetUserId(_user), id)
                 : GXSelectArgs.SelectAll<GXView>(m => m.Id == id && m.Removed == null);
             var view = await connection.SingleOrDefaultAsync<GXView>(arg, cancellationToken);
             view?.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXView), view.Id, cancellationToken);
 
-            if (view == null || !await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, view.Policies, cancellationToken))
+            if (view == null || !await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, view.Policies, cancellationToken))
             {
                 return new GXView();
             }
@@ -388,7 +401,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var link in await connection.SelectAsync<GXViewColumn>(cols, cancellationToken))
             {
                 link.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXViewColumn), link.Id, cancellationToken);
-                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, link.Policies, cancellationToken))
+                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, link.Policies, cancellationToken))
                 {
                     visible.Add(link);
                 }
@@ -413,14 +426,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXView, object>>? columns, CancellationToken cancellationToken = default)
         {
             views = views.ToArray();
-            return await GXHistoryMutation.RunAsync<GXView, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, views,
+            return await GXHistoryMutation.RunAsync<GXView, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, views,
         async () =>
         {
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.Add, GXViewPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.Add, GXViewPolicies.Edit);
                 DateTime now = DateTime.Now;
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 List<Guid> list = [];
                 Dictionary<GXView, List<string>> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -504,7 +517,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.ViewGroups,
                             q.Columns
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             view.Creator == null ||
                             string.IsNullOrEmpty(view.Creator.Id))
                         {
@@ -560,7 +573,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 foreach (var link in removedColumns)
                                 {
                                     link.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXViewColumn), link.Id, cancellationToken);
-                                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, link.Policies, cancellationToken))
+                                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, link.Policies, cancellationToken))
                                     {
                                         removableColumns.Add(link);
                                     }
@@ -630,10 +643,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Authorizes removal of a stored view override, verifies its version and column policies, and restores its built-in fallback.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="view">Stored view whose custom contents or override is selected.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The default view after the override is removed, or null if the stored override is absent.</returns>
         private async Task<GXView?> DeleteDefaultOverrideAsync(GXDbConnection connection, GXView view,
             CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.Edit);
             var stored = await connection.SingleOrDefaultAsync<GXView>(
                 GXSelectArgs.SelectAll<GXView>(v => v.Id == view.Id), cancellationToken);
             if (stored == null)
@@ -645,7 +663,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new ArgumentException(Properties.Resources.ContentEdited);
             }
             var policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXView), stored.Id, cancellationToken);
-            if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, policies, cancellationToken))
+            if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, policies, cancellationToken))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -654,7 +672,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var column in columns)
             {
                 policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXViewColumn), column.Id, cancellationToken);
-                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, policies, cancellationToken))
+                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, policies, cancellationToken))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -783,17 +801,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             cancellationToken.ThrowIfCancellationRequested();
             // Component-defined table defaults require no persisted override rows.
-            return _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.Edit);
+            return _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.Edit);
         }
 
         /// <inheritdoc />
         public async Task ResetToDefaultsAsync(IEnumerable<Guid> views, CancellationToken cancellationToken = default)
         {
             views = views.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXView, Guid>(_dbFactory, User, _serviceProvider, views,
+            await GXHistoryMutation.RunIdsAsync<GXView, Guid>(_dbFactory, _user, _serviceProvider, views,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXViewPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXViewPolicies.Edit);
             ArgumentNullException.ThrowIfNull(views);
             var ids = views.Distinct().ToArray();
             if (ids.Length == 0)
@@ -802,7 +820,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
 
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
-            var changed = await ResetViewsToDefaultsAsync(connection, ids, new GXUser { Id = ServerHelpers.GetUserId(User) }, [], cancellationToken);
+            var changed = await ResetViewsToDefaultsAsync(connection, ids, new GXUser { Id = ServerHelpers.GetUserId(_user) }, [], cancellationToken);
             foreach (var id in changed)
             {
                 _notificationCache.Add(await GetNotifiedUsers(id, NotificationAction.Edit, connection),
@@ -812,6 +830,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Validate the complete selection before mutation and commit the reset as one operation.
+        /// <summary>Validates selected built-in views, clears their customized contents, and restores default metadata in one transaction.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="ids">Persistence identities selected for this mutation.</param>
+        /// <param name="creator">Legacy creator argument retained by the helper contract; existing view ownership is preserved.</param>
+        /// <param name="userGroups">Legacy group argument retained by the helper contract; existing view memberships are preserved.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>Identifiers of the views restored to their built-in definitions.</returns>
+        /// <exception cref="ArgumentException">No identities were selected, or a selected view has no built-in definition.</exception>
         internal static async Task<Guid[]> ResetViewsToDefaultsAsync(GXDbConnection connection, Guid[] ids,
             GXUser creator, Guid[] userGroups, CancellationToken cancellationToken = default)
         {
@@ -851,6 +877,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await transaction.CommitAsync(cancellationToken);
             return [.. targets.Select(view => view.Id)];
         }
+        /// <summary>Deletes a view's column policies, columns, and view policies within the supplied transaction.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="view">Stored view whose custom contents or override is selected.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after the view-specific contents have been deleted.</returns>
         private static async Task DeleteViewContentsAsync(GXDbConnection connection, IDbTransaction transaction,
             GXView view, CancellationToken cancellationToken)
         {

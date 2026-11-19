@@ -55,7 +55,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="ComponentView.ComponentViewGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXComponentViewGroupPolicies.View })" TItem="GXComponentViewGroup" @ref="table"
+<GXViewTable ViewName="ComponentView.ComponentViewGroups" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXComponentViewGroupPolicies.View })" TItem="GXComponentViewGroup" @ref="table"
              @bind-@bind-Active="Active"
              Context="group"
              ItemsProvider="@GetItems"
@@ -68,18 +68,18 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="ComponentViewGroups-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -101,16 +101,20 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
         new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected component view ID.
@@ -186,7 +190,7 @@
     /// <summary>
     /// ComponentView group filter.
     /// </summary>
-    private GXComponentViewGroup filter = new GXComponentViewGroup();
+    private GXComponentViewGroup _filter = new GXComponentViewGroup();
 
     /// <summary>
     /// Table reference.
@@ -202,31 +206,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroups.Updated");
+                _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroups.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroups.Updated");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroups.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
-            NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroups.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
+            _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroups.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -251,21 +255,21 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroups.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroups.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXComponentViewGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingComponentViewGroups);
         try
         {
             ListComponentViewGroups req = new ListComponentViewGroups()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -284,7 +288,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -300,7 +304,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -311,7 +315,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroups.OnEdit");
+            _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGroups.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -324,7 +328,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroups.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGroups.OnEdit");
         }
     }
 
@@ -354,7 +358,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -381,7 +385,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -392,7 +396,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

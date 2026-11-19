@@ -54,7 +54,7 @@
             <GeneralContent>
                 <WorkflowIdentity Active="@Active" Disabled="@(Action == CrudAction.Delete)" />
                 <WorkflowEventFilter Active="@Active" Disabled="@(Action == CrudAction.Delete)" />
-                <WorkflowPreview Active="@Active" Triggers="@triggers" Disabled="@(Action == CrudAction.Delete)" CanPreviewEvents="@_canViewTriggers" />
+                <WorkflowPreview Active="@Active" Triggers="@_triggers" Disabled="@(Action == CrudAction.Delete)" CanPreviewEvents="@_canViewTriggers" />
                 <div class="row">
                     <div style="width:100%">
                         <div class="form-group">
@@ -73,7 +73,7 @@
                         </div>
                         <div class="form-group">
                             <label>@Properties.Resources.Trigger</label>
-                            <GXInputDropdown class="form-select" @bind-Value="SelectedTrigger" Disabled="@(Action == CrudAction.Delete || !_canViewTriggers)" RememberValue="false" Items="@(triggers.Select(it => it.ClassName))" Formatter="@(value => triggers.FirstOrDefault(it => it.ClassName == value)?.Name)" />
+                            <GXInputDropdown class="form-select" @bind-Value="SelectedTrigger" Disabled="@(Action == CrudAction.Delete || !_canViewTriggers)" RememberValue="false" Items="@(_triggers.Select(it => it.ClassName))" Formatter="@(value => _triggers.FirstOrDefault(it => it.ClassName == value)?.Name)" />
                         </div>
                         <div class="form-group">
                             <label>@Properties.Resources.Activities</label>
@@ -117,9 +117,12 @@
 @code {
     protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXWorkflow? Active { get; set; }
@@ -153,6 +156,7 @@
 
     GXTrigger? Trigger { get; set; }
 
+    /// <summary>Identifies the trigger selected for the workflow condition.</summary>
     private string? _selectedTrigger;
 
     string? SelectedTrigger
@@ -212,7 +216,7 @@
         }
         set
         {
-            foreach (var trigger in (triggers ?? []))
+            foreach (var trigger in (_triggers ?? []))
             {
                 if (string.Compare(trigger.ClassName, SelectedTrigger, true) == 0)
                 {
@@ -240,7 +244,7 @@
     {
         get
         {
-            foreach (var it in (triggers ?? []))
+            foreach (var it in (_triggers ?? []))
             {
                 if (it.ClassName == SelectedTrigger)
                 {
@@ -251,24 +255,27 @@
         }
     }
 
-    private IEnumerable<GXTrigger> triggers = [];
+    /// <summary>Caches the triggers available to the workflow editor.</summary>
+    private IEnumerable<GXTrigger> _triggers = [];
+    /// <summary>Records whether the current user's permissions allow the view triggers operation.</summary>
     private bool _canViewTriggers;
+    /// <summary>Caches the script methods available to the workflow editor.</summary>
     private GXScriptMethod[]? _scriptMethods = null;
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingWorkflow);
-            NotificationService?.RemoveByKey("Pages/Workflow/WorkflowGeneral.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingWorkflow);
+            _notificationService?.RemoveByKey("Pages/Workflow/WorkflowGeneral.OnInitializedAsync");
             if (Active?.Id == null && Id != null)
             {
                 //Get workflow data.
@@ -315,15 +322,15 @@
             if (_canViewTriggers)
             {
                 var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", new ListTriggers());
-                triggers = ret.Triggers ?? [];
+                _triggers = ret.Triggers ?? [];
             }
-            if (Action == CrudAction.Create && triggers.Any() && Active.TriggerActivity == null)
+            if (Action == CrudAction.Create && _triggers.Any() && Active.TriggerActivity == null)
             {
                 //Select first item if trigger is not selected.
-                if (triggers.First().Activities is { Count: > 0 } activities)
+                if (_triggers.First().Activities is { Count: > 0 } activities)
                 {
                     Active.TriggerActivity = activities.First();
-                    Active.TriggerActivity.Trigger = triggers.First();
+                    Active.TriggerActivity.Trigger = _triggers.First();
                 }
             }
             SelectedTrigger = Active?.TriggerActivity?.Trigger?.ClassName;
@@ -335,7 +342,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowGeneral.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowGeneral.OnInitializedAsync");
         }
     }
 

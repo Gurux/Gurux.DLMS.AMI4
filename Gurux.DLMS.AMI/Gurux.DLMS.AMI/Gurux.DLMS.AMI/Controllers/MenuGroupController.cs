@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class MenuGroupController(
         IMenuGroupRepository MenuGroupRepository) : ControllerBase
     {
-        private readonly IMenuGroupRepository _MenuGroupRepository = MenuGroupRepository;
+        /// <summary>Provides persistence and access checks for menu group records.</summary>
+        private readonly IMenuGroupRepository _menuGroupRepository = MenuGroupRepository;
 
         /// <summary>
         /// Get Menu group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetMenuGroupResponse()
             {
-                Item = await _MenuGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _menuGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXMenuGroupPolicies.Add)]
         public async Task<ActionResult<AddMenuGroupResponse>> Post(AddMenuGroup request, CancellationToken cancellationToken = default)
         {
-            await _MenuGroupRepository.UpsertAsync(request.MenuGroups, null, cancellationToken);
+            await _menuGroupRepository.UpsertAsync(request.MenuGroups, null, cancellationToken);
             return new AddMenuGroupResponse() { Ids = [.. request.MenuGroups.Select(s => s.Id)] };
         }
 
@@ -83,7 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListMenuGroups request, CancellationToken cancellationToken)
         {
             ListMenuGroupsResponse ret = new();
-            await _MenuGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _menuGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXMenuGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveMenuGroupResponse>> Post(RemoveMenuGroup request, CancellationToken cancellationToken = default)
         {
-            await _MenuGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _menuGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveMenuGroupResponse();
         }
     }

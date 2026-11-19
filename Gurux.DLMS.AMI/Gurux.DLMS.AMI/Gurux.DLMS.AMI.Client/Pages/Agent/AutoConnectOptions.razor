@@ -86,7 +86,7 @@
                     <ChildContent>
                         <div class="form-group">
                             <label style="margin:auto">@Properties.Resources.Interface</label>
-                            <GXInputDropdown class="form-select" @bind-Value="Settings.Interface" RememberValue="false" Items="@(InterfaceList.Select(it => (int)it))" Formatter="@(value => ((InterfaceType)value).ToString())" />
+                            <GXInputDropdown class="form-select" @bind-Value="Settings.Interface" RememberValue="false" Items="@(_interfaceList.Select(it => (int)it))" Formatter="@(value => ((InterfaceType)value).ToString())" />
                             </div>
                             <div class="form-group">
                                 <GXInputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
@@ -105,7 +105,7 @@
                             </div>
                             <div class="form-group">
                                 <label style="margin:auto">@Properties.Resources.Authentication</label>
-                                <GXInputDropdown class="form-select" @bind-Value="Settings.Authentication" RememberValue="false" Items="@(Authentications.Select(it => (int)it))" Formatter="@(value => ((Enums.Authentication)value).ToString())" />
+                                <GXInputDropdown class="form-select" @bind-Value="Settings.Authentication" RememberValue="false" Items="@(_authentications.Select(it => (int)it))" Formatter="@(value => ((Enums.Authentication)value).ToString())" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.Password</label>
@@ -114,7 +114,7 @@
                             </div>
                             <div class="form-group">
                                 <label style="margin:auto">@Properties.Resources.Security</label>
-                                <GXInputDropdown class="form-select" @bind-Value="Settings.Security" RememberValue="false" Items="@(Securities.Select(it => (int)it))" Formatter="@(value => ((Enums.Security)value).ToString())" />
+                                <GXInputDropdown class="form-select" @bind-Value="Settings.Security" RememberValue="false" Items="@(_securities.Select(it => (int)it))" Formatter="@(value => ((Enums.Security)value).ToString())" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.InvocationCounter</label>
@@ -123,7 +123,7 @@
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.TraceLevel</label>
-                                <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(TraceLevels)" />
+                                <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(_traceLevels)" />
                             </div>
                         </ChildContent>
                     </GXAccordion>
@@ -177,7 +177,9 @@
     [Parameter]
     public ListenerSettings? Settings { get; set; }
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
+    /// <summary>Provides default connection settings while a new device template is being configured.</summary>
     GXDeviceTemplate _defaultDeviceTemplate = new GXDeviceTemplate(Properties.Resources.Nothing);
     private GXDeviceTemplate? DefaultDeviceTemplate
     {
@@ -202,13 +204,15 @@
         }
     }
 
-    InterfaceType[] InterfaceList = new InterfaceType[]
+    /// <summary>Lists the DLMS interface types offered by the connection editor.</summary>
+    InterfaceType[] _interfaceList = new InterfaceType[]
     {
         InterfaceType.HDLC,
         InterfaceType.WRAPPER
     };
 
-    Enums.Authentication[] Authentications = new Enums.Authentication[]
+    /// <summary>Lists the DLMS authentication mechanisms offered by the connection editor.</summary>
+    Enums.Authentication[] _authentications = new Enums.Authentication[]
     {
         Enums.Authentication.None,
         Enums.Authentication.Low,
@@ -216,7 +220,8 @@
         Enums.Authentication.HighGMAC
     };
 
-    Enums.Security[] Securities = new Enums.Security[]
+    /// <summary>Lists the DLMS security modes offered by the connection editor.</summary>
+    Enums.Security[] _securities = new Enums.Security[]
     {
         Enums.Security.None,
         Enums.Security.Encryption,
@@ -224,7 +229,8 @@
         Enums.Security.AuthenticationEncryption
     };
 
-    TraceLevel[] TraceLevels = new TraceLevel[]
+    /// <summary>Lists the diagnostic trace levels offered by the connection editor.</summary>
+    TraceLevel[] _traceLevels = new TraceLevel[]
     {
         TraceLevel.Off,
         TraceLevel.Error,

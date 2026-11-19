@@ -45,17 +45,24 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Server.Services;
+using Gurux.UI.Components.Appearance;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <inheritdoc />
     public partial class AppearanceRepository : IAppearanceRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Persists and retrieves images associated with application entities.</summary>
         private readonly GXImageStorage _imageStorage;
+        /// <summary>Provides the active appearance and theme configuration.</summary>
         private readonly IGXThemeService _appearance;
 
         /// <summary>
@@ -79,7 +86,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _authorizationService = authorizationService;
             _notificationCache = notificationCache;
@@ -87,6 +94,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _appearance = appearance;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private async Task<List<string>> GetNotifiedUsers(Guid id, NotificationAction action)
         {
             _ = id;
@@ -100,10 +111,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> appearances, bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             appearances = appearances.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXAppearance, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, appearances,
+            await GXHistoryMutation.RunDeleteAsync<GXAppearance, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, appearances,
         async () =>
         {
-            GXAppearanceAccess.RequireAuthenticated(User);
+            GXAppearanceAccess.RequireAuthenticated(_user);
             appearances.ValidateIds();
             var arg = GXSelectArgs.Select<GXAppearance>(a => new { a.Id, a.AccessVisibility, a.Creator, a.ResourceType, a.StorageKey }, q => appearances.Contains(q.Id));
             arg.Joins.AddLeftJoin<GXAppearance, GXUser>(a => a.Creator!, u => u.Id!);
@@ -116,11 +127,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     if (GXAppearanceAccess.IsOwnerOnly(image))
                     {
-                        GXAppearanceAccess.RequirePrivateOwner(User, image);
+                        GXAppearanceAccess.RequirePrivateOwner(_user, image);
                     }
                     else
                     {
-                        await _authorizationService.EnsureAnyPolicyAsync(User, GXAppearancePolicies.Delete);
+                        await _authorizationService.EnsureAnyPolicyAsync(_user, GXAppearancePolicies.Delete);
                     }
                 }
                 foreach (var image in list)
@@ -211,14 +222,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             if (request?.AllUsers == true)
             {
-                if (!User.IsInRole(GXRoles.Admin))
+                if (!_user.IsInRole(GXRoles.Admin))
                 {
                     throw new UnauthorizedAccessException();
                 }
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXAppearancePolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXAppearancePolicies.View);
             }
-            else if (!await GXAppearancePolicyQuery.RestrictAsync(connection, arg, _authorizationService, User, cancellationToken))
+            else if (!await GXAppearancePolicyQuery.RestrictAsync(connection, arg, _authorizationService, _user, cancellationToken))
             {
                 if (response != null)
                 {
@@ -269,10 +280,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return [.. appearances];
         }
 
-        private static readonly string UnknownImage = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" xmlns=\"http://www.w3.org/2000/svg\">\r\n  <!-- Box -->\r\n  <rect x=\"1\" y=\"1\" width=\"14\" height=\"14\" stroke=\"black\" stroke-width=\"1\" fill=\"none\" />\r\n  \r\n  <!-- Cross -->\r\n  <line x1=\"1\" y1=\"1\" x2=\"15\" y2=\"15\" stroke=\"black\" stroke-width=\"1\" />\r\n  <line x1=\"15\" y1=\"1\" x2=\"1\" y2=\"15\" stroke=\"black\" stroke-width=\"1\" />\r\n</svg>\r\n";
+        /// <summary>Fallback SVG displayed when an entity has no available image.</summary>
+        private static readonly string _unknownImage = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" xmlns=\"http://www.w3.org/2000/svg\">\r\n  <!-- Box -->\r\n  <rect x=\"1\" y=\"1\" width=\"14\" height=\"14\" stroke=\"black\" stroke-width=\"1\" fill=\"none\" />\r\n  \r\n  <!-- Cross -->\r\n  <line x1=\"1\" y1=\"1\" x2=\"15\" y2=\"15\" stroke=\"black\" stroke-width=\"1\" />\r\n  <line x1=\"15\" y1=\"1\" x2=\"1\" y2=\"15\" stroke=\"black\" stroke-width=\"1\" />\r\n</svg>\r\n";
 
         /// <summary>Gets or sets the user1.</summary>
-        public ClaimsPrincipal User1 => User;
+        public ClaimsPrincipal User1 => _user;
 
         /// <inheritdoc />
         public Task<GXAppearance?> ReadAsync(int type, Guid id, Expression<Func<GXAppearance, object>>? columns = null, CancellationToken cancellationToken = default)
@@ -295,6 +307,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ReadCoreAsync(type, null, name, columns, cancellationToken);
         }
 
+        /// <summary>Reads a nonremoved appearance by resource type and identity or name, including creator metadata and supported defaults.</summary>
+        /// <param name="type">Nonnegative appearance resource type.</param>
+        /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+        /// <param name="name">Stable name used to select or register the definition described by this operation.</param>
+        /// <param name="columns">Legacy column-selection argument; the current reader materializes the full appearance.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>The matching stored or default appearance, or null when none exists.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">The resource type is negative.</exception>
         private async Task<GXAppearance?> ReadCoreAsync(int type, Guid? id, string? name,
             Expression<Func<GXAppearance, object>>? columns, CancellationToken cancellationToken)
         {
@@ -327,9 +347,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (appearance != null)
             {
                 appearance.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXAppearance), appearance.Id, cancellationToken);
-                if (!await GXAppearancePolicyQuery.AllowsAsync(connection, _authorizationService, User, appearance, appearance.Policies, cancellationToken))
+                if (!await GXAppearancePolicyQuery.AllowsAsync(connection, _authorizationService, _user, appearance, appearance.Policies, cancellationToken))
                 {
-                    if (!GXAppearanceAccess.CanView(User, appearance))
+                    if (!GXAppearanceAccess.CanView(_user, appearance))
                     {
                         return null;
                     }
@@ -340,7 +360,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else if (name != null && type == (byte)ResourceType.Image)
             {
                 // A missing symbolic image is rendered as a placeholder without creating a database identity.
-                appearance = new GXAppearance((byte)ResourceType.Image, name, "", UnknownImage);
+                appearance = new GXAppearance((byte)ResourceType.Image, name, "", _unknownImage);
             }
             return appearance;
         }
@@ -350,13 +370,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXAppearance, object>>? columns, CancellationToken cancellationToken = default)
         {
             appearances = appearances.ToArray();
-            return await GXHistoryMutation.RunAsync<GXAppearance, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, appearances,
+            return await GXHistoryMutation.RunAsync<GXAppearance, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, appearances,
         async () =>
         {
             try
             {
 
-                GXAppearanceAccess.RequireAuthenticated(User);
+                GXAppearanceAccess.RequireAuthenticated(_user);
                 appearances = [.. appearances];
                 if (appearances.GroupBy(a => a.Name, StringComparer.OrdinalIgnoreCase).Any(g => g.Count() > 1) ||
                     appearances.Where(a => a.Id != Guid.Empty).GroupBy(a => a.Id).Any(g => g.Count() > 1))
@@ -364,7 +384,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     throw new ArgumentException("Appearance identities and names must be unique within a batch.", nameof(appearances));
                 }
                 DateTime now = DateTime.Now;
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
                 foreach (GXAppearance appearance in appearances)
                 {
@@ -388,15 +408,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     bool privateAfter = GXAppearanceAccess.IsOwnerOnly(appearance);
                     if (old != null && GXAppearanceAccess.IsOwnerOnly(old))
                     {
-                        GXAppearanceAccess.RequirePrivateOwner(User, old);
+                        GXAppearanceAccess.RequirePrivateOwner(_user, old);
                         if (!privateAfter)
                         {
-                            await _authorizationService.EnsureAnyPolicyAsync(User, GXAppearancePolicies.Edit);
+                            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAppearancePolicies.Edit);
                         }
                     }
                     else if (old != null || !privateAfter)
                     {
-                        await _authorizationService.EnsureAnyPolicyAsync(User, old == null ? GXAppearancePolicies.Add : GXAppearancePolicies.Edit);
+                        await _authorizationService.EnsureAnyPolicyAsync(_user, old == null ? GXAppearancePolicies.Add : GXAppearancePolicies.Edit);
                     }
 
                     var names = await connection.SelectAsync<GXAppearance>(
@@ -420,8 +440,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException("Appearance resource type is required.");
                     }
-                    if (GXAppearanceAccess.IsOwnerOnly(appearance) && !User.IsInRole(GXRoles.Admin) &&
-                        !(await _authorizationService.AuthorizeAsync(User, old == null ? GXAppearancePolicies.Add : GXAppearancePolicies.Edit)).Succeeded)
+                    if (GXAppearanceAccess.IsOwnerOnly(appearance) && !_user.IsInRole(GXRoles.Admin) &&
+                        !(await _authorizationService.AuthorizeAsync(_user, old == null ? GXAppearancePolicies.Add : GXAppearancePolicies.Edit)).Succeeded)
                     {
                         bool contentChanged = columns == null || ServerHelpers.Contains(columns, nameof(GXAppearance.Value)) ||
                             ServerHelpers.Contains(columns, nameof(GXAppearance.ResourceType)) || ServerHelpers.Contains(columns, nameof(GXAppearance.OriginalFileName));
@@ -450,7 +470,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         using var transaction = connection.BeginTransaction();
                         if (old == null)
                         {
-                            if (GXAppearanceAccess.IsOwnerOnly(appearance) && User.IsInRole(GXRoles.Admin) && !string.IsNullOrEmpty(appearance.Creator?.Id))
+                            if (GXAppearanceAccess.IsOwnerOnly(appearance) && _user.IsInRole(GXRoles.Admin) && !string.IsNullOrEmpty(appearance.Creator?.Id))
                             {
                                 var ownerId = appearance.Creator.Id;
                                 if (await connection.SingleOrDefaultAsync<GXUser>(transaction, GXSelectArgs.Select<GXUser>(u => u.Id!, u => u.Id == ownerId && u.Removed == null), cancellationToken) == null)
@@ -479,7 +499,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             appearance.ConcurrencyStamp = Guid.NewGuid().ToString();
                             var update = GXUpdateArgs.Update(appearance, columns);
                             update.Exclude<GXAppearance>(a => a.CreationTime!);
-                            if (!User.IsInRole(GXRoles.Admin) || appearance.Creator == null || string.IsNullOrEmpty(appearance.Creator.Id))
+                            if (!_user.IsInRole(GXRoles.Admin) || appearance.Creator == null || string.IsNullOrEmpty(appearance.Creator.Id))
                             {
                                 update.Exclude<GXAppearance>(a => a.Creator!);
                             }
@@ -532,6 +552,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return await new GXResourceVersions(_dbFactory).AppearanceAsync(type, cancellationToken);
         }
 
+        /// <summary>Creates a theme appearance with serialized CSS metadata and optional enabled preload state.</summary>
+        /// <param name="name">Stable name used to select or register the definition described by this operation.</param>
+        /// <param name="description">Human-readable description assigned to the new appearance definition.</param>
+        /// <param name="path">CSS file path stored in the serialized theme metadata.</param>
+        /// <param name="active">Whether the appearance is enabled and preloaded by default.</param>
+        /// <returns>The unsaved theme appearance definition.</returns>
         private static GXAppearance CreateTheme(string name,
           string description, string path, bool active = false)
         {
@@ -548,6 +574,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             };
         }
 
+        /// <summary>Creates an icon-pack appearance with its CSS location and optional enabled preload state.</summary>
+        /// <param name="name">Stable name used to select or register the definition described by this operation.</param>
+        /// <param name="description">Human-readable description assigned to the new appearance definition.</param>
+        /// <param name="path">CSS location used to load the icon pack.</param>
+        /// <param name="active">Whether the appearance is enabled and preloaded by default.</param>
+        /// <returns>The unsaved icon-pack appearance definition.</returns>
         private static GXAppearance CreateIconpack(string name,
            string description, string path, bool active = false)
         {
@@ -559,6 +591,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             };
         }
 
+        /// <summary>Defines the built-in Bootstrap, Font Awesome, and Material Icons icon packs.</summary>
+        /// <returns>Default icon-pack appearances, with Bootstrap enabled initially.</returns>
         private static List<GXAppearance> GetIconpacks()
         {
             return [
@@ -568,6 +602,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ];
         }
 
+        /// <summary>Converts registered theme defaults into appearance definitions and enables the Default theme.</summary>
+        /// <returns>Default theme appearances supplied by the active theme service.</returns>
         private List<GXAppearance> GetThemes()
         {
             return AmiThemeAdapter.GetDefaults(_appearance)
@@ -576,6 +612,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 .ToList();
         }
 
+        /// <summary>Creates an image appearance with a kebab-case identifier and an optional icon or image value.</summary>
+        /// <param name="name">Image identifier converted to kebab case.</param>
+        /// <param name="value">Optional stored image reference or icon identifier; empty text is normalized to null.</param>
+        /// <returns>The unsaved image appearance definition.</returns>
         private static GXAppearance AddImage(string name, string? value)
         {
             if (string.IsNullOrEmpty(value))
@@ -590,6 +630,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             };
         }
 
+        /// <summary>Combines registered themes, built-in icon packs, and standard application image identifiers.</summary>
+        /// <returns>The complete built-in appearance definitions.</returns>
         private List<GXAppearance> GetDefaults()
         {
             var defaults = GetThemes();
@@ -812,7 +854,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>Create only missing built-in appearances.</summary>
         public async Task EnsureDefaultsAsync(int? type, CancellationToken cancellationToken = default)
         {
-            await GXHistoryMutation.RunAllAsync<GXAppearance>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices,
+            await GXHistoryMutation.RunAllAsync<GXAppearance>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices,
         async () =>
         {
             await ApplyDefaultsAsync(type, null, cancellationToken);
@@ -823,7 +865,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task ResetToDefaultsAsync(int? type, IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             ids = ids.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXAppearance, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, ids,
+            await GXHistoryMutation.RunIdsAsync<GXAppearance, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, ids,
         async () =>
         {
             ArgumentNullException.ThrowIfNull(ids);
@@ -836,9 +878,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Authorizes regeneration and restores selected or matching appearance definitions while tracking replaced image storage.</summary>
+        /// <param name="type">Optional resource type limiting which built-in appearances are restored.</param>
+        /// <param name="selectedIds">Optional appearance identities to restore; omitted identities permit restoration by resource type.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after default restoration and related cleanup.</returns>
         private async Task ApplyDefaultsAsync(int? type, Guid[]? selectedIds, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAppearancePolicies.Regenerate);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAppearancePolicies.Regenerate);
             var ids = selectedIds ?? [];
             var defaults = GetDefaults();
             var byName = defaults.ToDictionary(a => a.Name, StringComparer.OrdinalIgnoreCase);
@@ -870,13 +917,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         selectedNames.Add(selected.Name);
                         if (GXAppearanceAccess.IsOwnerOnly(selected))
                         {
-                            GXAppearanceAccess.RequirePrivateOwner(User, selected);
+                            GXAppearanceAccess.RequirePrivateOwner(_user, selected);
                         }
                     }
                     defaults = [.. defaults.Where(a => (!type.HasValue || a.ResourceType == type.Value)
                         && (ids.Length == 0 || selectedNames.Contains(a.Name)))];
                     var now = DateTimeOffset.Now;
-                    var creator = new GXUser { Id = ClientHelpers.GetUserId(User) };
+                    var creator = new GXUser { Id = ClientHelpers.GetUserId(_user) };
                     foreach (var appearance in defaults)
                     {
                         if (existing.TryGetValue(appearance.Name, out var previous))

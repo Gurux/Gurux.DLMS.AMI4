@@ -95,11 +95,15 @@
 
 @code {
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
     internal CrudAction Action;
+    /// <summary>Retains the current selection used by the editing controls.</summary>
     internal PropertyInfo? Selected;
 
+    /// <summary>Caches the settings currently displayed by the editor.</summary>
     internal Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? Settings;
 
     private bool ShouldSkip(PropertyInfo pi)
@@ -183,7 +187,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -238,7 +242,7 @@
 
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
         {

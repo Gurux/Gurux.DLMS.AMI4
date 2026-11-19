@@ -44,9 +44,9 @@
 
 <GXHelpContext Topic="ActiveSystemErrors" />
 
-@if (ActiveErrors != null)
+@if (_activeErrors != null)
 {
-    @foreach (var it in ActiveErrors)
+    @foreach (var it in _activeErrors)
     {
         <StatusTile Title="@GetErrorTitle(@it.Level)" OnClose="@OnClose" Target="@it" Mode="@GetTraceLevel(it)">
             @it.Message
@@ -57,9 +57,12 @@
     @ChildContent
 </CascadingValue>
 @code {
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     /// <summary>
@@ -108,7 +111,8 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
-    IEnumerable<GXLog>? ActiveErrors = null;
+    /// <summary>Caches error log records that remain open for the current user.</summary>
+    IEnumerable<GXLog>? _activeErrors = null;
 
     /// <summary>
     /// Update virtualized items.
@@ -117,32 +121,32 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.Updated");
-            ActiveErrors = null;
+            _notificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.Updated");
+            _activeErrors = null;
             await GetActiveErrors();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.Updated");
+            _notificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingActiveSystemErrors);
-            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (logs) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingActiveSystemErrors);
+            _notificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (logs) =>
            {
                foreach (var it in logs)
                {
@@ -163,7 +167,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.OnInitializedAsync");
         }
     }
 
@@ -174,13 +178,13 @@
     {
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingActiveSystemErrors);
-            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.GetActiveErrors");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingActiveSystemErrors);
+            _notificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.GetActiveErrors");
             GXLog filter = new GXLog();
             ListLogs req = new ListLogs() { Filter = filter };
             req.Count = Count;
             ListLogsResponse ret = await Http.PostAsJson<ListLogsResponse>("api/Log/List?source=system", req);
-            ActiveErrors = ret.Logs;
+            _activeErrors = ret.Logs;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -188,14 +192,14 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.GetActiveErrors");
+            _notificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.GetActiveErrors");
         }
     }
 
     public void Dispose()
     {
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -207,8 +211,8 @@
     {
         try
         {
-            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingActiveSystemError);
-            NotificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.OnClose");
+            using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingActiveSystemError);
+            _notificationService?.RemoveByKey("Pages/Admin/ActiveSystemErrors.OnClose");
             CloseLog arg = new CloseLog();
             if (sender is not GXLog log)
             {
@@ -217,9 +221,9 @@
             arg.Ids = new Guid[] { log.PublicId };
             await Http.PostAsJson<CloseLogResponse>("api/Log/Close?source=system", arg);
             List<GXLog> list = new List<GXLog>();
-            list.AddRange(ActiveErrors ?? []);
+            list.AddRange(_activeErrors ?? []);
             list.Remove(log);
-            ActiveErrors = list.ToArray();
+            _activeErrors = list.ToArray();
             await Updated();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -228,7 +232,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.OnClose");
+            _notificationService?.ReportError(ex, "Pages/Admin/ActiveSystemErrors.OnClose");
         }
     }
 
@@ -243,7 +247,7 @@
         {
             if (confirm)
             {
-                using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingActiveSystemError);
+                using var progressScope4 = _progress?.ProgressStart(GXProgress.SavingActiveSystemError);
                 await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=system", new ClearLog());
                 await InvokeAsync(StateHasChanged);
             }
@@ -254,7 +258,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 }

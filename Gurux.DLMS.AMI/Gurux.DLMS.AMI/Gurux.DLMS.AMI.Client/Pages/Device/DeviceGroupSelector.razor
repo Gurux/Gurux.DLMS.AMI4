@@ -87,7 +87,7 @@ else
                     {
                         if (DeviceGroups != null && DeviceGroups.Any())
                         {
-                            <DeviceGroups Columns="@DeviceGroupColumns"
+                            <DeviceGroups Columns="@_deviceGroupColumns"
                                           AvailableDeviceGroups="@DeviceGroups"
                                           CanEdit="false"
                                           Menu="false"
@@ -105,7 +105,7 @@ else
                     {
                         if (ObjectTemplates != null && ObjectTemplates.Any())
                         {
-                            <ObjectTemplates Device="@null" Columns="@ObjectColumns"
+                            <ObjectTemplates Device="@null" Columns="@_objectColumns"
                                              ObjectTypes="@ObjectTypes"
                                              IgnoredObjectTypes="@IgnoredObjectTypes"
                                              AvailableObjectTemplates="@ObjectTemplates"
@@ -125,7 +125,7 @@ else
                     {
                         if (AttributeTemplates != null && AttributeTemplates.Any())
                         {
-                            <AttributeTemplates Device="@null" Columns="@AttributeColumns"
+                            <AttributeTemplates Device="@null" Columns="@_attributeColumns"
                                                 ObjectTypes="@ObjectTypes"
                                                 IgnoredObjectTypes="@IgnoredObjectTypes"
                                                 AvailableAttributeTemplates="@AttributeTemplates"
@@ -175,17 +175,17 @@ else
     /// <summary>
     /// Shown device group columns.
     /// </summary>
-    private string[] DeviceGroupColumns = new string[] { "Name" };
+    private string[] _deviceGroupColumns = new string[] { "Name" };
 
     /// <summary>
     /// Shown object columns.
     /// </summary>
-    private string[] ObjectColumns = new string[] { "ObjectType", "LogicalName", "Name" };
+    private string[] _objectColumns = new string[] { "ObjectType", "LogicalName", "Name" };
 
     /// <summary>
     /// Shown attribute columns.
     /// </summary>
-    private string[] AttributeColumns = new string[] { "LogicalName", "ObjectName", "Index", "Name" };
+    private string[] _attributeColumns = new string[] { "LogicalName", "ObjectName", "Index", "Name" };
 
     /// <summary>
     /// Selected device groups.
@@ -225,6 +225,7 @@ else
     /// </summary>
     List<GXDeviceTemplate> _deviceTemplates = new List<GXDeviceTemplate>();
 
+    /// <summary>Controls whether the selected item is displayed in editing mode.</summary>
     private bool _edit;
 
     /// <summary>

@@ -30,11 +30,15 @@ using Microsoft.AspNetCore.Components;
 
 namespace Gurux.DLMS.AMI.Components.Account
 {
+    /// <summary>Redirects identity account operations while preserving status messages in short-lived cookies.</summary>
+    /// <param name="navigationManager">Resolves application-relative redirect destinations.</param>
     internal sealed class IdentityRedirectManager(NavigationManager navigationManager)
     {
+        /// <summary>Cookie name used to pass identity status messages across redirects.</summary>
         public const string StatusCookieName = "Identity.StatusMessage";
 
-        private static readonly CookieBuilder StatusCookieBuilder = new()
+        /// <summary>Creates short-lived, HTTP-only cookies carrying identity status messages.</summary>
+        private static readonly CookieBuilder _statusCookieBuilder = new()
         {
             SameSite = SameSiteMode.Strict,
             HttpOnly = true,
@@ -42,6 +46,9 @@ namespace Gurux.DLMS.AMI.Components.Account
             MaxAge = TimeSpan.FromSeconds(5),
         };
 
+        /// <summary>Redirects a statically rendered identity component to an application-local destination.</summary>
+        /// <param name="uri">Relative destination, or an absolute application URI converted to a base-relative path.</param>
+        /// <exception cref="InvalidOperationException">Navigation returns because the component is not being rendered statically.</exception>
         [DoesNotReturn]
         public void RedirectTo(string? uri)
         {
@@ -59,6 +66,10 @@ namespace Gurux.DLMS.AMI.Components.Account
             throw new InvalidOperationException($"{nameof(IdentityRedirectManager)} can only be used during static rendering.");
         }
 
+        /// <summary>Replaces a destination's query string with the supplied values and redirects during static rendering.</summary>
+        /// <param name="uri">Destination whose path is retained.</param>
+        /// <param name="queryParameters">Query values added to the destination path.</param>
+        /// <exception cref="InvalidOperationException">The component is not being rendered statically.</exception>
         [DoesNotReturn]
         public void RedirectTo(string uri, Dictionary<string, object?> queryParameters)
         {
@@ -67,18 +78,30 @@ namespace Gurux.DLMS.AMI.Components.Account
             RedirectTo(newUri);
         }
 
+        /// <summary>Stores a short-lived identity status cookie before redirecting to the destination.</summary>
+        /// <param name="uri">Application-local redirect destination.</param>
+        /// <param name="message">Status message read by the destination page.</param>
+        /// <param name="context">Response receiving the status cookie.</param>
+        /// <exception cref="InvalidOperationException">The component is not being rendered statically.</exception>
         [DoesNotReturn]
         public void RedirectToWithStatus(string uri, string message, HttpContext context)
         {
-            context.Response.Cookies.Append(StatusCookieName, message, StatusCookieBuilder.Build(context));
+            context.Response.Cookies.Append(StatusCookieName, message, _statusCookieBuilder.Build(context));
             RedirectTo(uri);
         }
 
+        /// <summary>Current absolute page path without query parameters or a fragment.</summary>
         private string CurrentPath => navigationManager.ToAbsoluteUri(navigationManager.Uri).GetLeftPart(UriPartial.Path);
 
+        /// <summary>Redirects to the current page path without retaining its query parameters or fragment.</summary>
+        /// <exception cref="InvalidOperationException">The component is not being rendered statically.</exception>
         [DoesNotReturn]
         public void RedirectToCurrentPage() => RedirectTo(CurrentPath);
 
+        /// <summary>Stores an identity status cookie and redirects to the current page without its query string.</summary>
+        /// <param name="message">Status message to display after the redirect.</param>
+        /// <param name="context">Response receiving the status cookie.</param>
+        /// <exception cref="InvalidOperationException">The component is not being rendered statically.</exception>
         [DoesNotReturn]
         public void RedirectToCurrentPageWithStatus(string message, HttpContext context)
             => RedirectToWithStatus(CurrentPath, message, context);

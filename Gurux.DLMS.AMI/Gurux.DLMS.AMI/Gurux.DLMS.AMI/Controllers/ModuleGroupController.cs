@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ModuleGroupController(
         IModuleGroupRepository ModuleGroupRepository) : ControllerBase
     {
-        private readonly IModuleGroupRepository _ModuleGroupRepository = ModuleGroupRepository;
+        /// <summary>Provides persistence and access checks for module group records.</summary>
+        private readonly IModuleGroupRepository _moduleGroupRepository = ModuleGroupRepository;
 
         /// <summary>
         /// Get module group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetModuleGroupResponse()
             {
-                Item = await _ModuleGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _moduleGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXModuleGroupPolicies.Edit)]
         public async Task<ActionResult<AddModuleGroupResponse>> Post(AddModuleGroup request, CancellationToken cancellationToken = default)
         {
-            await _ModuleGroupRepository.UpsertAsync(request.ModuleGroups, null, cancellationToken);
+            await _moduleGroupRepository.UpsertAsync(request.ModuleGroups, null, cancellationToken);
             return new AddModuleGroupResponse()
             {
                 Ids = [.. request.ModuleGroups.Select(s => s.Id)]
@@ -87,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListModuleGroupsResponse ret = new();
-            await _ModuleGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _moduleGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -101,7 +102,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXModuleGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveModuleGroupResponse>> Post(RemoveModuleGroup request, CancellationToken cancellationToken = default)
         {
-            await _ModuleGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _moduleGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveModuleGroupResponse();
         }
     }

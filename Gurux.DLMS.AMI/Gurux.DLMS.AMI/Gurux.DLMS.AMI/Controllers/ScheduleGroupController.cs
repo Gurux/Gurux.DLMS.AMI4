@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ScheduleGroupController(
         IScheduleGroupRepository ScheduleGroupRepository) : ControllerBase
     {
-        private readonly IScheduleGroupRepository _ScheduleGroupRepository = ScheduleGroupRepository;
+        /// <summary>Provides persistence and access checks for schedule group records.</summary>
+        private readonly IScheduleGroupRepository _scheduleGroupRepository = ScheduleGroupRepository;
 
         /// <summary>
         /// Get schedule group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetScheduleGroupResponse()
             {
-                Item = await _ScheduleGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _scheduleGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXScheduleGroupPolicies.Add)]
         public async Task<ActionResult<AddScheduleGroupResponse>> Post(AddScheduleGroup request, CancellationToken cancellationToken = default)
         {
-            await _ScheduleGroupRepository.UpsertAsync(request.ScheduleGroups, null, cancellationToken);
+            await _scheduleGroupRepository.UpsertAsync(request.ScheduleGroups, null, cancellationToken);
             return new AddScheduleGroupResponse()
             {
                 Ids = [.. request.ScheduleGroups.Select(s => s.Id)]
@@ -87,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListScheduleGroupsResponse ret = new();
-            await _ScheduleGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _scheduleGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXScheduleGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveScheduleGroupResponse>> Post(RemoveScheduleGroup request, CancellationToken cancellationToken = default)
         {
-            await _ScheduleGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _scheduleGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveScheduleGroupResponse();
         }
     }

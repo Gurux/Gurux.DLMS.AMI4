@@ -35,24 +35,43 @@ using Microsoft.AspNetCore.Components.Forms;
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
 /// <summary>Owns a routed editor's commands and form state independently of its selected tab.</summary>
+/// <param name="menus">Service that registers the routed editor&apos;s command menu.</param>
 public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
 {
+    /// <summary>Stable identifier of the routed editor command menu.</summary>
     public static readonly Guid MenuId = new("08a7e6dc-6589-43fd-8bb7-4beb05b339c1");
+    /// <summary>Menu registration that owns the editor&apos;s Save, Remove and Cancel commands.</summary>
     private readonly GXPageMenu _menu = new(menus, menuId: MenuId);
+    /// <summary>Validation messages associated with the current editor model.</summary>
     private ValidationMessageStore? _messages;
+    /// <summary>Prevents overlapping save and cancel operations.</summary>
     private bool _busy;
+    /// <summary>Prevents command callbacks from acting after the menu has been released.</summary>
     private bool _disposed;
-    private static readonly AsyncLocal<EditContext?> ActiveSave = new();
+    /// <summary>Form context of the save callback currently issuing navigation on this asynchronous flow.</summary>
+    private static readonly AsyncLocal<EditContext?> _activeSave = new();
+    /// <summary>Form state shared by all tabs editing the current model.</summary>
     public EditContext Context { get; private set; } = default!;
 
     // Only return navigation issued by the Save callback acknowledges the saved model.
     // Other UI events, including navigation during a pending save, retain their protection.
-    internal static void AcceptSavedNavigation() => ActiveSave.Value?.MarkAsUnmodified();
+    /// <summary>Marks the active save context unmodified so navigation initiated by a successful save is accepted.</summary>
+    internal static void AcceptSavedNavigation() => _activeSave.Value?.MarkAsUnmodified();
 
+    /// <summary>Binds an editor model and its Save or Remove and Cancel callbacks to the shared command menu.</summary>
+    /// <param name="model">Model instance whose editor state or command policy is needed.</param>
+    /// <param name="action">Create, update or delete operation represented by the command.</param>
+    /// <param name="save">Callback that persists the model or performs the requested removal.</param>
+    /// <param name="cancel">Callback that returns from the editor without saving.</param>
     public void Set(object model, CrudAction action, Func<Task> save, Func<Task> cancel) =>
         Set(model, action, save, cancel, null);
 
     /// <summary>Sets editor commands with an optional explicit command policy for custom models.</summary>
+    /// <param name="model">Model instance whose editor state or command policy is needed.</param>
+    /// <param name="action">Create, update or delete operation represented by the command.</param>
+    /// <param name="save">Callback that persists the model or performs the requested removal.</param>
+    /// <param name="cancel">Callback that returns from the editor without saving.</param>
+    /// <param name="policy">Stable policy identifier to check or assign to the command.</param>
     public void Set(object model, CrudAction action, Func<Task> save, Func<Task> cancel, string? policy)
     {
         if (_disposed)
@@ -73,18 +92,18 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
                         return;
                     }
                     _busy = true;
-                    var previousSave = ActiveSave.Value;
+                    var previousSave = _activeSave.Value;
                     try
                     {
                         if (action == CrudAction.Delete || Validate())
                         {
-                            ActiveSave.Value = Context;
+                            _activeSave.Value = Context;
                             await save();
                         }
                     }
                     finally
                     {
-                        ActiveSave.Value = previousSave;
+                        _activeSave.Value = previousSave;
                         _busy = false;
                     }
                 }), action == CrudAction.Delete ? EnableStyle.Always : EnableStyle.Modified)
@@ -99,6 +118,8 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
         ]);
     }
 
+    /// <summary>Combines data annotation validation with EditContext validation and publishes field errors.</summary>
+    /// <returns>True when both validation passes accept the current model.</returns>
     public bool Validate()
     {
         _messages?.Clear();
@@ -115,13 +136,18 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
         return Context.Validate() && valid;
     }
 
+    /// <summary>Adds a server or application validation message to a field and notifies the form.</summary>
+    /// <param name="field">Model field name associated with the validation error.</param>
+    /// <param name="message">Localized message displayed to the user.</param>
     public void AddValidationError(string field, string message)
     {
         _messages?.Add(new FieldIdentifier(Context.Model, field), message);
         Context.NotifyValidationStateChanged();
     }
 
+    /// <summary>Removes the currently registered editor commands.</summary>
     public void Clear() => _menu.Clear();
+    /// <summary>Releases command registrations and validation messages and prevents subsequent command execution.</summary>
     public void Dispose()
     {
         _disposed = true;

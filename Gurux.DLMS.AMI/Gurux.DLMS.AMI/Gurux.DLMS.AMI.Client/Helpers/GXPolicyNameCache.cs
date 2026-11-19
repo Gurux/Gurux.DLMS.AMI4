@@ -36,13 +36,20 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Caches available policy names for the current client and authentication state.</summary>
 public sealed class GXPolicyNameCache : IGXPolicyNameProvider, IDisposable
 {
-    private readonly object sync = new();
-    private readonly HttpClient http;
-    private readonly AuthenticationStateProvider? authentication;
-    private readonly IGXNotifier? notifier;
-    private readonly CancellationTokenSource lifetime = new();
-    private Task<string[]>? pending;
-    private bool disposed;
+    /// <summary>Protects the shared load operation and disposal state.</summary>
+    private readonly object _sync = new();
+    /// <summary>Transport used to load policy names visible to the current user.</summary>
+    private readonly HttpClient _http;
+    /// <summary>Optional authentication source used to invalidate policy names when the session changes.</summary>
+    private readonly AuthenticationStateProvider? _authentication;
+    /// <summary>Optional resource notification source used to invalidate names after permission changes.</summary>
+    private readonly IGXNotifier? _notifier;
+    /// <summary>Cancels the shared HTTP operation when this cache is disposed.</summary>
+    private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Shared policy-name load reused until invalidated or failed.</summary>
+    private Task<string[]>? _pending;
+    /// <summary>Prevents callers from using the cache after its subscriptions have been removed.</summary>
+    private bool _disposed;
 
     /// <summary>Creates a policy-name cache shared by editors in the current client scope.</summary>
     /// <param name="http">Transport used to load policy names available to the signed-in user.</param>
@@ -50,9 +57,9 @@ public sealed class GXPolicyNameCache : IGXPolicyNameProvider, IDisposable
     /// <param name="notifier">Optional notification source that invalidates names when permissions change.</param>
     public GXPolicyNameCache(HttpClient http, AuthenticationStateProvider? authentication = null, IGXNotifier? notifier = null)
     {
-        this.http = http;
-        this.authentication = authentication;
-        this.notifier = notifier;
+        this._http = http;
+        this._authentication = authentication;
+        this._notifier = notifier;
         if (authentication != null)
         {
             authentication.AuthenticationStateChanged += AuthenticationChanged;
@@ -71,10 +78,10 @@ public sealed class GXPolicyNameCache : IGXPolicyNameProvider, IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
             Task<string[]> request;
-            lock (sync)
+            lock (_sync)
             {
-                ObjectDisposedException.ThrowIf(disposed, this);
-                request = pending ??= LoadAsync();
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                request = _pending ??= LoadAsync();
             }
             string[] names;
             try
@@ -84,19 +91,19 @@ public sealed class GXPolicyNameCache : IGXPolicyNameProvider, IDisposable
             }
             catch
             {
-                lock (sync)
+                lock (_sync)
                 {
-                    if (ReferenceEquals(pending, request) && request.IsCompleted && !request.IsCompletedSuccessfully)
+                    if (ReferenceEquals(_pending, request) && request.IsCompleted && !request.IsCompletedSuccessfully)
                     {
-                        pending = null;
+                        _pending = null;
                     }
                 }
                 throw;
             }
-            lock (sync)
+            lock (_sync)
             {
-                ObjectDisposedException.ThrowIf(disposed, this);
-                if (ReferenceEquals(pending, request))
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (ReferenceEquals(_pending, request))
                 {
                     return names.ToArray();
                 }
@@ -105,21 +112,27 @@ public sealed class GXPolicyNameCache : IGXPolicyNameProvider, IDisposable
         }
     }
 
+    /// <summary>Loads available policy names using the cache lifetime token.</summary>
+    /// <returns>Available policy names, or an empty array when the API returns no content.</returns>
     private async Task<string[]> LoadAsync()
-        => await http.GetFromJsonAsync<string[]>("api/Policy/Available", lifetime.Token) ?? [];
+        => await _http.GetFromJsonAsync<string[]>("api/Policy/Available", _lifetime.Token) ?? [];
 
     /// <summary>Discards cached names so the next caller reloads the available policies.</summary>
     /// <remarks>Callers waiting on an older successful response join a fresh load instead of receiving stale names.</remarks>
     public void Invalidate()
     {
-        lock (sync)
+        lock (_sync)
         {
-            pending = null;
+            _pending = null;
         }
     }
 
+    /// <summary>Discards available names when the signed-in user&apos;s authentication state changes.</summary>
+    /// <param name="_">Authentication-state task whose change notification invalidates this cache.</param>
     private void AuthenticationChanged(Task<AuthenticationState> _) => Invalidate();
 
+    /// <summary>Discards available names when a permission-bearing resource has changed.</summary>
+    /// <param name="items">Resource items or update notifications to process.</param>
     private void ResourcesChanged(IEnumerable<GXTarget> items)
     {
         if (items.Any(item => GXClientAuthorizationCache.IsPermissionChange(item.Type)))
@@ -131,21 +144,21 @@ public sealed class GXPolicyNameCache : IGXPolicyNameProvider, IDisposable
     /// <summary>Unsubscribes from authentication and resource notifications and cancels the outstanding HTTP load.</summary>
     public void Dispose()
     {
-        lock (sync)
+        lock (_sync)
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
-            disposed = true;
-            pending = null;
+            _disposed = true;
+            _pending = null;
         }
-        if (authentication != null)
+        if (_authentication != null)
         {
-            authentication.AuthenticationStateChanged -= AuthenticationChanged;
+            _authentication.AuthenticationStateChanged -= AuthenticationChanged;
         }
-        notifier?.RemoveListener(this);
-        lifetime.Cancel();
-        lifetime.Dispose();
+        _notifier?.RemoveListener(this);
+        _lifetime.Cancel();
+        _lifetime.Dispose();
     }
 }

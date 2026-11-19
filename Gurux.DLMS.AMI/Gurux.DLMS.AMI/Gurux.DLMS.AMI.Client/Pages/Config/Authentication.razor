@@ -80,13 +80,18 @@
 }
 
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private AuthenticationSettings? _active;
 
     /// <summary>
@@ -108,7 +113,7 @@
     {
         get
         {
-            if (action == CrudAction.Create)
+            if (_action == CrudAction.Create)
             {
                 return null;
             }
@@ -123,7 +128,7 @@
     {
         get
         {
-            if (action != CrudAction.Delete)
+            if (_action != CrudAction.Delete)
             {
                 return null;
             }
@@ -131,6 +136,7 @@
         }
     }
 
+    /// <summary>Lists the authentication services offered by the configuration editor.</summary>
     private List<string> _services = new();
 
 
@@ -140,14 +146,15 @@
     [Parameter]
     public string? Action { get; set; }
 
-    private CrudAction action;
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
+    private CrudAction _action;
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -155,13 +162,13 @@
         try
         {
             _services.Add("GitHub");
-            NotificationService?.RemoveByKey("Pages/Config/Authentication.OnInitialized");
-            action = ClientHelpers.GetAction(NavigationManager, Action);
+            _notificationService?.RemoveByKey("Pages/Config/Authentication.OnInitialized");
+            _action = ClientHelpers.GetAction(NavigationManager, Action);
             if (Parent?.GetAuthentications() == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            if (action == CrudAction.Create)
+            if (_action == CrudAction.Create)
             {
                 _active = new AuthenticationSettings();
             }
@@ -181,7 +188,7 @@
                 }
             }
             MenuService.Clear();
-            if (action == CrudAction.Delete)
+            if (_action == CrudAction.Delete)
             {
                 MenuService.AddMenuItems(new GXMenuItem()
                 {
@@ -208,7 +215,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Authentication.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Config/Authentication.OnInitialized");
         }
     }
 
@@ -217,13 +224,13 @@
     /// </summary>
     private async void OnSave()
     {
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingAuthentication);
-        NotificationService?.RemoveByKey("Pages/Config/Authentication.OnSave");
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.SavingAuthentication);
+        _notificationService?.RemoveByKey("Pages/Config/Authentication.OnSave");
         try
         {
             if (Parent?.GetAuthentications() != null && _active != null)
             {
-                switch (action)
+                switch (_action)
                 {
                     case CrudAction.Create:
                         foreach (var it in Parent.GetAuthentications())
@@ -256,7 +263,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Authentication.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Config/Authentication.OnSave");
         }
     }
 
@@ -272,6 +279,6 @@
     {
         MenuService.Dispose();
         MenuService.Clear();
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

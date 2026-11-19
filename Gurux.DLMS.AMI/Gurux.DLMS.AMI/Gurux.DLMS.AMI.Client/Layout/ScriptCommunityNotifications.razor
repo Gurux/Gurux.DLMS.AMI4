@@ -1,9 +1,39 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
 @using Gurux.DLMS.AMI.Client.Helpers
 @inject GXScriptCommunityNotifications Notifications
 @implements IDisposable
 
 @code {
-    private readonly CancellationTokenSource lifetime = new();
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
+    private readonly CancellationTokenSource _lifetime = new();
 
     protected override void OnInitialized()
     {
@@ -19,24 +49,24 @@
             {
                 try
                 {
-                    await Notifications.RefreshAsync(lifetime.Token);
+                    await Notifications.RefreshAsync(_lifetime.Token);
                 }
-                catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
+                catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { return; }
                 catch (Exception)
                 {
                     // An unavailable AMI server must not discard reviews or flood the user with polling errors.
                     // The durable outcomes will be fetched again after reconnection.
                 }
             }
-            while (await timer.WaitForNextTickAsync(lifetime.Token));
+            while (await timer.WaitForNextTickAsync(_lifetime.Token));
         }
-        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
     }
 
     public void Dispose()
     {
-        lifetime.Cancel();
+        _lifetime.Cancel();
         Notifications.Reset();
-        lifetime.Dispose();
+        _lifetime.Dispose();
     }
 }

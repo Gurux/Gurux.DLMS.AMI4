@@ -53,11 +53,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class ScheduleGroupRepository : IScheduleGroupRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Provides persistence and access checks for user group records.</summary>
         private readonly IUserGroupRepository _userGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -75,7 +81,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _userGroupRepository = userGroupRepository;
@@ -83,6 +89,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Reads user groups linked to the selected group through its membership relations.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <param name="scheduleGroupId">Identifier of the group whose linked records are selected.</param>
+        /// <returns>The records linked to the requested group.</returns>
         private static async Task<List<GXUserGroup>> GetJoinedUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid scheduleGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
@@ -93,6 +104,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return await connection.SelectAsync<GXUserGroup>(transaction, arg);
         }
 
+        /// <summary>Reads schedules linked to the selected group through its membership relations.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <param name="scheduleGroupId">Identifier of the group whose linked records are selected.</param>
+        /// <returns>The records linked to the requested group.</returns>
         private async Task<List<GXSchedule>> GetJoinedSchedules(GXDbConnection connection, IDbTransaction transaction, Guid scheduleGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXSchedule>(where => where.Removed == null);
@@ -104,15 +120,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXUserGroupScheduleGroup, GXUserGroup>(x => x.UserGroupId, y => y.Id);
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(x => x.Id, y => y.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(x => x.UserId!, y => y.Id!);
-            if (!User.IsInRole(GXRoles.Admin))
+            if (!_user.IsInRole(GXRoles.Admin))
             {
-                var id = ServerHelpers.GetUserId(User);
+                var id = ServerHelpers.GetUserId(_user);
                 arg.Where.And<GXUser>(q => q.Removed == null && q.Id == id);
             }
             arg.Where.And<GXScheduleGroup>(where => where.Removed == null && where.Id == scheduleGroupId);
             return await connection.SelectAsync<GXSchedule>(transaction, arg);
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXScheduleGroup), id, action, GXScheduleGroupPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -120,7 +142,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<GXScheduleGroup>> GetJoinedScheduleGroups(Guid scheduleId)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScheduleGroup>(where => where.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScheduleGroup, GXScheduleGroupSchedule>(a => a.Id, b => b.ScheduleGroupId);
@@ -130,7 +152,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXUserGroupScheduleGroup, GXUserGroup>(x => x.UserGroupId, y => y.Id);
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(x => x.Id, y => y.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(x => x.UserId!, y => y.Id!);
-            var id = ServerHelpers.GetUserId(User);
+            var id = ServerHelpers.GetUserId(_user);
             arg.Where.And<GXUser>(q => q.Removed == null && q.Id == id);
             arg.Where.And<GXSchedule>(where => where.Removed == null && where.Id == scheduleId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -140,9 +162,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByScheduleGroup(s => s.Id!,
-                ServerHelpers.GetUserId(User), groupId);
+                ServerHelpers.GetUserId(_user), groupId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (groupId != null)
             {
@@ -151,7 +173,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -161,13 +183,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByScheduleGroups(s => s.Id!,
-                ServerHelpers.GetUserId(User), groupIds);
+                ServerHelpers.GetUserId(_user), groupIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -178,13 +200,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             groups = groups.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXScheduleGroup, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, groups,
+            await GXHistoryMutation.RunDeleteAsync<GXScheduleGroup, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, groups,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             IEnumerable<GXScheduleGroup> exists;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 GXSelectArgs arg = GXSelectArgs.Select<GXScheduleGroup>(s => new { s.Id, s.Name }, w => groups.Contains(w.Id));
                 exists = connection.Select<GXScheduleGroup>(arg);
@@ -192,7 +214,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Check that the user has access rights to the removed schedule groups.
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 var arg = GXQuery.GetScheduleGroupsByUser(s => new { s.Id, s.Name }, userId, null,
                     DateTimeOffset.MinValue, null, groups);
                 exists = connection.Select<GXScheduleGroup>(arg);
@@ -272,9 +294,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListScheduleGroupsResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the schedule groups.
                 arg = GXSelectArgs.SelectAll<GXScheduleGroup>();
@@ -290,7 +312,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetScheduleGroupsByUser(s => "*", userId, null,
                     request?.Filter?.Removed, request?.Exclude, request?.Included);
             }
@@ -364,16 +386,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.View);
                 GXSelectArgs arg;
-                if (User.IsInRole(GXRoles.Admin))
+                if (_user.IsInRole(GXRoles.Admin))
                 {
                     //Admin can see all the groups.
                     arg = GXSelectArgs.SelectAll<GXScheduleGroup>(w => w.Id == id);
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetScheduleGroupsByUser(s => "*", userId, id);
                 }
                 arg.Columns.Exclude<GXScheduleGroup>(e => e.Schedules!);
@@ -482,11 +504,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXScheduleGroup, object>>? columns, CancellationToken cancellationToken = default)
         {
             scheduleGroups = scheduleGroups.ToArray();
-            return await GXHistoryMutation.RunAsync<GXScheduleGroup, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, scheduleGroups,
+            return await GXHistoryMutation.RunAsync<GXScheduleGroup, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, scheduleGroups,
         async () =>
         {
             DateTime now = DateTime.Now;
-            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
             List<Guid> list = [];
             List<GXUserGroup>? defaultGroups = null;
             var newGroups = scheduleGroups.Where(w => w.Id == Guid.Empty).ToList();
@@ -527,7 +549,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (newGroups.Count != 0)
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.Add);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.Add);
                     foreach (var it in newGroups)
                     {
                         it.Creator = creator;
@@ -539,7 +561,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (updatedGroups.Count != 0)
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXScheduleGroupPolicies.Edit);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXScheduleGroupPolicies.Edit);
                     foreach (var it in updatedGroups)
                     {
                         GXSelectArgs m = GXSelectArgs.Select<GXScheduleGroup>(q => q.ConcurrencyStamp!, where => where.Id == it.Id);
@@ -557,7 +579,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.CreationTime,
                             q.Schedules
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             it.Creator == null ||
                             string.IsNullOrEmpty(it.Creator.Id))
                         {
@@ -638,6 +660,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Adds or reconciles schedule-group memberships when the supplied group includes a schedule collection.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="it">Schedule group containing the desired schedule membership collection.</param>
+        /// <param name="add">Whether all supplied schedules are new memberships instead of being reconciled with stored memberships.</param>
+        /// <returns>A task that completes after membership additions and removals have been applied.</returns>
         private async Task MapSchedules(GXDbConnection connection,
             IDbTransaction transaction, GXScheduleGroup it, bool add)
         {

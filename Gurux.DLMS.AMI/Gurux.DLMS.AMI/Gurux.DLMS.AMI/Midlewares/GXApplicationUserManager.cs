@@ -58,6 +58,20 @@ using System.Globalization;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
+    /// <summary>Creates and updates identity users together with AMI registration workflows and notification defaults.</summary>
+    /// <param name="httpContextAccessor">Provides the current authenticated HTTP request.</param>
+    /// <param name="dbFactory">Creates database connections for persistence operations.</param>
+    /// <param name="workflowHandler">Invokes workflows associated with domain changes.</param>
+    /// <param name="serviceProvider">Resolves the dependencies required by this component.</param>
+    /// <param name="userStore">Identity store used for user persistence.</param>
+    /// <param name="optionsAccessor">Configured identity options used by the base user manager.</param>
+    /// <param name="passwordHasher">Hashes and verifies user passwords.</param>
+    /// <param name="userValidators">Validators applied to identity user records.</param>
+    /// <param name="passwordValidators">Validators applied when setting user passwords.</param>
+    /// <param name="keyNormalizer">Normalizes identity lookup keys.</param>
+    /// <param name="errors">Produces identity validation error descriptions.</param>
+    /// <param name="services">Services available to identity or update operations.</param>
+    /// <param name="logger">Records operational diagnostics and failures.</param>
     internal class GXApplicationUserManager(
         IHttpContextAccessor httpContextAccessor,
         IDbConnectionFactory dbFactory,
@@ -70,11 +84,16 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         IdentityErrorDescriber errors, IServiceProvider services, ILogger<GXApplicationUserManager> logger) : UserManager<ApplicationUser>(userStore, optionsAccessor, passwordHasher, userValidators, passwordValidators, keyNormalizer, errors,
             services, logger)
     {
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory = dbFactory;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider = serviceProvider;
+        /// <summary>Schedules or executes workflow actions after repository changes.</summary>
         private readonly IWorkflowHandler _workflowHandler = workflowHandler;
+        /// <summary>Provides the current HTTP request and authenticated principal.</summary>
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-        private static readonly SemaphoreSlim RegistrationLock = new(1, 1);
+        /// <summary>Prevents overlapping module registration changes.</summary>
+        private static readonly SemaphoreSlim _registrationLock = new(1, 1);
 
         /// <summary>
         /// This task is used to check that user manager or admin are approved the new user.
@@ -87,6 +106,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             return System.Threading.Tasks.Task.FromResult(user.EmailConfirmed && user.IsApproved);
         }
 
+        /// <inheritdoc />
         public override async Task<IdentityResult> CreateAsync(ApplicationUser user, string password)
         {
             ThrowIfDisposed();
@@ -96,9 +116,17 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             return result.Succeeded ? await CreateAsync(user) : result;
         }
 
+        /// <inheritdoc />
         public override Task<IdentityResult> CreateAsync(ApplicationUser user)
             => RegisterUserAsync(user, null, null);
 
+        /// <summary>Validates and hashes an optional password before registering a user with the requested roles and permissions.</summary>
+        /// <param name="user">Identity user being created and provisioned.</param>
+        /// <param name="password">Optional password to validate and hash before registration.</param>
+        /// <param name="roles">Role names requested for the new user, combined with applicable registration defaults.</param>
+        /// <param name="permissions">Permission names granted when provisioning the user.</param>
+        /// <returns>The password validation or user registration result.</returns>
+        /// <exception cref="ArgumentNullException">The user is null.</exception>
         internal async Task<IdentityResult> CreateAsync(ApplicationUser user, string? password,
             IEnumerable<string>? roles, IEnumerable<string>? permissions)
         {
@@ -115,22 +143,33 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             return await RegisterUserAsync(user, roles, permissions);
         }
 
+        /// <summary>Serializes user registration so first-account initialization and default grants cannot race.</summary>
+        /// <param name="user">Identity user being created and provisioned.</param>
+        /// <param name="roles">Role names requested for the new user, combined with applicable registration defaults.</param>
+        /// <param name="permissions">Permission names granted when provisioning the user.</param>
+        /// <returns>The result of creating the user and initializing registration defaults.</returns>
+        /// <exception cref="ArgumentNullException">The user is null.</exception>
         private async Task<IdentityResult> RegisterUserAsync(ApplicationUser user,
             IEnumerable<string>? roles, IEnumerable<string>? permissions)
         {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(user);
-            await RegistrationLock.WaitAsync();
+            await _registrationLock.WaitAsync();
             try
             {
                 return await CreateRegisteredUserAsync(user, roles, permissions);
             }
             finally
             {
-                RegistrationLock.Release();
+                _registrationLock.Release();
             }
         }
 
+        /// <summary>Creates an identity user, applies registration approval and default grants, and initializes notifications and workflows.</summary>
+        /// <param name="user">Identity user being created and provisioned.</param>
+        /// <param name="roles">Role names requested for the new user, combined with applicable registration defaults.</param>
+        /// <param name="permissions">Permission names granted when provisioning the user.</param>
+        /// <returns>The identity creation result, including validation failures.</returns>
         private async Task<IdentityResult> CreateRegisteredUserAsync(ApplicationUser user,
             IEnumerable<string>? roles, IEnumerable<string>? permissions)
         {
@@ -357,6 +396,10 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             return ret;
         }
 
+        /// <summary>Creates missing notification subscriptions permitted for the newly persisted user's own principal.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="user">Identity user being created and provisioned.</param>
+        /// <returns>A task that completes after allowed subscriptions and sources have been committed.</returns>
         private async System.Threading.Tasks.Task CreateNotificationsAsync(GXDbConnection connection, ApplicationUser user)
         {
             // Evaluate the persisted owner, never the temporary administrator used to provision groups.
@@ -408,6 +451,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             await transaction.CommitAsync();
         }
 
+        /// <inheritdoc />
         public override Task<IdentityResult> UpdateAsync(ApplicationUser user)
         {
             user.Updated = DateTime.Now;

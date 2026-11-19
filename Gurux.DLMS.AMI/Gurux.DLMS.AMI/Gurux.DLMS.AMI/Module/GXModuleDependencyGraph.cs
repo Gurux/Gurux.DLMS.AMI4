@@ -34,7 +34,8 @@ namespace Gurux.DLMS.AMI.Server.Module;
 /// <summary>Dependency edges; all calls are serialized by the runtime's state lock.</summary>
 public sealed class GXModuleDependencyGraph
 {
-    private readonly Dictionary<string, string[]> edges = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Required module identifiers indexed by dependent module identifier.</summary>
+    private readonly Dictionary<string, string[]> _edges = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Performs the resolve operation.</summary>
     /// <param name="id">The item identifier.</param>
     /// <param name="dependencies">The dependencies.</param>
@@ -63,13 +64,13 @@ public sealed class GXModuleDependencyGraph
     /// <summary>Performs the reserve operation.</summary>
     /// <param name="id">The item identifier.</param>
     /// <param name="providers">The providers.</param>
-    public void Reserve(string id, string[] providers) => edges.Add(id, providers);
+    public void Reserve(string id, string[] providers) => _edges.Add(id, providers);
     /// <summary>Performs the release operation.</summary>
     /// <param name="id">The item identifier.</param>
-    public void Release(string id) => edges.Remove(id);
+    public void Release(string id) => _edges.Remove(id);
     /// <summary>Performs the get blocking dependents operation.</summary>
     /// <param name="id">The item identifier.</param>
-    public string[] GetBlockingDependents(string id) => [.. edges.Where(e => e.Value.Contains(id, StringComparer.OrdinalIgnoreCase)).Select(e => e.Key).Order(StringComparer.OrdinalIgnoreCase)];
+    public string[] GetBlockingDependents(string id) => [.. _edges.Where(e => e.Value.Contains(id, StringComparer.OrdinalIgnoreCase)).Select(e => e.Key).Order(StringComparer.OrdinalIgnoreCase)];
     /// <summary>Performs the ensure can stop operation.</summary>
     /// <param name="id">The item identifier.</param>
     public void EnsureCanStop(string id)

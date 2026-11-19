@@ -91,8 +91,10 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected devices.
@@ -109,18 +111,21 @@
     [CascadingParameter]
     private Gateway? GatewayParent { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXDevice>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXDevice>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXDevice>? _selectionContainer;
     /// <summary>
     /// Device filter.
     /// </summary>
-    private GXDevice filter = new GXDevice(null);
+    private GXDevice _filter = new GXDevice(null);
 
     /// <summary>
     /// Selected device filter.
     /// </summary>
-    private GXDevice selectedFilter = new GXDevice(null);
+    private GXDevice _selectedFilter = new GXDevice(null);
 
     /// <summary>
     /// Search selected items by name.
@@ -132,13 +137,13 @@
         {
             if (_selected != null)
             {
-                selectedFilter.Name = name;
+                _selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -148,14 +153,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Device/DevicesSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Device/DevicesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DevicesSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Device/DevicesSelector.SearchByName");
         }
     }
 
@@ -167,12 +172,12 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.DeviceGroups = null;
+                    _filter.DeviceGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXDeviceGroup? dg = filter.DeviceGroups?.FirstOrDefault();
+                    GXDeviceGroup? dg = _filter.DeviceGroups?.FirstOrDefault();
                     if (dg == null)
                     {
                         dg = new GXDeviceGroup();
@@ -180,7 +185,7 @@
                         GXUserGroup? ug = new GXUserGroup();
                         dg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                         ug.Users = new List<GXUser>(new GXUser[] { user });
-                        filter.DeviceGroups = new List<GXDeviceGroup>(new GXDeviceGroup[] { dg });
+                        _filter.DeviceGroups = new List<GXDeviceGroup>(new GXDeviceGroup[] { dg });
                     }
                     else
                     {
@@ -188,13 +193,13 @@
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Device/DevicesSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Device/DevicesSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DevicesSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Device/DevicesSelector.SearchByUser");
         }
     }
 
@@ -296,9 +301,9 @@
     {
         var devs = GetDevices() ?? [];
         int total = devs.Count;
-        if (!string.IsNullOrEmpty(selectedFilter.Name))
+        if (!string.IsNullOrEmpty(_selectedFilter.Name))
         {
-            devs = devs.Where(w => (w.Name ?? string.Empty).ToLower().Contains((selectedFilter.Name ?? string.Empty).ToLower())).ToList();
+            devs = devs.Where(w => (w.Name ?? string.Empty).ToLower().Contains((_selectedFilter.Name ?? string.Empty).ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXDevice>(
         devs.Skip(request.StartIndex).Take(request.Count), total));
@@ -307,14 +312,14 @@
     private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDevices);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDevices);
         try
         {
             ListDevices req = new ListDevices()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
                 Exclude = (GetDevices() ?? []).Select(s => s.Id).ToArray()
@@ -332,22 +337,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingDevices);
-            NotificationService?.RemoveByKey("Pages/Device/DevicesSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingDevices);
+            _notificationService?.RemoveByKey("Pages/Device/DevicesSelector.OnInitializedAsync");
             if (_selected != null)
             {
                 await _selected.RefreshDataAsync();
@@ -360,7 +365,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DevicesSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Device/DevicesSelector.OnInitializedAsync");
         }
     }
 }

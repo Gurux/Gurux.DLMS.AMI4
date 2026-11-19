@@ -41,10 +41,11 @@
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmail</PageTitle>
 
 <h1>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmail</h1>
-<StatusMessage Message="@statusMessage" />
+<StatusMessage Message="@_statusMessage" />
 
 @code {
-    private string? statusMessage;
+    /// <summary>Contains the account operation result displayed by the page.</summary>
+    private string? _statusMessage;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -69,7 +70,7 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = string.Format(Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingUserWithID0, UserId);
+            _statusMessage = string.Format(Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingUserWithID0, UserId);
         }
         else
         {
@@ -81,11 +82,11 @@
                 var changeResult = await UserManager.ChangeEmailAsync(user, ChangedEmail, code);
                 if (!changeResult.Succeeded)
                 {
-                    statusMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingEmail;
+                    _statusMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingEmail;
                     return;
                 }
                 var nameResult = await UserManager.SetUserNameAsync(user, ChangedEmail);
-                statusMessage = nameResult.Succeeded
+                _statusMessage = nameResult.Succeeded
                     ? Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmailChange
                     : Gurux.DLMS.AMI.Properties.Resources.ErrorChangingUserName;
                 return;
@@ -96,7 +97,7 @@
                 Logger.LogWarning("Email confirmation failed with Identity error codes: {ErrorCodes}",
                     string.Join(", ", result.Errors.Select(error => error.Code)));
             }
-            statusMessage = result.Succeeded ? Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmail : Gurux.DLMS.AMI.Properties.Resources.ErrorConfirmingYourEmail;
+            _statusMessage = result.Succeeded ? Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmail : Gurux.DLMS.AMI.Properties.Resources.ErrorConfirmingYourEmail;
         }
     }
 }

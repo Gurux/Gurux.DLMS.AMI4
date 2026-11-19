@@ -150,34 +150,39 @@
 </GXViewTable>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Default") { Position = 0, Description = "DefaultRole", Visibility = (byte)Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
         new("Permissions") { Position = 2, Description = "Permissions", Visibility = (byte)Visibility.All },
     ];
 
-    private IReadOnlyList<GXViewColumn> RoleColumnDefaults => ViewColumnDefaults
+    private IReadOnlyList<GXViewColumn> RoleColumnDefaults => _viewColumnDefaults
         .Where(column => (Edit || column.Name != "Default") &&
             (!AssignmentMode || column.Name == "Default" || column.Name == "Name"))
         .ToArray();
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
     }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Records whether the current user's permissions allow the edit operation.</summary>
     private bool _canEdit;
+    /// <summary>Records whether the current user's permissions allow the add operation.</summary>
     private bool _canAdd;
     private bool CanEditRole(GXRole role) => Edit && (string.IsNullOrEmpty(role.Id) ? _canAdd : _canEdit);
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// User can't edit roles if Edit is false.
@@ -368,18 +373,18 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Config/RoleEditor.Update");
+                _notificationService?.RemoveByKey("Pages/Config/RoleEditor.Update");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/RoleEditor.Update");
+            _notificationService?.ReportError(ex, "Pages/Config/RoleEditor.Update");
         }
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

@@ -39,13 +39,30 @@ using Gurux.DLMS.AMI.Client.Rest;
 using Gurux.DLMS.AMI.Server.Internal;
 namespace Gurux.DLMS.AMI.Scheduler;
 
+/// <summary>Coordinates catalog discovery, installation, and persisted update status.</summary>
+/// <param name="catalogClient">Client used to query catalog product and release information.</param>
+/// <param name="synchronizer">Synchronizes installed products with catalog metadata.</param>
+/// <param name="services">Services available to identity or update operations.</param>
+/// <param name="accessor">Provides the current authenticated HTTP request.</param>
+/// <param name="clients">Creates configured outgoing HTTP clients.</param>
+/// <param name="statusStore">Persists update progress and terminal status.</param>
 internal sealed class GXUpdater(GXCatalogClient catalogClient, GXCatalogSynchronizer synchronizer, IServiceProvider services, IHttpContextAccessor accessor, IHttpClientFactory clients, GXUpdateStatusStore statusStore) : IGXBackgroundTask
 {
-    static readonly SemaphoreSlim FullChecks = new(1, 1);
+    /// <summary>Prevents concurrent full update discovery operations.</summary>
+    static readonly SemaphoreSlim _fullChecks = new(1, 1);
+    /// <inheritdoc />
     public string TaskId => GXBackgroundTaskIds.Update;
+    /// <summary>Resolves the manufacturer repository used when synchronizing manufacturer catalog data.</summary>
     IManufacturerRepository ManufacturerRepository => services.GetRequiredService<IManufacturerRepository>();
+    /// <summary>Resolves configuration storage used by catalog update operations.</summary>
     IConfigurationRepository ConfigurationRepository => services.GetRequiredService<IConfigurationRepository>();
+    /// <summary>Current request principal, or an empty unauthenticated principal.</summary>
     ClaimsPrincipal User => accessor.HttpContext?.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+    /// <summary>Dispatches a registered background update task to its application, module, agent, or manufacturer updater.</summary>
+    /// <param name="taskId">The registered application, module, agent, or manufacturer update task identifier.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A task that completes after the selected background update operation finishes.</returns>
+    /// <exception cref="ArgumentException">The task identifier is not a registered update operation.</exception>
     public async Task RunAsync(string taskId, CancellationToken cancellationToken = default)
     {
         switch (taskId)
@@ -66,9 +83,10 @@ internal sealed class GXUpdater(GXCatalogClient catalogClient, GXCatalogSynchron
                 throw new ArgumentException("Unknown update task.", nameof(taskId));
         }
     }
+    /// <inheritdoc />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        await FullChecks.WaitAsync(cancellationToken);
+        await _fullChecks.WaitAsync(cancellationToken);
         try
         {
             var catalog = await catalogClient.GetAsync(cancellationToken);
@@ -80,9 +98,12 @@ internal sealed class GXUpdater(GXCatalogClient catalogClient, GXCatalogSynchron
         }
         finally
         {
-            FullChecks.Release();
+            _fullChecks.Release();
         }
     }
+    /// <summary>Compares published manufacturer versions with installed profiles and updates the cached availability status.</summary>
+    /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+    /// <returns>A task containing the manufacturer update availability determined from the published index.</returns>
     async Task<GXAvailableUpdate> CheckManufacturersCoreAsync(CancellationToken cancellationToken)
     {
         using var client = clients.CreateClient("ManufacturerUpdates");

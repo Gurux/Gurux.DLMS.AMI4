@@ -60,7 +60,7 @@
                         <div class="col-auto">
                             <label>@Properties.Resources.KeyManagementKeyType</label>
                             <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="Active.InterfaceType"
-                                             Items="@(InterfaceTypes.Select(it => (int)it))" Formatter="@((int value) => ((Gurux.DLMS.Enums.InterfaceType)value).ToString())" />
+                                             Items="@(_interfaceTypes.Select(it => (int)it))" Formatter="@((int value) => ((Gurux.DLMS.Enums.InterfaceType)value).ToString())" />
                         </div>
                         <ValidationMessage For="@(() => Active.InterfaceType)" />
                     </div>
@@ -92,9 +92,11 @@
 }
 @code {
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
-    private List<Gurux.DLMS.Enums.InterfaceType> InterfaceTypes = new List<Gurux.DLMS.Enums.InterfaceType>(new[]{
+    /// <summary>Lists the DLMS interface types offered by the connection editor.</summary>
+    private List<Gurux.DLMS.Enums.InterfaceType> _interfaceTypes = new List<Gurux.DLMS.Enums.InterfaceType>(new[]{
     Gurux.DLMS.Enums.InterfaceType.HDLC,
     Gurux.DLMS.Enums.InterfaceType.HdlcWithModeE,
     Gurux.DLMS.Enums.InterfaceType.WRAPPER,
@@ -108,6 +110,7 @@
     Gurux.DLMS.Enums.InterfaceType.SMS
     });
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
     [Parameter]
@@ -128,11 +131,11 @@
 
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/Profile.OnInitialized");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/Profile.OnInitialized");
             if (Active == null || Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -146,13 +149,13 @@
                 //Remove key type if not selected key type.
                 Active.InterfaceType != it.InterfaceType)
                 {
-                    InterfaceTypes.Remove((Gurux.DLMS.Enums.InterfaceType)it.InterfaceType);
+                    _interfaceTypes.Remove((Gurux.DLMS.Enums.InterfaceType)it.InterfaceType);
                 }
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/Profile.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/Profile.OnInitialized");
         }
     }
 
@@ -181,7 +184,7 @@
             {
                 return;
             }
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/Profile.OnSave");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/Profile.OnSave");
             if (Parent?.ProfileAction == CrudAction.Create)
             {
                 Parent?._profiles?.Add(Active);
@@ -199,7 +202,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/Profile.OnSave");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/Profile.OnSave");
         }
     }
 

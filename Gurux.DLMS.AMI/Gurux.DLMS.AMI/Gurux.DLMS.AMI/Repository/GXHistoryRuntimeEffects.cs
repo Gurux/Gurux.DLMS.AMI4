@@ -43,13 +43,19 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <summary>Persists coalesced runtime-cache updates in the configuration transaction and retries delivery after commit.</summary>
 internal static class GXHistoryRuntimeEffects
 {
-    private static readonly SemaphoreSlim DispatchGate = new(1, 1);
-    private static readonly JsonSerializerOptions PayloadOptions = new()
+    /// <summary>Prevents concurrent workflow event dispatch operations.</summary>
+    private static readonly SemaphoreSlim _dispatchGate = new(1, 1);
+    /// <summary>Serializer settings used for workflow event payloads.</summary>
+    private static readonly JsonSerializerOptions _payloadOptions = new()
     {
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
         MaxDepth = 64
     };
 
+    /// <summary>Queues a durable script cache refresh in a history transaction or applies it immediately when no history scope is active.</summary>
+    /// <param name="script">Script state to compile, validate, or publish to the workflow runtime.</param>
+    /// <param name="handler">Workflow runtime handler receiving the committed script or workflow effect.</param>
+    /// <param name="deleted">Whether the action represents deletion rather than an ordinary mutation.</param>
     internal static void EnqueueScript(GXScript script, IWorkflowHandler handler, bool deleted = false)
     {
         ArgumentNullException.ThrowIfNull(script);
@@ -64,9 +70,13 @@ internal static class GXHistoryRuntimeEffects
 
             return;
         }
-        Enqueue(factory, "Script", script.Id, JsonSerializer.Serialize(script, PayloadOptions), deleted, handler);
+        Enqueue(factory, "Script", script.Id, JsonSerializer.Serialize(script, _payloadOptions), deleted, handler);
     }
 
+    /// <summary>Queues a durable workflow registration change in a history transaction or applies it immediately outside history.</summary>
+    /// <param name="workflow">Workflow definition to register or remove after persistence.</param>
+    /// <param name="handler">Workflow runtime handler receiving the committed script or workflow effect.</param>
+    /// <param name="deleted">Whether the action represents deletion rather than an ordinary mutation.</param>
     internal static void EnqueueWorkflow(GXWorkflow workflow, IWorkflowHandler handler, bool deleted = false)
     {
         ArgumentNullException.ThrowIfNull(workflow);
@@ -84,9 +94,18 @@ internal static class GXHistoryRuntimeEffects
 
             return;
         }
-        Enqueue(factory, "Workflow", workflow.Id, JsonSerializer.Serialize(workflow, PayloadOptions), deleted, handler);
+        Enqueue(factory, "Workflow", workflow.Id, JsonSerializer.Serialize(workflow, _payloadOptions), deleted, handler);
     }
 
+    /// <summary>Upserts the latest runtime effect for an entity into the current configuration transaction and defers delivery until commit.</summary>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="kind">Category of runtime record or menu definition selected by this operation.</param>
+    /// <param name="entityId">Persisted identity of the runtime effect target.</param>
+    /// <param name="payload">Serialized target state stored for durable post-commit delivery.</param>
+    /// <param name="deleted">Whether the action represents deletion rather than an ordinary mutation.</param>
+    /// <param name="handler">Workflow runtime handler receiving the committed script or workflow effect.</param>
+    /// <exception cref="ArgumentException">The target has no persisted identifier.</exception>
+    /// <exception cref="InvalidOperationException">The runtime effect cannot join the configuration transaction.</exception>
     private static void Enqueue(IDbConnectionFactory factory, string kind, Guid entityId, string payload,
         bool deleted, IWorkflowHandler handler)
     {
@@ -135,7 +154,7 @@ internal static class GXHistoryRuntimeEffects
             throw new InvalidOperationException("Runtime effects can be dispatched only after their configuration transaction commits.");
         }
 
-        await DispatchGate.WaitAsync(token);
+        await _dispatchGate.WaitAsync(token);
         try
         {
             await using var db = await factory.GetConnectionAsync(token, notifySqlExcution: false);
@@ -164,15 +183,22 @@ internal static class GXHistoryRuntimeEffects
                 }
             }
         }
-        finally { DispatchGate.Release(); }
+        finally { _dispatchGate.Release(); }
     }
 
+    /// <summary>Validates a durable runtime payload against its target and applies the current script or workflow state.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="row">Durable runtime-effect record whose payload and target identity must agree.</param>
+    /// <param name="handler">Workflow runtime handler receiving the committed script or workflow effect.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after the effect has been processed and acknowledged.</returns>
+    /// <exception cref="InvalidDataException">The effect payload is absent, invalid, or belongs to a different target.</exception>
     private static async Task DeliverAsync(GXDbConnection db, GXChangeHistoryRuntimeEffect row,
         IWorkflowHandler handler, CancellationToken token)
     {
         if (row.Kind == "Script")
         {
-            var script = JsonSerializer.Deserialize<GXScript>(row.Payload, PayloadOptions)
+            var script = JsonSerializer.Deserialize<GXScript>(row.Payload, _payloadOptions)
                 ?? throw new InvalidDataException("Missing script runtime payload.");
             if (script.Id != row.EntityId)
             {
@@ -188,7 +214,7 @@ internal static class GXHistoryRuntimeEffects
         }
         else if (row.Kind == "Workflow")
         {
-            var workflow = JsonSerializer.Deserialize<GXWorkflow>(row.Payload, PayloadOptions)
+            var workflow = JsonSerializer.Deserialize<GXWorkflow>(row.Payload, _payloadOptions)
                 ?? throw new InvalidDataException("Missing workflow runtime payload.");
             if (workflow.Id != row.EntityId)
             {

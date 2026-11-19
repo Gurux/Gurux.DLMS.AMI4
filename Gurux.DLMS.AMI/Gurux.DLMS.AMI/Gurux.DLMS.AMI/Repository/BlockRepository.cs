@@ -58,13 +58,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class BlockRepository : IBlockRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for block group records.</summary>
         private readonly IBlockGroupRepository _blockGroupRepository;
+        /// <summary>Provides persistence and access checks for component view records.</summary>
         private readonly IComponentViewRepository _componentViewRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
         /// <summary>
         /// Constructor.
@@ -83,7 +91,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
@@ -93,6 +101,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _componentViewRepository = componentViewRepository;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXBlock), id, action, GXBlockPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -100,9 +114,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? blockId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXBlockPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXBlockPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByBlock(s => s.Id!,
-                ServerHelpers.GetUserId(User), blockId);
+                ServerHelpers.GetUserId(_user), blockId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (blockId != null)
             {
@@ -111,7 +125,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -121,13 +135,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXBlockPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXBlockPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByBlocks(s => s.Id!,
-                ServerHelpers.GetUserId(User), blockIds);
+                ServerHelpers.GetUserId(_user), blockIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -139,10 +153,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken = default)
         {
             blocks = blocks.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXBlock, Guid>(_dbFactory, User, _serviceProvider, blocks,
+            await GXHistoryMutation.RunDeleteAsync<GXBlock, Guid>(_dbFactory, _user, _serviceProvider, blocks,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXBlockPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXBlockPolicies.Delete);
             blocks.ValidateIds();
             try
             {
@@ -198,16 +212,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Resolves visible block identifiers through group membership and resource-policy authorization.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>Block identifiers accessible to the current principal.</returns>
         private async Task<List<Guid>> GetVisibleBlockIdsAsync(GXDbConnection connection, CancellationToken cancellationToken)
         {
             GXSelectArgs groups;
-            if (User?.IsInRole(GXRoles.Admin) == true)
+            if (_user?.IsInRole(GXRoles.Admin) == true)
             {
                 groups = GXSelectArgs.Select<GXBlockGroup>(q => q.Id, q => q.Removed == null);
             }
             else
             {
-                string? userId = ServerHelpers.GetUserId(User, false);
+                string? userId = ServerHelpers.GetUserId(_user, false);
                 if (userId == null)
                 {
                     return [];
@@ -218,7 +236,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var group in await connection.SelectAsync<GXBlockGroup>(groups))
             {
                 group.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXBlockGroup), group.Id, cancellationToken);
-                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, group.Policies, cancellationToken))
+                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, group.Policies, cancellationToken))
                 {
                     allowedGroups.Add(group.Id);
                 }
@@ -245,7 +263,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             //All users can see the blocks that are shared with them. Admin can see all the blocks.
             GXSelectArgs arg;
-            if (User?.IsInRole(GXRoles.Admin) == true)
+            if (_user?.IsInRole(GXRoles.Admin) == true)
             {
                 // Group policies below determine normal admin visibility. Applying the
                 // user's memberships here would discard groups reserved for admins.
@@ -265,7 +283,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string? userId = ServerHelpers.GetUserId(User, false);
+                string? userId = ServerHelpers.GetUserId(_user, false);
                 if (userId == null)
                 {
                     //Return a list of blocks that anonymous users can access.
@@ -301,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXBlock>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            string? closingUserId = ServerHelpers.GetUserId(User, false);
+            string? closingUserId = ServerHelpers.GetUserId(_user, false);
             if (request?.ExcludeClosed == true && closingUserId != null)
             {
                 var closed = GXSelectArgs.Select<GXUserBlockSettings>(s => GXSql.One,
@@ -309,7 +327,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.And<GXBlock>(b => !GXSql.Exists<GXBlock, GXUserBlockSettings>(
                     b => b.Id, s => s.BlockId, closed));
             }
-            if (!(request?.AllUsers == true && User?.IsInRole(GXRoles.Admin) == true))
+            if (!(request?.AllUsers == true && _user?.IsInRole(GXRoles.Admin) == true))
             {
                 var visibleIds = await GetVisibleBlockIdsAsync(connection, cancellationToken);
                 if (visibleIds.Count == 0)
@@ -397,7 +415,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                 //All users can see the blocks that are shared with them. Admin can see all the blocks.
                 GXSelectArgs arg;
-                if (User?.IsInRole(GXRoles.Admin) == true)
+                if (_user?.IsInRole(GXRoles.Admin) == true)
                 {
                     //Admin can see all the blocks.
                     arg = GXSelectArgs.SelectAll<GXBlock>(w => w.Id == id);
@@ -406,7 +424,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetBlocksByUser(s => "*", userId, id);
                     arg.Joins.AddInnerJoin<GXBlock, GXBlockGroupBlock>(x => x.Id, y => y.BlockId);
                     arg.Joins.AddInnerJoin<GXBlockGroupBlock, GXBlockGroup>(j => j.BlockGroupId, j => j.Id);
@@ -427,7 +445,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (var group in block.BlockGroups)
                     {
                         group.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXBlockGroup), group.Id, cancellationToken);
-                        if (group.Removed == null && await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, group.Policies, cancellationToken))
+                        if (group.Removed == null && await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, group.Policies, cancellationToken))
                         {
                             visibleGroups.Add(group);
                         }
@@ -493,15 +511,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXBlock, object>>? columns, CancellationToken cancellationToken = default)
         {
             blocks = blocks.ToArray();
-            return await GXHistoryMutation.RunAsync<GXBlock, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, blocks,
+            return await GXHistoryMutation.RunAsync<GXBlock, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, blocks,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXBlockPolicies.Add, GXBlockPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXBlockPolicies.Add, GXBlockPolicies.Edit);
                 DateTime now = DateTime.Now;
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 Dictionary<GXBlock, List<string>> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 foreach (GXBlock block in blocks)
@@ -605,7 +623,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.CreationTime,
                             q.BlockGroups,
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             block.Creator == null ||
                             string.IsNullOrEmpty(block.Creator.Id))
                         {
@@ -710,8 +728,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task CloseAsync(IEnumerable<Guid>? blocks, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXBlockPolicies.Close);
-            string userId = ServerHelpers.GetUserId(User);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXBlockPolicies.Close);
+            string userId = ServerHelpers.GetUserId(_user);
             var ids = (blocks ?? []).Distinct().ToArray();
             if (ids.Length == 0)
             {
@@ -749,7 +767,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default) {
-            await GXHistoryMutation.RunAllAsync<GXBlock>(_dbFactory, User, _serviceProvider,
+            await GXHistoryMutation.RunAllAsync<GXBlock>(_dbFactory, _user, _serviceProvider,
         async () =>
         {
             await ApplyDefaultsAsync(null, cancellationToken);
@@ -760,7 +778,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             ids = ids.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXBlock, Guid>(_dbFactory, User, _serviceProvider, ids,
+            await GXHistoryMutation.RunIdsAsync<GXBlock, Guid>(_dbFactory, _user, _serviceProvider, ids,
         async () =>
         {
             ArgumentNullException.ThrowIfNull(ids);
@@ -774,13 +792,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Authorizes regeneration and restores the selected built-in layout blocks or every supported default block.</summary>
+        /// <param name="blocks">Optional built-in block identities to restore, or null to restore all supported defaults.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after default block restoration.</returns>
         private async Task ApplyDefaultsAsync(Guid[]? blocks, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXBlockPolicies.Regenerate);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXBlockPolicies.Regenerate);
             cancellationToken.ThrowIfCancellationRequested();
             var ids = (blocks ?? []).Distinct().ToArray();
             var now = DateTime.Now;
-            var creator = new GXUser { Id = ServerHelpers.GetUserId(User) };
+            var creator = new GXUser { Id = ServerHelpers.GetUserId(_user) };
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             var selected = ids.Length == 0
                 ? await connection.SelectAsync<GXBlock>(GXSelectArgs.SelectAll<GXBlock>(), cancellationToken)

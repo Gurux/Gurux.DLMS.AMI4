@@ -85,7 +85,7 @@ else
                     {
                         if (Devices != null && Devices.Any())
                         {
-                            <Devices Columns="@DeviceColumns"
+                            <Devices Columns="@_deviceColumns"
                                      AvailableDevice="@Devices"
                                      CanEdit="false"
                                      Menu="false"
@@ -103,7 +103,7 @@ else
                     {
                         if (ObjectTemplates != null && ObjectTemplates.Any())
                         {
-                            <ObjectTemplates Device="@null" Columns="@ObjectColumns"
+                            <ObjectTemplates Device="@null" Columns="@_objectColumns"
                                              AvailableObjectTemplates="@ObjectTemplates"
                                              ObjectTypes="@ObjectTypes"
                                              IgnoredObjectTypes="@IgnoredObjectTypes"
@@ -123,7 +123,7 @@ else
                     {
                         if (AttributeTemplates != null && AttributeTemplates.Any())
                         {
-                            <AttributeTemplates Device="@null" Columns="@AttributeColumns"
+                            <AttributeTemplates Device="@null" Columns="@_attributeColumns"
                                                 ObjectTypes="@ObjectTypes"
                                                 IgnoredObjectTypes="@IgnoredObjectTypes"
                                                 AvailableAttributeTemplates="@AttributeTemplates"
@@ -173,17 +173,17 @@ else
     /// <summary>
     /// Shown device columns.
     /// </summary>
-    private string[] DeviceColumns = new string[] { "Name", "Template.Type" };
+    private string[] _deviceColumns = new string[] { "Name", "Template.Type" };
 
     /// <summary>
     /// Shown object columns.
     /// </summary>
-    private string[] ObjectColumns = new string[] { "ObjectType", "LogicalName", "Name" };
+    private string[] _objectColumns = new string[] { "ObjectType", "LogicalName", "Name" };
 
     /// <summary>
     /// Shown attribute columns.
     /// </summary>
-    private string[] AttributeColumns = new string[] { "LogicalName", "ObjectName", "Index", "Name" };
+    private string[] _attributeColumns = new string[] { "LogicalName", "ObjectName", "Index", "Name" };
 
     /// <summary>
     /// Selected devices.
@@ -223,6 +223,7 @@ else
     /// </summary>
     List<GXDeviceTemplate> _deviceTemplates = new List<GXDeviceTemplate>();
 
+    /// <summary>Controls whether the selected item is displayed in editing mode.</summary>
     private bool _edit;
 
     /// <summary>

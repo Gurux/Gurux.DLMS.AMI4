@@ -56,8 +56,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class UserStampRepository : IUserStampRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
@@ -72,13 +75,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
         }
 
         /// <summary>Gets or sets the user1.</summary>
-        public ClaimsPrincipal User1 => User;
+        public ClaimsPrincipal User1 => _user;
 
         /// <inheritdoc />
         public async Task DeleteAsync(IEnumerable<Guid> stamps, CancellationToken cancellationToken = default)

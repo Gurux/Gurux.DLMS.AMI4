@@ -40,19 +40,25 @@ internal sealed class GXModuleAuthenticationHandler(
     IGXModuleAuthenticationRuntime runtime, IGXModulePrincipalValidator validator)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
+    /// <summary>Authentication scheme assigned to module-provided identities.</summary>
     internal const string SchemeName = "AmiModule";
-    private bool fallback;
+    /// <summary>Indicates that fallback behavior is active for the current operation.</summary>
+    private bool _fallback;
 
+    /// <summary>Selects module authentication when a runtime authenticator can handle the request, otherwise delegates to host authentication.</summary>
+    /// <param name="context">HTTP request context whose principal is temporarily replaced.</param>
+    /// <returns>The authentication scheme to use for the request.</returns>
     internal static string SelectScheme(HttpContext context) =>
         context.RequestServices.GetRequiredService<IGXModuleAuthenticationRuntime>().CanAuthenticate(context)
             ? SchemeName : GXPatValidator.SelectScheme(context);
 
+    /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var result = await runtime.AuthenticateAsync(Context, Context.RequestAborted);
         if (result.Status == AmiAuthenticationStatus.NotHandled)
         {
-            fallback = true;
+            _fallback = true;
             return await Context.AuthenticateAsync(GXPatValidator.SelectScheme(Context));
         }
         if (result.Status == AmiAuthenticationStatus.Authenticated && result.Principal != null &&
@@ -64,10 +70,11 @@ internal sealed class GXModuleAuthenticationHandler(
         return AuthenticateResult.Fail("Module authentication rejected.");
     }
 
+    /// <inheritdoc />
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
         await HandleAuthenticateOnceAsync();
-        if (fallback) {
+        if (_fallback) {
             await Context.ChallengeAsync(GXPatValidator.SelectScheme(Context), properties);
         }
         else {
@@ -75,31 +82,15 @@ internal sealed class GXModuleAuthenticationHandler(
         }
     }
 
+    /// <inheritdoc />
     protected override async Task HandleForbiddenAsync(AuthenticationProperties properties)
     {
         await HandleAuthenticateOnceAsync();
-        if (fallback) {
+        if (_fallback) {
             await Context.ForbidAsync(GXPatValidator.SelectScheme(Context), properties);
         }
         else {
             Response.StatusCode = StatusCodes.Status403Forbidden;
         }
-    }
-}
-
-/// <summary>Marks a rejected credential even when the selected endpoint permits anonymous access.</summary>
-internal sealed class GXModuleAuthenticationRejected;
-
-/// <summary>Prevents rejected module credentials from reaching anonymous endpoints.</summary>
-internal sealed class GXModuleAuthenticationGuard(RequestDelegate next)
-{
-    public Task InvokeAsync(HttpContext context)
-    {
-        if (context.Features.Get<GXModuleAuthenticationRejected>() == null) {
-            return next(context);
-        }
-        context.User = new ClaimsPrincipal(new ClaimsIdentity());
-        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        return Task.CompletedTask;
     }
 }

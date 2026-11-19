@@ -33,32 +33,50 @@ using Gurux.Service.Orm;
 
 namespace Gurux.DLMS.AMI.Server.Repository;
 
-/// <summary>Optional factory hook preserving connection diagnostics on non-owning history leases.</summary>
-internal interface IGXHistoryConnectionDiagnostics
-{
-    void ConfigureHistoryLease(GXDbConnection db, bool notifySqlExcution);
-}
-
 /// <summary>Joins repository-local database transactions into one atomic history mutation.</summary>
 internal static class GXHistoryScope
 {
-    private static readonly AsyncLocal<Scope?> Current = new();
-    internal static bool IsActive => Current.Value is { Finished: false };
-    internal static IDbConnectionFactory? CurrentFactory => Current.Value is { Finished: false } scope ? scope.Factory : null;
-    internal static DbTransaction? CurrentTransaction => Current.Value is { Finished: false } scope ? scope.Transaction : null;
-    internal static Guid ChangeSetId => Current.Value?.ChangeSetId ?? Guid.Empty;
+    /// <summary>Async-local operation state restored when the enclosing operation finishes.</summary>
+    private static readonly AsyncLocal<Scope?> _current = new();
+    /// <summary>Whether the async-local history scope exists and has not finished.</summary>
+    internal static bool IsActive => _current.Value is { Finished: false };
+    /// <summary>Database factory belonging to the active history scope, if one exists.</summary>
+    internal static IDbConnectionFactory? CurrentFactory => _current.Value is { Finished: false } scope ? scope.Factory : null;
+    /// <summary>Transaction belonging to the active history scope, if one exists.</summary>
+    internal static DbTransaction? CurrentTransaction => _current.Value is { Finished: false } scope ? scope.Transaction : null;
+    /// <summary>Identifier grouping changes made in this transaction or history scope.</summary>
+    internal static Guid ChangeSetId => _current.Value?.ChangeSetId ?? Guid.Empty;
+    /// <summary>Returns the underlying command when the supplied command is a history lease.</summary>
+    /// <param name="command">Database command that may be wrapped by a history lease.</param>
+    /// <returns>The original database command beneath any history lease wrapper.</returns>
     internal static DbCommand UnwrapCommand(DbCommand command) => GXHistoryScopeConnections.UnwrapCommand(command);
 
+    /// <summary>Retains one history transaction, its change identifier, and deferred completion callbacks.</summary>
+    /// <param name="factory">Factory that created the history database connection.</param>
+    /// <param name="database">Connection shared by every mutation in the history scope.</param>
+    /// <param name="transaction">Transaction shared by every mutation in the history scope.</param>
     internal sealed class Scope(IDbConnectionFactory factory, GXDbConnection database, DbTransaction transaction)
     {
+        /// <summary>Database connection factory associated with the active history scope.</summary>
         internal IDbConnectionFactory Factory { get; } = factory;
+        /// <summary>Database wrapper shared by the active history scope.</summary>
         internal GXDbConnection Database { get; } = database;
+        /// <summary>Database transaction governing changes in this scope.</summary>
         internal DbTransaction Transaction { get; } = transaction;
+        /// <summary>Identifier grouping changes made in this transaction or history scope.</summary>
         internal Guid ChangeSetId { get; } = Guid.NewGuid();
+        /// <summary>Whether the surrounding transaction must roll back instead of committing.</summary>
         internal bool RollbackOnly { get; set; }
+        /// <summary>Whether the history scope has finished and rejects further operations.</summary>
         internal bool Finished { get; set; }
+        /// <summary>Callbacks to execute after the transaction commits successfully.</summary>
         internal List<Action> Committed { get; } = [];
+        /// <summary>Callbacks to execute after the transaction rolls back.</summary>
         internal List<Action> RolledBack { get; } = [];
+        /// <summary>Creates a provider-specific non-owning connection lease and preserves the factory's SQL diagnostic settings.</summary>
+        /// <param name="notifySqlExcution">Whether the borrowed connection should retain SQL execution notifications.</param>
+        /// <returns>A connection wrapper bound to this unfinished history scope.</returns>
+        /// <exception cref="ObjectDisposedException">The history scope has already finished.</exception>
         internal GXDbConnection Lease(bool notifySqlExcution = true)
         {
             if (Finished)
@@ -79,7 +97,7 @@ internal static class GXHistoryScope
     /// <summary>Returns a non-owning ORM lease on this factory's active mutation, if any.</summary>
     internal static GXDbConnection? TryLease(IDbConnectionFactory factory, bool notifySqlExcution = true)
     {
-        var current = Current.Value;
+        var current = _current.Value;
         if (current == null)
         {
             return null;
@@ -97,7 +115,7 @@ internal static class GXHistoryScope
     internal static bool Defer(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (Current.Value is not { Finished: false } scope)
+        if (_current.Value is not { Finished: false } scope)
         {
             return false;
         }
@@ -111,7 +129,7 @@ internal static class GXHistoryScope
     internal static bool OnRollback(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (Current.Value is not { Finished: false } scope)
+        if (_current.Value is not { Finished: false } scope)
         {
             return false;
         }
@@ -120,6 +138,11 @@ internal static class GXHistoryScope
         return true;
     }
 
+    /// <summary>Runs an asynchronous action using a connection bound to the shared history transaction.</summary>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after the action and transaction scope finish.</returns>
     internal static Task RunAsync(IDbConnectionFactory factory, Func<GXDbConnection, Task> action,
         CancellationToken token = default)
         => RunAsync(factory, async connection => { await action(connection); return true; }, token);
@@ -131,7 +154,7 @@ internal static class GXHistoryScope
         ArgumentNullException.ThrowIfNull(factory);
         ArgumentNullException.ThrowIfNull(action);
         token.ThrowIfCancellationRequested();
-        var previous = Current.Value;
+        var previous = _current.Value;
         if (previous != null)
         {
             try
@@ -152,7 +175,7 @@ internal static class GXHistoryScope
         await using var physicalConnection = database.Connection;
         await using var transaction = await database.BeginTransactionAsync(IsolationLevel.Serializable, token);
         var scope = new Scope(factory, database, transaction);
-        Current.Value = scope;
+        _current.Value = scope;
         TResult value;
         try
         {
@@ -177,7 +200,7 @@ internal static class GXHistoryScope
             { await transaction.RollbackAsync(CancellationToken.None); }
             catch (Exception rollbackError) { Trace.TraceError("History transaction rollback failed: {0}", rollbackError); }
             // Recovery actions run outside the failed scope and may open their own connections.
-            Current.Value = previous;
+            _current.Value = previous;
             for (var index = scope.RolledBack.Count - 1; index >= 0; --index)
             {
                 try { scope.RolledBack[index](); }
@@ -188,7 +211,7 @@ internal static class GXHistoryScope
         }
         finally
         {
-            Current.Value = previous;
+            _current.Value = previous;
         }
         // The database is committed. A delivery failure cannot turn it into a failed mutation.
         // Durable delivery users enqueue an outbox item inside the transaction before deferring dispatch.
@@ -202,6 +225,11 @@ internal static class GXHistoryScope
         return value;
     }
 
+    /// <summary>Acquires a SQL Server transaction-owned application lock before history snapshot reads to serialize writers across processes.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after locking, or immediately for providers that do not use the SQL Server lock.</returns>
     private static async Task AcquireMutationLockAsync(DbConnection connection, DbTransaction transaction,
         CancellationToken token)
     {

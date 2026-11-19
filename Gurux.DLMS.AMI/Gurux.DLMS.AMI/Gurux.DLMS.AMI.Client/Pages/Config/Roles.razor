@@ -93,8 +93,11 @@ else if (_initialized)
 </section>
 
 @code {
+    /// <summary>Records whether the current user's permissions allow the view roles operation.</summary>
     private bool _canViewRoles;
+    /// <summary>Records whether the current user's permissions allow the view policies operation.</summary>
     private bool _canViewPolicies;
+    /// <summary>Records whether the initial component setup has completed.</summary>
     private bool _initialized;
 
     private bool CanViewTab(GXMenuLink link)
@@ -118,27 +121,37 @@ else if (_initialized)
     {
         _policyTabSelected = string.Equals(ActiveTab, "Policies", StringComparison.OrdinalIgnoreCase);
     }
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Available roles.
     /// </summary>
     private List<GXRole> _roles = new List<GXRole>();
+    /// <summary>Preserves original role assignments so edits can be compared with saved values.</summary>
     private readonly Dictionary<string, string> _originalRoles = new();
     private static string RoleValues(GXRole role) => System.Text.Json.JsonSerializer.Serialize(new
     {
         role.Name, role.Description, role.Default,
         Permissions = role.Permissions?.Select(p => p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToArray() ?? []
     });
+    /// <summary>References the role editor used to open or clear the selected role.</summary>
     private RoleEditor? _roleEditor;
+    /// <summary>Lists the permissions available to the role being edited.</summary>
     private GXPermission[] _permissions = Array.Empty<GXPermission>();
+    /// <summary>Records whether the policy tab is the active editing section.</summary>
     private bool _policyTabSelected;
+    /// <summary>Prevents overlapping requests while applying defaults is in progress.</summary>
     private bool _applyingDefaults;
+    /// <summary>Prevents overlapping requests while removing is in progress.</summary>
     private bool _removing;
     private void RolesChanged(List<GXRole> roles) => GXEditContexts.For(_roles).NotifyFieldChanged(new FieldIdentifier(_roles, nameof(_roles)));
 
@@ -159,7 +172,7 @@ else if (_initialized)
         var selected = _roleEditor?.SelectedRoles ?? [];
         if (selected.Length == 0)
         {
-            NotificationService?.ReportError(new Exception(Properties.Resources.NoItemIsSelected));
+            _notificationService?.ReportError(new Exception(Properties.Resources.NoItemIsSelected));
             return;
         }
         await _roleEditor!.EditRoles(selected);
@@ -204,7 +217,7 @@ else if (_initialized)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Roles.OnRemove");
+            _notificationService?.ReportError(ex, "Pages/Config/Roles.OnRemove");
         }
         finally
         {
@@ -234,7 +247,7 @@ else if (_initialized)
             {
                 return;
             }
-            using var progress = Progress?.ProgressStart(Properties.Resources.ApplyDefaults);
+            using var progress = _progress?.ProgressStart(Properties.Resources.ApplyDefaults);
             await Http.PostAsJson<RegenerateRoleResponse>("api/Role/Regenerate", new RegenerateRole { Ids = ids },
                 progress?.CancellationToken ?? CancellationToken.None);
             if (await Updated())
@@ -248,7 +261,7 @@ else if (_initialized)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Roles.OnRegenerate");
+            _notificationService?.ReportError(ex, "Pages/Config/Roles.OnRegenerate");
         }
         finally
         {
@@ -278,8 +291,8 @@ else if (_initialized)
             {
                 return false;
             }
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingRoles);
-            NotificationService?.RemoveByKey("Pages/Config/Roles.Updated");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingRoles);
+            _notificationService?.RemoveByKey("Pages/Config/Roles.Updated");
             _permissions = await Http.GetAsJsonAsync<GXPermission[]>("api/Permission") ?? Array.Empty<GXPermission>();
             ListRoles req = new ListRoles();
             var response = await Http.PostAsJson<ListRolesResponse>("api/Role/List", req);
@@ -305,17 +318,17 @@ else if (_initialized)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Roles.Updated");
+            _notificationService?.ReportError(ex, "Pages/Config/Roles.Updated");
             return false;
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -325,8 +338,8 @@ else if (_initialized)
             var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
             _canViewRoles = (await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded;
             _canViewPolicies = (await AuthorizationService.AuthorizeAsync(user, GXPolicyPolicies.View)).Succeeded;
-            NotificationService?.RemoveByKey("Pages/Config/Roles.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notificationService?.RemoveByKey("Pages/Config/Roles.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -347,7 +360,7 @@ else if (_initialized)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Roles.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Config/Roles.OnInitializedAsync");
         }
         finally
         {
@@ -369,8 +382,8 @@ else if (_initialized)
                 {
                     throw new InvalidOperationException(Properties.Resources.Name);
                 }
-                using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingRole);
-                NotificationService?.RemoveByKey("Pages/Config/Roles.OnSave");
+                using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingRole);
+                _notificationService?.RemoveByKey("Pages/Config/Roles.OnSave");
                 var changes = _roles.Where(r => string.IsNullOrEmpty(r.Id) ||
                     !_originalRoles.TryGetValue(r.Id, out var original) || original != RoleValues(r)).ToArray();
                 if (changes.Length != 0)
@@ -383,7 +396,7 @@ else if (_initialized)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Roles.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Config/Roles.OnSave");
         }
     }
 
@@ -400,6 +413,6 @@ else if (_initialized)
     {
         _editorMenu?.Dispose();
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

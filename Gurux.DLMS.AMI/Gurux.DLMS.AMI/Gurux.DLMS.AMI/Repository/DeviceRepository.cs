@@ -62,14 +62,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class DeviceRepository : IDeviceRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for device group records.</summary>
         private readonly IDeviceGroupRepository _deviceGroupRepository;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Provides persistence and access checks for key management records.</summary>
         private readonly IKeyManagementRepository _keyManagementRepository;
+        /// <summary>Provides persistence and access checks for attribute records.</summary>
         private readonly IAttributeRepository _attributeRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -90,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
             _deviceGroupRepository = deviceGroupRepository;
@@ -101,6 +110,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Publishes a successful device workflow event with target identity, group scope, and occurrence metadata.</summary>
+        /// <param name="code">Device event code published to matching workflows.</param>
+        /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+        /// <param name="groupIds">Optional device group identities included in workflow event scope.</param>
         private void PublishDeviceEvent(string code, Guid id, IReadOnlyList<Guid>? groupIds = null)
             => _serviceProvider.GetRequiredService<IWorkflowHandler>().Publish(new GXWorkflowEventContext
             {
@@ -111,19 +124,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 OperationId = Guid.NewGuid(),
                 OccurredAt = DateTimeOffset.UtcNow,
                 Outcome = "success"
-            }, User);
+            }, _user);
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXDevice), id, action, GXDevicePolicies.View, connection, transaction, notifications: _notificationCache);
 
+        /// <summary>Checks that every requested device is visible through the caller's allowed user and device groups.</summary>
+        /// <param name="deviceIds">Device identities that must all be accessible to the current principal.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes when all requested device identities are authorized.</returns>
         private async Task EnsureDeviceScopeAsync(IEnumerable<Guid> deviceIds, CancellationToken cancellationToken)
         {
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 return;
             }
-            string userId = ServerHelpers.GetUserId(User);
+            string userId = ServerHelpers.GetUserId(_user);
             var ids = deviceIds.Distinct().ToArray();
             if (ids.Length == 0)
             {
@@ -153,8 +176,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? deviceId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
-            GXSelectArgs args = GXQuery.GetUsersByDevice(ServerHelpers.GetUserId(User), deviceId);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByDevice(ServerHelpers.GetUserId(_user), deviceId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (deviceId != null)
             {
@@ -163,7 +186,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -173,12 +196,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
-            GXSelectArgs args = GXQuery.GetUsersByDevices(ServerHelpers.GetUserId(User), deviceIds);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByDevices(ServerHelpers.GetUserId(_user), deviceIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -190,10 +213,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             devices = devices.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXDevice, Guid>(_dbFactory, User, _serviceProvider, devices,
+            await GXHistoryMutation.RunDeleteAsync<GXDevice, Guid>(_dbFactory, _user, _serviceProvider, devices,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.Delete);
             devices = devices.Distinct().ToArray();
             await EnsureDeviceScopeAsync(devices, cancellationToken);
             GXSelectArgs arg = GXSelectArgs.Select<GXDevice>(a => a.Id, q => devices.Contains(q.Id));
@@ -308,10 +331,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListDevicesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
             GXSelectArgs arg;
             bool all = request != null && request.AllUsers &&
-                User.IsInRole(GXRoles.Admin);
+                _user.IsInRole(GXRoles.Admin);
             if (all)
             {
                 //Admin can see all the devices.
@@ -319,7 +342,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetDevicesByUser(s => "*", userId);
             }
             arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Type, s.Name });
@@ -481,8 +504,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.View);
-                string userId = ServerHelpers.GetUserId(User);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
+                string userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>();
                 GXQuery.GetDevicesByUser(arg, userId, id);
                 arg.Joins.AddLeftJoin<GXDevice, GXAppearance>(d => d.ProfilePicture!, a => a.Id);
@@ -491,7 +514,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Columns.Add<GXDeviceTemplate>();
                 arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices!);
                 arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template!, y => y.Id);
-                bool isAdmin = User.IsInRole(GXRoles.Admin);
+                bool isAdmin = _user.IsInRole(GXRoles.Admin);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 GXDevice? device = await connection.SingleOrDefaultAsync<GXDevice>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
                 // Materialize the template as the query root; joined device reads can omit this reference.
@@ -554,6 +577,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Appends fresh preactive key material for the requested key type without overwriting an active key identity.</summary>
+        /// <param name="management">Key-management record receiving newly rotated key material.</param>
+        /// <param name="type">Cryptographic key type assigned to the fresh key record.</param>
+        /// <param name="value">Fresh key bytes retained in the new preactive key identity.</param>
         private static void UpdateKeys(GXKeyManagement management, KeyManagementType type, byte[]? value)
         {
             management.Keys ??= [];
@@ -579,12 +606,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     _ => UpsertCoreAsync(devices, cancellationToken, columns, lateBinding, groups), cancellationToken);
             }
             IEnumerable<Guid> ids = [];
-            await GXHistoryMutation.RunAsync<GXDevice>(_dbFactory, User, _serviceProvider, updatedDevices,
+            await GXHistoryMutation.RunAsync<GXDevice>(_dbFactory, _user, _serviceProvider, updatedDevices,
                 async () => { ids = await UpsertCoreAsync(devices, cancellationToken, columns, lateBinding, groups); },
                 cancellationToken);
             return ids;
         }
 
+        /// <summary>Creates or updates authorized devices, assigns memberships, and processes key, notification, and workflow changes.</summary>
+        /// <param name="devices">Devices to create or update under repository authorization.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <param name="columns">Optional selected columns retained by the persistence or query contract.</param>
+        /// <param name="lateBinding">Whether template-derived objects and values are resolved when the device is materialized.</param>
+        /// <param name="groups">Optional device groups explicitly assigned during persistence.</param>
+        /// <returns>Identifiers of the persisted devices.</returns>
         private async Task<IEnumerable<Guid>> UpsertCoreAsync(
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
@@ -593,7 +627,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXDeviceGroup>? groups)
         {
             DateTime now = DateTime.Now;
-            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
             var newDevices = devices.Where(w => w.Id == Guid.Empty).ToList();
             var updatedDevices = devices.Where(w => w.Id != Guid.Empty).ToList();
             var notificationVersions = updatedDevices.GroupBy(d => d.Id)
@@ -603,7 +637,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //Get notified users.
             if (newDevices.Count != 0)
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Add);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.Add);
                 if (defaultGroups == null)
                 {
                     //Get default device groups.
@@ -627,7 +661,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (updatedDevices.Count != 0)
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.Edit);
                 await EnsureDeviceScopeAsync(updatedDevices.Select(d => d.Id), cancellationToken);
                 if (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.Name)))
                 {
@@ -652,7 +686,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 if (device.Id == Guid.Empty || columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.ProfilePicture)))
                 {
-                    await Gurux.DLMS.AMI.Server.Services.GXProfilePictures.ValidateAsync(connection, _authorizationService, User, device.ProfilePicture?.Id, cancellationToken);
+                    await Gurux.DLMS.AMI.Server.Services.GXProfilePictures.ValidateAsync(connection, _authorizationService, _user, device.ProfilePicture?.Id, cancellationToken);
                 }
             }
             await using var transaction = await connection.BeginTransactionAsync();
@@ -815,7 +849,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.Properties,
                         q.Template,
                     });
-                    if (!User.IsInRole(GXRoles.Admin) ||
+                    if (!_user.IsInRole(GXRoles.Admin) ||
                        device.Creator == null ||
                        string.IsNullOrEmpty(device.Creator.Id))
                     {
@@ -1082,7 +1116,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Guid deviceId,
             DeviceStatus status, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDevicePolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.Edit);
             GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Status },
                 where => where.Id == deviceId && where.Removed == null);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();

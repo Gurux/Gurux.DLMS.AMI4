@@ -42,7 +42,7 @@
 
 <h1>@Gurux.DLMS.AMI.Properties.Resources.TwoFactorAuthentication</h1>
 <hr />
-<StatusMessage Message="@message" />
+<StatusMessage Message="@_message" />
 <p>@Gurux.DLMS.AMI.Properties.Resources.YourLoginIsProtectedWithAnAuthenticatorAppEnterYourAuthenticatorCodeBelow</p>
 <div class="row mx-0">
     <div class="col-md-4">
@@ -74,8 +74,10 @@
 </p>
 
 @code {
-    private string? message;
-    private ApplicationUser user = default!;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
+    /// <summary>Retains the authenticated Identity account used by this account-management operation.</summary>
+    private ApplicationUser _user = default!;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
@@ -90,7 +92,7 @@
     {
         Input ??= new();
         // Ensure the user has gone through the username & password screen first
-        user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
+        _user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
             throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.UnableToLoadTwoFactorAuthenticationUser);
     }
 
@@ -98,7 +100,7 @@
     {
         var authenticatorCode = Input.TwoFactorCode!.Replace(" ", string.Empty).Replace("-", string.Empty);
         var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, RememberMe, Input.RememberMachine);
-        var userId = await UserManager.GetUserIdAsync(user);
+        var userId = await UserManager.GetUserIdAsync(_user);
 
         if (result.Succeeded)
         {
@@ -113,7 +115,7 @@
         else
         {
             Logger.LogWarning("Invalid authenticator code entered for user with ID '{UserId}'.", userId);
-            message = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidAuthenticatorCode;
+            _message = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidAuthenticatorCode;
         }
     }
 

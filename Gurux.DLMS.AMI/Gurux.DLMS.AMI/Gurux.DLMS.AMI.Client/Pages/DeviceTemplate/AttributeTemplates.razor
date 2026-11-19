@@ -73,7 +73,7 @@ else
         </GXMenuControl>
     }
 
-    <GXViewTable ViewName="DeviceTemplate.AttributeTemplates" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXAttributeTemplatePolicies.View })" TItem="GXAttributeTemplate" @ref="table"
+    <GXViewTable ViewName="DeviceTemplate.AttributeTemplates" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXAttributeTemplatePolicies.View })" TItem="GXAttributeTemplate" @ref="table"
                  Context="template"
                  ItemsProvider="@GetItems"
                  SelectionMode="SelectionMode.Multiple"
@@ -105,12 +105,13 @@ else
             <GXTd Id="Name">@template.Name</GXTd>
         </ItemContent>
     </GXViewTable>
-    
+
 }
 
 <br />
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("LogicalName") { Position = 0, Description = "LogicalName", Visibility = (byte)Visibility.All },
         new("ObjectName") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
@@ -118,9 +119,12 @@ else
         new("Name") { Position = 3, Description = "Name", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -211,20 +215,20 @@ else
     /// <summary>
     /// Device filter.
     /// </summary>
-    private GXAttributeTemplate filter = new GXAttributeTemplate();
+    private GXAttributeTemplate _filter = new GXAttributeTemplate();
 
     /// <summary>
     /// Filter using Attribute type.
     /// </summary>
-    private string? filterByAttributeType;
+    private string? _filterByAttributeType;
     /// <summary>
     /// Filter using Attribute name.
     /// </summary>
-    private string? filterByName;
+    private string? _filterByName;
     /// <summary>
     /// Filter by logical name of the Attribute.
     /// </summary>
-    private string? filterByLogicalName;
+    private string? _filterByLogicalName;
 
     /// <summary>
     /// Table reference.
@@ -257,22 +261,22 @@ else
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.Updated");
+                _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.Updated");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -286,15 +290,15 @@ else
         await Task.Delay(1);
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.OnInitializedAsync");
             //Get selected item.
             if (Device == null &&
                 (AvailableAttributeTemplates == null || !AvailableAttributeTemplates.Any()))
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
            {
                foreach (var it in items)
                {
@@ -322,7 +326,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.OnInitializedAsync");
         }
     }
 
@@ -331,7 +335,7 @@ else
     /// </summary>
     private async Task SearchByAttributeType(ChangeEventArgs args)
     {
-        filterByAttributeType = Convert.ToString(args.Value);
+        _filterByAttributeType = Convert.ToString(args.Value);
         await Updated();
     }
 
@@ -340,7 +344,7 @@ else
     /// </summary>
     private async Task SearchByName(ChangeEventArgs args)
     {
-        filterByName = Convert.ToString(args.Value);
+        _filterByName = Convert.ToString(args.Value);
         await Updated();
     }
 
@@ -349,29 +353,29 @@ else
     /// </summary>
     private async Task SearchByLogicalName(ChangeEventArgs args)
     {
-        filterByLogicalName = Convert.ToString(args.Value);
+        _filterByLogicalName = Convert.ToString(args.Value);
         await Updated();
     }
 
     private async ValueTask<ItemsProviderResult<GXAttributeTemplate>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListAttributeTemplates req = new ListAttributeTemplates()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
@@ -403,7 +407,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -415,7 +419,7 @@ else
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.OnEdit");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplates.OnEdit");
             if (Device == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -428,7 +432,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/AttributeTemplates.OnEdit");
         }
     }
 
@@ -458,7 +462,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -485,7 +489,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -496,6 +500,6 @@ else
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

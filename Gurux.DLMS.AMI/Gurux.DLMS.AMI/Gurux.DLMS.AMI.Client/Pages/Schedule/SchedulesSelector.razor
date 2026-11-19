@@ -77,19 +77,24 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXScheduleGroup? Active { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXSchedule>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXSchedule>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXSchedule>? _selectionContainer;
     /// <summary>
     /// Schedule filter.
     /// </summary>
-    private GXSchedule filter = new GXSchedule(null);
+    private GXSchedule _filter = new GXSchedule(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -109,13 +114,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.SearchSelectedByName");
         }
     }
 
@@ -125,14 +130,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.SearchByName");
         }
     }
 
@@ -144,12 +149,12 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.ScheduleGroups = null;
+                    _filter.ScheduleGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXScheduleGroup? sg = filter.ScheduleGroups?.FirstOrDefault();
+                    GXScheduleGroup? sg = _filter.ScheduleGroups?.FirstOrDefault();
                     if (sg == null)
                     {
                         sg = new GXScheduleGroup(null);
@@ -157,7 +162,7 @@
                         GXUserGroup? ug = new GXUserGroup();
                         sg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                         ug.Users = new List<GXUser>(new GXUser[] { user });
-                        filter.ScheduleGroups = new List<GXScheduleGroup>(new GXScheduleGroup[] { sg });
+                        _filter.ScheduleGroups = new List<GXScheduleGroup>(new GXScheduleGroup[] { sg });
                     }
                     else
                     {
@@ -165,13 +170,13 @@
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.SearchByUser");
         }
     }
 
@@ -193,14 +198,14 @@
     private async ValueTask<ItemsProviderResult<GXSchedule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingSchedules);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingSchedules);
         try
         {
             ListSchedules req = new ListSchedules()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -218,22 +223,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingSchedules);
-            NotificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingSchedules);
+            _notificationService?.RemoveByKey("Pages/Schedule/SchedulesSelector.OnInitializedAsync");
             if (_selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
@@ -254,7 +259,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Schedule/SchedulesSelector.OnInitializedAsync");
         }
     }
 }

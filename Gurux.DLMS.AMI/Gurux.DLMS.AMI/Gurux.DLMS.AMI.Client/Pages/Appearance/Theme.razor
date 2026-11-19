@@ -80,12 +80,18 @@
 }
 
 @code {
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
+    /// <summary>Identifies the theme whose style overrides are currently being edited.</summary>
     private GXAppearance? _styleTarget;
+    /// <summary>Contains the editable style values for the selected theme.</summary>
     private readonly List<GXThemeStyle> _styleValues = new();
+    /// <summary>Caches the default values used to reset theme style overrides.</summary>
     private readonly Dictionary<string, string> _styleDefaults = new();
+    /// <summary>Tracks the asynchronous load of the selected theme's style values.</summary>
     private Task? _styleLoad;
 
     internal IEnumerable<GXThemeStyle> GetStyles(IEnumerable<GXThemeStyle> definitions)
@@ -134,7 +140,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -167,7 +173,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -178,8 +184,10 @@
     }
 
     public void Dispose() => _editorMenu?.Dispose();
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -199,6 +207,7 @@
     [Parameter]
     public Guid? Id { get; set; }
 
+    /// <summary>Caches the theme records offered by the appearance editor.</summary>
     private readonly List<GXAppearance> _themes = new();
 
     /// <summary>
@@ -208,13 +217,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTheme);
-            NotificationService?.RemoveByKey("Pages/Appearance/Theme.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingTheme);
+            _notificationService?.RemoveByKey("Pages/Appearance/Theme.OnInitializedAsync");
             //Get available themes.
             ListAppearances req = new ListAppearances()
             {
@@ -250,7 +259,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Appearance/Theme.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Appearance/Theme.OnInitializedAsync");
         }
     }
 }

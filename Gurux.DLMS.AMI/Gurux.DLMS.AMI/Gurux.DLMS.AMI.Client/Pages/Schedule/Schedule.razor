@@ -94,6 +94,7 @@ else
 <ModuleViews Area="AmiViewArea.Schedule" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 @implements IDisposable
 @code {
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
@@ -131,16 +132,21 @@ else
     [Parameter]
     public string? Action { get; set; }
 
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
     private CrudAction _action;
 
+    /// <summary>Identifies the tab currently selected in the page.</summary>
     private string? _activeTab;
 
     [Parameter]
     public Guid? Id { get; set; }
 
+    /// <summary>References the module selector used to choose the schedule's implementation.</summary>
     ModulesSelector? _modulesSelector;
+    /// <summary>References the schedule editor used to validate and collect schedule settings.</summary>
     ScheduleEdit? _scheduleEdit;
-    private string? Title;
+    /// <summary>Contains the title displayed for the selected item.</summary>
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -194,20 +200,20 @@ else
             {
                 case CrudAction.Create:
                 case CrudAction.Clone:
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     Action = "Add";
                     break;
                 case CrudAction.Update:
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case CrudAction.Delete:
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.Schedule;
+            _title += " " + Properties.Resources.Schedule;
             using var progressScope1 = Progress.ProgressStart(GXProgress.RetrievingSchedule);
             NotificationService.RemoveByKey("Pages/Schedule/ScheduleTab.OnInitializedAsync");
             if (_action != CrudAction.Create)
@@ -248,7 +254,9 @@ else
         }
     }
 
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
+    /// <summary>Records whether the selected target should also be deleted when its link is removed.</summary>
     internal bool DeleteTarget;
     private CrudAction EditorAction => _action == CrudAction.Clone ? CrudAction.Create : _action;
     private async Task SaveEditorAsync()

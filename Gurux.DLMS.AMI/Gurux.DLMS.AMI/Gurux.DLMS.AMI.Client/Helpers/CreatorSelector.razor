@@ -36,7 +36,7 @@
 {
     <div class="form-group">
         <label>@Properties.Resources.Creator</label>
-        <UserSelector Disabled="@(!IsAdmin)" @bind-Value="@Target"></UserSelector>
+        <UserSelector Disabled="@(!_isAdmin)" @bind-Value="@Target"></UserSelector>
         <ValidationMessage For="@(() => @Target)" />
     </div>
 }
@@ -55,7 +55,8 @@
     [Parameter, EditorRequired]
     public CrudAction Action { get; set; }
 
-    private bool IsAdmin;
+    /// <summary>Records whether administrative actions are available to the current user.</summary>
+    private bool _isAdmin;
 
     protected override async Task OnInitializedAsync()
     {
@@ -66,7 +67,7 @@
             var user = authState.User;
             if (user.Identity != null && user.Identity.IsAuthenticated)
             {
-                IsAdmin = user.IsInRole("admin");
+                _isAdmin = user.IsInRole("admin");
             }
         }
         catch (Exception ex)

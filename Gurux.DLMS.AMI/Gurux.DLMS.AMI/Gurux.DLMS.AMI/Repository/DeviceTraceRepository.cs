@@ -53,13 +53,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc/>
     public class DeviceTraceRepository : IDeviceTraceRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for device records.</summary>
         private readonly IDeviceRepository _deviceRepository;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Provides persistence and access checks for enum type records.</summary>
         private readonly IEnumTypeRepository _enumTypeRepository;
+        /// <summary>Provides persistence and access checks for log records.</summary>
         private readonly ILogRepository _systemLogRepository;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -79,7 +87,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _deviceRepository = deviceRepository;
             _userRepository = userRepository;
@@ -95,9 +103,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListDeviceTraceResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTracePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTracePolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the traces.
                 arg = GXSelectArgs.SelectAll<GXDeviceTrace>();
@@ -105,7 +113,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string? userId = ServerHelpers.GetUserId(User);
+                string? userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetDeviceTracesByUser(s => "*", userId);
             }
             arg.Columns.Add<GXDevice>(c => new { c.Id, c.Name });
@@ -152,7 +160,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.OrderBy.Add<GXDeviceTrace>(q => q.CreationTime!);
             }
-            //Traces are ignored from the device 
+            //Traces are ignored from the device
             //so there is no reference relation that is causing problems with JSON parser.
             arg.Columns.Exclude<GXDevice>(e => e.Traces!);
             GXDeviceTrace[] traces = [.. (await connection.SelectAsync<GXDeviceTrace>(arg, cancellationToken))];
@@ -173,12 +181,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTracePolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTracePolicies.View);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceTrace>(where => where.Id == id);
                 //Get device.
                 arg.Columns.Add<GXDevice>();
                 arg.Joins.AddInnerJoin<GXDeviceTrace, GXDevice>(x => x.Device!, y => y.Id);
-                //Traces are ignored from the device 
+                //Traces are ignored from the device
                 //so there is no reference relation that is causing problems with JSON parser.
                 arg.Columns.Exclude<GXDevice>(e => e.Traces!);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -214,7 +222,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc/>
         public async Task AddAsync(string type, IEnumerable<GXDeviceTrace> deviceTraces, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTracePolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTracePolicies.Add);
             foreach (var it in deviceTraces)
             {
                 it.CreationTime = DateTime.Now;
@@ -230,6 +238,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXDevice), id, action, GXDeviceTracePolicies.View, connection, transaction, notifications: _notificationCache);
@@ -237,12 +251,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task ClearAsync(IEnumerable<Guid>? devices, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTracePolicies.Clear);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTracePolicies.Clear);
             GXSelectArgs arg;
-            bool admin = User.IsInRole(GXRoles.Admin);
+            bool admin = _user.IsInRole(GXRoles.Admin);
             if (!admin)
             {
-                string id = ServerHelpers.GetUserId(User);
+                string id = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetDevicesByUser(s => "*", id);
             }
             else

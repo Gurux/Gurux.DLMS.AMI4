@@ -46,7 +46,7 @@
 <GXHelpContext Topic="ComponentView" />
 
 <h1>
-    @Title
+    @_title
 </h1>
 <CascadingValue Value="this">
     <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
@@ -64,6 +64,7 @@
 </CascadingValue>
 <br />
 @code {
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
@@ -72,8 +73,10 @@
         ["Action"] = _action
     };
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -98,7 +101,7 @@
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -107,29 +110,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.ComponentView;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingComponentView);
-            NotificationService?.RemoveByKey("Pages/ComponentView/ComponentView.OnInitializedAsync");
+            _title += " " + Properties.Resources.ComponentView;
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingComponentView);
+            _notificationService?.RemoveByKey("Pages/ComponentView/ComponentView.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get component view data.
@@ -157,10 +160,11 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentView.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentView.OnInitializedAsync");
         }
     }
 
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
     private CrudAction EditorAction => ClientHelpers.GetAction(NavigationManager, Action);
@@ -175,8 +179,8 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingComponentView);
-            NotificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGeneral.OnSave");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingComponentView);
+            _notificationService?.RemoveByKey("Pages/ComponentView/ComponentViewGeneral.OnSave");
             if (EditorAction == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveComponentViewResponse>("api/ComponentView/Delete", new RemoveComponentView() { Ids = new Guid[] { Active.Id } });
@@ -206,7 +210,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/ComponentView/ComponentViewGeneral.OnSave");
         }
     }
     private Task OnCancel()

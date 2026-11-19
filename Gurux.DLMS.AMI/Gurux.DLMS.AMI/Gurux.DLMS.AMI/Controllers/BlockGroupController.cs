@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class BlockGroupController(
         IBlockGroupRepository BlockGroupRepository) : ControllerBase
     {
-        private readonly IBlockGroupRepository _BlockGroupRepository = BlockGroupRepository;
+        /// <summary>Provides persistence and access checks for block group records.</summary>
+        private readonly IBlockGroupRepository _blockGroupRepository = BlockGroupRepository;
 
         /// <summary>
         /// Get block group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetBlockGroupResponse()
             {
-                Item = await _BlockGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _blockGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -74,7 +75,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _BlockGroupRepository.UpsertAsync(request.BlockGroups, null, cancellationToken);
+            await _blockGroupRepository.UpsertAsync(request.BlockGroups, null, cancellationToken);
             return new AddBlockGroupResponse() { Ids = [.. request.BlockGroups.Select(s => s.Id)] };
         }
 
@@ -87,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListBlockGroups request, CancellationToken cancellationToken)
         {
             ListBlockGroupsResponse ret = new();
-            await _BlockGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _blockGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXBlockGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveBlockGroupResponse>> Post(RemoveBlockGroup request, CancellationToken cancellationToken = default)
         {
-            await _BlockGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _blockGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveBlockGroupResponse();
         }
     }

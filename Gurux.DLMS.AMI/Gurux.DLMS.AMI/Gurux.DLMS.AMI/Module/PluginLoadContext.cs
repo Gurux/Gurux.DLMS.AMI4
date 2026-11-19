@@ -34,15 +34,20 @@ namespace Gurux.DLMS.AMI.Module;
 /// <summary>Collectible implementation/dependency context sharing only host contracts and framework assemblies.</summary>
 public sealed class PluginLoadContext : AssemblyLoadContext
 {
-    private readonly AssemblyDependencyResolver resolver;
-    private readonly string directory;
-    private readonly string mainPath;
-    private static readonly HashSet<string> HostAssemblies = new(
+    /// <summary>Resolves managed and native dependencies relative to the module assembly.</summary>
+    private readonly AssemblyDependencyResolver _resolver;
+    /// <summary>Directory containing files managed by this component.</summary>
+    private readonly string _directory;
+    /// <summary>Absolute path of the module assembly loaded by this context.</summary>
+    private readonly string _mainPath;
+    /// <summary>Assembly names shared with the host instead of loaded privately by the module.</summary>
+    private static readonly HashSet<string> _hostAssemblies = new(
         ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? "")
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(path => Path.GetFileNameWithoutExtension(path)),
         StringComparer.OrdinalIgnoreCase);
-    private static readonly HashSet<string> Shared = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>Assembly names that resolve through the shared load context.</summary>
+    private static readonly HashSet<string> _shared = new(StringComparer.OrdinalIgnoreCase)
     {
         typeof(IGXAmiModule).Assembly.GetName().Name!, typeof(IGXAmiEmailSender).Assembly.GetName().Name!,
         typeof(Gurux.DLMS.AMI.Client.Shared.KeyManagement.IKeyService).Assembly.GetName().Name!,
@@ -52,12 +57,12 @@ public sealed class PluginLoadContext : AssemblyLoadContext
     };
     /// <summary>Performs the is shared assembly operation.</summary>
     /// <param name="name">The name.</param>
-    public static bool IsSharedAssembly(string name) => Shared.Contains(name);
+    public static bool IsSharedAssembly(string name) => _shared.Contains(name);
     /// <summary>Performs the resolve shared assembly operation.</summary>
     /// <param name="name">The name.</param>
     public static Assembly ResolveSharedAssembly(string name)
     {
-        if (!Shared.Contains(name))
+        if (!_shared.Contains(name))
         {
             throw new AmiModuleDependencyException($"Assembly '{name}' is not a shared host contract.");
         }
@@ -69,15 +74,18 @@ public sealed class PluginLoadContext : AssemblyLoadContext
     public PluginLoadContext(string pluginMainAssemblyPath) : base(isCollectible: true)
     {
         pluginMainAssemblyPath = Path.GetFullPath(pluginMainAssemblyPath);
-        resolver = new AssemblyDependencyResolver(pluginMainAssemblyPath);
-        directory = Path.GetDirectoryName(pluginMainAssemblyPath)!;
-        mainPath = pluginMainAssemblyPath;
+        _resolver = new AssemblyDependencyResolver(pluginMainAssemblyPath);
+        _directory = Path.GetDirectoryName(pluginMainAssemblyPath)!;
+        _mainPath = pluginMainAssemblyPath;
     }
     /// <summary>Performs the load main assembly operation.</summary>
     public Assembly LoadMainAssembly()
     {
-        return LoadWithSymbols(mainPath);
+        return LoadWithSymbols(_mainPath);
     }
+    /// <summary>Validates shared references and loads the assembly with its adjacent PDB when symbols are available.</summary>
+    /// <param name="path">Filesystem path of the file or assembly to inspect.</param>
+    /// <returns>The assembly loaded into this collectible context.</returns>
     private Assembly LoadWithSymbols(string path)
     {
         Gurux.DLMS.AMI.Server.Module.GXSharedAssemblyCompatibility.ValidateReferences(path);
@@ -109,7 +117,7 @@ public sealed class PluginLoadContext : AssemblyLoadContext
                 }
                 catch (Exception exception) when (exception is FileNotFoundException or FileLoadException)
                 {
-                    throw new FileNotFoundException($"Module dependency '{reference.FullName}' could not be loaded from '{directory}'. Build the module and its ProjectReference dependencies with CopyLocal enabled before starting AMI.", reference.Name + ".dll", exception);
+                    throw new FileNotFoundException($"Module dependency '{reference.FullName}' could not be loaded from '{_directory}'. Build the module and its ProjectReference dependencies with CopyLocal enabled before starting AMI.", reference.Name + ".dll", exception);
                 }
                 if (GetLoadContext(dependency) == this)
                 {
@@ -122,7 +130,7 @@ public sealed class PluginLoadContext : AssemblyLoadContext
     protected override Assembly? Load(AssemblyName assemblyName)
     {
         string name = assemblyName.Name!;
-        if (Shared.Contains(name))
+        if (_shared.Contains(name))
         {
             var offered = ResolveSharedAssembly(name);
             Gurux.DLMS.AMI.Server.Module.GXSharedAssemblyCompatibility.Validate(assemblyName, offered);
@@ -135,19 +143,19 @@ public sealed class PluginLoadContext : AssemblyLoadContext
             {
                 return loaded;
             }
-            if (HostAssemblies.Contains(name))
+            if (_hostAssemblies.Contains(name))
             {
                 return Default.LoadFromAssemblyName(assemblyName);
             }
         }
-        string? path = resolver.ResolveAssemblyToPath(assemblyName);
+        string? path = _resolver.ResolveAssemblyToPath(assemblyName);
         bool satellite = name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase) &&
             !string.IsNullOrEmpty(assemblyName.CultureName);
         if (path == null)
         {
             string local = satellite
-                ? Path.Combine(directory, assemblyName.CultureName!, name + ".dll")
-                : Path.Combine(directory, name + ".dll");
+                ? Path.Combine(_directory, assemblyName.CultureName!, name + ".dll")
+                : Path.Combine(_directory, name + ".dll");
             if (File.Exists(local))
             {
                 path = local;
@@ -160,7 +168,7 @@ public sealed class PluginLoadContext : AssemblyLoadContext
                 // ResourceManager probes parent cultures and neutral resources when a satellite is absent.
                 return null;
             }
-            throw new FileNotFoundException($"Module dependency '{assemblyName.FullName}' is missing from '{directory}'. Build the module and its ProjectReference dependencies with CopyLocal enabled before starting AMI.", name + ".dll");
+            throw new FileNotFoundException($"Module dependency '{assemblyName.FullName}' is missing from '{_directory}'. Build the module and its ProjectReference dependencies with CopyLocal enabled before starting AMI.", name + ".dll");
         }
 
         return LoadWithSymbols(path);
@@ -168,7 +176,7 @@ public sealed class PluginLoadContext : AssemblyLoadContext
     /// <inheritdoc />
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
-        var path = resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        var path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
         return path == null ? IntPtr.Zero : LoadUnmanagedDllFromPath(path);
     }
 }

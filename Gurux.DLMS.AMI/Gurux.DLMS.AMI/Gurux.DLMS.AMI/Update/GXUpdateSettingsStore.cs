@@ -38,19 +38,31 @@ namespace Gurux.DLMS.AMI.Update;
 /// <summary>Persists update preferences and successful notification deliveries.</summary>
 public sealed class GXUpdateSettingsStore(IGXDatabase database)
 {
+    /// <summary>Configuration record name used to persist this updater's settings.</summary>
     const string ConfigurationName = "update-notifications";
-    static readonly SemaphoreSlim Gate = new(1, 1);
+    /// <summary>Serializes operations that mutate shared state in this component.</summary>
+    static readonly SemaphoreSlim _gate = new(1, 1);
 
+    /// <summary>Persisted update settings and the time they were last checked.</summary>
     sealed class State
     {
+        /// <summary>Update configuration persisted for subsequent checks.</summary>
         public UpdateSettings Settings { get; set; } = new();
+        /// <summary>UTC time of the last completed update check, when one has run.</summary>
         public DateTimeOffset? Checked { get; set; }
+        /// <summary>Notification identifiers already delivered to avoid duplicate update notices.</summary>
         public HashSet<string> Delivered { get; set; } = [];
     }
 
+    /// <summary>Serializes access to persisted update settings and optionally commits changes made by the supplied callback.</summary>
+    /// <typeparam name="T">The callback result or deserialized response type.</typeparam>
+    /// <param name="action">The callback executed within the restored scope or settings transaction.</param>
+    /// <param name="write">Whether callback changes should be serialized and committed to the settings row.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the callback's result after the settings transaction completes.</returns>
     async Task<T> AccessAsync<T>(Func<State, T> action, bool write, CancellationToken token)
     {
-        await Gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -59,7 +71,7 @@ public sealed class GXUpdateSettingsStore(IGXDatabase database)
             {
                 schema.CreateTable<GXConfiguration>(false, false);
             }
-        
+
             using var transaction = db.BeginTransaction(System.Data.IsolationLevel.Serializable);
             var row = await db.SingleOrDefaultAsync<GXConfiguration>(transaction, GXSelectArgs.SelectAll<GXConfiguration>(c => c.Name == ConfigurationName), token);
             var state = string.IsNullOrWhiteSpace(row?.Settings) ? new State() : JsonSerializer.Deserialize<State>(row.Settings) ?? new State();
@@ -83,13 +95,13 @@ public sealed class GXUpdateSettingsStore(IGXDatabase database)
                     await db.UpdateAsync(transaction, GXUpdateArgs.Update(row, c => c.Settings!), token);
                 }
             }
-        
+
             transaction.Commit();
             return result;
         }
         finally
         {
-            Gate.Release();
+            _gate.Release();
         }
     }
 
@@ -112,9 +124,17 @@ public sealed class GXUpdateSettingsStore(IGXDatabase database)
     public Task MarkCheckedAsync(CancellationToken token = default)
         => AccessAsync(s => { s.Checked = DateTimeOffset.UtcNow; return true; }, true, token);
 
+    /// <summary>Checks whether the update notification identified by the key has already been delivered.</summary>
+    /// <param name="key">The deduplication key identifying one delivered update notification.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task indicating whether the notification key is already recorded as delivered.</returns>
     internal Task<bool> WasDeliveredAsync(string key, CancellationToken token)
         => AccessAsync(s => s.Delivered.Contains(key), false, token);
 
+    /// <summary>Persists the notification key so the same update notification is not delivered again.</summary>
+    /// <param name="key">The deduplication key identifying one delivered update notification.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task that completes after the delivered-notification key has been persisted.</returns>
     internal Task MarkDeliveredAsync(string key, CancellationToken token)
         => AccessAsync(s => s.Delivered.Add(key), true, token);
 }

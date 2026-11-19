@@ -65,7 +65,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="Script.ScriptLogs" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXScriptLogPolicies.View })"
+<GXViewTable ViewName="Script.ScriptLogs" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXScriptLogPolicies.View })"
              TItem="GXLog" @ref="table"
              @bind-Active="Active"
              Context="error"
@@ -80,19 +80,19 @@
     <FilterContent>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="ScriptLogs-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Type" Visibility="Visibility.Medium">
             <EnumTypeSelector Type="@TargetType.ScriptLog"
-                              @bind-Value="@filter.Type"
+                              @bind-Value="@_filter.Type"
                               OnSelected="@((int? e) => Updated())">
             </EnumTypeSelector>
         </GXFh>
         <GXFh Id="Message">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByError"
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Message = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Level">
             <GXInputDropdown class="form-select"
@@ -105,7 +105,7 @@
         <GXFh Id="Closed">
             <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -133,7 +133,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("CreationTime") { Position = 0, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Type") { Position = 1, Description = "Type", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -142,9 +143,12 @@
         new("Closed") { Position = 4, Description = "CloseTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected script log ID.
@@ -218,7 +222,7 @@
     /// <summary>
     /// Script log filter.
     /// </summary>
-    private GXLog filter = new GXLog();
+    private GXLog _filter = new GXLog();
 
     /// <summary>
     /// Active item.
@@ -249,30 +253,30 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Script/ScriptLogs.Updated");
+                _notificationService?.RemoveByKey("Pages/Script/ScriptLogs.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptLogs.Updated");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptLogs.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScriptLogs);
-        NotificationService?.RemoveByKey("Pages/Script/ScriptLogs.OnInitialized");
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScriptLogs);
+        _notificationService?.RemoveByKey("Pages/Script/ScriptLogs.OnInitialized");
         try
         {
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -293,40 +297,40 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptLogs.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptLogs.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingScriptLogs);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingScriptLogs);
         try
         {
             if (ShowClosedErrors)
             {
                 //Show closed errors.
-                filter.Closed = DateTimeOffset.MaxValue;
+                _filter.Closed = DateTimeOffset.MaxValue;
             }
             else
             {
                 //Show active errors.
-                filter.Closed = null;
+                _filter.Closed = null;
             }
 
             if (TraceLevel == TraceLevel.Off)
             {
-                filter.Level = null;
+                _filter.Level = null;
             }
             else
             {
-                filter.Level = (int)TraceLevel;
+                _filter.Level = (int)TraceLevel;
             }
             ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -343,17 +347,17 @@
                 //Mark script logs as seen.
                 if (ret.Logs.Any())
                 {
-                    if (Notifier != null)
+                    if (_notifier != null)
                     {
-                        await Notifier.Mark(Http, TargetType.ScriptLog, ret.Logs.Max(s => s.CreationTime));
+                        await _notifier.Mark(Http, TargetType.ScriptLog, ret.Logs.Max(s => s.CreationTime));
                     }
                 }
-            
+
                 if (Id is Guid id)
                 {
                     Active = ret.Logs?.FirstOrDefault(log => log.PublicId == id);
                 }
-            
+
                 return new ItemsProviderResult<GXLog>((ret.Logs ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
@@ -364,7 +368,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -376,7 +380,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Script/ScriptLogs.OnShow");
+            _notificationService?.RemoveByKey("Pages/Script/ScriptLogs.OnShow");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -389,7 +393,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptLogs.OnShow");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptLogs.OnShow");
         }
     }
 
@@ -419,7 +423,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -445,7 +449,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -456,7 +460,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -464,7 +468,7 @@
     /// </summary>
     public async Task OnClear()
     {
-        NotificationService?.RemoveByKey("Pages/Script/ScriptLogs.OnClear");
+        _notificationService?.RemoveByKey("Pages/Script/ScriptLogs.OnClear");
         var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearLog,
             new AmiConfirmationOptions
             {
@@ -483,7 +487,7 @@
         {
             if (args.Confirm)
             {
-                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingScriptLog);
+                using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingScriptLog);
                 try
                 {
                     await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=script", new ClearLog());
@@ -499,7 +503,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 }

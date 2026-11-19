@@ -33,19 +33,27 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <remarks>Only the device repository opens this scope. Request DTOs cannot opt into activation.</remarks>
 internal sealed class GXDeviceKeyImportScope : IDisposable
 {
-    private static readonly AsyncLocal<HashSet<GXKeyManagementKey>?> Current = new();
-    private readonly HashSet<GXKeyManagementKey>? previous;
+    /// <summary>Async-local operation state restored when the enclosing operation finishes.</summary>
+    private static readonly AsyncLocal<HashSet<GXKeyManagementKey>?> _current = new();
+    /// <summary>Key set restored when the current key operation scope ends.</summary>
+    private readonly HashSet<GXKeyManagementKey>? _previous;
 
+    /// <summary>Temporarily records device keys already installed during the current import operation.</summary>
+    /// <param name="keys">Imported keys temporarily considered installed in this asynchronous flow.</param>
     internal GXDeviceKeyImportScope(IEnumerable<GXKeyManagementKey> keys)
     {
-        previous = Current.Value;
-        Current.Value = new HashSet<GXKeyManagementKey>(keys, ReferenceEqualityComparer.Instance);
+        _previous = _current.Value;
+        _current.Value = new HashSet<GXKeyManagementKey>(keys, ReferenceEqualityComparer.Instance);
     }
 
-    internal static bool IsInstalled(GXKeyManagementKey key) => Current.Value?.Contains(key) == true;
+    /// <summary>Checks whether a key identity was already installed in the current asynchronous import scope.</summary>
+    /// <param name="key">Key identity to test against the current import scope.</param>
+    /// <returns>True when the current import scope contains the key.</returns>
+    internal static bool IsInstalled(GXKeyManagementKey key) => _current.Value?.Contains(key) == true;
 
+    /// <inheritdoc />
     public void Dispose()
     {
-        Current.Value = previous;
+        _current.Value = _previous;
     }
 }

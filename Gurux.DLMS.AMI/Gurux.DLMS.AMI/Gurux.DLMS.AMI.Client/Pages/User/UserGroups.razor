@@ -60,8 +60,8 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="User.UserGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXUserGroupPolicies.View })"
-             TItem="GXUserGroup" @ref="table"
+<GXViewTable ViewName="User.UserGroups" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXUserGroupPolicies.View })"
+             TItem="GXUserGroup" @ref="_table"
              @bind-@bind-Active="Active"
              Context="group"
              ItemsProvider="@GetItems"
@@ -75,22 +75,22 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Description">
             <input class="form-control" placeholder="@Properties.Resources.FilterByDescription"
-                   @onchange="@((ChangeEventArgs __e) => filter.Description = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Description = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="UserGroups-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -116,7 +116,8 @@
 <br />
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Description") { Position = 1, Description = "Description", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -124,9 +125,12 @@
         new("Updated") { Position = 3, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private UserManage? UserManageParent { get; set; }
@@ -208,11 +212,11 @@
     /// <summary>
     /// User group filter.
     /// </summary>
-    private GXUserGroup filter = new GXUserGroup(null);
+    private GXUserGroup _filter = new GXUserGroup(null);
     /// <summary>
     /// Reference to the table.
     /// </summary>
-    private GXTable<GXUserGroup>? table;
+    private GXTable<GXUserGroup>? _table;
 
     /// <summary>
     /// Update table.
@@ -221,33 +225,33 @@
     {
         try
         {
-            if (table != null)
+            if (_table != null)
             {
-                NotificationService?.RemoveByKey("Pages/User/UserGroups.Updated");
-                await table.RefreshDataAsync(true);
+                _notificationService?.RemoveByKey("Pages/User/UserGroups.Updated");
+                await _table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.Updated");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUserGroups);
-            NotificationService?.RemoveByKey("Pages/User/UserGroups.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingUserGroups);
+            _notificationService?.RemoveByKey("Pages/User/UserGroups.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -255,7 +259,7 @@
                         it.Type == GXUserGroupPolicies.Edit ||
                         it.Type == GXUserGroupPolicies.Delete)
                     {
-                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
+                        _ = GXNotificationRefresh.RefreshAsync(_table, items, Updated);
                         break;
                     }
                 }
@@ -272,29 +276,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXUserGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingUserGroups);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingUserGroups);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListUserGroups req = new ListUserGroups()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -313,7 +317,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -325,7 +329,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/UserGroups.OnAdd");
+            _notificationService?.RemoveByKey("Pages/User/UserGroups.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager, "/UserGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -334,7 +338,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.OnAdd");
         }
     }
 
@@ -345,12 +349,12 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/UserGroups.OnEdit");
-            if (table?.Active == null)
+            _notificationService?.RemoveByKey("Pages/User/UserGroups.OnEdit");
+            if (_table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, "/UserGroup/Edit/" + table.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, "/UserGroup/Edit/" + _table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -358,7 +362,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.OnEdit");
         }
     }
 
@@ -370,7 +374,7 @@
     {
         try
         {
-            if (table == null || !table.SingleOrDefault().Any())
+            if (_table == null || !_table.SingleOrDefault().Any())
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
             }
@@ -379,7 +383,7 @@
                 {
                     ConfirmText = Properties.Resources.Remove,
                     AllowDelete = true,
-                    Items = table?.SingleOrDefault()?.Select(s => s.Name).ToArray()
+                    Items = _table?.SingleOrDefault()?.Select(s => s.Name).ToArray()
                 });
             await OnDeleteConfirmation(confirmation);
         }
@@ -389,7 +393,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -400,8 +404,8 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/UserGroups.OnUsers");
-            if (table?.Active == null)
+            _notificationService?.RemoveByKey("Pages/User/UserGroups.OnUsers");
+            if (_table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
             }
@@ -413,7 +417,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.OnUsers");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.OnUsers");
         }
     }
 
@@ -424,8 +428,8 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/UserGroups.OnAgents");
-            if (table?.Active == null)
+            _notificationService?.RemoveByKey("Pages/User/UserGroups.OnAgents");
+            if (_table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
             }
@@ -437,7 +441,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.OnAgents");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.OnAgents");
         }
     }
 
@@ -448,7 +452,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/UserGroups.OnInvite");
+            _notificationService?.RemoveByKey("Pages/User/UserGroups.OnInvite");
             ClientHelpers.NavigateTo(NavigationManager, $"/invite");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -457,7 +461,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserGroups.OnInvite");
+            _notificationService?.ReportError(ex, "Pages/User/UserGroups.OnInvite");
         }
     }
 
@@ -469,12 +473,12 @@
     {
         try
         {
-            if (table != null && args.Confirm)
+            if (_table != null && args.Confirm)
             {
                 RemoveUserGroup req = new RemoveUserGroup()
                 {
                     Delete = args.Delete,
-                    Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    Ids = _table.SingleOrDefault().Select(w => w.Id).ToArray()
                 };
                 await Http.PostAsJson<RemoveUserGroupResponse>("api/UserGroup/Delete", req);
             }
@@ -485,18 +489,18 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        if (table != null)
+        if (_table != null)
         {
-            GXNotificationRefresh.Remove(table);
+            GXNotificationRefresh.Remove(_table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

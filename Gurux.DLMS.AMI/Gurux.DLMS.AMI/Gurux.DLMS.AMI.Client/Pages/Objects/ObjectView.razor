@@ -45,6 +45,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IGXMenuService SharedMenuService
+@inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 
 <GXHelpContext Topic="ObjectView" />
@@ -56,6 +57,14 @@
     </CascadingValue>
     <CascadingValue Value="this">
         <EditForm EditContext="@GXEditContexts.For(Active)">
+            @if (ShowObjectError)
+            {
+                <GXObjectErrorMessage Model="Active" />
+            }
+            @foreach (var attribute in AttributeErrors)
+            {
+                <GXAttributeErrorMessage @key="attribute" Attribute="attribute" />
+            }
             @if (SelectedAttributeId != null)
             {
                 @if (SelectedAttribute?.Template is { } selectedTemplate)
@@ -70,7 +79,7 @@
                         <GXAttributeField Edit="@GXDLMSObjectEditState.For(_cosem.Target)" Index="selectedTemplate.Index" Label="@(selectedTemplate.Name ?? selectedTemplate.Index.ToString())" Enabled="@CanWriteSelected" />
                     }
                     <button type="button" class="btn btn-primary" disabled="@(!CanReadSelected)" @onclick="() => OnRead()">@Properties.Resources.Read</button>
-                    <button type="button" class="btn btn-primary" disabled="@(!CanWriteSelected)" @onclick="OnWrite">@Properties.Resources.Write</button>
+                    <button type="button" class="btn btn-primary" disabled="@(!CanWriteSelected || SelectedAttribute?.Template is not { } writeTemplate || _cosem.Target.GetDirty(writeTemplate.Index, out _) == false)" @onclick="OnWrite">@Properties.Resources.Write</button>
                 }
             }
             else
@@ -115,25 +124,46 @@
     [Parameter] public GXObject? Model { get; set; }
     [Parameter] public Guid? SelectedAttributeId { get; set; }
     public GXObject? Active => Model ?? _active ?? Parent?.Active;
+    /// <summary>Gets whether an object-level error should be shown without duplicating an identical visible attribute error.</summary>
+    private bool ShowObjectError => SelectedAttributeId == null &&
+        Active is { LastErrorMessage: { } error } && !string.IsNullOrWhiteSpace(error) &&
+        !AttributeErrors.Any(attribute => string.Equals(attribute.Exception, error, StringComparison.Ordinal));
+    /// <summary>Gets persisted operation errors for the whole object or only the attribute selected by the current route.</summary>
+    private IEnumerable<GXAttribute> AttributeErrors => (Active?.Attributes ?? [])
+        .Where(attribute => !string.IsNullOrWhiteSpace(attribute.Exception) &&
+            (SelectedAttributeId == null || ReferenceEquals(attribute, SelectedAttribute)));
     private GXAttribute? SelectedAttribute => Active?.Attributes?.FirstOrDefault(a => a.Id == SelectedAttributeId || a.Template?.Id == SelectedAttributeId);
     private bool CanReadSelected => !_sending && Template == null && SelectedAttribute?.Template is { } template &&
         (_cosem?.Target.GetAccess(template.Index) is AccessMode.Read or AccessMode.ReadWrite or AccessMode.AuthenticatedRead or AccessMode.AuthenticatedReadWrite);
     private bool CanWriteSelected => !_sending && Template == null && SelectedAttribute?.Template is { } template &&
         !(_cosem?.Target is GXDLMSProfileGeneric && template.Index == 2) &&
         (_cosem?.Target.GetAccess(template.Index) is AccessMode.Write or AccessMode.ReadWrite or AccessMode.AuthenticatedWrite or AccessMode.AuthenticatedReadWrite);
+    /// <summary>Tracks pending COSEM attribute values and validation errors shared by the object editors.</summary>
     private GXDLMSObjectEditState? _attributeEdit;
     public GXDLMSObject? CosemObject => _cosem?.Target;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private GXObject? _active;
+    /// <summary>Retains the template from which the editable COSEM object was created.</summary>
     private GXObjectTemplate? _template;
+    /// <summary>Adapts the persisted AMI object to the editable COSEM object and device task requests.</summary>
     private GXObjectCosem? _cosem;
+    /// <summary>Identifies the AMI model currently represented by the COSEM adapter.</summary>
     private GXObject? _cosemModel;
+    /// <summary>Provides access to the profile-history component so completed reads can refresh it.</summary>
     private GXProfileBufferHistory? _history;
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Prevents another device task from being submitted while the current request is running.</summary>
     private bool _sending;
+    /// <summary>Tracks submitted attribute values until a matching successful write is confirmed by the server.</summary>
     private readonly Dictionary<int, (string Xml, DateTimeOffset? LastWrite)> _submittedWrites = new();
     private GXAttribute? BufferAttribute => Active?.Attributes?.FirstOrDefault(attribute => attribute.Template?.Index == 2);
     private IDictionary<string, object> ViewParameters => new Dictionary<string, object>
@@ -145,12 +175,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            using var progress = Progress?.ProgressStart(GXProgress.RetrievingObjectView);
+            using var progress = _progress?.ProgressStart(GXProgress.RetrievingObjectView);
             if (Template == null && Active == null && Id != null)
             {
                 _active = (await Http.GetAsJsonAsync<GetObjectResponse>($"api/Object?id={Id}"))?.Item
@@ -168,7 +198,7 @@
                     new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel))
                 ]);
             }
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
             {
                 if (!_disposed && items.Any(IsObjectUpdate))
                     {
@@ -177,7 +207,7 @@
             });
         }
         catch (AccessTokenNotAvailableException error) { error.Redirect(); }
-        catch (Exception error) { NotificationService?.ReportError(error); }
+        catch (Exception error) { _notificationService?.ReportError(error); }
     }
 
     protected override void OnParametersSet() => EnsureCosem();
@@ -198,11 +228,9 @@
                 _attributeEdit.Changed -= SelectedAttributeChanged;
             }
             _cosem = new GXObjectCosem(Active);
-            if (SelectedAttributeId != null || _cosem.Target is GXDLMSClock)
-            {
-                _attributeEdit = GXDLMSObjectEditState.For(_cosem.Target);
-                _attributeEdit.Changed += SelectedAttributeChanged;
-            }
+            // Observe the shared edit state for every COSEM view, including module-provided views.
+            _attributeEdit = GXDLMSObjectEditState.For(_cosem.Target);
+            _attributeEdit.Changed += SelectedAttributeChanged;
         }
     }
 
@@ -216,10 +244,24 @@
     }
     private void OnCosemChanged(GXDLMSObjectEditState state)
     {
-        if (_disposed || Active == null || !state.HasChanges) {
+        if (_disposed || Active == null)
+        {
             return;
         }
-        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXObject.Attributes)));
+        var context = GXEditContexts.For(Active);
+        var field = new FieldIdentifier(Active, nameof(GXObject.Attributes));
+        if (state.HasChanges)
+        {
+            context.NotifyFieldChanged(field);
+        }
+        else
+        {
+            context.MarkAsUnmodified(field);
+            if (_pageMenu != null)
+            {
+                _pageMenu.EditContext = context;
+            }
+        }
     }
 
     public async Task OnRead(bool showInfo = true)
@@ -235,7 +277,7 @@
             .Select(attribute => (int)attribute.Template!.Index);
         await GenerateTasksAsync(_cosem.Read(indexes), showInfo ? Properties.Resources.ReadTasksAdded : null);
         }
-        catch (Exception error) { NotificationService?.ReportError(error, "Pages/Objects/ObjectView"); }
+        catch (Exception error) { _notificationService?.ReportError(error, "Pages/Objects/ObjectView"); }
     }
 
     public async Task OnWrite()
@@ -256,7 +298,7 @@
             // Drafts remain pending until confirmed values arrive from the server.
             await GenerateTasksAsync(tasks, Properties.Resources.WriteTasksAdded);
         }
-        catch (Exception error) { NotificationService?.ReportError(error); }
+        catch (Exception error) { _notificationService?.ReportError(error); }
     }
 
     public async Task OnActionRequested(GXDLMSActionRequest request)
@@ -284,6 +326,11 @@
         return GenerateTasksAsync(_cosem.Write(request.AttributeIndex, request.Value), Properties.Resources.WriteTasksAdded);
     }
 
+    /// <summary>Queues device tasks and tracks read or write progress using the persisted task identifiers.</summary>
+    /// <param name="tasks">Read, write, or action tasks generated by the object or attribute editor.</param>
+    /// <param name="message">Enables the corresponding operation notification, or null for a silent submission.</param>
+    /// <returns>A task that completes after submission and notification registration.</returns>
+    /// <exception cref="InvalidOperationException">The target is a template or another submission is in progress.</exception>
     private async Task GenerateTasksAsync(IReadOnlyList<GXTask> tasks, string? message)
     {
         if (tasks.Count == 0) {
@@ -295,6 +342,17 @@
         if (_sending) {
             throw new InvalidOperationException(Properties.Resources.TaskOnProgress);
         }
+        var reading = tasks.All(task => task.TaskType == TaskType.Read);
+        if (reading && _cosem != null && GXDLMSObjectEditState.For(_cosem.Target).HasChanges)
+        {
+            var confirmation = await Confirmation.ConfirmAsync(
+                Properties.Resources.UnsavedChanges, Properties.Resources.DiscardChangesQuestion,
+                new AmiConfirmationOptions { ConfirmText = Properties.Resources.DiscardChanges, AllowDelete = false });
+            if (!confirmation.Confirm)
+            {
+                return;
+            }
+        }
         if (tasks.Count > 1)
         {
             var batch = Guid.NewGuid();
@@ -305,16 +363,32 @@
             }
         }
         _sending = true;
-        using var progress = Progress?.ProgressStart(GXProgress.SavingObject);
+        using var progress = _progress?.ProgressStart(GXProgress.SavingObject);
         try
         {
             var response = await Http.PostAsJson<AddTaskResponse>("api/Task/Add", new AddTask { Tasks = tasks.ToArray() });
+            if (reading && _cosem != null)
+            {
+                foreach (var task in tasks.Where(task => task.Index != null))
+                {
+                    _cosem.Target.ClearDirty(task.Index!.Value);
+                }
+                GXDLMSObjectEditState.For(_cosem.Target).RefreshConfirmedValues();
+            }
             foreach (var task in tasks.Where(task => task.TaskType == TaskType.Write && task.Index != null && task.Data != null))
                 {
                 _submittedWrites[task.Index!.Value] = (task.Data!, Active?.Attributes?.FirstOrDefault(attribute => attribute.Template?.Index == task.Index)?.LastWrite);
             }
             if (Active != null) {
-                GXEditContexts.For(Active).MarkAsUnmodified();
+                var context = GXEditContexts.For(Active);
+                if (!reading || _cosem == null || !GXDLMSObjectEditState.For(_cosem.Target).HasChanges)
+                {
+                    context.MarkAsUnmodified();
+                }
+                if (_pageMenu != null)
+                {
+                    _pageMenu.EditContext = context;
+                }
             }
             if (message != null)
             {
@@ -322,14 +396,18 @@
                     {
                     Services.GetService<GXReadTaskNotifications>()?.Track(response.Ids);
                 }
+                else if (tasks.All(t => t.TaskType == TaskType.Write))
+                {
+                    Services.GetService<GXReadTaskNotifications>()?.TrackWrites(response.Ids);
+                }
                 else
-                    {
-                    NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, message, string.Empty, Closable: true));
+                {
+                    _notificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, message, string.Empty, Closable: true));
                 }
             }
         }
         catch (AccessTokenNotAvailableException error) { error.Redirect(); }
-        catch (Exception error) { NotificationService?.ReportError(error, "Pages/Objects/ObjectView"); throw; }
+        catch (Exception error) { _notificationService?.ReportError(error, "Pages/Objects/ObjectView"); throw; }
         finally { _sending = false; }
     }
 
@@ -427,7 +505,7 @@
             StateHasChanged();
         }
         catch (AccessTokenNotAvailableException error) { error.Redirect(); }
-        catch (Exception error) { NotificationService?.ReportError(error); }
+        catch (Exception error) { _notificationService?.ReportError(error); }
     }
 
     internal void Update() => StateHasChanged();
@@ -440,7 +518,7 @@
             _attributeEdit.Changed -= SelectedAttributeChanged;
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
         _pageMenu?.Dispose();
     }
 }

@@ -54,12 +54,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public partial class NotificationRepository : INotificationRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Provides persistence and access checks for notification type records.</summary>
         private readonly INotificationTypeRepository _notificationTypeRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for role records.</summary>
         private readonly IRoleRepository _roleRepository;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -80,7 +87,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _notificationCache = notificationCache;
             _notificationTypeRepository = notificationTypeRepository;
             _roleRepository = roleRepository;
@@ -93,10 +100,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             notifications = notifications.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXNotification, Guid>(_dbFactory, User, _serviceProvider, notifications,
+            await GXHistoryMutation.RunDeleteAsync<GXNotification, Guid>(_dbFactory, _user, _serviceProvider, notifications,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXNotificationPolicies.Delete);
 
             try
             {
@@ -120,7 +127,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         connection.Update(GXUpdateArgs.Update(it, q => q.Removed!));
                     }
-                    string? userId = ServerHelpers.GetUserId(User);
+                    string? userId = ServerHelpers.GetUserId(_user);
                     _notificationCache.Add(userId, new GXTarget(GXNotificationPolicies.Delete, it.Id));
                 }
 
@@ -157,12 +164,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListNotificationResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.View);
-            if (User?.Identity?.IsAuthenticated != true)
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXNotificationPolicies.View);
+            if (_user?.Identity?.IsAuthenticated != true)
             {
                 return [];
             }
-            var owner = new GXUser { Id = ServerHelpers.GetUserId(User) };
+            var owner = new GXUser { Id = ServerHelpers.GetUserId(_user) };
             var arg = GXSelectArgs.SelectAll<GXNotification>(n => n.Creator == owner);
             arg.Joins.AddInnerJoin<GXNotification, GXUser>(n => n.Creator!, u => u.Id!);
             if (request?.Filter == null)
@@ -201,7 +208,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXNotification>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            var recipient = User;
+            var recipient = _user;
             await GXNotificationTypeAccess.RestrictAsync(connection, arg, _authorizationService, recipient, cancellationToken);
             if (request != null && request.Count != 0)
             {
@@ -242,11 +249,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXNotification> ReadAsync(Guid id, Expression<Func<GXNotification, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXNotificationPolicies.View);
             try
             {
 
-                var userId = ServerHelpers.GetUserId(User);
+                var userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXQuery.GetNotificationsByUser(s => "*", userId, id);
                 arg.Joins.AddInnerJoin<GXNotification, GXNotificationType>(x => x.Type!, y => y.Id);
                 arg.Columns.Add<GXNotificationType>(c => new { c.Id, c.Name });
@@ -259,7 +266,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Joins.AddInnerJoin<GXNotification, GXUser>(s => s.Creator!, o => o.Id!);
                 arg.Where.And<GXNotification>(w => w.Id == id);
                 notification.Creator = await connection.SingleOrDefaultAsync<GXUser>(arg);
-                var recipient = User;
+                var recipient = _user;
                 if (notification.Type == null || !await GXNotificationTypeAccess.AllowsAsync(connection, _authorizationService, recipient, notification.Type.Id, cancellationToken))
                     {
                     throw new UnauthorizedAccessException();
@@ -299,10 +306,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXNotification, object>>? columns, CancellationToken cancellationToken = default)
         {
             notifications = notifications.ToArray();
-            return await GXHistoryMutation.RunAsync<GXNotification, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, notifications,
+            return await GXHistoryMutation.RunAsync<GXNotification, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, notifications,
         async () =>
         {
-            GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
             DateTime now = DateTime.Now;
             List<Guid> list = [];
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -313,7 +320,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                     notification.Sources = GXNotificationSourceStorage.Validate(notification.Sources);
                 }
-                await _authorizationService.EnsureAnyPolicyAsync(User,
+                await _authorizationService.EnsureAnyPolicyAsync(_user,
                     notification.Id == Guid.Empty ? GXNotificationPolicies.Add : GXNotificationPolicies.Edit);
                 GXNotification? previous = null;
                 if (notification.Id != Guid.Empty)
@@ -324,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                     throw new UnauthorizedAccessException();
                 }
-                var recipient = User;
+                var recipient = _user;
                 var type = notification.Type ?? previous?.Type;
                 if (type == null || !await GXNotificationTypeAccess.AllowsAsync(connection, _authorizationService, recipient, type.Id, cancellationToken))
                     {
@@ -430,10 +437,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Lifecycle operations share this repository's persistence rules and notification queue.
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IModuleNotificationRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModuleNotificationRepository
         {
+            /// <inheritdoc />
             public async Task RemoveAsync(GXNotificationType type, CancellationToken token)
             {
                 var notificationType = new GXNotificationType { Id = type.Id };
@@ -450,6 +463,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
             }
 
+            /// <inheritdoc />
             public async Task EnsureAdministratorsAsync(GXNotificationType type, CancellationToken token)
             {
                 if (type.Removed != null)
@@ -484,12 +498,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        private static readonly SemaphoreSlim DefaultsGate = new(1, 1);
+        /// <summary>Serializes initialization of default records.</summary>
+        private static readonly SemaphoreSlim _defaultsGate = new(1, 1);
 
         /// <inheritdoc />
         public async Task<IEnumerable<Guid>> EnsureDefaultsAsync(CancellationToken cancellationToken = default)
             {
-            return await GXHistoryMutation.RunAllAsync<GXNotification, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider,
+            return await GXHistoryMutation.RunAllAsync<GXNotification, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider,
         async () =>
         {
             return await ApplyNotificationDefaultsAsync(null, cancellationToken);
@@ -500,7 +515,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<IEnumerable<Guid>> ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             ids = ids.ToArray();
-            return await GXHistoryMutation.RunIdsAsync<GXNotification, Guid, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, ids,
+            return await GXHistoryMutation.RunIdsAsync<GXNotification, Guid, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, ids,
         async () =>
         {
             ArgumentNullException.ThrowIfNull(ids);
@@ -513,22 +528,26 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Authorizes and serializes notification default provisioning or restoration for the requested identities.</summary>
+        /// <param name="ids">Notification identities to reset, or null to provision missing defaults without explicit reset.</param>
+        /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>Identifiers of notifications changed by default provisioning or restoration.</returns>
         private async Task<IEnumerable<Guid>> ApplyNotificationDefaultsAsync(Guid[]? ids, CancellationToken token)
         {
             bool reset = ids != null;
             token.ThrowIfCancellationRequested();
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXNotificationPolicies.Edit);
-            await DefaultsGate.WaitAsync(token);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXNotificationPolicies.Edit);
+            await _defaultsGate.WaitAsync(token);
             try
             {
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync(token);
-                var recipient = User;
+                var recipient = _user;
                 var ownerId = ServerHelpers.GetUserId(recipient);
                 var owner = new GXUser { Id = ownerId };
                 if (await connection.SingleOrDefaultAsync<GXUser>(GXSelectArgs.Select<GXUser>(u => u.Id!,
                     u => u.Id == ownerId && u.Removed == null), token) == null)
                     {
-                    throw new ArgumentException("The notification owner is unavailable.", nameof(User));
+                    throw new ArgumentException("The notification owner is unavailable.", nameof(_user));
                 }
 
                 var types = await connection.SelectAsync<GXNotificationType>(GXSelectArgs.SelectAll<GXNotificationType>(
@@ -624,7 +643,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 return changes.Select(c => c.Notification.Id).ToArray();
             }
-            finally { DefaultsGate.Release(); }
+            finally { _defaultsGate.Release(); }
         }
     }
 }

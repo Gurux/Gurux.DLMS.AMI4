@@ -62,13 +62,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class KeyManagementRepository : IKeyManagementRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for key management group records.</summary>
         private readonly IKeyManagementGroupRepository _deviceKeyGroupRepository;
+        /// <summary>Performs cryptographic operations required by key management.</summary>
         private readonly IGXAmiCryptoService _cryproService;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -88,7 +96,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
@@ -98,6 +106,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXKeyManagement), id, action, GXKeyManagementLogPolicies.View, connection, transaction);
@@ -105,13 +119,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid keyId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXKeyManagementPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByKeyManagement(s => s.Id!,
-                ServerHelpers.GetUserId(User), keyId);
+                ServerHelpers.GetUserId(_user), keyId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.HasClaim("Permission", GXRoles.Admin))
+            if (_user != null && _user.HasClaim("Permission", GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -121,13 +135,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? keyIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXKeyManagementPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByKeyManagements(s => s.Id!,
-                ServerHelpers.GetUserId(User), keyIds);
+                ServerHelpers.GetUserId(_user), keyIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.HasClaim("Permission", GXRoles.Admin))
+            if (_user != null && _user.HasClaim("Permission", GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -140,17 +154,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             keys = keys.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXKeyManagement, Guid>(_dbFactory, User, _serviceProvider, keys,
+            await GXHistoryMutation.RunDeleteAsync<GXKeyManagement, Guid>(_dbFactory, _user, _serviceProvider, keys,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXKeyManagementPolicies.Delete);
                 if (keys != null && keys.Any())
                 {
-                    if (!User.HasClaim("Permission", GXRoles.Admin) &&
-                        !User.HasClaim("Permission", GXKeyManagementPolicies.Delete))
+                    if (!_user.HasClaim("Permission", GXRoles.Admin) &&
+                        !_user.HasClaim("Permission", GXKeyManagementPolicies.Delete))
                     {
                         throw new UnauthorizedAccessException();
                     }
@@ -229,17 +243,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListKeyManagementsResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXKeyManagementPolicies.View);
             GXSelectArgs arg;
             if (request != null && request.AllUsers &&
-                User.HasClaim("Permission", GXRoles.Admin))
+                _user.HasClaim("Permission", GXRoles.Admin))
             {
                 //Admin can see all the keys.
                 arg = GXSelectArgs.SelectAll<GXKeyManagement>();
             }
             else
             {
-                string? userId = ServerHelpers.GetUserId(User);
+                string? userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetKeyManagementsByUser(s => "*", userId, null);
             }
             bool selectItemsBySystemTitle = false;
@@ -414,16 +428,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXKeyManagementPolicies.View);
                 GXSelectArgs arg;
-                if (User.HasClaim("Permission", GXRoles.Admin))
+                if (_user.HasClaim("Permission", GXRoles.Admin))
                 {
                     //Admin can see all the keys.
                     arg = GXSelectArgs.SelectAll<GXKeyManagement>(w => w.Id == id);
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetKeyManagementsByUser(s => "*", userId, id);
                 }
                 arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
@@ -496,13 +510,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXKeyManagement, object>>? columns, CancellationToken cancellationToken = default)
         {
             keys = keys.ToArray();
-            return await GXHistoryMutation.RunAsync<GXKeyManagement, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, keys,
+            return await GXHistoryMutation.RunAsync<GXKeyManagement, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, keys,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXKeyManagementPolicies.Add, GXKeyManagementPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXKeyManagementPolicies.Add, GXKeyManagementPolicies.Edit);
                 DateTime now = DateTime.Now;
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
                 foreach (GXKeyManagement key in keys)
@@ -553,7 +567,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         key.CreationTime = now;
                         key.Creator = new GXUser()
                         {
-                            Id = ServerHelpers.GetUserId(User)
+                            Id = ServerHelpers.GetUserId(_user)
                         };
                         GXInsertArgs args = GXInsertArgs.Insert(key);
                         args.Exclude<GXKeyManagement>(q => new { q.Updated, q.KeyManagementGroups, q.ConcurrencyStamp, q.Keys, q.Properties });
@@ -586,7 +600,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         key.ConcurrencyStamp = Guid.NewGuid().ToString();
                         GXUpdateArgs args = GXUpdateArgs.Update(key, columns);
                         args.Exclude<GXKeyManagement>(q => new { q.CreationTime, q.KeyManagementGroups, q.Keys, q.Properties });
-                        if (!User.HasClaim("Permission", GXRoles.Admin) || key.Creator == null || string.IsNullOrEmpty(key.Creator.Id))
+                        if (!_user.HasClaim("Permission", GXRoles.Admin) || key.Creator == null || string.IsNullOrEmpty(key.Creator.Id))
                         {
                             //Only admin can update the creator.
                             args.Exclude<GXKeyManagement>(q => q.Creator!);

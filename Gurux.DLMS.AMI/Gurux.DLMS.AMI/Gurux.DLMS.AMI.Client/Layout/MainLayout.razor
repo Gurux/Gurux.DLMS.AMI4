@@ -52,7 +52,7 @@
 @inject IServiceProvider Services
 
 <HeadContent>
-    <IconPackStyles Packs="@IconPacks" />
+    <IconPackStyles Packs="@_iconPacks" />
 </HeadContent>
 
 <AmiThemeProvider>
@@ -105,14 +105,14 @@
                 <LayoutNavigationMenus Location="MenuLocation.Top" />
                 <FavoriteTile />
                 <AmiBreadcrumb Items="@GetDeviceObjectBreadcrumbs()" class="me-auto" />
-                <GXMenuBar MenuId="@GXEditorMenu.MenuId" ProtectedMenuIds="@ProtectedMenus"
+                <GXMenuBar MenuId="@GXEditorMenu.MenuId" ProtectedMenuIds="@_protectedMenus"
                            PreserveCommandsOnNavigation="@GXTabRoutes.IsTabNavigation"
                            WarnOnUnsavedChanges="true"
                            UnsavedChangesTitle="@Properties.Resources.UnsavedChanges"
                            UnsavedChangesMessage="@Properties.Resources.DiscardChangesQuestion"
                            DiscardChangesText="@Properties.Resources.DiscardChanges" StayText="@Properties.Resources.Cancel" />
                 <GXMenuBar NavigationGuardEnabled="false" />
-                <LoginDisplay @ref="LoginDisplay" />
+                <LoginDisplay @ref="_loginDisplay" />
                 <AuthorizeView>
                     <Authorized Context="auth">
                         <a href="Account/Manage" class="user-profile-link" aria-label="@Properties.Resources.User">
@@ -201,8 +201,11 @@
 </AmiThemeProvider>
 
 @code {
+    /// <summary>Caches the navigation path used by the parent record's breadcrumb link.</summary>
     private string? _deviceBreadcrumbPath;
+    /// <summary>Caches the display name used by the parent record's breadcrumb link.</summary>
     private string? _deviceBreadcrumbName;
+    /// <summary>Caches the display name used by the parent record's breadcrumb link.</summary>
     private string? _objectBreadcrumbName;
 
     public Task UpdateDeviceObjectBreadcrumbNamesAsync(string path, string? deviceName, string? objectName)
@@ -239,17 +242,23 @@
         };
     }
 
-    private static readonly Guid?[] ProtectedMenus = [GXEditorMenu.MenuId, null];
+    /// <summary>Identifies built-in menus whose removal is restricted.</summary>
+    private static readonly Guid?[] _protectedMenus = [GXEditorMenu.MenuId, null];
+    /// <summary>Controls whether the application information dialog is open.</summary>
     private bool _showAbout;
     private void OpenAbout() => _showAbout = true;
     private void CloseAbout() => _showAbout = false;
 
+    /// <summary>Contains the content blocks selected for the current page.</summary>
     private readonly List<GXBlock> _blocks = new List<GXBlock>();
-    private LoginDisplay? LoginDisplay;
+    /// <summary>References the account display so authentication changes can refresh it.</summary>
+    private LoginDisplay? _loginDisplay;
 
-    private GXAmiNotifierService? Notifier = null;
+    /// <summary>Tracks the live server connection and dispatches application notifications.</summary>
+    private GXAmiNotifierService? _notifier = null;
 
-    private IEnumerable<string>? IconPacks;
+    /// <summary>Caches the icon packs offered by the appearance controls.</summary>
+    private IEnumerable<string>? _iconPacks;
 
     private IGXProgress? Progress
     {
@@ -279,6 +288,7 @@
     /// Status is shown here.
     /// </summary>
     public StatusTile? Status { get; set; }
+    /// <summary>Records whether maintenance mode currently blocks the operation.</summary>
     private bool _maintenanceBlocked;
 
     protected override void OnInitialized()
@@ -296,13 +306,13 @@
         }
         try
         {
-            Notifier = Services.GetService<GXAmiNotifierService>();
-            if (Notifier != null)
+            _notifier = Services.GetService<GXAmiNotifierService>();
+            if (_notifier != null)
             {
                 using (Progress?.ProgressStart(Properties.Resources.Connecting))
                 using (IServiceScope scope = Services.CreateScope())
                 {
-                    _ = Notifier.StartAsync(scope, Http, NavigationManager).ContinueWith(async t =>
+                    _ = _notifier.StartAsync(scope, Http, NavigationManager).ContinueWith(async t =>
                     {
                         if (t.IsCanceled)
                         {
@@ -312,24 +322,24 @@
                         {
                             return;
                         }
-                        Notifier.OnPageChanged += () =>
+                        _notifier.OnPageChanged += () =>
                         {
                             //This must be in InvokeAsync, because event is called outside Blazor context.
                             InvokeAsync(StateHasChanged);
                         };
-                        Notifier.OnClearStatus += () =>
+                        _notifier.OnClearStatus += () =>
                         {
                             Status?.Clear();
                         };
-                        Notifier.OnProcessError += (ex) =>
+                        _notifier.OnProcessError += (ex) =>
                         {
                             Status?.ProcessError(ex);
                         };
-                        Notifier.OnProcessErrors += (errors) =>
+                        _notifier.OnProcessErrors += (errors) =>
                         {
                             Status?.ProcessErrors(errors);
                         };
-                        Notifier.OnShowInformation += (info, closable) =>
+                        _notifier.OnShowInformation += (info, closable) =>
                         {
                             Status?.ShowInformation(info, closable);
                         };
@@ -346,9 +356,9 @@
                             }
                             _ = ResourceStorage.GetCurrentIconPacksAsync().ContinueWith(t2 =>
                                 {
-                                    if (IconPacks != null)
+                                    if (_iconPacks != null)
                                     {
-                                        foreach (var ip in IconPacks)
+                                        foreach (var ip in _iconPacks)
                                         {
                                             Logger.LogDebug("Iconpack: {0}", ip);
                                         }
@@ -376,15 +386,19 @@
         {
             _initialResources.OnIconPacksChanged -= InitialIconPacksChanged;
         }
-        if (Notifier != null)
+        if (_notifier != null)
         {
-            await Notifier.StopAsync();
+            await _notifier.StopAsync();
         }
     }
 
+    /// <summary>Provides the initial localized resource set used by this view.</summary>
     private GXResourceStorage? _initialResources;
+    /// <summary>Loads the content blocks displayed by this page.</summary>
     private IAmiBlockStorage? _blockStorage;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private long _blockDisplayGeneration;
+    /// <summary>Records whether the initially resolved resource service has been released.</summary>
     private bool _initialDisposed;
 
     private void BlocksChanged(object? sender, GXBlocksChangedEventArgs args)
@@ -409,7 +423,7 @@
         {
             return;
         }
-        IconPacks = packs;
+        _iconPacks = packs;
         StateHasChanged();
     });
 
@@ -427,7 +441,7 @@
             }
 
             var initial = resources.InitializeAsync(names);
-            IconPacks = await resources.GetCurrentIconPacksAsync();
+            _iconPacks = await resources.GetCurrentIconPacksAsync();
             if (!_initialDisposed)
             {
                 await InvokeAsync(StateHasChanged);
@@ -439,7 +453,7 @@
                 return;
             }
 
-            IconPacks = await resources.GetCurrentIconPacksAsync();
+            _iconPacks = await resources.GetCurrentIconPacksAsync();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
@@ -473,13 +487,21 @@
 
     private static class Area
     {
+        /// <summary>Identifies the header slot in the page layout.</summary>
         public const string Header = "Header";
+        /// <summary>Identifies the left-sidebar slot in the page layout.</summary>
         public const string SidebarLeft = "SidebarLeft";
+        /// <summary>Identifies the right-sidebar slot in the page layout.</summary>
         public const string SidebarRight = "SidebarRight";
+        /// <summary>Identifies the primary content slot in the page layout.</summary>
         public const string Content = "Content";
+        /// <summary>Identifies the footer slot in the page layout.</summary>
         public const string Footer = "Footer";
+        /// <summary>Identifies the content-header slot in the page layout.</summary>
         public const string ContentHeader = "ContentHeader";
+        /// <summary>Identifies the content-footer slot in the page layout.</summary>
         public const string ContentFooter = "ContentFooter";
+        /// <summary>Identifies the component content slot in the page layout.</summary>
         public const string Component = "Component";
     }
 

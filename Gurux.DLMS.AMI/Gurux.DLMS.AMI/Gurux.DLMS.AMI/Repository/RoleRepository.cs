@@ -51,10 +51,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class RoleRepository : IRoleRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -74,13 +79,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _notificationCache = notificationCache;
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Finds administrators and distinct users belonging to any affected role.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="roleIds">Role identities whose members require authorization invalidation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>User identifiers whose role-based authorization may have changed.</returns>
         private async Task<List<string>> GetAffectedUsersAsync(GXDbConnection connection,
             IEnumerable<string> roleIds, CancellationToken cancellationToken = default)
         {
@@ -99,12 +109,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<string> rolers, CancellationToken cancellationToken = default)
         {
             rolers = rolers.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXRole, string>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, rolers,
+            await GXHistoryMutation.RunDeleteAsync<GXRole, string>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, rolers,
         async () =>
         {
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.Delete);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
                 await LockRoleDefaultsAsync(connection, transaction, cancellationToken);
@@ -168,8 +178,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListRolesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.View);
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.View);
+            bool isAdmin = _user.IsInRole(GXRoles.Admin);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXRole>(w => w.Removed == null);
             arg.Columns.Add<GXPermission>();
             arg.Joins.AddLeftJoin<GXRole, GXRolePermission>(j => j.Id, j => j.RoleId!);
@@ -178,7 +188,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (!isAdmin)
             {
                 //Return roles that user can access.
-                string? userId = ServerHelpers.GetUserId(User);
+                string? userId = ServerHelpers.GetUserId(_user);
                 arg.Joins.AddInnerJoin<GXRole, GXUserRole>(a => a.Id, b => b.RoleId!);
                 arg.Where.And<GXUserRole>(where => where.UserId == userId);
             }
@@ -235,7 +245,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.View);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXRole>(w => w.Id == id && w.Removed == null);
                 arg.Columns.Add<GXPermission>();
                 arg.Joins.AddLeftJoin<GXRole, GXRolePermission>(j => j.Id, j => j.RoleId!);
@@ -275,7 +285,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXRole> ReadByNameAsync(string name)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.View);
             name = name.ToUpperInvariant();
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXRole>(w => w.NormalizedName == name && w.Removed == null);
             arg.Columns.Add<GXPermission>();
@@ -288,6 +298,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return role;
         }
 
+        /// <summary>Reads distinct permissions attached to the selected role through role-permission membership.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="roleId">Role identity whose permission memberships are selected.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>Permissions currently assigned to the role.</returns>
         private static async Task<List<GXPermission>> GetPermissionsByRoleIdAsync(GXDbConnection connection, IDbTransaction transaction, string roleId, CancellationToken cancellationToken = default)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXPermission>();
@@ -301,18 +317,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<IEnumerable<string>> UpsertAsync(IEnumerable<GXRole> roles, CancellationToken cancellationToken = default)
         {
             roles = roles.ToArray();
-            return await GXHistoryMutation.RunAsync<GXRole, IEnumerable<string>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, roles,
+            return await GXHistoryMutation.RunAsync<GXRole, IEnumerable<string>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, roles,
         async () =>
         {
             ArgumentNullException.ThrowIfNull(roles);
             roles = roles.ToArray();
             if (roles.Any(r => string.IsNullOrEmpty(r.Id)))
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.Add);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.Add);
             }
             if (roles.Any(r => !string.IsNullOrEmpty(r.Id)))
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.Edit);
             }
             try
             {
@@ -469,6 +485,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Serializes default role provisioning and inserts missing system roles while preserving an existing default-role choice.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after missing default roles and their grants have been provisioned.</returns>
         internal static async Task EnsureRoleDefaultsAsync(GXDbConnection connection, IDbTransaction transaction,
             CancellationToken cancellationToken = default)
         {
@@ -502,10 +523,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default)
         {
-            await GXHistoryMutation.RunAllAsync<GXRole>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices,
+            await GXHistoryMutation.RunAllAsync<GXRole>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.Add);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
             await EnsureRoleDefaultsAsync(connection, transaction, cancellationToken);
@@ -523,10 +544,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task ResetToDefaultsAsync(IEnumerable<string> roleIds, CancellationToken cancellationToken = default)
         {
             roleIds = roleIds.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXRole, string>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, roleIds,
+            await GXHistoryMutation.RunIdsAsync<GXRole, string>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, roleIds,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXRolePolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXRolePolicies.Edit);
             ArgumentNullException.ThrowIfNull(roleIds);
             var ids = roleIds.Distinct().ToArray();
             if (ids.Length == 0 || ids.Any(string.IsNullOrWhiteSpace))
@@ -567,6 +588,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Replaces a system role's permission memberships with its declared defaults, creating missing permission records.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="role">Role whose name selects its application-owned default permission set.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after default role-permission memberships have been stored.</returns>
         private static async Task ApplyRolePermissionsAsync(GXDbConnection connection, IDbTransaction transaction,
             GXRole role, CancellationToken cancellationToken)
         {
@@ -589,6 +616,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Rejects role changes unless exactly one nonremoved role is marked as the default.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes when exactly one active default role has been verified.</returns>
+        /// <exception cref="ArgumentException">No active default role exists or multiple active roles are marked as default.</exception>
         private static async Task ValidateDefaultRoleAsync(GXDbConnection connection, IDbTransaction transaction, CancellationToken cancellationToken)
         {
             var query = GXSelectArgs.Select<GXRole>(r => GXSql.Count(1), r => r.Default == true && r.Removed == null);
@@ -603,6 +636,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Repairs legacy conflicting default roles by selecting the built-in authenticated-user role without changing grants or reviving removed roles.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="roles">Existing role records checked for missing or conflicting default flags.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after any repaired default-role flags have been stored.</returns>
+        /// <exception cref="ArgumentException">Conflicting defaults cannot be repaired because the built-in authenticated-user role is unavailable.</exception>
         private static async Task NormalizeConflictingDefaultsAsync(GXDbConnection connection, IDbTransaction transaction,
             List<GXRole> roles, CancellationToken cancellationToken)
         {
@@ -631,6 +671,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Locks the complete SQL Server role set until transaction completion to serialize default-role decisions across server instances.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after locking, or immediately for other database providers.</returns>
         private static async Task LockRoleDefaultsAsync(GXDbConnection connection, IDbTransaction transaction, CancellationToken cancellationToken)
         {
             if (connection.DatabaseType == Gurux.Service.Orm.Common.Enums.DatabaseType.MSSQL)

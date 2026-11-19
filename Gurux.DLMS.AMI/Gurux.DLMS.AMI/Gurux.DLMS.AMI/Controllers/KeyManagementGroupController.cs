@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class KeyManagementGroupController(
         IKeyManagementGroupRepository KeyManagementGroupRepository) : ControllerBase
     {
-        private readonly IKeyManagementGroupRepository _KeyManagementGroupRepository = KeyManagementGroupRepository;
+        /// <summary>Provides persistence and access checks for key management group records.</summary>
+        private readonly IKeyManagementGroupRepository _keyManagementGroupRepository = KeyManagementGroupRepository;
 
         /// <summary>
         /// Get key management group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetKeyManagementGroupResponse()
             {
-                Item = await _KeyManagementGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _keyManagementGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXKeyManagementGroupPolicies.Add)]
         public async Task<ActionResult<AddKeyManagementGroupResponse>> Post(AddKeyManagementGroup request, CancellationToken cancellationToken = default)
         {
-            await _KeyManagementGroupRepository.UpsertAsync(request.KeyManagementGroups, null, cancellationToken);
+            await _keyManagementGroupRepository.UpsertAsync(request.KeyManagementGroups, null, cancellationToken);
             return new AddKeyManagementGroupResponse()
             {
                 Ids = [.. request.KeyManagementGroups.Select(s => s.Id)]
@@ -87,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListKeyManagementGroupsResponse ret = new();
-            await _KeyManagementGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _keyManagementGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXKeyManagementGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveKeyManagementGroupResponse>> Post(RemoveKeyManagementGroup request, CancellationToken cancellationToken = default)
         {
-            await _KeyManagementGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _keyManagementGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveKeyManagementGroupResponse();
         }
     }

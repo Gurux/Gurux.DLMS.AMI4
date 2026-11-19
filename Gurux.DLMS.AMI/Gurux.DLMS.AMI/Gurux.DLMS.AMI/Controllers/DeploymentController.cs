@@ -48,13 +48,21 @@ namespace Gurux.DLMS.AMI.Server.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class DeploymentController(IConfiguration configuration, CatalogUpdaterOptions catalogOptions, IHttpClientFactory clients) : ControllerBase
 {
-    static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    /// <summary>Serializer settings shared by requests or persisted state in this component.</summary>
+    static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+    /// <summary>Configured absolute deployment directory, when supplied.</summary>
     string? Root => configuration["Updater:Deployment:Root"];
+    /// <summary>Whether deployment uses Docker Compose.</summary>
     bool Compose => configuration["Updater:Deployment:Mode"] == "compose";
+    /// <summary>Whether deployment packages include the backend service.</summary>
     bool IncludeBackend => Compose || configuration.GetValue<bool>("Updater:Deployment:IncludeBackend");
+    /// <summary>Catalog product identifier selected for this deployment mode.</summary>
     string ProductId => configuration["Updater:Deployment:ProductId"] ?? (IncludeBackend ? "Gurux.DLMS.AMI" : "Gurux.DLMS.AMI.Wasm");
+    /// <summary>Whether Linux deployment has a fully qualified root directory configured.</summary>
     bool Configured => OperatingSystem.IsLinux() && Root is { Length: > 0 } && Path.IsPathFullyQualified(Root);
+    /// <summary>File version of the currently running backend assembly.</summary>
     static string ApiVersion => FileVersionInfo.GetVersionInfo(typeof(DeploymentController).Assembly.Location).FileVersion ?? "0.0.0.0";
+    /// <summary>Whether the deployment agent heartbeat was updated within the last 30 seconds.</summary>
     bool AgentAvailable => System.IO.File.Exists(Path.Combine(Root!, "agent-heartbeat")) && DateTime.UtcNow - System.IO.File.GetLastWriteTimeUtc(Path.Combine(Root!, "agent-heartbeat")) < TimeSpan.FromSeconds(30);
 
     /// <summary>Checks deployable versions and includes the installation's current state.</summary>
@@ -95,6 +103,11 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
     /// <summary>Restores only the retained predecessor of the latest successful installation.</summary>
     [HttpPost("Restore")]
     public Task<IActionResult> Restore([FromBody] GXDeploymentVersion request, CancellationToken token) => QueueAsync(request, true, token);
+    /// <summary>Validates the requested release and atomically queues a signed deployment or rollback request.</summary>
+    /// <param name="request">Requested deployment version selected by the caller.</param>
+    /// <param name="restorePrevious">Whether the request restores the retained previous installation instead of installing a catalog release.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>An accepted queued-deployment response, or an error result when validation or queue ownership fails.</returns>
     async Task<IActionResult> QueueAsync(GXDeploymentVersion request, bool restorePrevious, CancellationToken token)
     {
         if (!Configured || !AgentAvailable) {
@@ -144,7 +157,7 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
                 return Conflict(new { Message = "An update is already queued or running." });
             }
             await using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            { await JsonSerializer.SerializeAsync(file, new Gurux.Updater.Model.GXDeploymentRequest(request.Version, requestId, signature, restorePrevious), Json, token); file.Flush(true); }
+            { await JsonSerializer.SerializeAsync(file, new Gurux.Updater.Model.GXDeploymentRequest(request.Version, requestId, signature, restorePrevious), _json, token); file.Flush(true); }
             System.IO.File.Move(temporary, Path.Combine(queue, "request.json"));
         }
         catch (IOException) { return Conflict(new { Message = "The update queue is busy or unavailable." }); }
@@ -166,7 +179,13 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
         }
         return Accepted(new GXDeploymentResponse { HostingEnvironment = GXDeploymentEnvironment.Detect(), Configured = true, IncludesBackend = IncludeBackend, Mode = Compose ? "compose" : "static", AgentAvailable = true, Busy = true, State = "Queued", RequestId = requestId, Version = request.Version, ApiVersion = ApiVersion });
     }
+    /// <summary>Catalog release version and whether deployment is blocked.</summary>
+    /// <param name="Version">Catalog or assembly version represented by this record.</param>
+    /// <param name="Blocked">Whether this release is excluded from deployment.</param>
     sealed record Release(string Version, bool Blocked = false);
+    /// <summary>Reads deployable releases for the configured product, channel, platform, and running API version.</summary>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>Release versions with compatibility or maintenance blocking information.</returns>
     async Task<List<Release>> ReleasesAsync(CancellationToken token)
     {
         using var client = clients.CreateClient();
@@ -191,6 +210,9 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
             r.Assets.Count(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && ValidDigest(a.Digest)) == 1 &&
             (IncludeBackend || r.AmiVersionRange is not null && VersionRange.TryParse(r.AmiVersionRange, out var range) && range.Satisfies(NuGetVersion.Parse(ApiVersion)))).Select(r => new Release(r.Version)).ToList() ?? [];
     }
+    /// <summary>Recognizes a 64-digit SHA-256 digest with an optional sha256 prefix.</summary>
+    /// <param name="value">Digest text, optionally prefixed with sha256:.</param>
+    /// <returns>True when the remaining text contains exactly 64 hexadecimal digits.</returns>
     static bool ValidDigest(string? value)
     {
         if (value?.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) == true) {
@@ -198,6 +220,10 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
         }
         return value is { Length: 64 } && value.All(Uri.IsHexDigit);
     }
+    /// <summary>Combines deployment markers, pending requests, journals, and rollback eligibility into a status snapshot.</summary>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="requestId">Optional deployment request identity whose current or archived journal is selected.</param>
+    /// <returns>Current deployment status, optionally scoped to a particular request.</returns>
     async Task<GXDeploymentResponse> SnapshotAsync(CancellationToken token, string? requestId = null)
     {
         var result = new GXDeploymentResponse { HostingEnvironment = GXDeploymentEnvironment.Detect(), Configured = Configured, IncludesBackend = IncludeBackend, ApiVersion = ApiVersion, Mode = Compose ? "compose" : "static" };
@@ -242,6 +268,10 @@ public sealed class DeploymentController(IConfiguration configuration, CatalogUp
         }
         return result;
     }
+    /// <summary>Reads a deployment JSON marker while allowing concurrent replacement or deletion.</summary>
+    /// <param name="path">Filesystem path of the file or assembly to inspect.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>Parsed JSON, or null when the file or its directory is absent.</returns>
     static async Task<System.Text.Json.Nodes.JsonNode?> ReadAsync(string path, CancellationToken token)
     {
         try

@@ -91,9 +91,12 @@
 }
 @code {
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXDeviceTemplateGroup? Active { get; set; }
@@ -125,18 +128,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDeviceTemplateGroup);
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGroupGeneral.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDeviceTemplateGroup);
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGroupGeneral.OnInitializedAsync");
             if (Active == null && Id != null)
             {
                 //Get device template group data.
@@ -163,7 +166,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGroupGeneral.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGroupGeneral.OnInitializedAsync");
         }
     }
 

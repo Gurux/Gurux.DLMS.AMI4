@@ -35,7 +35,8 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Maps routed AMI editor models to the canonical command-policy catalog.</summary>
 internal static class GXEditorPolicies
 {
-    private static readonly IReadOnlyDictionary<string, (string Add, string Edit, string Delete)> Policies =
+    /// <summary>Canonical create, update and delete policy identifiers indexed by AMI model type name.</summary>
+    private static readonly IReadOnlyDictionary<string, (string Add, string Edit, string Delete)> _policies =
         new Dictionary<string, (string, string, string)>(StringComparer.Ordinal)
         {
             ["GXAgent"] = (GXAgentPolicies.Add, GXAgentPolicies.Edit, GXAgentPolicies.Delete),
@@ -76,6 +77,10 @@ internal static class GXEditorPolicies
             ["GXLanguage"] = (GXLocalizationPolicies.Add, GXLocalizationPolicies.Edit, GXLocalizationPolicies.Delete)
         };
 
+    /// <summary>Resolves the command policy for a built-in AMI model or supported configuration collection.</summary>
+    /// <param name="model">Model instance whose editor state or command policy is needed.</param>
+    /// <param name="action">Create, update or delete operation represented by the command.</param>
+    /// <returns>The matching policy identifier, or null for custom models or unsupported actions.</returns>
     internal static string? For(object model, CrudAction action)
     {
         var type = model.GetType();
@@ -89,7 +94,7 @@ internal static class GXEditorPolicies
         // Custom editor models retain their existing unprotected command behavior.
         if (type.Assembly != typeof(GXUser).Assembly ||
             type.Namespace?.StartsWith("Gurux.DLMS.AMI.Shared.DTOs", StringComparison.Ordinal) != true ||
-            !Policies.TryGetValue(type.Name, out var policies)) {
+            !_policies.TryGetValue(type.Name, out var policies)) {
             return null;
         }
         return action switch

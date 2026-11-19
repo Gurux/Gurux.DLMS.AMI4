@@ -64,7 +64,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="Admin.Tasks" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXTaskPolicies.View })" TItem="GXTask" @ref="table"
+<GXViewTable ViewName="Admin.Tasks" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXTaskPolicies.View })" TItem="GXTask" @ref="table"
              @bind-Active="Active"
              Context="task"
              ItemsProvider="@GetItems"
@@ -80,7 +80,7 @@
         </GXFh>
         <GXFh Id="CreationTime">
             <GXDateTimeSelector Id="Tasks-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
@@ -89,19 +89,21 @@
             <GXInputDropdown class="form-select"
                              Id="Tasks-Type"
                              RememberValue="true"
-                             @bind-Value="filter.TaskType"
+                             @bind-Value="_filter.TaskType"
                              OnSelected="@((TaskType? e) => Updated())">
             </GXInputDropdown>
         </GXFh>
         <GXFh Id="Start" Visibility="Visibility.Small">
             <input class="form-control" placeholder="@Properties.Resources.FilterByStartTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Start = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
         <GXFh Id="Ready" Visibility="Visibility.Medium">
             <input class="form-control" placeholder="@Properties.Resources.FilterByEndTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
+        </GXFh>
+        <GXFh Id="Error">
         </GXFh>
         <GXFh Id="Result" Visibility="Visibility.Large">
             @*Result.*@
@@ -113,6 +115,7 @@
         <GXTh Name="TaskType" Target="@task" Visibility="Visibility.Small">@Properties.Resources.TaskType</GXTh>
         <GXTh Name="Start" Target="@task" Visibility="Visibility.Small">@Properties.Resources.StartTime</GXTh>
         <GXTh Name="Ready" Target="@task" Visibility="Visibility.Medium">@Properties.Resources.CompletedTime</GXTh>
+        <GXTh Name="Error" Target="@task">@Properties.Resources.Error</GXTh>
         <GXTh Name="Result" Target="@task" Visibility="Visibility.Large">@Properties.Resources.Result</GXTh>
     </HeaderContent>
     <ItemContent>
@@ -121,6 +124,7 @@
         <GXTd Id="TaskType" Visibility="Visibility.Small">@TaskTypeToString(task.TaskType)</GXTd>
         <GXTd Id="Start" Visibility="Visibility.Small">@ResourceStorage.DateTimeOffsetToString(task.Start)</GXTd>
         <GXTd Id="Ready" Visibility="Visibility.Medium">@ResourceStorage.DateTimeOffsetToString(task.Ready)</GXTd>
+        <GXTd Id="Error"><span class="text-danger">@task.Error</span></GXTd>
         <GXTd Id="Result" Visibility="Visibility.Large">@task.Result</GXTd>
     </ItemContent>
 </GXViewTable>
@@ -135,20 +139,26 @@
 }
 
 @code {
+    /// <summary>Identifies the record whose details are currently open.</summary>
     private Guid? _detailsId;
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Target") { Position = 0, Description = "Target", Visibility = (byte)Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Visibility.All },
         new("TaskType") { Position = 2, Description = "TaskType", Visibility = (byte)Visibility.Small },
         new("Start") { Position = 3, Description = "StartTime", Visibility = (byte)Visibility.Small },
         new("Ready") { Position = 4, Description = "CompletedTime", Visibility = (byte)Visibility.Medium },
-        new("Result") { Position = 5, Description = "Result", Visibility = (byte)Visibility.Large },
+        new("Error") { Position = 5, Description = "Error", Visibility = (byte)Visibility.All },
+        new("Result") { Position = 6, Description = "Result", Visibility = (byte)Visibility.Large },
     ];
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -270,7 +280,7 @@
     /// <summary>
     /// Task filter.
     ///</summary>
-    private GXTask filter = new GXTask();
+    private GXTask _filter = new GXTask();
 
     /// <summary>
     /// User is verified before tasks are cleared.
@@ -289,31 +299,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Admin/Tasks.Updated");
+                _notificationService?.RemoveByKey("Pages/Admin/Tasks.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/Tasks.Updated");
+            _notificationService?.ReportError(ex, "Pages/Admin/Tasks.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingTasks);
-            NotificationService?.RemoveByKey("Pages/Admin/Tasks.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingTasks);
+            _notificationService?.RemoveByKey("Pages/Admin/Tasks.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -343,21 +353,21 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/Tasks.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Admin/Tasks.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXTask>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingTasks);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingTasks);
         try
         {
             ListTasks req = new ListTasks()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -370,9 +380,9 @@
             if (ret.Tasks != null)
             {
                 //Mark tasks as seen.
-                if (Notifier != null)
+                if (_notifier != null)
                 {
-                    await Notifier.Mark(Http, TargetType.Task, ret.Tasks.Max(s => s.CreationTime));
+                    await _notifier.Mark(Http, TargetType.Task, ret.Tasks.Max(s => s.CreationTime));
                 }
 
                 return new ItemsProviderResult<GXTask>(ret.Tasks, ClientHelpers.ToVirtualizedCount(ret.Count));
@@ -385,7 +395,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -415,7 +425,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -453,7 +463,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -466,7 +476,7 @@
         {
             if (args.Confirm)
             {
-                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingTask);
+                using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingTask);
                 try
                 {
                     ClearTask req = new ClearTask();
@@ -483,7 +493,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -494,6 +504,6 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

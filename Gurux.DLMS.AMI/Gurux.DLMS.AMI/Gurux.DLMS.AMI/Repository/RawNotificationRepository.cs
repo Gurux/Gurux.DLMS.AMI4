@@ -49,32 +49,41 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 public sealed class RawNotificationRepository : IRawNotificationRepository
 {
     // Avoid local read-to-write deadlocks; serializable transactions also protect other server processes.
-    private static readonly SemaphoreSlim MutationGate = new(1, 1);
-    private readonly IDbConnectionFactory factory;
-    private readonly ClaimsPrincipal user;
-    private readonly IAuthorizationService authorization;
-    private readonly NotificationCache notifications;
+    /// <summary>Serializes mutation operations across callers.</summary>
+    private static readonly SemaphoreSlim _mutationGate = new(1, 1);
+    /// <summary>Creates database connections used by this operation.</summary>
+    private readonly IDbConnectionFactory _factory;
+    /// <summary>Principal whose identity and claims govern repository access.</summary>
+    private readonly ClaimsPrincipal _user;
+    /// <summary>Evaluates policies before accessing protected data.</summary>
+    private readonly IAuthorizationService _authorization;
+    /// <summary>Publishes change notifications after successful mutations.</summary>
+    private readonly NotificationCache _notifications;
 
     /// <summary>Creates a repository scoped to the authenticated request user.</summary>
     public RawNotificationRepository(IDbConnectionFactory dbFactory, IHttpContextAccessor context,
         IAuthorizationService authorizationService, NotificationCache notificationCache)
     {
-        factory = dbFactory;
-        user = context.HttpContext?.User ?? throw new UnauthorizedAccessException();
-        if (user.Identity?.IsAuthenticated != true)
+        _factory = dbFactory;
+        _user = context.HttpContext?.User ?? throw new UnauthorizedAccessException();
+        if (_user.Identity?.IsAuthenticated != true)
         {
             throw new UnauthorizedAccessException();
         }
-        authorization = authorizationService;
-        notifications = notificationCache;
+        _authorization = authorizationService;
+        _notifications = notificationCache;
     }
 
+    /// <summary>Builds an active-agent query constrained by current group memberships unless administrative all-user access is allowed.</summary>
+    /// <param name="id">Optional agent identity that further limits the query.</param>
+    /// <param name="allUsers">Whether administrators may select all agents instead of their own membership scope.</param>
+    /// <returns>An agent query restricted to the requested identity and authorized scope.</returns>
     private GXSelectArgs Agents(Guid? id = null, bool allUsers = true)
     {
         var query = GXSelectArgs.Select<GXAgent>(a => a.Id, a => a.Removed == null);
-        if (!allUsers || !user.IsInRole(GXRoles.Admin))
+        if (!allUsers || !_user.IsInRole(GXRoles.Admin))
         {
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
+            var userId = _user.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
             // Every link must still be present: soft-deleted memberships cannot grant access.
             var members = GXSelectArgs.Select<GXUserGroupUser>(m => GXSql.One,
                 m => m.UserId == userId && m.Removed == null);
@@ -95,6 +104,9 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         return query;
     }
 
+    /// <summary>Builds a raw notification query limited to agents visible in the requested user scope.</summary>
+    /// <param name="allUsers">Whether administrators may select all agents instead of their own membership scope.</param>
+    /// <returns>The authorized notification query.</returns>
     private GXSelectArgs Query(bool allUsers = true)
     {
         var agents = Agents(allUsers: allUsers);
@@ -102,6 +114,14 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             GXSql.Exists<GXRawNotification, GXAgent>(n => n.Agent!, a => a.Id, agents));
     }
 
+    /// <summary>Validates that an agent identifier selects an enabled, accessible agent inside the supplied transaction.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="tx">Transaction shared by the query or mutation.</param>
+    /// <param name="id">Nonempty agent identity that must remain enabled and accessible.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes when the agent is eligible for notification processing.</returns>
+    /// <exception cref="ArgumentException">The agent identifier is empty.</exception>
+    /// <exception cref="UnauthorizedAccessException">The agent is disabled, missing, or inaccessible.</exception>
     private async Task AgentAsync(GXDbConnection db, DbTransaction tx, Guid id, CancellationToken ct)
     {
         if (id == Guid.Empty)
@@ -116,14 +136,20 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         }
     }
 
+    /// <summary>Authorizes and serializes a raw-notification mutation inside a committed serializable database transaction.</summary>
+    /// <typeparam name="T">Result produced by the supplied callback.</typeparam>
+    /// <param name="policy">Authorization policy to evaluate or include in an invalidation notification.</param>
+    /// <param name="action">Mutation receiving the opened connection and serializable transaction.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The result returned by the committed mutation.</returns>
     private async Task<T> MutateAsync<T>(string policy,
         Func<GXDbConnection, DbTransaction, Task<T>> action, CancellationToken ct)
     {
         await AuthorizeAsync(policy);
-        await MutationGate.WaitAsync(ct);
+        await _mutationGate.WaitAsync(ct);
         try
         {
-            await using var db = await factory.GetHistoryConnectionAsync(ct);
+            await using var db = await _factory.GetHistoryConnectionAsync(ct);
             await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, ct);
             var result = await action(db, tx);
             await tx.CommitAsync(ct);
@@ -131,18 +157,26 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         }
         finally
         {
-            MutationGate.Release();
+            _mutationGate.Release();
         }
     }
 
+    /// <summary>Rejects raw-notification access unless the current principal satisfies the selected policy.</summary>
+    /// <param name="policy">Authorization policy to evaluate or include in an invalidation notification.</param>
+    /// <returns>A task that completes when authorization succeeds.</returns>
+    /// <exception cref="UnauthorizedAccessException">The current principal does not satisfy the selected policy.</exception>
     private async Task AuthorizeAsync(string policy)
     {
-        if (!(await authorization.AuthorizeAsync(user, policy)).Succeeded)
+        if (!(await _authorization.AuthorizeAsync(_user, policy)).Succeeded)
         {
             throw new UnauthorizedAccessException();
         }
     }
 
+    /// <summary>Computes a UTC lease expiration with millisecond precision and rejects submillisecond durations.</summary>
+    /// <param name="duration">Lease lifetime of at least one millisecond.</param>
+    /// <returns>The lease expiration timestamp rounded to Unix millisecond precision.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The lease duration is shorter than one millisecond.</exception>
     private static DateTimeOffset Expires(TimeSpan duration)
     {
         if (duration < TimeSpan.FromMilliseconds(1))
@@ -152,9 +186,19 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         return DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.Add(duration).ToUnixTimeMilliseconds());
     }
 
+    /// <summary>Checks whether a notification currently has a nonexpired processing lease.</summary>
+    /// <param name="n">Notification chunk whose processing lease state is tested.</param>
+    /// <param name="now">UTC timestamp against which lease expiration is evaluated.</param>
+    /// <returns>True when status, token, and expiration describe an active lease.</returns>
     private static bool Active(GXRawNotification n, DateTimeOffset now) =>
         n.Status == RawNotificationStatus.Processing && n.LeaseToken.HasValue && n.LeaseExpires > now;
 
+    /// <summary>Reads notification records and separately materializes receiving-agent and processing-agent identities.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="tx">Transaction shared by the query or mutation.</param>
+    /// <param name="query">ORM select arguments receiving the additional authorization or projection clauses.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>Notification records with both agent references populated correctly.</returns>
     private static async Task<List<GXRawNotification>> SelectAsync(GXDbConnection db, DbTransaction? tx,
         GXSelectArgs query, CancellationToken ct)
     {
@@ -182,6 +226,12 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         return rows;
     }
 
+    /// <summary>Reads every visible notification chunk for the selected agent connection in sequence-number order.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="tx">Transaction shared by the query or mutation.</param>
+    /// <param name="record">Notification chunk supplying connection identity or processing state.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The ordered chunks belonging to the selected connection.</returns>
     private async Task<List<GXRawNotification>> ConnectionAsync(GXDbConnection db, DbTransaction tx,
         GXRawNotification record, CancellationToken ct)
     {
@@ -192,6 +242,15 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         return await SelectAsync(db, tx, query, ct);
     }
 
+    /// <summary>Validates processor ownership and expiration of a lease, then reads the complete leased connection.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="tx">Transaction shared by the query or mutation.</param>
+    /// <param name="processorId">Agent identity that must own the active processing lease.</param>
+    /// <param name="token">Nonempty lease token that must belong to the processor.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>All chunks belonging to the valid leased connection.</returns>
+    /// <exception cref="ArgumentException">The lease token is empty.</exception>
+    /// <exception cref="InvalidOperationException">The lease is absent, expired, or owned by another processor.</exception>
     private async Task<List<GXRawNotification>> LeaseAsync(GXDbConnection db, DbTransaction tx,
         Guid processorId, Guid token, CancellationToken ct)
     {
@@ -211,6 +270,12 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         return await ConnectionAsync(db, tx, records[0], ct);
     }
 
+    /// <summary>Persists a notification's processing status, lease ownership, retry counters, timestamps, and error state.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="tx">Transaction shared by the query or mutation.</param>
+    /// <param name="record">Notification chunk containing the processing and lease fields to update.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The number of notification rows updated.</returns>
     private static Task<int> SaveAsync(GXDbConnection db, DbTransaction tx, GXRawNotification record, CancellationToken ct) =>
         db.UpdateAsync(tx, GXUpdateArgs.Update(record, n => new {
             n.Status, n.Processor, n.LeaseToken, n.LeaseExpires, n.Attempts, n.NextAttempt, n.Processed, n.Error }), ct);
@@ -275,8 +340,8 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             var deliveries = new List<(List<string> Users, GXTarget Target)>();
             foreach (var group in added.GroupBy(n => n.Agent!.Id))
             {
-                var users = await GXRepositoryUsers.GetNotifiedUsersAsync(factory, typeof(GXAgent), group.Key,
-                    NotificationAction.Add, GXRawNotificationPolicies.View, db, tx, this.notifications);
+                var users = await GXRepositoryUsers.GetNotifiedUsersAsync(_factory, typeof(GXAgent), group.Key,
+                    NotificationAction.Add, GXRawNotificationPolicies.View, db, tx, this._notifications);
                 foreach (var record in group)
                 {
                     deliveries.Add((users, new GXTarget(GXRawNotificationPolicies.Add, record.Id)));
@@ -286,12 +351,16 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         }, cancellationToken);
         foreach (var (Users, Target) in Deliveries)
         {
-            this.notifications.Add(Users, Target);
+            this._notifications.Add(Users, Target);
         }
 
         return Ids;
     }
 
+    /// <summary>Compares nullable byte sequences by content.</summary>
+    /// <param name="a">First byte sequence to compare.</param>
+    /// <param name="b">Second byte sequence to compare.</param>
+    /// <returns>True when both sequences are null or contain the same bytes.</returns>
     private static bool BytesEqual(byte[]? a, byte[]? b) => a == null ? b == null : b != null && a.AsSpan().SequenceEqual(b);
 
     /// <inheritdoc />
@@ -416,9 +485,20 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             return true;
         }, cancellationToken);
 
+    /// <summary>Clears processing ownership and lease metadata, retaining retry scheduling only for failed chunks.</summary>
+    /// <param name="chunk">Notification chunk whose processing lease metadata is released.</param>
     private static void Release(GXRawNotification chunk)
     { chunk.Processor = null; chunk.LeaseToken = null; chunk.LeaseExpires = null; chunk.NextAttempt = chunk.Status == RawNotificationStatus.Failed ? chunk.NextAttempt : null; }
 
+    /// <summary>Expands selected visible notifications to complete connections and rejects connections with active leases.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="tx">Transaction shared by the query or mutation.</param>
+    /// <param name="notifications">Notification identities expanded to their complete agent connections.</param>
+    /// <param name="ct">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>All chunks in the selected, currently unleased connections.</returns>
+    /// <exception cref="ArgumentException">No valid notification identities were supplied.</exception>
+    /// <exception cref="UnauthorizedAccessException">A selected notification is absent or inaccessible.</exception>
+    /// <exception cref="InvalidOperationException">A selected connection still has an active lease.</exception>
     private async Task<List<GXRawNotification>> SelectedConnectionsAsync(GXDbConnection db, DbTransaction tx,
         IEnumerable<Guid> notifications, CancellationToken ct)
     {
@@ -529,7 +609,7 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
             query.Where.And<GXRawNotification>(n => !request.Exclude.Contains(n.Id));
         }
         GXDateTimeFilters.Apply<GXRawNotification>(query, request?.DateFilters);
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         if (response != null)
         {
@@ -564,7 +644,7 @@ public sealed class RawNotificationRepository : IRawNotificationRepository
         var query = Query();
         query.Where.And<GXRawNotification>(n => n.Id == id);
         if (columns != null) { query.Columns.Clear(); query.Columns.Add(columns); query.Columns.Add<GXRawNotification>(n => n.Id); }
-        await using var db = await factory.GetHistoryConnectionAsync(cancellationToken);
+        await using var db = await _factory.GetHistoryConnectionAsync(cancellationToken);
         await using var tx = await db.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var row = (await SelectAsync(db, tx, query, cancellationToken)).SingleOrDefault()
             ?? throw new KeyNotFoundException("Raw notification not found.");

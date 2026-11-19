@@ -55,13 +55,13 @@
 
 <h1>@Properties.Resources.Columns</h1>
 
-@if (Active != null)
+@if (_active != null)
 {
     <GXDialog OnCancel="Cancel"
             CancelButtonTitle="@Properties.Resources.Close"
             OkButtonTitle="@Properties.Resources.Save"
             OnOk="Save">
-        <EditForm EditContext="@GXEditContexts.For(Active)">
+        <EditForm EditContext="@GXEditContexts.For(_active)">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <GXValidator @ref="_validator"
@@ -72,31 +72,31 @@
                         <div style="width:100%">
                             <div class="form-group">
                                 <GXInputSwitch Text="@Properties.Resources.Enabled"
-                                             @bind-Value="Active.Enabled" />
+                                             @bind-Value="_active.Enabled" />
                             </div>
                             <div class="form-group">
-                                <GXInputSwitch Text="@Properties.Resources.Visible" @bind-Value="Active.Visible" />
+                                <GXInputSwitch Text="@Properties.Resources.Visible" @bind-Value="_active.Visible" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.Visibility</label>
-                                <GXInputDropdown class="form-select" @bind-Value="Active.Visibility" RememberValue="false" Items="@(Enum.GetValues<Visibility>().Select(it => (byte?)it))" ><Template Context="visibility"><GXLocalizedText Value="@(((Visibility)visibility!.Value).ToString())" /></Template></GXInputDropdown>
+                                <GXInputDropdown class="form-select" @bind-Value="_active.Visibility" RememberValue="false" Items="@(Enum.GetValues<Visibility>().Select(it => (byte?)it))" ><Template Context="visibility"><GXLocalizedText Value="@(((Visibility)visibility!.Value).ToString())" /></Template></GXInputDropdown>
                             </div>
                             <div class="form-group">
-                                <GXCopyButton Value="@Active.Name">@Properties.Resources.Name</GXCopyButton>
+                                <GXCopyButton Value="@_active.Name">@Properties.Resources.Name</GXCopyButton>
                                 <InputText id="name" class="form-control"
-                                           @bind-Value="Active.Name" />
+                                           @bind-Value="_active.Name" />
                             </div>
                             <div class="form-group">
                                 <label>@Properties.Resources.Description</label>
                                 <InputText id="description" class="form-control"
-                                           @bind-Value="Active.Description" />
+                                           @bind-Value="_active.Description" />
                             </div>
                         </div>
 
                     </div>
                 </GeneralContent>
                 <PolicyContent>
-                    <Gurux.UI.Components.GXPolicyEditor @bind-Value="Active.Policies" Disabled="@(Action == CrudAction.Delete)" />
+                    <Gurux.UI.Components.GXPolicyEditor @bind-Value="_active.Policies" Disabled="@(_action == CrudAction.Delete)" />
                 </PolicyContent>
             </PolicyTabs>
         </EditForm>
@@ -110,7 +110,7 @@
         </ChildContent>
     </GXMenuControl>
 </p>
-<GXViewTable ViewName="View.Columns" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXViewPolicies.View })"
+<GXViewTable ViewName="View.Columns" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXViewPolicies.View })"
          TItem="GXViewColumn" @ref="table"
          Context="link"
          ItemsProvider="@GetItems"
@@ -127,7 +127,7 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
     </FilterContent>
     <HeaderContent>
@@ -150,7 +150,8 @@
 <br />
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Visible") { Position = 1, Description = "Visible", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -161,21 +162,27 @@
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
     }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
-    CrudAction Action;
-    GXViewColumn? Active;
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
+    CrudAction _action;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
+    GXViewColumn? _active;
+    /// <summary>Retains the table column currently being edited.</summary>
     private GXViewColumn? _editingColumn;
 
     private void ColumnsChanged() => GXEditContexts.For(View).NotifyFieldChanged(new FieldIdentifier(View, nameof(GXView.Columns)));
@@ -206,7 +213,7 @@
     /// <summary>
     /// View filter.
     /// </summary>
-    private GXView filter = new GXView();
+    private GXView _filter = new GXView();
 
     /// <summary>
     /// Table reference.
@@ -227,7 +234,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -237,13 +244,13 @@
     public void OnAdd()
     {
         _editingColumn = null;
-        Active = new GXViewColumn(null)
+        _active = new GXViewColumn(null)
         {
             Policies = View.Policies?.ToList(),
             Position = (View.Columns?.Max(c => (int?)c.Position) ?? -1) + 1,
             Visibility = (byte)Visibility.All
         };
-        Action = CrudAction.Create;
+        _action = CrudAction.Create;
         InvokeAsync(StateHasChanged);
     }
 
@@ -273,7 +280,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -296,7 +303,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -306,11 +313,11 @@
     /// <param name="sender"></param>
     private void OnValidate(GXValidator sender)
     {
-        if (Active != null)
+        if (_active != null)
         {
-            if (string.IsNullOrEmpty(Active.Name))
+            if (string.IsNullOrEmpty(_active.Name))
             {
-                sender.AddError(() => Active.Name, Properties.Resources.InvalidName);
+                sender.AddError(() => _active.Name, Properties.Resources.InvalidName);
             }
         }
     }
@@ -321,9 +328,9 @@
 
     private void Edit(GXViewColumn col)
     {
-        Action = CrudAction.Update;
+        _action = CrudAction.Update;
         _editingColumn = col;
-        Active = ClientHelpers.Clone<GXViewColumn>(col);
+        _active = ClientHelpers.Clone<GXViewColumn>(col);
         InvokeAsync(StateHasChanged);
     }
 
@@ -357,26 +364,26 @@
             {
                 return;
             }
-            if (Active != null && View != null)
+            if (_active != null && View != null)
             {
-                if (Action == CrudAction.Create)
+                if (_action == CrudAction.Create)
                 {
-                    (View.Columns ??= []).Add(Active);
+                    (View.Columns ??= []).Add(_active);
                 }
                 else if (_editingColumn != null)
                 {
-                    ClientHelpers.Copy(Active, _editingColumn);
+                    ClientHelpers.Copy(_active, _editingColumn);
                 }
                 ColumnsChanged();
             }
-            Active = null;
+            _active = null;
             _editingColumn = null;
             await Updated();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -385,7 +392,7 @@
     /// </summary>
     public void Cancel()
     {
-        Active = null;
+        _active = null;
         _editingColumn = null;
         InvokeAsync(StateHasChanged);
     }

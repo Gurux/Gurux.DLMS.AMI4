@@ -62,41 +62,35 @@ using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Server.Repository;
 
-/// <summary>Explicit domain operations available to history; arbitrary CLR types are never activated.</summary>
-internal interface IGXHistoryEntity
-{
-    Guid Id { get; }
-    GXChangeHistoryType HistoryType { get; }
-    string Name { get; }
-    Type EntityType { get; }
-    object GetId(object entity);
-    object ParseId(string id);
-    Task<object?> ReadAsync(IServiceProvider services, object id, CancellationToken token);
-    Task WriteAsync(IServiceProvider services, object entity, CancellationToken token);
-    Task<object?> ReadStoredAsync(GXDbConnection db, object id, CancellationToken token);
-    Task<IReadOnlyList<object>> ListIdsAsync(GXDbConnection db, CancellationToken token);
-}
-
-/// <summary>Authorized bridge to the owning module's user-settings API.</summary>
-internal interface IGXHistoryModuleUserSettings
-{
-    Task<GXUserProperty?> ReadAsync(GXUserProperty row, CancellationToken token);
-    Task WriteAsync(GXUserProperty row, CancellationToken token);
-}
-
 /// <summary>Compile-time registry of editable aggregates and their authorized domain read/write operations.</summary>
 internal static class GXHistoryEntities
 {
-    private static readonly IGXHistoryEntity[] Entries = Create();
-    internal static IReadOnlyCollection<IGXHistoryEntity> All => Entries;
-    internal static IGXHistoryEntity Get(GXChangeHistoryType type) => Entries.SingleOrDefault(e => e.Id == type.Id)
+    /// <summary>Registered entries indexed for lookup by this component.</summary>
+    private static readonly IGXHistoryEntity[] _entries = Create();
+    /// <summary>All explicitly registered entity adapters available to the history subsystem.</summary>
+    internal static IReadOnlyCollection<IGXHistoryEntity> All => _entries;
+    /// <summary>Finds an explicitly registered history entity adapter by its stable history type identifier.</summary>
+    /// <param name="type">History type metadata containing the registered adapter identifier.</param>
+    /// <returns>The registered adapter for the supplied history type.</returns>
+    /// <exception cref="ArgumentException">The history type identifier is not explicitly registered.</exception>
+    internal static IGXHistoryEntity Get(GXChangeHistoryType type) => _entries.SingleOrDefault(e => e.Id == type.Id)
         ?? throw new ArgumentException("Unsupported history entity type GUID.", nameof(type));
-    internal static IGXHistoryEntity Get(string name) => Entries.SingleOrDefault(e => e.Name == name)
+    /// <summary>Finds an explicitly registered history entity adapter by its stable entity name.</summary>
+    /// <param name="name">Stable history entity name used in the explicit adapter registry.</param>
+    /// <returns>The registered adapter for the supplied entity name.</returns>
+    /// <exception cref="ArgumentException">The entity name is not explicitly registered.</exception>
+    internal static IGXHistoryEntity Get(string name) => _entries.SingleOrDefault(e => e.Name == name)
         ?? throw new ArgumentException($"Unsupported history entity type '{name}'.", nameof(name));
-    internal static IGXHistoryEntity Get(Type type) => Entries.SingleOrDefault(e => e.EntityType == type)
+    /// <summary>Finds an explicitly registered history entity adapter by its exact CLR entity type.</summary>
+    /// <param name="type">Exact CLR entity type permitted by the history adapter registry.</param>
+    /// <returns>The registered adapter for the supplied CLR type.</returns>
+    /// <exception cref="ArgumentException">The CLR entity type is not explicitly registered.</exception>
+    internal static IGXHistoryEntity Get(Type type) => _entries.SingleOrDefault(e => e.EntityType == type)
         ?? throw new ArgumentException($"Unsupported history entity type '{type.Name}'.", nameof(type));
 
     // Persisted type identities: never regenerate these GUIDs when renaming a type or its CLR class.
+    /// <summary>Registers the allowed history entity types and their authorized repository read and restoration callbacks.</summary>
+    /// <returns>The fixed collection of supported history entity adapters.</returns>
     private static IGXHistoryEntity[] Create() =>
     [
         new Entity<GXAgentGroup, Guid, IAgentGroupRepository>(new Guid("5712d9aa-4ae3-4821-a195-0ac084e092ab"), "AgentGroup", async (r, id, ct, _) => await r.ReadAsync(id, null, ct), async (r, e, ct) => { await r.UpsertAsync([e], GXHistorySnapshot.Columns<GXAgentGroup>(), ct); }),
@@ -174,9 +168,21 @@ internal static class GXHistoryEntities
             (_, _, _) => throw new InvalidOperationException("Enumeration definitions have no general domain update operation; restore their producer's configuration instead."))
     ];
 
+    /// <summary>Resolves the request principal required to authorize history entity access.</summary>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <returns>The current history actor principal.</returns>
+    /// <exception cref="UnauthorizedAccessException">No request actor is available for history access.</exception>
     private static ClaimsPrincipal Actor(IServiceProvider services) => services.GetRequiredService<IHttpContextAccessor>().HttpContext?.User
         ?? throw new UnauthorizedAccessException("An authenticated history actor is required.");
 
+    /// <summary>Reads a stored entity by its persistence identifier using the history connection factory.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by the entity repository.</typeparam>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="idMember">Entity property containing the persistence identifier used in the query.</param>
+    /// <returns>The stored entity, or null if it does not exist.</returns>
     private static async Task<T?> Stored<T, TKey>(IServiceProvider services, TKey id, CancellationToken token, string idMember = "Id")
         where T : class, new()
     {
@@ -184,6 +190,12 @@ internal static class GXHistoryEntities
         return await db.SingleOrDefaultAsync<T>(Query<T, TKey>(id, idMember), token);
     }
 
+    /// <summary>Builds an identifier query and includes owner or module joins needed to authorize natural-key entities.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by the entity repository.</typeparam>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <param name="idMember">Entity property containing the persistence identifier used in the query.</param>
+    /// <returns>The typed ORM query with required ownership projections.</returns>
     private static GXSelectArgs Query<T, TKey>(TKey id, string idMember = "Id") where T : class, new()
     {
         var p = Expression.Parameter(typeof(T), "entity");
@@ -208,17 +220,33 @@ internal static class GXHistoryEntities
         return query;
     }
 
+    /// <summary>Adapts an explicitly allowed entity type to authorized history reads and restoration.</summary>
+    /// <typeparam name="T">Entity type explicitly supported by this adapter.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by repository operations.</typeparam>
+    /// <typeparam name="TRepository">Authorized repository interface used to read and restore the entity.</typeparam>
+    /// <param name="typeId">Stable history type identifier assigned to the adapter.</param>
+    /// <param name="name">Stable history entity name used in persistence.</param>
+    /// <param name="read">Authorized repository callback that reads an entity by identifier.</param>
+    /// <param name="write">Optional repository callback used to restore an entity.</param>
+    /// <param name="scopedWrite">Optional restoration callback requiring the complete service scope.</param>
+    /// <param name="idMember">Entity member containing the persistence identifier.</param>
     private sealed class Entity<T, TKey, TRepository>(Guid typeId, string name,
         Func<TRepository, TKey, CancellationToken, IServiceProvider, Task<T?>> read,
         Func<TRepository, T, CancellationToken, Task>? write,
         Func<IServiceProvider, T, CancellationToken, Task>? scopedWrite = null, string idMember = "Id") : IGXHistoryEntity
         where T : class, new() where TRepository : notnull
     {
+        /// <inheritdoc />
         public Guid Id => typeId;
+        /// <inheritdoc />
         public GXChangeHistoryType HistoryType => new() { Id = typeId, Name = name };
+        /// <inheritdoc />
         public string Name => name;
+        /// <inheritdoc />
         public Type EntityType => typeof(T);
+        /// <inheritdoc />
         public object GetId(object entity) => typeof(T).GetProperty(idMember)!.GetValue((T)entity) ?? string.Empty;
+        /// <inheritdoc />
         public object ParseId(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -243,6 +271,7 @@ internal static class GXHistoryEntities
 
             throw new NotSupportedException("Unsupported entity identifier type.");
         }
+        /// <inheritdoc />
         public async Task<object?> ReadAsync(IServiceProvider services, object id, CancellationToken token)
         {
             var entity = await read(services.GetRequiredService<TRepository>(), (TKey)id, token, services);
@@ -257,6 +286,7 @@ internal static class GXHistoryEntities
             }
             return entity;
         }
+        /// <inheritdoc />
         public async Task WriteAsync(IServiceProvider services, object entity, CancellationToken token)
         {
             var current = await ReadAsync(services, GetId(entity), token)
@@ -293,8 +323,10 @@ internal static class GXHistoryEntities
                 }
             }
         }
+        /// <inheritdoc />
         public async Task<object?> ReadStoredAsync(GXDbConnection db, object id, CancellationToken token)
             => await db.SingleOrDefaultAsync<T>(Query<T, TKey>((TKey)id, idMember), token);
+        /// <inheritdoc />
         public async Task<IReadOnlyList<object>> ListIdsAsync(GXDbConnection db, CancellationToken token)
         {
             var p = Expression.Parameter(typeof(T), "entity");

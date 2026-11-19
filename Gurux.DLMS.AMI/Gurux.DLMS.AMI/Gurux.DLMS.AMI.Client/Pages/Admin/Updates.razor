@@ -65,11 +65,11 @@
             @if (_schemaChanges.Count != 0)
             {
                 <p role="status">@Properties.Resources.UpdateTheFollowingConfigurationTablesToTheCurrentSchema</p>
-                <button type="button" class="btn btn-primary" disabled="@(_updatingDatabase || _loading || _checking || (Progress?.IsBusy == true))" @onclick="UpdateDatabaseAsync">
+                <button type="button" class="btn btn-primary" disabled="@(_updatingDatabase || _loading || _checking || (_progress?.IsBusy == true))" @onclick="UpdateDatabaseAsync">
                     @(_updatingDatabase ? Gurux.DLMS.AMI.Client.Properties.Resources.Updating : Gurux.DLMS.AMI.Client.Properties.Resources.UpdateTables)
                 </button>
             }
-            <GXViewTable ViewName="Admin.Updates" ViewColumns="ViewColumnDefaults" TItem="GXConfigurationTableChange" @key="_schemaChanges" Context="table" ItemsProvider="GetDatabaseChanges"
+            <GXViewTable ViewName="Admin.Updates" ViewColumns="_viewColumnDefaults" TItem="GXConfigurationTableChange" @key="_schemaChanges" Context="table" ItemsProvider="GetDatabaseChanges"
                      ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
                 <HeaderContent><GXTh Id="TableName" TItem="GXConfigurationTableChange">@Properties.Resources.Table</GXTh><GXTh Id="Changes" TItem="GXConfigurationTableChange">@Properties.Resources.Changes</GXTh></HeaderContent>
                 <ItemContent><GXTd Id="TableName">@table.TableName</GXTd><GXTd Id="Changes">@string.Join("; ", table.Changes)</GXTd></ItemContent>
@@ -117,24 +117,36 @@
 </div>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("TableName") { Position = 0, Description = "Table", Visibility = (byte)Visibility.All },
         new("Changes") { Position = 1, Description = "Changes", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Identifies the notification entry replaced or cleared when the page retries the associated operation.</summary>
     private const string LoadErrorKey = "Pages/Admin/Updates.Load";
+    /// <summary>Identifies the notification entry replaced or cleared when the page retries the associated operation.</summary>
     private const string CheckErrorKey = "Pages/Admin/Updates.Check";
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Caches the most recent update inventory returned by the server.</summary>
     private GXAvailableUpdatesResponse? _snapshot;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private int _deploymentRefreshVersion;
 
+    /// <summary>Contains the configuration schema differences displayed before applying an update.</summary>
     private List<GXConfigurationTableChange> _schemaChanges = new();
+    /// <summary>Records whether the configuration schema has been retrieved.</summary>
     private bool _schemaLoaded;
+    /// <summary>Prevents overlapping requests while updating database is in progress.</summary>
     private bool _updatingDatabase;
 
     private ValueTask<ItemsProviderResult<GXConfigurationTableChange>> GetDatabaseChanges(GXItemsProviderRequest request)
@@ -145,13 +157,13 @@
 
     private async Task UpdateDatabaseAsync()
     {
-        if (_disposed || _updatingDatabase || _loading || _checking || (Progress?.IsBusy == true))
+        if (_disposed || _updatingDatabase || _loading || _checking || (_progress?.IsBusy == true))
         {
             return;
         }
         _updatingDatabase = true;
-        using var progress = Progress?.ProgressStart(Properties.Resources.UpdatingDatabaseSchema);
-        NotificationService?.RemoveByKey("Pages/Admin/Updates.UpdateDatabase");
+        using var progress = _progress?.ProgressStart(Properties.Resources.UpdatingDatabaseSchema);
+        _notificationService?.RemoveByKey("Pages/Admin/Updates.UpdateDatabase");
         try
         {
             var remaining = await Http.PostAsJson<IEnumerable<GXConfigurationTableChange>>("api/Configuration/UpdateTables", new { }, _lifetime.Token);
@@ -159,7 +171,7 @@
             {
                 _schemaChanges = remaining.ToList();
                 _schemaLoaded = true;
-                NotificationService?.Add(new GXNotificationItem(_schemaChanges.Count == 0 ? Gurux.UI.Components.Enums.NotificationLevel.Success : Gurux.UI.Components.Enums.NotificationLevel.Warning, _schemaChanges.Count == 0 ? Properties.Resources.ConfigurationTablesUpdatedSuccessfully : Properties.Resources.SomeTablesStillRequireAnUpdate, "Pages/Admin/Updates.UpdateDatabase"));
+                _notificationService?.Add(new GXNotificationItem(_schemaChanges.Count == 0 ? Gurux.UI.Components.Enums.NotificationLevel.Success : Gurux.UI.Components.Enums.NotificationLevel.Warning, _schemaChanges.Count == 0 ? Properties.Resources.ConfigurationTablesUpdatedSuccessfully : Properties.Resources.SomeTablesStillRequireAnUpdate, "Pages/Admin/Updates.UpdateDatabase"));
             }
         }
         catch (OperationCanceledException)when (_lifetime.IsCancellationRequested)
@@ -169,7 +181,7 @@
         {
             if (!_disposed)
             {
-                NotificationService?.ReportError(exception, "Pages/Admin/Updates.UpdateDatabase");
+                _notificationService?.ReportError(exception, "Pages/Admin/Updates.UpdateDatabase");
             }
         }
         finally
@@ -178,10 +190,15 @@
         }
     }
 
+    /// <summary>Indicates that the displayed data is still being retrieved.</summary>
     private bool _loading;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private int _requestVersion;
+    /// <summary>Prevents overlapping requests while checking is in progress.</summary>
     private bool _checking;
+    /// <summary>Records that the displayed data needs to be loaded again.</summary>
     private bool _reloadPending;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
 
     private string LastCheckedText => string.Format(Properties.Resources.LastChecked,
@@ -189,15 +206,15 @@
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
-        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+        _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
         {
             if (!_disposed && items.Any(item => item.Type == GXConfigurationPolicies.Cron && item.Id == GXCronNotifications.Completed))
             {
@@ -244,9 +261,9 @@
         }
         var requestVersion = ++_requestVersion;
         _loading = true;
-        using var progress = Progress?.ProgressStart(Properties.Resources.RetrievingUpdates);
+        using var progress = _progress?.ProgressStart(Properties.Resources.RetrievingUpdates);
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, (progress?.CancellationToken ?? CancellationToken.None));
-        NotificationService?.RemoveByKey(LoadErrorKey);
+        _notificationService?.RemoveByKey(LoadErrorKey);
         try
         {
             var tables = await Http.PostAsJson<IEnumerable<GXConfigurationTableChange>>("api/Configuration/GetTableChanges", new { }, cancellation.Token);
@@ -254,7 +271,7 @@
             {
                 _schemaChanges = tables.ToList();
                 _schemaLoaded = true;
-                NotificationService?.RemoveByKey("Pages/Admin/Updates.Schema");
+                _notificationService?.RemoveByKey("Pages/Admin/Updates.Schema");
             }
         }
         catch (OperationCanceledException)when (cancellation.IsCancellationRequested)
@@ -264,7 +281,7 @@
         {
             if (!_disposed && requestVersion == _requestVersion)
             {
-                NotificationService?.ReportError(exception, "Pages/Admin/Updates.Schema");
+                _notificationService?.ReportError(exception, "Pages/Admin/Updates.Schema");
             }
         }
         try
@@ -299,7 +316,7 @@
         {
             if (!_disposed && requestVersion == _requestVersion)
             {
-                NotificationService?.ReportError(exception, LoadErrorKey);
+                _notificationService?.ReportError(exception, LoadErrorKey);
             }
         }
         finally
@@ -321,9 +338,9 @@
         var previousCheck = _snapshot?.Checked;
         var requestVersion = ++_requestVersion;
         StateHasChanged();
-        using var progress = Progress?.ProgressStart(Properties.Resources.CheckingUpdates);
+        using var progress = _progress?.ProgressStart(Properties.Resources.CheckingUpdates);
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, (progress?.CancellationToken ?? CancellationToken.None));
-        NotificationService?.RemoveByKey(CheckErrorKey);
+        _notificationService?.RemoveByKey(CheckErrorKey);
         try
         {
             using var response = await Http.PostAsJsonAsync("api/Update/Check", new { }, cancellation.Token);
@@ -371,7 +388,7 @@
         {
             if (!_disposed)
             {
-                NotificationService?.Add(new GXNotificationItem(NotificationLevel.Warning, Properties.Resources.UpdateInformationUnavailable, CheckErrorKey));
+                _notificationService?.Add(new GXNotificationItem(NotificationLevel.Warning, Properties.Resources.UpdateInformationUnavailable, CheckErrorKey));
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -385,7 +402,7 @@
         {
             if (!_disposed)
             {
-                NotificationService?.ReportError(exception, CheckErrorKey);
+                _notificationService?.ReportError(exception, CheckErrorKey);
             }
         }
         finally
@@ -399,7 +416,7 @@
                     _reloadPending = false;
                     await LoadSnapshotAsync();
                 }
-        
+
                 StateHasChanged();
             }
         }
@@ -412,7 +429,7 @@
             return;
         }
         _disposed = true;
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
         _lifetime.Cancel();
         _lifetime.Dispose();
     }

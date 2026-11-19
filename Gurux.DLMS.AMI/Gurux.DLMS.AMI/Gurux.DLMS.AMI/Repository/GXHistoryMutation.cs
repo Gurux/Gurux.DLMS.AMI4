@@ -45,23 +45,52 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <summary>Captures repository changes inside their shared local database transaction.</summary>
 internal static class GXHistoryMutation
 {
-    private static readonly AsyncLocal<HashSet<string>?> Capturing = new();
-    private static readonly AsyncLocal<HashSet<string>?> Suppressed = new();
+    /// <summary>Async-local entity identities whose snapshots are currently being captured.</summary>
+    private static readonly AsyncLocal<HashSet<string>?> _capturing = new();
+    /// <summary>Async-local entity identities excluded from recursive history capture.</summary>
+    private static readonly AsyncLocal<HashSet<string>?> _suppressed = new();
 
-    internal static bool IsSuppressed(Type type, object id) => Suppressed.Value?.Contains(Key(GXHistoryEntities.Get(type), id)) == true;
+    /// <summary>Checks whether recursive history capture is suppressed for the selected entity identity in this asynchronous flow.</summary>
+    /// <param name="type">Entity or resource classification used to constrain this operation.</param>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <returns>True when capture is suppressed for that entity.</returns>
+    internal static bool IsSuppressed(Type type, object id) => _suppressed.Value?.Contains(Key(GXHistoryEntities.Get(type), id)) == true;
 
+    /// <summary>Temporarily suppresses history capture for one entity while preserving the enclosing suppression set.</summary>
+    /// <param name="type">Entity or resource classification used to constrain this operation.</param>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <returns>A scope that restores the previous suppression set on disposal.</returns>
     internal static IDisposable Suppress(Type type, object id)
     {
-        var previous = Suppressed.Value;
-        Suppressed.Value = previous == null ? [] : new(previous, StringComparer.Ordinal);
-        Suppressed.Value.Add(Key(GXHistoryEntities.Get(type), id));
-        return new Release(() => Suppressed.Value = previous);
+        var previous = _suppressed.Value;
+        _suppressed.Value = previous == null ? [] : new(previous, StringComparer.Ordinal);
+        _suppressed.Value.Add(Key(GXHistoryEntities.Get(type), id));
+        return new Release(() => _suppressed.Value = previous);
     }
 
+    /// <summary>Runs an entity mutation while capturing its before and after history snapshots in the shared transaction.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="entities">Entity models whose identities are tracked before and after the mutation.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after mutation and history capture.</returns>
     internal static Task RunAsync<T>(IDbConnectionFactory factory, ClaimsPrincipal? actor, IServiceProvider? services,
         IEnumerable<T> entities, Func<Task> action, CancellationToken token = default)
         => RunAsync<T, bool>(factory, actor, services, entities, async () => { await action(); return true; }, token);
 
+    /// <summary>Runs an entity mutation and returns its result while capturing its before and after history snapshots.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TResult">Result returned by the supplied asynchronous operation.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="entities">Entity models whose identities are tracked before and after the mutation.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The mutation result after associated history work has completed.</returns>
     internal static Task<TResult> RunAsync<T, TResult>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, IEnumerable<T> entities, Func<Task<TResult>> action, CancellationToken token = default)
     {
@@ -70,26 +99,85 @@ internal static class GXHistoryMutation
             () => values.Select(value => TrackingId(GXHistoryEntities.Get(typeof(T)), value, actor)), action, false, token);
     }
 
+    /// <summary>Runs an entity deletion while capturing the selected identifiers as deleted history targets.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by the entity repository.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="ids">Persistence identifiers of entities being deleted.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after deletion and history capture.</returns>
     internal static Task RunDeleteAsync<T, TKey>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, IEnumerable<TKey> ids, Func<Task> action, CancellationToken token = default)
         => RunDeleteAsync<T, TKey, bool>(factory, actor, services, ids, async () => { await action(); return true; }, token);
 
+    /// <summary>Runs an entity deletion and records history for the selected persistence identifiers.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by the entity repository.</typeparam>
+    /// <typeparam name="TResult">Result returned by the supplied asynchronous operation.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="ids">Persistence identifiers of entities being deleted.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The deletion action's result after associated history work has completed.</returns>
     internal static Task<TResult> RunDeleteAsync<T, TKey, TResult>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, IEnumerable<TKey> ids, Func<Task<TResult>> action, CancellationToken token = default)
         => RunCoreAsync(factory, actor, services, GXHistoryEntities.Get(typeof(T)), () => ids.Cast<object>(), action, true, token);
 
+    /// <summary>Runs a mutation for explicit entity identifiers while capturing their before and after history state.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by the entity repository.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="ids">Persistence identities selected for this mutation.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after mutation and history capture.</returns>
     internal static Task RunIdsAsync<T, TKey>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, IEnumerable<TKey> ids, Func<Task> action, CancellationToken token = default)
         => RunIdsAsync<T, TKey, bool>(factory, actor, services, ids, async () => { await action(); return true; }, token);
 
+    /// <summary>Runs a mutation for explicit entity identifiers and records their before and after history state.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TKey">Persistence identifier type accepted by the entity repository.</typeparam>
+    /// <typeparam name="TResult">Result returned by the supplied asynchronous operation.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="ids">Persistence identities selected for this mutation.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The mutation action's result after associated history work has completed.</returns>
     internal static Task<TResult> RunIdsAsync<T, TKey, TResult>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, IEnumerable<TKey> ids, Func<Task<TResult>> action, CancellationToken token = default)
         => RunCoreAsync(factory, actor, services, GXHistoryEntities.Get(typeof(T)), () => ids.Cast<object>(), action, false, token);
 
+    /// <summary>Runs an aggregate mutation while tracking every supported entity identifier before and after the action.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after the aggregate mutation and history capture.</returns>
     internal static Task RunAllAsync<T>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, Func<Task> action, CancellationToken token = default)
         => RunAllAsync<T, bool>(factory, actor, services, async () => { await action(); return true; }, token);
 
+    /// <summary>Runs an aggregate mutation and refreshes the tracked identifier set after the action to capture additions as well as edits.</summary>
+    /// <typeparam name="T">Entity type whose persistence and history operations are tracked.</typeparam>
+    /// <typeparam name="TResult">Result returned by the supplied asynchronous operation.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The aggregate mutation's result after history capture.</returns>
     internal static Task<TResult> RunAllAsync<T, TResult>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, Func<Task<TResult>> action, CancellationToken token = default)
         => GXHistoryScope.RunAsync(factory, async db =>
@@ -104,6 +192,17 @@ internal static class GXHistoryMutation
             }, false, token);
         }, token);
 
+    /// <summary>Joins the shared history transaction, captures authorized before and after snapshots, and records effective changes without recursive duplication.</summary>
+    /// <typeparam name="TResult">Result returned by the supplied asynchronous operation.</typeparam>
+    /// <param name="factory">Creates or leases the database connection shared by the history transaction.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="adapter">Explicitly registered entity adapter defining allowed history access and serialization.</param>
+    /// <param name="identities">Supplies the affected persistence identifiers before and after the action.</param>
+    /// <param name="action">Callback executed inside the protected operation or transaction scope.</param>
+    /// <param name="deleted">Whether the action represents deletion rather than an ordinary mutation.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The supplied action's result after history recording.</returns>
     private static async Task<TResult> RunCoreAsync<TResult>(IDbConnectionFactory factory, ClaimsPrincipal? actor,
         IServiceProvider? services, IGXHistoryEntity adapter, Func<IEnumerable<object>> identities,
         Func<Task<TResult>> action, bool deleted, CancellationToken token)
@@ -112,8 +211,8 @@ internal static class GXHistoryMutation
         {
             await using var identity = await GXHistoryIdentityScope.JoinAsync(
                 services?.GetService(typeof(Gurux.DLMS.AMI.Data.ApplicationDbContext)) as Gurux.DLMS.AMI.Data.ApplicationDbContext, token);
-            var previous = Capturing.Value;
-            Capturing.Value ??= new(StringComparer.Ordinal);
+            var previous = _capturing.Value;
+            _capturing.Value ??= new(StringComparer.Ordinal);
             var owned = new HashSet<string>(StringComparer.Ordinal);
             var before = new Dictionary<string, (object Id, string? Json)>(StringComparer.Ordinal);
             var actorId = actor?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? actor?.FindFirst("sub")?.Value;
@@ -125,7 +224,7 @@ internal static class GXHistoryMutation
                 foreach (var id in identities().Where(ValidId).Distinct())
                 {
                     var key = Key(adapter, id);
-                    if (Suppressed.Value?.Contains(key) == true || !Capturing.Value.Add(key))
+                    if (_suppressed.Value?.Contains(key) == true || !_capturing.Value.Add(key))
                     {
                         continue;
                     }
@@ -150,12 +249,12 @@ internal static class GXHistoryMutation
                 foreach (var id in afterIds.Distinct())
                 {
                     var key = Key(adapter, id);
-                    if (Suppressed.Value?.Contains(key) == true)
+                    if (_suppressed.Value?.Contains(key) == true)
                     {
                         continue;
                     }
 
-                    if (!owned.Contains(key) && !Capturing.Value.Add(key))
+                    if (!owned.Contains(key) && !_capturing.Value.Add(key))
                     {
                         continue;
                     }
@@ -199,14 +298,21 @@ internal static class GXHistoryMutation
             {
                 foreach (var key in owned)
                 {
-                    Capturing.Value?.Remove(key);
+                    _capturing.Value?.Remove(key);
                 }
 
-                Capturing.Value = previous;
+                _capturing.Value = previous;
             }
         }, token);
     }
 
+    /// <summary>Captures a nonremoved entity through its authorized repository or stored-state projection.</summary>
+    /// <param name="adapter">Explicitly registered entity adapter defining allowed history access and serialization.</param>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="services">Optional request-scoped services used for authorized aggregate reads and identity enlistment.</param>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>Snapshot JSON, or null when the logical entity no longer exists.</returns>
     internal static async Task<string?> SnapshotAsync(IGXHistoryEntity adapter, GXDbConnection db,
         IServiceProvider? services, object id, CancellationToken token)
     {
@@ -222,6 +328,11 @@ internal static class GXHistoryMutation
         return services == null ? GXHistorySnapshot.SerializeStored(value) : GXHistorySnapshot.Serialize(value);
     }
 
+    /// <summary>Uses a persisted entity identifier or derives a stable natural-key identifier for a new user or agent property.</summary>
+    /// <param name="adapter">Explicitly registered entity adapter defining allowed history access and serialization.</param>
+    /// <param name="entity">Entity whose persistence or natural-key identity must be tracked.</param>
+    /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+    /// <returns>The persistence identifier or deterministic property tracking identifier.</returns>
     private static object TrackingId(IGXHistoryEntity adapter, object entity, ClaimsPrincipal? actor)
     {
         var id = adapter.GetId(entity);
@@ -248,9 +359,25 @@ internal static class GXHistoryMutation
         return id;
     }
 
+    /// <summary>Rejects missing or empty identifiers while accepting nonzero numeric and nonempty textual identities.</summary>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <returns>True when the identity can represent a tracked entity.</returns>
     private static bool ValidId(object? id) => id != null && id switch
     { Guid value => value != Guid.Empty, string value => !string.IsNullOrWhiteSpace(value), int value => value != 0, _ => true };
+    /// <summary>Converts an entity identifier to invariant text for history storage.</summary>
+    /// <param name="id">Identifier of the affected record.</param>
+    /// <returns>The identifier formatted using the invariant culture.</returns>
     internal static string IdString(object id) => Convert.ToString(id, CultureInfo.InvariantCulture)!;
+    /// <summary>Combines an adapter's stable entity name and invariant identifier into a collision-resistant capture key.</summary>
+    /// <param name="adapter">Explicitly registered entity adapter defining allowed history access and serialization.</param>
+    /// <param name="id">Stable identity of the record or module selected by this operation.</param>
+    /// <returns>The entity-type-qualified tracking key.</returns>
     private static string Key(IGXHistoryEntity adapter, object id) => adapter.Name + "\0" + IdString(id);
-    private sealed class Release(Action release) : IDisposable { public void Dispose() => release(); }
+    /// <summary>Releases a history mutation lease when its enclosing scope ends.</summary>
+    /// <param name="release">Callback that releases the mutation lease.</param>
+    private sealed class Release(Action release) : IDisposable
+    {
+        /// <inheritdoc />
+        public void Dispose() => release();
+    }
 }

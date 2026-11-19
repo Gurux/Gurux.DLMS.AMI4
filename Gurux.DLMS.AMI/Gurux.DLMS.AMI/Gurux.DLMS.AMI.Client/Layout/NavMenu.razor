@@ -81,10 +81,15 @@
         return NavLinkMatch.Prefix;
     }
 
-    private string? currentUrl;
+    /// <summary>Tracks the active navigation URL so menu selection follows route changes.</summary>
+    private string? _currentUrl;
+    /// <summary>Retains the navigation menu whose links are rendered by this component.</summary>
     private GXMenu? _menu;
+    /// <summary>Loads the saved navigation menu used by this component.</summary>
     private IAmiMenuStorage? _menuStorage;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private int _menuVersion;
 
     //Language has changed.
@@ -93,7 +98,8 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
 
     /// <summary>
     /// User stamps.
@@ -102,10 +108,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
 
-        Notifier = Services.GetService<IGXNotifier2>();
+        _notifier = Services.GetService<IGXNotifier2>();
         _menuStorage = Services.GetService<IAmiMenuStorage>();
         try
         {
@@ -119,11 +125,11 @@
                     _menu = menu;
                 }
             }
-            if (Notifier != null)
+            if (_notifier != null)
             {
                 _updateStamps.Clear();
-                _updateStamps.AddRange(Notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
-                Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+                _updateStamps.AddRange(_notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
+                _notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
                 {
                     bool updated = ClientHelpers.UpdateUserStamps(stamps, _updateStamps);
                     if (updated)
@@ -155,9 +161,9 @@
             }
             _menu = args.Menu;
             _updateStamps.Clear();
-            if (Notifier != null)
+            if (_notifier != null)
             {
-                _updateStamps.AddRange(Notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
+                _updateStamps.AddRange(_notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
             }
             StateHasChanged();
         });
@@ -165,8 +171,8 @@
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-        if (currentUrl.ToLower().Contains("/logout"))
+        _currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        if (_currentUrl.ToLower().Contains("/logout"))
         {
             try
             {
@@ -188,7 +194,7 @@
         {
             _menuStorage.MenuChanged -= OnMenuChanged;
         }
-        Notifier?.RemoveListener(this);
-        Notifier = null;
+        _notifier?.RemoveListener(this);
+        _notifier = null;
     }
 }

@@ -25,6 +25,7 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Http;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.Metrics;
 using System.Net;
@@ -40,43 +41,57 @@ using Microsoft.Extensions.Options;
 
 namespace Gurux.DLMS.AMI.Server.Services;
 
-/// <summary>A proxy request rejected with a safe public error message.</summary>
-public sealed class GXHttpProxyException(int statusCode, string message) : Exception(message)
-{
-    /// <summary>The HTTP status to return to the caller.</summary>
-    public int StatusCode { get; } = statusCode;
-}
-
-/// <summary>Downloaded public content with its remaining freshness lifetime.</summary>
-public sealed record GXHttpProxyResponse(byte[] Body, string ContentType, DateTimeOffset ExpiresAt, string SourceUrl);
-
 /// <summary>Fetches allowlisted public content using bounded downloads and a credential-free cache.</summary>
 public sealed partial class GXHttpProxyService : IDisposable
 {
-    private static readonly Meter Meter = new("Gurux.DLMS.AMI.HttpProxy");
-    private static readonly Counter<long> Requests = Meter.CreateCounter<long>("http_proxy.requests");
-    private static readonly Counter<long> CacheHits = Meter.CreateCounter<long>("http_proxy.cache_hits");
-    private static readonly Counter<long> Coalesced = Meter.CreateCounter<long>("http_proxy.coalesced_requests");
-    private static readonly Counter<long> Errors = Meter.CreateCounter<long>("http_proxy.errors");
-    private static readonly Counter<long> Bytes = Meter.CreateCounter<long>("http_proxy.downloaded_bytes", "By");
-    private static readonly Histogram<double> Duration = Meter.CreateHistogram<double>("http_proxy.download_duration", "s");
+    /// <summary>Publishes metrics for outgoing HTTP proxy operations.</summary>
+    private static readonly Meter _meter = new("Gurux.DLMS.AMI.HttpProxy");
+    /// <summary>Counts outgoing HTTP proxy requests.</summary>
+    private static readonly Counter<long> _requests = _meter.CreateCounter<long>("http_proxy.requests");
+    /// <summary>Counts HTTP proxy responses served from the cache.</summary>
+    private static readonly Counter<long> _cacheHits = _meter.CreateCounter<long>("http_proxy.cache_hits");
+    /// <summary>Counts callers sharing an already running HTTP request.</summary>
+    private static readonly Counter<long> _coalesced = _meter.CreateCounter<long>("http_proxy.coalesced_requests");
+    /// <summary>Counts failed HTTP proxy operations.</summary>
+    private static readonly Counter<long> _errors = _meter.CreateCounter<long>("http_proxy.errors");
+    /// <summary>Counts response bytes downloaded by the HTTP proxy.</summary>
+    private static readonly Counter<long> _bytes = _meter.CreateCounter<long>("http_proxy.downloaded_bytes", "By");
+    /// <summary>Records elapsed HTTP download durations in seconds.</summary>
+    private static readonly Histogram<double> _duration = _meter.CreateHistogram<double>("http_proxy.download_duration", "s");
+    /// <summary>Creates configured HTTP clients for outgoing requests.</summary>
     private readonly IHttpClientFactory _clients;
+    /// <summary>Records operational failures and diagnostic information.</summary>
     private readonly ILogger<GXHttpProxyService>? _logger;
+    /// <summary>Provides the clock used for expiration and scheduled operations.</summary>
     private readonly TimeProvider _time;
+    /// <summary>Caches frequently reused results and their expiration state.</summary>
     private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = 64 * 1024 * 1024 });
+    /// <summary>Synchronizes reads and updates to the in-memory cache.</summary>
     private readonly Lock _cacheLock = new();
+    /// <summary>Latest generation number recorded for each resource key.</summary>
     private readonly Dictionary<string, long> _generations = [];
+    /// <summary>Coalesced HTTP requests shared by callers of the same resource.</summary>
     private readonly Dictionary<string, Flight> _flights = [];
+    /// <summary>Limits concurrent outgoing HTTP downloads.</summary>
     private readonly ConcurrencyLimiter _downloads;
+    /// <summary>Limits aggregate buffering capacity for concurrent proxy responses.</summary>
     private readonly ConcurrencyLimiter _buffers;
+    /// <summary>Maximum buffer permits reserved for one proxy response.</summary>
     private readonly int _bufferPermits;
+    /// <summary>Indicates that disposal has begun and this instance can no longer accept work.</summary>
     private bool _disposed;
 
+    /// <summary>Shares one bounded HTTP download between callers requesting the same resource.</summary>
+    /// <param name="timeoutSeconds">Maximum lifetime of the shared outgoing download in seconds.</param>
     private sealed class Flight(int timeoutSeconds)
     {
+        /// <summary>Cancellation source bounding the lifetime of the queued operation.</summary>
         internal readonly CancellationTokenSource Cancellation = new(TimeSpan.FromSeconds(timeoutSeconds));
+        /// <summary>Shared download task awaited by callers of a coalesced request.</summary>
         internal Task<GXHttpProxyResponse> Task = null!;
+        /// <summary>Number of callers currently awaiting the shared operation.</summary>
         internal int Waiters;
+        /// <summary>Indicates that this operation no longer accepts additional work.</summary>
         internal bool Finished;
     }
 
@@ -105,6 +120,9 @@ public sealed partial class GXHttpProxyService : IDisposable
         });
     }
 
+    /// <summary>Builds the cache-key prefix for the current invalidation generation of a proxy scope.</summary>
+    /// <param name="scope">The origin or policy scope used to isolate proxy cache entries.</param>
+    /// <returns>The scope prefix including its current cache generation.</returns>
     private string CachePrefix(string scope)
     {
         _generations.TryGetValue(scope, out var generation);
@@ -141,7 +159,7 @@ public sealed partial class GXHttpProxyService : IDisposable
         };
         settings.Validate();
         if (!settings.Enabled) {
-            throw new GXHttpProxyException(403, "HTTP proxy is disabled.");
+            throw new GXHttpException(Properties.Resources.HttpProxyDisabled, System.Net.HttpStatusCode.Forbidden);
         }
         var uri = ValidateTarget(url, settings);
         var origin = Uri.TryCreate(referer, UriKind.Absolute, out var referrer) &&
@@ -150,7 +168,7 @@ public sealed partial class GXHttpProxyService : IDisposable
         // Referer can affect the representation even when the upstream omits Vary.
         var hash = Hash(JsonSerializer.Serialize(settings) + "\n" + uri.AbsoluteUri + "\n" + origin);
         var scope = Hash(cacheScope) + ":";
-        Requests.Add(1);
+        _requests.Add(1);
         Flight flight;
         lock (_cacheLock)
         {
@@ -158,11 +176,11 @@ public sealed partial class GXHttpProxyService : IDisposable
             var key = CachePrefix(scope) + hash;
             if (_cache.TryGetValue<Entry>(key, out var cached) && cached!.Response.ExpiresAt > _time.GetUtcNow())
             {
-                CacheHits.Add(1);
+                _cacheHits.Add(1);
                 return Copy(cached.Response);
             }
             if (_flights.TryGetValue(key, out flight!)) {
-                Coalesced.Add(1);
+                _coalesced.Add(1);
             }
             else
             {
@@ -199,6 +217,15 @@ public sealed partial class GXHttpProxyService : IDisposable
         }
     }
 
+    /// <summary>Downloads or revalidates a proxy response under concurrency, memory, redirect, content-type, and size limits.</summary>
+    /// <param name="key">The lookup key identifying the record or cached value.</param>
+    /// <param name="scope">The origin or policy scope used to isolate proxy cache entries.</param>
+    /// <param name="uri">The absolute upstream target of the proxy request.</param>
+    /// <param name="referer">The optional referring page forwarded to the upstream target.</param>
+    /// <param name="settings">The validated proxy limits and allowed origins applied to this request.</param>
+    /// <param name="flight">The shared in-flight download and its waiter-linked cancellation state.</param>
+    /// <returns>A task containing the downloaded or revalidated proxy response.</returns>
+    /// <exception cref="GXHttpException">The target, response, resource budget, or upstream request violates the proxy policy.</exception>
     private async Task<GXHttpProxyResponse> DownloadAsync(string key, string scope, Uri uri, string? referer,
         HttpProxySettings settings, Flight flight)
     {
@@ -210,16 +237,16 @@ public sealed partial class GXHttpProxyService : IDisposable
         {
             using var slot = await _downloads.AcquireAsync(1, token);
             if (!slot.IsAcquired) {
-                throw new GXHttpProxyException(503, "HTTP proxy download queue is full.");
+                throw new GXHttpException(Properties.Resources.HttpProxyDownloadQueueFull, System.Net.HttpStatusCode.ServiceUnavailable);
             }
             var reservation = (int)(((long)settings.MaxResponseBytes * 3 + GXHttpProxyBuffer.ChunkSize * 2 + 1048575) / 1048576);
             if (reservation > _bufferPermits)
                 {
-                throw new GXHttpProxyException(503, "Proxy response limit exceeds the server buffering budget.");
+                throw new GXHttpException(Properties.Resources.HttpProxyResponseExceedsBufferBudget, System.Net.HttpStatusCode.ServiceUnavailable);
             }
             using var memory = await _buffers.AcquireAsync(reservation, token);
             if (!memory.IsAcquired) {
-                throw new GXHttpProxyException(503, "HTTP proxy buffering capacity is exhausted.");
+                throw new GXHttpException(Properties.Resources.HttpProxyBufferCapacityExhausted, System.Net.HttpStatusCode.ServiceUnavailable);
             }
             _cache.TryGetValue<Entry>(key, out var previous);
             using var client = _clients.CreateClient("HttpProxy");
@@ -248,7 +275,7 @@ public sealed partial class GXHttpProxyService : IDisposable
                 {
                     if (response.Headers.Location == null || redirects == 3)
                         {
-                        throw new GXHttpProxyException(502, "Proxy target returned too many or invalid redirects.");
+                        throw new GXHttpException(Properties.Resources.HttpProxyInvalidRedirects, System.Net.HttpStatusCode.BadGateway);
                     }
                     uri = ValidateTarget(new Uri(uri, response.Headers.Location).AbsoluteUri, settings);
                     continue;
@@ -262,24 +289,24 @@ public sealed partial class GXHttpProxyService : IDisposable
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger?.LogWarning("HTTP proxy upstream {Host} returned status {StatusCode}", uri.IdnHost, (int)response.StatusCode);
-                    throw new GXHttpProxyException(502, "Proxy target returned an unsuccessful response.");
+                    throw new GXHttpException(Properties.Resources.HttpProxyUpstreamUnsuccessful, System.Net.HttpStatusCode.BadGateway);
                 }
                 var mediaType = response.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
                 if (!IsAllowedContentType(mediaType))
                     {
-                    throw new GXHttpProxyException(415, "Proxy target did not return a feed, data or raster image.");
+                    throw new GXHttpException(Properties.Resources.HttpProxyUnsupportedContentType, System.Net.HttpStatusCode.UnsupportedMediaType);
                 }
                 if (response.Content.Headers.ContentLength > settings.MaxResponseBytes)
                     {
-                    throw new GXHttpProxyException(413, "Proxy response exceeds the configured size limit.");
+                    throw new GXHttpException(Properties.Resources.HttpProxyResponseTooLarge, System.Net.HttpStatusCode.RequestEntityTooLarge);
                 }
                 await using var stream = await response.Content.ReadAsStreamAsync(token);
                 var body = await GXHttpProxyBuffer.ReadAsync(stream, settings.MaxResponseBytes, token);
-                Bytes.Add(body.Length);
+                _bytes.Add(body.Length);
                 return Store(key, scope, body, response.Content.Headers.ContentType!.ToString(), uri, response, settings,
                     null, received, responseDelay, receivedTimestamp);
             }
-            throw new GXHttpProxyException(502, "Unable to retrieve proxy target.");
+            throw new GXHttpException(Properties.Resources.HttpProxyRetrievalFailed, System.Net.HttpStatusCode.BadGateway);
         }
         catch (OperationCanceledException)
         {
@@ -290,21 +317,21 @@ public sealed partial class GXHttpProxyService : IDisposable
                 }
             }
             RecordFailure(504, uri, null);
-            throw new GXHttpProxyException(504, "Proxy request timed out.");
+            throw new GXHttpException(Properties.Resources.HttpProxyRequestTimedOut, System.Net.HttpStatusCode.GatewayTimeout);
         }
-        catch (GXHttpProxyException error)
+        catch (GXHttpException error)
         {
-            RecordFailure(error.StatusCode, uri, null);
+            RecordFailure((int)(error.StatusCode ?? HttpStatusCode.BadGateway), uri, null);
             throw;
         }
         catch (Exception error) when (error is HttpRequestException or IOException)
         {
             RecordFailure(502, uri, error);
-            throw new GXHttpProxyException(502, "Unable to retrieve proxy target.");
+            throw new GXHttpException(Properties.Resources.HttpProxyRetrievalFailed, System.Net.HttpStatusCode.BadGateway);
         }
         finally
         {
-            Duration.Record(_time.GetElapsedTime(started).TotalSeconds);
+            _duration.Record(_time.GetElapsedTime(started).TotalSeconds);
             lock (_cacheLock)
             {
                 flight.Finished = true;
@@ -316,18 +343,33 @@ public sealed partial class GXHttpProxyService : IDisposable
         }
     }
 
+    /// <summary>Records a failed proxy request using bounded metadata without exposing the complete target URL.</summary>
+    /// <param name="status">The HTTP status code assigned to the failed proxy operation.</param>
+    /// <param name="uri">The absolute upstream target of the proxy request.</param>
+    /// <param name="error">The optional underlying failure whose type and code may be logged.</param>
     private void RecordFailure(int status, Uri uri, Exception? error)
     {
-        Errors.Add(1, new KeyValuePair<string, object?>("status", status));
+        _errors.Add(1, new KeyValuePair<string, object?>("status", status));
         // HttpRequestException.Message/ToString can contain the complete target URL.
         // Record only bounded metadata, including the underlying error's type/code.
         _logger?.LogWarning("HTTP proxy request to {Host} failed: status {StatusCode}, error {ErrorType}, code {ErrorCode}",
             uri.IdnHost, status, error?.GetType().Name, error?.HResult);
     }
 
+    /// <summary>Creates a proxy response with an independent copy of the downloaded body.</summary>
+    /// <param name="response">Proxy response whose body is copied for the caller.</param>
+    /// <returns>A response whose mutable body is independent of the input response.</returns>
     private static GXHttpProxyResponse Copy(GXHttpProxyResponse response) => response with { Body = response.Body.ToArray() };
+    /// <summary>Computes the uppercase SHA-256 digest of UTF-8 input text.</summary>
+    /// <param name="value">Input value to inspect or transform.</param>
+    /// <returns>The uppercase hexadecimal SHA-256 digest.</returns>
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
+    /// <summary>Validates an absolute HTTP target against the configured origins and public-address restrictions.</summary>
+    /// <param name="url">The absolute URL to validate before contacting an upstream server.</param>
+    /// <param name="settings">The validated proxy limits and allowed origins applied to this request.</param>
+    /// <returns>The validated absolute target URI.</returns>
+    /// <exception cref="GXHttpException">The URL or target origin is not permitted.</exception>
     private static Uri ValidateTarget(string url, HttpProxySettings settings)
     {
         if (url.Length > 8192 || !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
@@ -338,11 +380,14 @@ public sealed partial class GXHttpProxyService : IDisposable
                 return origin.Scheme == uri.Scheme && origin.IdnHost.Equals(uri.IdnHost, StringComparison.OrdinalIgnoreCase) && origin.Port == uri.Port;
             }) || (IPAddress.TryParse(uri.Host.Trim('[', ']'), out var address) && !GXHttpProxyTransport.IsPublicAddress(address)))
             {
-            throw new GXHttpProxyException(403, "Proxy target is not allowed.");
+            throw new GXHttpException(Properties.Resources.HttpProxyTargetNotAllowed, System.Net.HttpStatusCode.Forbidden);
         }
         return uri;
     }
 
+    /// <summary>Determines whether the upstream media type is supported for proxied feeds, data, or raster images.</summary>
+    /// <param name="type">The normalized upstream media type, or null when it was not supplied.</param>
+    /// <returns>Whether the media type is permitted for proxy responses.</returns>
     private static bool IsAllowedContentType(string? type) => type is
         "application/rss+xml" or "application/atom+xml" or "application/xml" or "text/xml" or
         "application/json" or "application/feed+json" or "text/plain" or

@@ -65,7 +65,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="Gateway.Gateways" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXGatewayPolicies.View })"
+<GXViewTable ViewName="Gateway.Gateways" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXGatewayPolicies.View })"
              TItem="GXGateway" @ref="table"
              @bind-Active="Active"
              Context="gateway"
@@ -80,23 +80,23 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="Gateways-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? null : Convert.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = "".Equals(__e.Value) ? null : Convert.ToDateTime(__e.Value))" />
         </GXFh>
         <GXFh Id="ExecutionTime">
             <input class="form-control" placeholder="@Properties.Resources.FilterByDetectionTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Detected = "".Equals(__e.Value) ? null : Convert.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Detected = "".Equals(__e.Value) ? null : Convert.ToDateTime(__e.Value))" />
         </GXFh>
         <GXFh Id="Status">
             @*Status*@
@@ -126,7 +126,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -135,9 +136,12 @@
         new("Status") { Position = 4, Description = "Status", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected gateway ID.
@@ -213,7 +217,7 @@
     /// <summary>
     /// Gateway filter.
     /// </summary>
-    private GXGateway filter = new GXGateway();
+    private GXGateway _filter = new GXGateway();
 
     /// <summary>
     /// Table reference.
@@ -229,31 +233,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Gateway/Gateways.Updated");
+                _notificationService?.RemoveByKey("Pages/Gateway/Gateways.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/Gateways.Updated");
+            _notificationService?.ReportError(ex, "Pages/Gateway/Gateways.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingGateways);
-            NotificationService?.RemoveByKey("Pages/Gateway/Gateways.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingGateways);
+            _notificationService?.RemoveByKey("Pages/Gateway/Gateways.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -278,29 +282,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/Gateways.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Gateway/Gateways.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXGateway>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingGateways);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingGateways);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListGateways req = new ListGateways()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -322,7 +326,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -334,8 +338,8 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Gateway/Gateways.OnRun");
-            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingGateway);
+            _notificationService?.RemoveByKey("Pages/Gateway/Gateways.OnRun");
+            using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingGateway);
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -349,7 +353,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/Gateways.OnRun");
+            _notificationService?.ReportError(ex, "Pages/Gateway/Gateways.OnRun");
         }
     }
 
@@ -368,7 +372,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -379,7 +383,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Gateway/Gateways.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Gateway/Gateways.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -392,7 +396,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/Gateways.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Gateway/Gateways.OnEdit");
         }
     }
 
@@ -423,7 +427,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -450,7 +454,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -461,7 +465,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

@@ -48,13 +48,13 @@
     @if (!Embedded)
     {
     <h1>
-        @Title
+        @_title
     </h1>
     }
     <CascadingValue Value="this">
         @if (_sourcesLoaded)
         {
-            <NotificationGeneral AvailablePermissions="@AvailablePermissions" AvailableTypes="@AvailableTypes" Active="@Active" Action="@_action" />
+            <NotificationGeneral AvailablePermissions="@AvailablePermissions" AvailableTypes="@_availableTypes" Active="@Active" Action="@_action" />
         }
     </CascadingValue>
     @if (Embedded)
@@ -72,11 +72,16 @@
     [Parameter] public bool Embedded { get; set; }
     [Parameter] public EventCallback Saved { get; set; }
     [Parameter] public EventCallback Cancelled { get; set; }
+    /// <summary>Disables repeated save requests while changes are being persisted.</summary>
     private bool _saving;
+    /// <summary>Tracks validation and unsaved changes in the currently open dialog.</summary>
     private EditContext? _dialogContext;
+    /// <summary>Stores field-specific validation errors displayed by the open dialog.</summary>
     private ValidationMessageStore? _dialogMessages;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -86,7 +91,9 @@
 
     private CrudAction _action => ClientHelpers.GetAction(NavigationManager, Action, CrudAction.None);
 
+    /// <summary>Lists the permissions offered by the notification subscription editor.</summary>
     internal readonly List<GXPermission> AvailablePermissions = new();
+    /// <summary>Records whether the available notification sources have been retrieved.</summary>
     private bool _sourcesLoaded;
 
     /// <summary>
@@ -101,12 +108,13 @@
     [Parameter]
     public Guid? Id { get; set; }
 
-    private IReadOnlyList<GXNotificationType> AvailableTypes = [];
+    /// <summary>Caches the notification types offered for the selected source.</summary>
+    private IReadOnlyList<GXNotificationType> _availableTypes = [];
 
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -117,35 +125,35 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     var types = await Http.PostAsJson<ListNotificationTypeResponse>("api/NotificationType/List",
                         new ListNotificationType { Filter = new GXNotificationType { Enabled = true }, OrderBy = nameof(GXNotificationType.Name) });
-                    AvailableTypes = (types.NotificationTypes ?? []).Where(t => t.Enabled == true && t.Removed == null).ToArray();
+                    _availableTypes = (types.NotificationTypes ?? []).Where(t => t.Enabled == true && t.Removed == null).ToArray();
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.Notification;
-            NotificationService?.RemoveByKey("Pages/Notification/Notification.OnInitializedAsync");
+            _title += " " + Properties.Resources.Notification;
+            _notificationService?.RemoveByKey("Pages/Notification/Notification.OnInitializedAsync");
             // Load the notification first so permissions are resolved for its owner.
             if (!string.Equals(Action, "Add", StringComparison.OrdinalIgnoreCase))
             {
-                using var progress = Progress?.ProgressStart(GXProgress.RetrievingNotification);
+                using var progress = _progress?.ProgressStart(GXProgress.RetrievingNotification);
                 var response = await Http.GetAsJsonAsync<GetNotificationResponse>("api/Notification?id=" + Id);
                 if (response.Item == null)
                 {
@@ -164,7 +172,7 @@
                 AvailablePermissions.Add(permission);
             }
             await LoadTypeSettingsAsync();
-            Notifier = Services.GetService<IGXNotifier2>();
+            _notifier = Services.GetService<IGXNotifier2>();
             if (Embedded)
             {
                 _dialogContext = GXEditContexts.For(Active);
@@ -184,27 +192,32 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Notification/Notification.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Notification/Notification.OnInitializedAsync");
         }
     }
 
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
     private bool IsToaster => string.Equals(Active.Type?.Code, "toaster", StringComparison.OrdinalIgnoreCase);
+    /// <summary>Contains the configured maximum number of simultaneous toast notifications.</summary>
     internal int? ToasterMaxCount;
+    /// <summary>Records whether the settings for the selected type have been retrieved.</summary>
     private bool _typeSettingsLoaded;
-    private Gurux.DLMS.AMI.Shared.DTOs.User.GXUserProperty? ToasterSetting;
+    /// <summary>Retains the user property that stores toast notification preferences.</summary>
+    private Gurux.DLMS.AMI.Shared.DTOs.User.GXUserProperty? _toasterSetting;
 
     internal async Task LoadTypeSettingsAsync()
     {
         _typeSettingsLoaded = false;
-        ToasterSetting = null;
+        _toasterSetting = null;
         ToasterMaxCount = null;
         if (IsToaster)
         {
             var setting = await Http.GetAsJsonAsync<GetUserProperties>("api/UserProperties?name=Ami.Toaster.MaxCount");
-            ToasterSetting = setting?.Item;
-            ToasterMaxCount = int.TryParse(ToasterSetting?.Value, out var count) && count > 0 ? count : null;
+            _toasterSetting = setting?.Item;
+            ToasterMaxCount = int.TryParse(_toasterSetting?.Value, out var count) && count > 0 ? count : null;
         }
         _typeSettingsLoaded = true;
     }
@@ -256,8 +269,8 @@
             if (_action != CrudAction.Delete && !ValidateEditor()) {
                 return;
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingNotification);
-            NotificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.OnSave");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingNotification);
+            _notificationService?.RemoveByKey("Pages/Notification/NotificationGeneral.OnSave");
             if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveNotificationResponse>("api/Notification/Delete", new RemoveNotification()
@@ -283,12 +296,12 @@
                 await Http.PostAsJson<UpdateNotificationResponse>(address, new UpdateNotification() { Notifications = new List<GXNotification>() { Active } });
                 if (IsToaster)
                 {
-                    ToasterSetting ??= new Gurux.DLMS.AMI.Shared.DTOs.User.GXUserProperty { Name = "Ami.Toaster.MaxCount", User = Active.Creator };
-                    ToasterSetting.Value = ToasterMaxCount?.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    await Http.PostAsJson("api/UserProperties/Update", new UpdateUserProperties { Properties = new List<GXUserProperty> { ToasterSetting } });
+                    _toasterSetting ??= new Gurux.DLMS.AMI.Shared.DTOs.User.GXUserProperty { Name = "Ami.Toaster.MaxCount", User = Active.Creator };
+                    _toasterSetting.Value = ToasterMaxCount?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    await Http.PostAsJson("api/UserProperties/Update", new UpdateUserProperties { Properties = new List<GXUserProperty> { _toasterSetting } });
                 }
             }
-            if (Notifier is GXAmiNotifierService notifier)
+            if (_notifier is GXAmiNotifierService notifier)
             {
                 await notifier.RefreshNotificationsAsync(Http);
             }
@@ -307,7 +320,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Notification/NotificationGeneral.OnSave");
         }
         finally { _saving = false; }
     }

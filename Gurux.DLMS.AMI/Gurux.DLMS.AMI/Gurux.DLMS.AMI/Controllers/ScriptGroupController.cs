@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ScriptGroupController(
         IScriptGroupRepository ScriptGroupRepository) : ControllerBase
     {
-        private readonly IScriptGroupRepository _ScriptGroupRepository = ScriptGroupRepository;
+        /// <summary>Provides persistence and access checks for script group records.</summary>
+        private readonly IScriptGroupRepository _scriptGroupRepository = ScriptGroupRepository;
 
         /// <summary>
         /// Get script group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetScriptGroupResponse()
             {
-                Item = await _ScriptGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _scriptGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXScriptGroupPolicies.Add)]
         public async Task<ActionResult<AddScriptGroupResponse>> Post(AddScriptGroup request, CancellationToken cancellationToken = default)
         {
-            await _ScriptGroupRepository.UpsertAsync(request.ScriptGroups, null, cancellationToken);
+            await _scriptGroupRepository.UpsertAsync(request.ScriptGroups, null, cancellationToken);
             return new AddScriptGroupResponse()
             {
                 Ids = [.. request.ScriptGroups.Select(s => s.Id)]
@@ -87,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListScriptGroupsResponse ret = new();
-            await _ScriptGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _scriptGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXScriptGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveScriptGroupResponse>> Post(RemoveScriptGroup request, CancellationToken cancellationToken = default)
         {
-            await _ScriptGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _scriptGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveScriptGroupResponse();
         }
     }

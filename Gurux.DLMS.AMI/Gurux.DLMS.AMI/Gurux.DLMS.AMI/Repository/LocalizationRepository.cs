@@ -49,12 +49,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class LocalizationRepository : ILocalizationRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves the language used for localized application messages.</summary>
         private readonly GXLanguageService _languageService;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
 
         /// <summary>
@@ -75,7 +82,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                User = httpContextAccessor.HttpContext.User;
+                _user = httpContextAccessor.HttpContext.User;
             }
             _serviceProvider = serviceProvider;
             _dbFactory = dbFactory;
@@ -89,7 +96,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<string?> GetUserLanguageAsync(CancellationToken cancellationToken)
         {
             //User roles are not checked.
-            string value = await _languageService.GetUserLanguageAsync(User);
+            string value = await _languageService.GetUserLanguageAsync(_user);
             //Check that language is installed or return the default language.
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             var culture = CultureInfo.GetCultureInfo(value);
@@ -118,7 +125,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<IEnumerable<GXLanguage>> GetInstalledCulturesAsync(bool activeOnly, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (activeOnly)
             {
@@ -132,10 +139,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task UpdateCulturesAsync(IEnumerable<GXLanguage> languages, CancellationToken cancellationToken)
         {
             languages = languages.ToArray();
-            await GXHistoryMutation.RunAsync<GXLanguage>(_dbFactory, User, _serviceProvider, languages,
+            await GXHistoryMutation.RunAsync<GXLanguage>(_dbFactory, _user, _serviceProvider, languages,
         async () =>
         {
-            if (!User.IsInRole(GXRoles.Admin))
+            if (!_user.IsInRole(GXRoles.Admin))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -167,7 +174,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 IEnumTypeRepository enumTypeRepository = scope.ServiceProvider.GetRequiredService<IEnumTypeRepository>();
                 var con = _serviceProvider.GetRequiredService<ApplicationDbContext>();
                 List<GXLanguage> updated = await UpdateLanguageResourcesAsync(connection,
@@ -183,8 +190,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<string?> GetLocalizedStringAsync(string language, string hash, CancellationToken cancellationToken)
         {
-            if (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.Authenticated))
+            if (!_user.IsInRole(GXRoles.Admin) &&
+                !_user.IsInRole(GXRoles.Authenticated))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -203,16 +210,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task RefreshLocalizationsAsync(IEnumerable<GXLanguage>? languages, CancellationToken cancellationToken)
         {
-            await GXHistoryMutation.RunAllAsync<GXLanguage>(_dbFactory, User, _serviceProvider,
+            await GXHistoryMutation.RunAllAsync<GXLanguage>(_dbFactory, _user, _serviceProvider,
         async () =>
         {
-            if (!User.IsInRole(GXRoles.Admin))
+            if (!_user.IsInRole(GXRoles.Admin))
             {
                 throw new UnauthorizedAccessException();
             }
             GXUser user = new()
             {
-                Id = GetUserId(User, true)
+                Id = GetUserId(_user, true)
             };
             using IServiceScope scope = _serviceProvider.CreateScope();
             IEnumTypeRepository enumTypeRepository = scope.ServiceProvider.GetRequiredService<IEnumTypeRepository>();

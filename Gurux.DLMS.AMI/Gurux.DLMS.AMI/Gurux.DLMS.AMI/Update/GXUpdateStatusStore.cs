@@ -48,9 +48,13 @@ namespace Gurux.DLMS.AMI.Update;
 /// <summary>Stores the last successful complete check; reads never contact update feeds.</summary>
 public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOptions options)
 {
+    /// <summary>Configuration record name used to persist this updater's settings.</summary>
     const string ConfigurationName = "updates";
-    static readonly SemaphoreSlim Writes = new(1, 1);
+    /// <summary>Serializes writes so persisted state cannot be overwritten concurrently.</summary>
+    static readonly SemaphoreSlim _writes = new(1, 1);
 
+    /// <summary>Reads the server's informational version, falling back to its assembly version when necessary.</summary>
+    /// <returns>The informational or assembly version, or null when neither is available.</returns>
     static string? CoreVersion()
     {
         var assembly = typeof(GXUpdateStatusStore).Assembly;
@@ -58,6 +62,10 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         return string.IsNullOrWhiteSpace(version) ? assembly.GetName().Version?.ToString() : version;
     }
 
+    /// <summary>Compares normalized installed and available versions to determine whether an update is available.</summary>
+    /// <param name="installed">The installed release version to compare.</param>
+    /// <param name="available">The available release version to compare against the installed version.</param>
+    /// <returns>Unknown when either version is invalid; otherwise update-available or up-to-date status.</returns>
     static GXUpdateStatus Status(string? installed, string? available)
     {
         if (!GXReleaseVersionComparer.TryNormalize(installed, out var local) ||
@@ -69,6 +77,9 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         return GXReleaseVersionComparer.Instance.Compare(remote, local) > 0 ? GXUpdateStatus.UpdateAvailable : GXUpdateStatus.UpToDate;
     }
 
+    /// <summary>Combines the core application's installed version with its latest compatible stable catalog release.</summary>
+    /// <param name="catalog">The cached catalog used to resolve the core application product and releases.</param>
+    /// <returns>The core application's installed and available release information.</returns>
     GXAvailableUpdate Core(GXUpdateCatalog? catalog)
     {
         var item = catalog?.Items.FirstOrDefault(i => i.Type == CatalogProductType.Application &&
@@ -88,6 +99,9 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         };
     }
 
+    /// <summary>Selects the highest compatible non-prerelease version from the supplied catalog item.</summary>
+    /// <param name="item">The catalog product whose compatible stable releases are inspected.</param>
+    /// <returns>The highest compatible stable release, or null when no release is eligible.</returns>
     static GXUpdateRelease? StableRelease(GXUpdateCatalogItem? item)
     {
         if (item == null)
@@ -99,9 +113,19 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
             .Where(r => !r.IsPrerelease && GXReleaseVersionComparer.TryNormalize(r.Version, out var version) && !GXReleaseVersionComparer.IsPrerelease(version))
             .OrderByDescending(r => r.Version, GXReleaseVersionComparer.Instance).FirstOrDefault();
     }
+    /// <summary>Normalizes a supported release version, returning null when validation fails.</summary>
+    /// <param name="version">Release version text to normalize.</param>
+    /// <returns>Normalized release text, or null if the input is invalid.</returns>
     static string? Normalized(string? version) => GXReleaseVersionComparer.TryNormalize(version, out var normalized) ? normalized : null;
+    /// <summary>Retains only absolute release URLs supported by the catalog update service.</summary>
+    /// <param name="value">The optional release URL to validate.</param>
+    /// <returns>The original supported absolute URL, or null when it is invalid or unsupported.</returns>
     static string? SafeUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && GXCatalogUpdateService.IsSupportedUri(uri) ? value : null;
 
+    /// <summary>Loads installed or custom-built modules, returning an empty list before the module table exists.</summary>
+    /// <param name="db">The open database connection used to read or persist update state.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing installed modules ordered by their display name or identifier.</returns>
     static async Task<List<UpdateDbModule>> InstalledModulesAsync(GXDbConnection db, CancellationToken token)
     {
         if (!new GXSchemaManager(db).TableExist<UpdateDbModule>())
@@ -121,6 +145,10 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         return [.. modules.Where(m => (m.Status.GetValueOrDefault() & (ModuleStatus.Installed | ModuleStatus.CustomBuild)) != 0).OrderBy(m => m.Name ?? m.Id, StringComparer.OrdinalIgnoreCase)];
     }
 
+    /// <summary>Combines an installed module with cached catalog metadata to produce its current update status.</summary>
+    /// <param name="module">The installed module record whose update status is being composed.</param>
+    /// <param name="cached">The optional previously cached catalog information for the module.</param>
+    /// <returns>The module update status including any cached available release information.</returns>
     static GXAvailableUpdate Module(UpdateDbModule module, GXAvailableUpdate? cached = null)
     {
         var installed = module.ReleaseVersion ?? module.Version;
@@ -138,6 +166,10 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         };
     }
 
+    /// <summary>Combines registered agents with compatible enabled templates to determine stable available versions.</summary>
+    /// <param name="db">The open database connection used to read or persist update state.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the registered agents and their latest eligible stable versions.</returns>
     static async Task<List<GXAvailableUpdate>> AgentsAsync(GXDbConnection db, CancellationToken token)
     {
         var schema = new GXSchemaManager(db);
@@ -186,7 +218,7 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
             {
                 checkedAt = JsonNode.Parse(modules.Settings)?["Checked"]?.GetValue<DateTimeOffset>();
             }
-        
+
             var configuration = await db.SingleOrDefaultAsync<GXConfiguration>(GXSelectArgs.SelectAll<GXConfiguration>(c => c.Name == ConfigurationName), token);
             if (!string.IsNullOrWhiteSpace(configuration?.Settings))
             {
@@ -267,7 +299,7 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
     /// <param name="token">Token used to cancel the operation.</param>
     public async Task SaveCheckAsync(GXUpdateCatalog catalog, GXAvailableUpdate deviceProfiles, CancellationToken token = default)
     {
-        await Writes.WaitAsync(token);
+        await _writes.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -326,7 +358,7 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         }
         finally
         {
-            Writes.Release();
+            _writes.Release();
         }
     }
 }

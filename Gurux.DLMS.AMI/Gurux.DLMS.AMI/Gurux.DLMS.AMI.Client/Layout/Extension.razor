@@ -44,22 +44,26 @@
 @inject ModuleLoader Loader
 @implements IDisposable
 
-@if (_extensionUI != null && Active != null)
+@if (_extensionUI != null && _active != null)
 {
-    <ModuleErrorBoundary @key="_extensionUI" ModuleId="@Active.Id">
-        <ModuleWrapper Target="@Active" ModuleId="@Active.Id" @ref="_module"
+    <ModuleErrorBoundary @key="_extensionUI" ModuleId="@_active.Id">
+        <ModuleWrapper Target="@_active" ModuleId="@_active.Id" @ref="_module"
                        ComponentType="_extensionUI"
-                       Settings="@Active.GetSettings()" SettingsChanged="@((string? value) => Active.SetSettings(value))" />
+                       Settings="@_active.GetSettings()" SettingsChanged="@((string? value) => _active.SetSettings(value))" />
     </ModuleErrorBoundary>
 }
 
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected item.
@@ -67,9 +71,12 @@
     [Parameter]
     public string? Id { get; set; }
 
+    /// <summary>References the module view wrapper so module-specific content can be refreshed.</summary>
     ModuleWrapper? _module;
+    /// <summary>Identifies the module-provided component type used to extend the current settings view.</summary>
     Type? _extensionUI;
-    private GXModule? Active;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
+    private GXModule? _active;
     /// <summary>
     /// User action.
     /// </summary>
@@ -82,20 +89,20 @@
     /// <returns></returns>
     internal async Task ShowModuleSettings()
     {
-        if (Active != null && _extensionUI == null)
+        if (_active != null && _extensionUI == null)
         {
             if (!Loader.IsInitialized)
             {
                 await Loader.RefreshAsync(_lifetime.Token);
             }
 
-            var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == Active.Id)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Extension && v.Key == null);
+            var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == _active.Id)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Extension && v.Key == null);
             if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await Authentication.GetAuthenticationStateAsync()).User, declaredView.Policy)).Succeeded)
             {
                 return;
             }
 
-            _extensionUI = await Loader.GetViewTypeAsync(Active.Id, AmiViewArea.Extension, cancellationToken: _lifetime.Token);
+            _extensionUI = await Loader.GetViewTypeAsync(_active.Id, AmiViewArea.Extension, cancellationToken: _lifetime.Token);
         }
         if (_module != null)
         {
@@ -113,7 +120,7 @@
             }
             catch (Exception ex)
             {
-                NotificationService?.ReportError(ex);
+                _notificationService?.ReportError(ex);
             }
         }
         await base.OnParametersSetAsync();
@@ -121,10 +128,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -132,11 +139,11 @@
         Loader.Changed += OnLoaderChanged;
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingExtension);
-            NotificationService?.RemoveByKey("Layout/Extension.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingExtension);
+            _notificationService?.RemoveByKey("Layout/Extension.OnInitializedAsync");
             MenuService.Clear();
             CrudAction action = ClientHelpers.GetAction(NavigationManager, Action, CrudAction.Read);
-            if (Active?.Id == null && Id != null)
+            if (_active?.Id == null && Id != null)
             {
                 if (!Loader.IsInitialized)
                 {
@@ -147,18 +154,18 @@
                     item.State == AmiModuleState.Active);
                 if (manifest != null)
                 {
-                    Active = new GXModule { Id = manifest.Id, Name = manifest.Name, Version = manifest.Version, Enabled = true };
+                    _active = new GXModule { Id = manifest.Id, Name = manifest.Name, Version = manifest.Version, Enabled = true };
                     await ShowModuleSettings();
                     // Redirect-only views, such as Swagger and Scalar, need no persisted module settings.
                     if (_extensionUI != null && typeof(IGXAmiModuleSettings).IsAssignableFrom(_extensionUI))
                     {
                         var response = await Http.GetAsJsonAsync<GetModuleResponse>(
                             "api/Module?id=" + Uri.EscapeDataString(manifest.Id), _lifetime.Token);
-                        Active = response.Item;
+                        _active = response.Item;
                     }
                 }
             }
-            if (Active == null)
+            if (_active == null)
             {
                 NavigationManager.NavigateTo("404");
                 return;
@@ -179,10 +186,12 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Layout/Extension.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Layout/Extension.OnInitializedAsync");
         }
     }
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
 
     private void OnLoaderChanged()
@@ -200,7 +209,7 @@
             {
                 if (Loader.RefreshError != null)
                 {
-                    NotificationService?.ReportError(Loader.RefreshError);
+                    _notificationService?.ReportError(Loader.RefreshError);
                 }
 
                 await ShowModuleSettings();
@@ -210,7 +219,7 @@
             }
             catch (Exception ex)
             {
-                NotificationService?.ReportError(ex);
+                _notificationService?.ReportError(ex);
             }
             if (!_disposed)
             {

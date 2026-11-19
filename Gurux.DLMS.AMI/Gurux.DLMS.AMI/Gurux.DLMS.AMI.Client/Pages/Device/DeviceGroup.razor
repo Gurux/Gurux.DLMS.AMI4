@@ -51,7 +51,7 @@
 <GXHelpContext Topic="DeviceGroup" />
 
 <h1>
-    @Title
+    @_title
 </h1>
 <CascadingValue Value="this">
     <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
@@ -73,6 +73,7 @@
 <ModuleViews Area="AmiViewArea.DeviceGroup" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 <ModuleViews Area="AmiViewArea.DeviceGroupSettings" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 @code {
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
@@ -81,8 +82,10 @@
         ["Action"] = _action
     };
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -107,7 +110,7 @@
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -116,29 +119,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.DeviceGroup;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDeviceGroup);
-            NotificationService?.RemoveByKey("Pages/Device/DeviceGroup.OnInitializedAsync");
+            _title += " " + Properties.Resources.DeviceGroup;
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDeviceGroup);
+            _notificationService?.RemoveByKey("Pages/Device/DeviceGroup.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get device group data.
@@ -162,10 +165,11 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceGroup.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceGroup.OnInitializedAsync");
         }
     }
 
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     public bool DeleteTarget { get; set; }
     private void SetEditorMenu() { _editorMenu = new GXEditorMenu(SharedMenuService); _editorMenu.Set(Active, _action, OnSave, () => { OnCancel(); return Task.CompletedTask; }); }
@@ -181,8 +185,8 @@
             if (_action != CrudAction.Delete && !GXEditContexts.For(Active).Validate()) {
                 return;
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingDeviceGroup);
-            NotificationService?.RemoveByKey("Pages/Device/DeviceGroupGeneral.OnSave");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingDeviceGroup);
+            _notificationService?.RemoveByKey("Pages/Device/DeviceGroupGeneral.OnSave");
             if (_action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveDeviceGroupResponse>("api/DeviceGroup/Delete", new RemoveDeviceGroup()
@@ -216,7 +220,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceGroupGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceGroupGeneral.OnSave");
         }
     }
     private void OnCancel()

@@ -73,8 +73,10 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
@@ -82,14 +84,17 @@
     [CascadingParameter]
     private Block? BlockParent { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXBlockGroup>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXBlockGroup>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXBlockGroup>? _selectionContainer;
 
     /// <summary>
     /// Block group filter.
     /// </summary>
-    private GXBlockGroup filter = new GXBlockGroup(null);
+    private GXBlockGroup _filter = new GXBlockGroup(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -109,13 +114,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchSelectedByName");
         }
     }
 
@@ -125,14 +130,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchByName");
         }
     }
 
@@ -144,32 +149,32 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.UserGroups = null;
+                    _filter.UserGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    GXUserGroup? ug = _filter.UserGroups?.FirstOrDefault();
                     if (ug == null)
                     {
                         user = new GXUser();
                         ug = new GXUserGroup();
-                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        _filter.UserGroups = new(new GXUserGroup[] { ug });
                         ug.Users = new(new GXUser[] { user });
                     }
                     else
                     {
-                        user = GXFilterHelpers.GetOrAddUser(filter.UserGroups ??= []);
+                        user = GXFilterHelpers.GetOrAddUser(_filter.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchByUser");
         }
     }
 
@@ -191,14 +196,14 @@
     private async ValueTask<ItemsProviderResult<GXBlockGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingBlockGroups);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingBlockGroups);
         try
         {
             ListBlockGroups req = new ListBlockGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -216,15 +221,15 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
@@ -234,8 +239,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingBlockGroups);
-            NotificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingBlockGroups);
+            _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.OnInitializedAsync");
             CrudAction action;
             if (UserGroupParent?.Active?.BlockGroups != null)
             {
@@ -280,7 +285,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.OnInitializedAsync");
         }
     }
 }

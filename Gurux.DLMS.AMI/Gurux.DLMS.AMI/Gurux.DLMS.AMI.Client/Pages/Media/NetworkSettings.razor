@@ -29,17 +29,18 @@
 
 @implements IDisposable
 
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.Net.Enums
 @using Gurux.UI.Components.Accordion
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
-@using Gurux.DLMS.AMI.Client.Pages.Device
 
 <GXHelpContext Topic="NetworkSettings" />
 
@@ -57,7 +58,7 @@
         <div class="form-group">
             <label>@Properties.Resources.Protocol</label>
             <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="Protocol"
-                             Items="@(NetworkTypeList)" />
+                             Items="@(_networkTypeList)" />
         </div>
         @if (!IsServer)
         {
@@ -71,7 +72,7 @@
         <div class="form-group">
             <label>@Properties.Resources.Port</label>
             <GXInputNumber RememberValue="false" id="port" class="form-control"
-                         @bind-Value="Port" Min="@GXNumberBounds.Minimum(Port)" Max="@GXNumberBounds.Maximum(Port)" />
+                           @bind-Value="Port" Min="@GXNumberBounds.Minimum(Port)" Max="@GXNumberBounds.Maximum(Port)" />
             <ValidationMessage For="@(() => Port)" />
             @if (EditContext != null && PortValidationField != null)
             {
@@ -85,13 +86,19 @@
 </GXAccordion>
 
 @code {
-    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] { Gurux.Net.NetworkType.Tcp, Gurux.Net.NetworkType.Udp };
+    /// <summary>Lists the TCP and UDP protocols offered by the network settings editor.</summary>
+    NetworkType[] _networkTypeList = new NetworkType[] { NetworkType.Tcp, NetworkType.Udp };
 
+    /// <summary>Parses and serializes the network transport settings edited by the form.</summary>
     private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
 
+    /// <summary>Caches the settings currently displayed by the editor.</summary>
     private string? _settings;
+    /// <summary>Retains the edit context whose validation notifications are currently subscribed.</summary>
     private EditContext? _subscribedContext;
+    /// <summary>Keeps the settings section open when it contains validation errors.</summary>
     private bool _validationExpanded;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private int _validationExpansionVersion;
 
     [CascadingParameter]
@@ -161,8 +168,8 @@
         }
         set
         {
-            _net.HostName = value;
-            UpdateSettings(_net.Settings.Trim());
+            _net.HostName = value ?? string.Empty;
+            UpdateSettings(_net.Settings?.Trim() ?? string.Empty);
         }
     }
 
@@ -175,11 +182,11 @@
         set
         {
             _net.Port = value;
-            UpdateSettings(_net.Settings.Trim());
+            UpdateSettings(_net.Settings?.Trim() ?? string.Empty);
         }
     }
 
-    public Gurux.Net.NetworkType Protocol
+    public NetworkType Protocol
     {
         get
         {
@@ -188,7 +195,7 @@
         set
         {
             _net.Protocol = value;
-            UpdateSettings(_net.Settings.Trim());
+            UpdateSettings(_net.Settings?.Trim() ?? string.Empty);
         }
     }
 

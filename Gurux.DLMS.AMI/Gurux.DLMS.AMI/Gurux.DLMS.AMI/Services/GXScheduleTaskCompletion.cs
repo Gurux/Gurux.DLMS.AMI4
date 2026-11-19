@@ -38,6 +38,14 @@ namespace Gurux.DLMS.AMI.Server.Services;
 /// <summary>Completes a generic schedule operation once all its persisted tasks have finished.</summary>
 internal static class GXScheduleTaskCompletion
 {
+    /// <summary>Finishes a schedule after all tasks complete, retaining failures from claims made before an upgrade.</summary>
+    /// <param name="factory">Provides task and workflow database connections.</param>
+    /// <param name="workflows">Publishes the completed schedule operation.</param>
+    /// <param name="task">Completed task identifying the schedule operation.</param>
+    /// <param name="cancellationToken">Cancels database access and gate acquisition.</param>
+    /// <returns>A task completing after the schedule state is persisted and published.</returns>
+    /// <exception cref="KeyNotFoundException">The schedule operation is unavailable.</exception>
+    /// <exception cref="InvalidOperationException">The task does not belong to the schedule operation.</exception>
     internal static async Task CompleteAsync(IDbConnectionFactory factory, IWorkflowHandler workflows,
         GXTask task, CancellationToken cancellationToken)
     {
@@ -65,7 +73,26 @@ internal static class GXScheduleTaskCompletion
                 if (tasks.Count == 0 || tasks.Any(t => t.Ready == null)) {
                     return;
                 }
-                var error = tasks.FirstOrDefault(t => !string.IsNullOrEmpty(t.Result))?.Result;
+                var error = tasks.FirstOrDefault(t => !string.IsNullOrEmpty(t.Error))?.Error;
+                if (error == null)
+                {
+                    // A schedule can span an upgrade. Only a failed operation for the
+                    // current claim proves that an old Result is an error rather than output.
+                    var legacy = tasks.Where(t => t.Start != null && !string.IsNullOrEmpty(t.Result))
+                        .ToDictionary(TaskRepository.TaskOperationKey);
+                    if (legacy.Count != 0)
+                    {
+                        var keys = legacy.Keys.ToArray();
+                        var failures = await connection.SelectAsync<GXWorkflowOperation>(transaction,
+                            GXSelectArgs.SelectAll<GXWorkflowOperation>(o =>
+                                keys.Contains(o.IdempotencyKey) && o.State == WorkflowOperationState.Failed), cancellationToken);
+                        var failure = failures.FirstOrDefault();
+                        if (failure != null)
+                        {
+                            error = legacy[failure.IdempotencyKey!].Result;
+                        }
+                    }
+                }
                 operation = await WorkflowOperationRepository.FinishRecordAsync(connection, transaction, operationId,
                     error == null ? WorkflowOperationState.Completed : WorkflowOperationState.Failed, null,
                     error?[..Math.Min(error.Length, 2048)], cancellationToken);

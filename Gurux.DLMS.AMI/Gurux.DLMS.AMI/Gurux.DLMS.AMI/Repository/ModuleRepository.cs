@@ -60,13 +60,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public partial class ModuleRepository : IModuleRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Provides persistence and access checks for module group records.</summary>
         private readonly IModuleGroupRepository _moduleGroupRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for log records.</summary>
         private readonly ILogRepository _systemLogRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -85,7 +93,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _moduleGroupRepository = moduleGroupRepository;
@@ -95,12 +103,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Copies the module runtime's current lifecycle state onto its persisted API model.</summary>
+        /// <param name="module">Persisted module record supplying identity, configuration, and assembly metadata.</param>
         private void SetRuntimeSnapshot(GXModule module)
         {
             var state = _serviceProvider.GetRequiredService<Server.Module.GXModuleRuntime>().GetState(module.Id);
             module.RuntimeState = state.HasValue ? (byte)state.Value : null;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXModule), id, action, GXModulePolicies.View, connection, transaction, notifications: _notificationCache);
@@ -108,13 +124,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(string? moduleId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByModule(s => s.Id!,
-                ServerHelpers.GetUserId(User), moduleId);
+                ServerHelpers.GetUserId(_user), moduleId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -124,13 +140,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<string>? moduleIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByModules(s => s.Id!,
-                ServerHelpers.GetUserId(User), moduleIds);
+                ServerHelpers.GetUserId(_user), moduleIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -141,13 +157,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<string> modules, CancellationToken cancellationToken = default)
         {
             modules = modules.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXModule, string>(_dbFactory, User, _serviceProvider, modules,
+            await GXHistoryMutation.RunDeleteAsync<GXModule, string>(_dbFactory, _user, _serviceProvider, modules,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.Delete);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 var selected = new List<GXModule>();
                 var recipients = new Dictionary<string, List<string>>();
@@ -156,7 +172,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     var selection = GXSelectArgs.Select<GXModule>(module => new { module.Id, module.Name, module.Status }, module => module.Id == id);
                     var module = await connection.SingleOrDefaultAsync<GXModule>(selection) ?? throw new ArgumentException($"Module {id} does not exist.");
                     var policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXModule), id, cancellationToken);
-                    if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, policies, cancellationToken))
+                    if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, policies, cancellationToken))
                     {
                         throw new UnauthorizedAccessException();
                     }
@@ -251,16 +267,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListModulesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.View);
             GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the modules.
                 arg = GXSelectArgs.SelectAll<GXModule>();
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetModulesByUser(s => s.Id, userId);
                 arg.Columns.Clear();
                 arg.Columns.Add<GXModule>();
@@ -303,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var candidate in await connection.SelectAsync<GXModule>(GXSelectArgs.Select<GXModule>(m => m.Id), cancellationToken))
             {
                 var names = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXModule), candidate.Id, cancellationToken);
-                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, names, cancellationToken))
+                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, names, cancellationToken))
                 {
                     allowed.Add(candidate.Id);
                 }
@@ -373,21 +389,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<IEnumerable<GXModule>> ListWithVersionsAsync()
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.View);
             bool isAdmin = true;
-            if (User != null)
+            if (_user != null)
             {
-                isAdmin = User.IsInRole(GXRoles.Admin);
+                isAdmin = _user.IsInRole(GXRoles.Admin);
             }
             GXSelectArgs arg;
-            if (isAdmin || User == null)
+            if (isAdmin || _user == null)
             {
                 //Admin can see all the modules.
                 arg = GXSelectArgs.SelectAll<GXModule>();
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetModulesByUser(s => s.Id, userId);
             }
             arg.Columns.Add<GXModuleVersion>();
@@ -401,7 +417,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var item in modules)
             {
                 item.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXModule), item.Id);
-                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, item.Policies))
+                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, item.Policies))
                 {
                     visible.Add(item);
                     SetRuntimeSnapshot(item);
@@ -416,7 +432,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.View);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXModule>(where => where.Id == id);
                 arg.Columns.Add<GXModuleProperty>();
                 arg.Columns.Exclude<GXModuleProperty>(p => p.Module!);
@@ -426,7 +442,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 var module = await connection.SingleOrDefaultAsync<GXModule>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
                 module.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXModule), module.Id, cancellationToken);
-                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, module.Policies, cancellationToken))
+                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, module.Policies, cancellationToken))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -480,13 +496,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task UpsertAsync(GXModule module,
             Expression<Func<GXModule, object>>? columns, CancellationToken cancellationToken = default)
         {
-            await GXHistoryMutation.RunAsync<GXModule>(_dbFactory, User, _serviceProvider, new[] { module },
+            await GXHistoryMutation.RunAsync<GXModule>(_dbFactory, _user, _serviceProvider, new[] { module },
         async () =>
         {
             try
             {
                 using var settingsLock = await Server.Module.AmiModuleSettingsStorage.LockAsync(module.Id, cancellationToken);
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.Edit);
                 //Verify that the module exists and compare its saved deployment choice.
                 GXSelectArgs arg = GXSelectArgs.Select<GXModule>(s => new { s.Id, s.Enabled },
                     w => w.Id == module.Id);
@@ -496,7 +512,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Joins.AddLeftJoin<GXModule, GXModuleProperty>(j => j.Id, j => j.Module!);
                 var mod = await connection.SingleOrDefaultAsync<GXModule>(arg) ?? throw new GXAmiNotFoundException(Properties.Resources.Module + " " + Properties.Resources.Id + " " + module.Id);
                 var existingPolicies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXModule), module.Id, cancellationToken);
-                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, existingPolicies, cancellationToken))
+                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, existingPolicies, cancellationToken))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -628,12 +644,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task AddAsync(IEnumerable<GXModule> modules)
         {
             modules = modules.ToArray();
-            await GXHistoryMutation.RunAsync<GXModule>(_dbFactory, User, _serviceProvider, modules,
+            await GXHistoryMutation.RunAsync<GXModule>(_dbFactory, _user, _serviceProvider, modules,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.Add);
             DateTime now = DateTime.Now;
-            GXUser user = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser user = new() { Id = ServerHelpers.GetUserId(_user) };
             foreach (var it in modules)
             {
                 if (it.CreationTime == null)
@@ -671,7 +687,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<GXScript>> GetScriptsAsync(string? moduleId)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXModulePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXModulePolicies.View);
             GXModule module = new();
             if (moduleId != null)
             {
@@ -720,18 +736,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IModuleSettingsRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModuleSettingsRepository
         {
+            /// <summary>Settings key containing the module log menu identifier.</summary>
             private const string LogMenuKey = "LogMenuLinkId";
 
+            /// <summary>Reads the owning module and its properties within the module repository transaction.</summary>
+            /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+            /// <returns>The module record, or null if it no longer exists.</returns>
             private Task<GXModule?> ReadAsync(CancellationToken token)
             {
                 var moduleId = scope.ModuleId;
                 return AmiModuleSettingsStorage.ReadModuleAsync(scope.Connection, moduleId, token, scope.Transaction);
             }
 
+            /// <inheritdoc />
             public async Task<Guid?> ReadNotificationTypeIdAsync(CancellationToken token)
             {
                 var module = await ReadAsync(token) ?? throw new InvalidOperationException("The module settings record is unavailable.");
@@ -747,6 +773,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return id;
             }
 
+            /// <inheritdoc />
             public async Task SetNotificationTypeIdAsync(Guid? id, CancellationToken token)
             {
                 var module = await ReadAsync(token) ?? throw new InvalidOperationException("The module settings record is unavailable.");
@@ -768,6 +795,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await AmiModuleSettingsStorage.SavePropertiesAsync(scope.Connection, module, token, scope.Transaction);
             }
 
+            /// <inheritdoc />
             public async Task<Guid?> ReadLogMenuLinkIdAsync(CancellationToken token)
             {
                 var module = await ReadAsync(token) ?? throw new InvalidOperationException("The module settings record is unavailable.");
@@ -783,6 +811,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return id;
             }
 
+            /// <inheritdoc />
             public async Task SetLogMenuLinkIdAsync(Guid? id, CancellationToken token)
             {
                 var module = await ReadAsync(token) ?? throw new InvalidOperationException("The module settings record is unavailable.");

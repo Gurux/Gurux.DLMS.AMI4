@@ -74,8 +74,10 @@
 
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     [CascadingParameter]
@@ -84,14 +86,17 @@
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXScriptGroup>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXScriptGroup>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXScriptGroup>? _selectionContainer;
 
     /// <summary>
     /// Script group filter.
     /// </summary>
-    private GXScriptGroup filter = new GXScriptGroup(null);
+    private GXScriptGroup _filter = new GXScriptGroup(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -111,13 +116,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.SearchSelectedByName");
         }
     }
 
@@ -127,14 +132,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.SearchByName");
         }
     }
 
@@ -146,32 +151,32 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.UserGroups = null;
+                    _filter.UserGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    GXUserGroup? ug = _filter.UserGroups?.FirstOrDefault();
                     if (ug == null)
                     {
                         user = new GXUser();
                         ug = new GXUserGroup();
-                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        _filter.UserGroups = new(new GXUserGroup[] { ug });
                         ug.Users = new(new GXUser[] { user });
                     }
                     else
                     {
-                        user = GXFilterHelpers.GetOrAddUser(filter.UserGroups ??= []);
+                        user = GXFilterHelpers.GetOrAddUser(_filter.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.SearchByUser");
         }
     }
 
@@ -193,14 +198,14 @@
     private async ValueTask<ItemsProviderResult<GXScriptGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScriptGroups);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScriptGroups);
         try
         {
             ListScriptGroups req = new ListScriptGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -218,15 +223,15 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
@@ -236,8 +241,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingScriptGroups);
-            NotificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingScriptGroups);
+            _notificationService?.RemoveByKey("Pages/Script/ScriptGroupsSelector.OnInitializedAsync");
             CrudAction action;
             if (UserGroupParent?.Active?.ScriptGroups != null)
             {
@@ -281,7 +286,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGroupsSelector.OnInitializedAsync");
         }
     }
 }

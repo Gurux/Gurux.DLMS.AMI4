@@ -33,12 +33,16 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Owns form state in the client, shared by editors of the same model instance.</summary>
 public static class GXEditContexts
 {
-    private static readonly ConditionalWeakTable<object, EditContext> Contexts = [];
+    /// <summary>Weakly keyed form contexts shared by editors of the same model instance.</summary>
+    private static readonly ConditionalWeakTable<object, EditContext> _contexts = [];
 
     /// <summary>Returns the model's context without retaining models after their editors are released.</summary>
+    /// <param name="model">Model instance whose editor state or command policy is needed.</param>
+    /// <returns>The existing context for this model instance, or a newly created context.</returns>
+    /// <exception cref="ArgumentNullException">The model is null.</exception>
     public static EditContext For(object model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        return Contexts.GetValue(model, static value => new EditContext(value));
+        return _contexts.GetValue(model, static value => new EditContext(value));
     }
 }

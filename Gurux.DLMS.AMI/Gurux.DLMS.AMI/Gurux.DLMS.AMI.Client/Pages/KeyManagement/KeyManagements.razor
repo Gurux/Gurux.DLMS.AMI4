@@ -66,7 +66,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="KeyManagement.KeyManagements" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementPolicies.View })"
+<GXViewTable ViewName="KeyManagement.KeyManagements" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementPolicies.View })"
              TItem="GXKeyManagement" @ref="table"
              Context="item"
              ItemsProvider="@GetItems"
@@ -80,22 +80,22 @@
     <FilterContent>
         <GXFh Id="Description">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="SystemTitle">
-            <GXInputHexAscii @bind-Value="filter.SystemTitle" Hex="true"
+            <GXInputHexAscii @bind-Value="_filter.SystemTitle" Hex="true"
                            Title="@Properties.Resources.FilterBySystemTitle" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="KeyManagements-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -119,7 +119,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Description") { Position = 0, Description = "Description", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("SystemTitle") { Position = 1, Description = "SystemTitle", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -127,9 +128,12 @@
         new("Updated") { Position = 3, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected key management ID.
@@ -203,7 +207,7 @@
     /// <summary>
     /// KeyManagement filter.
     /// </summary>
-    private GXKeyManagement filter = new GXKeyManagement();
+    private GXKeyManagement _filter = new GXKeyManagement();
 
     /// <summary>
     /// Table reference.
@@ -219,22 +223,22 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagements.Updated");
+                _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagements.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagements.Updated");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagements.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -243,9 +247,9 @@
         await Task.Delay(1);
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagements);
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagements.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingKeyManagements);
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagements.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -270,29 +274,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagements.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagements.OnInitializedAsync");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXKeyManagement>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagements);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingKeyManagements);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListKeyManagements req = new ListKeyManagements()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -314,7 +318,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -334,7 +338,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -345,7 +349,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagements.OnEdit");
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagements.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -358,7 +362,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagements.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagements.OnEdit");
         }
     }
 
@@ -394,7 +398,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -421,7 +425,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -432,7 +436,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

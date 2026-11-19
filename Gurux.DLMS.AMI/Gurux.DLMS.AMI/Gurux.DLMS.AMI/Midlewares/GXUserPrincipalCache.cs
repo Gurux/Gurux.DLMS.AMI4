@@ -34,20 +34,27 @@ namespace Gurux.DLMS.AMI.Server.Midlewares;
 /// <summary>Caches immutable snapshots of the current user grants independently of authentication cookies.</summary>
 internal sealed class GXUserPrincipalCache(IMemoryCache cache)
 {
-    static long generation;
-    readonly Lock gate = new();
+    /// <summary>Monotonic generation counter used to distinguish replacement state.</summary>
+    static long _generation;
+    /// <summary>Serializes operations that mutate shared state in this component.</summary>
+    readonly Lock _gate = new();
 
     /// <summary>Invalidate grant snapshots after user or role changes have been saved.</summary>
-    public static void InvalidateAll() => Interlocked.Increment(ref generation);
+    public static void InvalidateAll() => Interlocked.Increment(ref _generation);
 
+    /// <summary>Coalesces principal loading and returns a cloned cached identity only if its grant generation remains current.</summary>
+    /// <param name="userId">Persistence identity of the user whose data or grants are selected.</param>
+    /// <param name="stamp">Security stamp separating cached principal entries for revoked or changed identities.</param>
+    /// <param name="load">Loads the principal when no reusable entry exists for the current grants generation.</param>
+    /// <returns>An independent principal containing the user's current cached or freshly loaded grants.</returns>
     public async Task<ClaimsPrincipal> GetAsync(string userId, string? stamp, Func<Task<ClaimsPrincipal>> load)
     {
         while (true)
         {
-            var version = Interlocked.Read(ref generation);
+            var version = Interlocked.Read(ref _generation);
             var key = ("user-grants", userId, stamp, version);
             Lazy<Task<byte[]>> pending;
-            lock (gate)
+            lock (_gate)
             {
                 if (!cache.TryGetValue(key, out pending!))
                 {
@@ -67,18 +74,18 @@ internal sealed class GXUserPrincipalCache(IMemoryCache cache)
             }
             catch
             {
-                lock (gate)
+                lock (_gate)
                 {
                     if (cache.TryGetValue(key, out Lazy<Task<byte[]>>? current) && ReferenceEquals(current, pending))
                     {
                         cache.Remove(key);
                     }
                 }
-            
+
                 throw;
             }
             // Never return grants loaded concurrently with a committed role/user change.
-            if (version != Interlocked.Read(ref generation))
+            if (version != Interlocked.Read(ref _generation))
             {
                 continue;
             }

@@ -67,7 +67,7 @@
     </GXMenuControl>
 }
 
-<GXViewTable ViewName="Device.Devices" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXDevicePolicies.View })"
+<GXViewTable ViewName="Device.Devices" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXDevicePolicies.View })"
              TItem="GXDevice" @ref="table"
              Context="device"
              ItemsProvider="@GetItems"
@@ -81,30 +81,30 @@
     <FilterContent>
         <GXFh Id="Name">
             <GXInputText Id="Devices-Name"
-                         @bind-Value="@filter.Name"
+                         @bind-Value="@_filter.Name"
                          Placeholder="@Properties.Resources.FilterByName">
             </GXInputText>
         </GXFh>
         <GXFh Id="Template.Type">
             <input class="form-control" placeholder="@Properties.Resources.Type"
                    type="text"
-                   @onchange="@((ChangeEventArgs __e) => (filter.Template ??= new()).Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => (_filter.Template ??= new()).Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Detected" Visibility="Visibility.Small">
             <input class="form-control" placeholder="@Properties.Resources.FilterByDetectionTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Detected = StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Detected = StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="Devices-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated" Visibility="Visibility.Large">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdatedTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -156,7 +156,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Template.Type") { Position = 1, Description = "Type", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -167,12 +168,16 @@
         new("LastWrite") { Position = 6, Description = "LastWrite", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.ExtraLarge },
     ];
 
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     /// <summary>
@@ -261,7 +266,7 @@
     /// <summary>
     /// Device filter.
     /// </summary>
-    private GXDevice filter = new GXDevice() { Template = new GXDeviceTemplate() };
+    private GXDevice _filter = new GXDevice() { Template = new GXDeviceTemplate() };
     /// <summary>
     /// Table reference.
     /// </summary>
@@ -276,22 +281,22 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Device/Devices.Updated");
+                _notificationService?.RemoveByKey("Pages/Device/Devices.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/Devices.Updated");
+            _notificationService?.ReportError(ex, "Pages/Device/Devices.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -300,8 +305,8 @@
         await Task.Delay(1);
         try
         {
-            NotificationService?.RemoveByKey("Pages/Device/Devices.OnInitializedAsync");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notificationService?.RemoveByKey("Pages/Device/Devices.OnInitializedAsync");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
  {
      foreach (var it in items)
      {
@@ -357,29 +362,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/Devices.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Device/Devices.OnInitializedAsync");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDevices);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDevices);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListDevices req = new ListDevices()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
@@ -402,7 +407,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -422,7 +427,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -433,7 +438,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Device/Devices.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Device/Devices.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -447,7 +452,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/Devices.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Device/Devices.OnEdit");
         }
     }
 
@@ -478,7 +483,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -491,7 +496,7 @@
         {
             try
             {
-                using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingDevice);
+                using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingDevice);
                 RemoveDevice req = new RemoveDevice()
                 {
                     Delete = args.Delete,
@@ -505,7 +510,7 @@
             }
             catch (Exception ex)
             {
-                NotificationService?.ReportError(ex);
+                _notificationService?.ReportError(ex);
             }
         }
     }
@@ -558,7 +563,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -569,8 +574,8 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Device/Devices.OnReadSelected");
-            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingDevice);
+            _notificationService?.RemoveByKey("Pages/Device/Devices.OnReadSelected");
+            using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingDevice);
             if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -594,7 +599,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/Devices.OnReadSelected");
+            _notificationService?.ReportError(ex, "Pages/Device/Devices.OnReadSelected");
         }
     }
 
@@ -606,7 +611,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

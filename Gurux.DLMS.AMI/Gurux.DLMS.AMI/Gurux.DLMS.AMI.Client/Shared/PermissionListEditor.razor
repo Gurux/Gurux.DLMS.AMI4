@@ -38,7 +38,7 @@
     <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@Disabled" data-permission-action="select-visible" @onclick="SelectVisible"><GXLocalizedText Value="@Properties.Resources.SelectVisible" /></button>
     <button type="button" class="btn btn-outline-secondary btn-sm" disabled="@Disabled" data-permission-action="clear-visible" @onclick="ClearVisible"><GXLocalizedText Value="@Properties.Resources.ClearVisible" /></button>
 </div>
-<GXViewTable ViewName="@ViewName" ViewColumns="ViewColumnDefaults" ViewPolicies="@ViewPolicies"
+<GXViewTable ViewName="@ViewName" ViewColumns="_viewColumnDefaults" ViewPolicies="@ViewPolicies"
  TItem="PermissionGroup" Context="group" @ref="_table" @key="_catalogKey"
          ItemsProvider="GetGroups" ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
     <HeaderContent>
@@ -68,15 +68,20 @@
 </GXViewTable>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Permissions") { Position = 1, Description = "Permissions", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
+    /// <summary>Provides the stable HTML element identifier used by the component.</summary>
     private readonly string _id = "permissions-" + Guid.NewGuid().ToString("N");
+    /// <summary>Carries the criteria used to filter the displayed records.</summary>
     private string? _filter;
+    /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
     private GXTable<PermissionGroup>? _table;
+    /// <summary>Identifies the catalog item whose releases are being displayed.</summary>
     private string _catalogKey = string.Empty;
 
     protected override void OnParametersSet()

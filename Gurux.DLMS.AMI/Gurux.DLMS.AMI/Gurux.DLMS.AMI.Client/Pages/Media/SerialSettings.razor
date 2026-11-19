@@ -55,26 +55,27 @@
         <div class="form-group">
             <label>@Properties.Resources.Baudrate</label>
             <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="BaudRate"
-                             Items="@(BaudRateList)" />
+                             Items="@(_baudRateList)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.DataBits</label>
             <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="DataBits"
-                             Items="@(DataBitsList)" />
+                             Items="@(_dataBitsList)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.Parity</label>
             <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="Parity"
-                             Items="@(ParityList)" />
+                             Items="@(_parityList)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.StopBits</label>
             <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="StopBits"
-                             Items="@(StopBitList)" />
+                             Items="@(_stopBitList)" />
         </div>
     </ChildContent>
 </GXAccordion>
 @code {
+    /// <summary>Caches the settings currently displayed by the editor.</summary>
     private string? _settings;
 
     /// <summary>
@@ -104,23 +105,24 @@
     /// <summary>
     /// Available baud rates.
     /// </summary>
-    private int[] BaudRateList = new[] { 300, 600, 1200, 1800, 2400, 4800, 7200, 9600, 14400, 19200, 38400, 56000, 57600, 115200, 128000 };
+    private int[] _baudRateList = new[] { 300, 600, 1200, 1800, 2400, 4800, 7200, 9600, 14400, 19200, 38400, 56000, 57600, 115200, 128000 };
 
     /// <summary>
     /// Available parities.
     /// </summary>
-    private Parity[] ParityList = new[] { Parity.None, Parity.Odd, Parity.Even, Parity.Mark, Parity.Space };
+    private Parity[] _parityList = new[] { Parity.None, Parity.Odd, Parity.Even, Parity.Mark, Parity.Space };
 
     /// <summary>
     /// Available stop bits.
     /// </summary>
-    private StopBits[] StopBitList = new[] { StopBits.None, StopBits.One, StopBits.Two };
+    private StopBits[] _stopBitList = new[] { StopBits.None, StopBits.One, StopBits.Two };
 
     /// <summary>
     /// Available data bits.
     /// </summary>
-    private int[] DataBitsList = new[] { 7, 8 };
+    private int[] _dataBitsList = new[] { 7, 8 };
 
+    /// <summary>Parses and serializes the serial transport settings edited by the form.</summary>
     private GXSerialTemplate _serial = new GXSerialTemplate();
 
     private int BaudRate

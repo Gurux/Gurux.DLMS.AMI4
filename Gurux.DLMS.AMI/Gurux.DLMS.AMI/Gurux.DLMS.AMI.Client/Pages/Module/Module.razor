@@ -50,12 +50,12 @@
 <GXHelpContext Topic="Module" />
 
 <h1>
-    @Title
+    @_title
 </h1>
 <ModuleRemovalDialog @ref="_removalDialog" Removed="OnModuleRemovedAsync" />
 @if (!isAdding && !string.IsNullOrWhiteSpace(Active.Id))
 {
-    <ModulePendingUpdatesPanel @ref="pendingUpdatesPanel" ModuleId="@Active.Id" OnApplied="RefreshInstalledModuleAsync" />
+    <ModulePendingUpdatesPanel @ref="_pendingUpdatesPanel" ModuleId="@Active.Id" OnApplied="RefreshInstalledModuleAsync" />
 }
 <CascadingValue Value="this">
     <GXTabControl PersistSelectionInUrl="true" NavigateOnSelection="false">
@@ -77,17 +77,27 @@
 }
 <br />
 @code {
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
     private EditContext FormContext => GXEditContexts.For(Active);
+    /// <summary>Retains the value currently being displayed or edited.</summary>
     internal byte[]? _value;
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
     internal CrudAction action;
+    /// <summary>Distinguishes a new item from an existing item being edited.</summary>
     internal bool isAdding;
+    /// <summary>References the module view wrapper so module-specific content can be refreshed.</summary>
     private ModuleWrapper? _module;
+    /// <summary>Identifies the component type used to edit the selected module configuration.</summary>
     private Type? _configurationUI;
+    /// <summary>References the module-removal dialog used to preview and confirm the removal operation.</summary>
     private ModuleRemovalDialog? _removalDialog;
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Controls the visibility of the general settings section.</summary>
     internal bool GeneralVisible;
     internal void SetGeneralVisible(bool visible)
     {
@@ -96,8 +106,10 @@
             _ = InvokeAsync(StateHasChanged);
         }
     }
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
-    private ModulePendingUpdatesPanel? pendingUpdatesPanel;
+    /// <summary>References the pending-update panel so changes to the installation queue can refresh it.</summary>
+    private ModulePendingUpdatesPanel? _pendingUpdatesPanel;
     private async Task RefreshInstalledModuleAsync()
     {
         var response = await Http.GetFromJsonAsync<GetModuleResponse>("api/Module?id=" + Uri.EscapeDataString(Active.Id), _lifetime.Token);
@@ -118,8 +130,10 @@
         ["Id"] = Id!
     };
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -144,7 +158,7 @@
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -153,31 +167,31 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += string.Equals(Action, "Add", StringComparison.OrdinalIgnoreCase)
+            _title += string.Equals(Action, "Add", StringComparison.OrdinalIgnoreCase)
                 ? " " + Properties.Resources.Module
                 : " " + Id + " " + Properties.Resources.Module;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModule);
-            NotificationService?.RemoveByKey("Pages/Module/Module.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingModule);
+            _notificationService?.RemoveByKey("Pages/Module/Module.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get module data.
@@ -205,7 +219,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/Module.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Module/Module.OnInitializedAsync");
         }
     }
 
@@ -223,8 +237,8 @@
                 _removalDialog?.Show([Active]);
                 return;
             }
-            using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingModule);
-            NotificationService?.RemoveByKey("Pages/Module/ModuleGeneral.OnSave");
+            using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingModule);
+            _notificationService?.RemoveByKey("Pages/Module/ModuleGeneral.OnSave");
             if (action == CrudAction.Create)
             {
                 if (_value == null)
@@ -238,7 +252,7 @@
                 AddModuleResponse? ret = await response.Content.ReadFromJsonAsync<AddModuleResponse>();
                 if (ret?.Restart == true)
                 {
-                    NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information,
+                    _notificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information,
                         Properties.Resources.ModuleUpdatePrepared, "", "Modules.Upload"));
                 }
                 if (ret != null && ret.Modules != null && ret.Modules.Any())
@@ -281,7 +295,7 @@
                 Active.Status = saved.Status;
                 Active.RuntimeState = saved.RuntimeState;
                 FormContext.MarkAsUnmodified();
-                NotificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.SettingsSaved, string.Empty, Closable: true));
+                _notificationService?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Information, Properties.Resources.SettingsSaved, string.Empty, Closable: true));
             }
             else
             {
@@ -295,7 +309,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModuleGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Module/ModuleGeneral.OnSave");
         }
     }
     private async Task OnCancel()
@@ -374,7 +388,7 @@
             {
                 if (Loader.RefreshError != null)
                 {
-                    NotificationService?.ReportError(Loader.RefreshError);
+                    _notificationService?.ReportError(Loader.RefreshError);
                 }
 
                 await ShowModuleSettings();
@@ -384,7 +398,7 @@
             }
             catch (Exception ex)
             {
-                NotificationService?.ReportError(ex);
+                _notificationService?.ReportError(ex);
             }
             if (!_disposed)
             {

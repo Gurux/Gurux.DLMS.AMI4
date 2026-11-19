@@ -59,16 +59,17 @@
 </div>
 
 @code {
-    private ApplicationUser user = default!;
+    /// <summary>Retains the authenticated Identity account used by this account-management operation.</summary>
+    private ApplicationUser _user = default!;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
 
-        if (HttpMethods.IsGet(HttpContext.Request.Method) && !await UserManager.GetTwoFactorEnabledAsync(user))
+        if (HttpMethods.IsGet(HttpContext.Request.Method) && !await UserManager.GetTwoFactorEnabledAsync(_user))
         {
             throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.CannotDisable2FAForUserAsItSNotCurrentlyEnabled);
         }
@@ -76,13 +77,13 @@
 
     private async Task OnSubmitAsync()
     {
-        var disable2faResult = await UserManager.SetTwoFactorEnabledAsync(user, false);
+        var disable2faResult = await UserManager.SetTwoFactorEnabledAsync(_user, false);
         if (!disable2faResult.Succeeded)
         {
             throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.UnexpectedErrorOccurredDisabling2FA);
         }
 
-        var userId = await UserManager.GetUserIdAsync(user);
+        var userId = await UserManager.GetUserIdAsync(_user);
         Logger.LogInformation("User with ID '{UserId}' has disabled 2fa.", userId);
         RedirectManager.RedirectToWithStatus(
             "Account/Manage/TwoFactorAuthentication",

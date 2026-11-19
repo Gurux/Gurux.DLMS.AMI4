@@ -77,7 +77,7 @@
     <div class="row">
         <div style="width:100%">
             <div class="form-group">
-                <GXViewTable ViewName="DeviceTemplate.Profiles" ViewColumns="ViewColumnDefaults" TItem="GXCommunicationProfile" @ref="table"
+                <GXViewTable ViewName="DeviceTemplate.Profiles" ViewColumns="_viewColumnDefaults" TItem="GXCommunicationProfile" @ref="_table"
                          Context="profile"
                          ItemsProvider="@GetItems"
                          SelectionMode="SelectionMode.Multiple"
@@ -115,7 +115,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("InterfaceType") { Position = 0, Description = "InterfaceType", Visibility = (byte)Visibility.All },
         new("ClientAddress") { Position = 1, Description = "ClientAddress", Visibility = (byte)Visibility.All },
@@ -124,20 +125,23 @@
     ];
 
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
+    /// <summary>Selects whether the editor adds, updates, copies, or deletes the current record.</summary>
     internal CrudAction ProfileAction;
 
+    /// <summary>Retains the communication profiles available to the device template editor.</summary>
     internal List<GXCommunicationProfile>? _profiles;
 
     /// <summary>
     /// Reference to the table.
     /// </summary>
-    private GXTable<GXCommunicationProfile>? table;
+    private GXTable<GXCommunicationProfile>? _table;
 
     internal IEnumerable<GXCommunicationProfile>? GetSelectedProfiles()
     {
-        return table?.Items;
+        return _table?.Items;
     }
 
     /// <summary>
@@ -192,10 +196,11 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     internal GXCommunicationProfile? Active;
 
     /// <summary>
@@ -217,7 +222,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -228,18 +233,18 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/Profiles.OnEdit");
-            if (table == null || table.Active == null)
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/Profiles.OnEdit");
+            if (_table == null || _table.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
             }
             ProfileAction = CrudAction.Update;
-            Active = table.Active;
+            Active = _table.Active;
             InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/Profiles.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/Profiles.OnEdit");
         }
     }
 
@@ -250,7 +255,7 @@
     {
         try
         {
-            if (table == null || !table.SingleOrDefault().Any())
+            if (_table == null || !_table.SingleOrDefault().Any())
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
             }
@@ -259,7 +264,7 @@
                 {
                     ConfirmText = Properties.Resources.Remove,
                     AllowDelete = false,
-                    Items = table?.SingleOrDefault()?.Select(s => s.InterfaceType.ToString()).ToArray()
+                    Items = _table?.SingleOrDefault()?.Select(s => s.InterfaceType.ToString()).ToArray()
                 });
             OnDeleteConfirmation(confirmation);
         }
@@ -269,7 +274,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -282,7 +287,7 @@
         {
             if (args.Confirm)
             {
-                if (_profiles?.RemoveAll(w => (table?.SingleOrDefault()?.Contains(w) == true)) > 0)
+                if (_profiles?.RemoveAll(w => (_table?.SingleOrDefault()?.Contains(w) == true)) > 0)
                     {
                     Parent?.SettingsChanged();
                 }
@@ -290,7 +295,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -320,7 +325,7 @@
 
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
         {

@@ -68,7 +68,7 @@
                 </div>
             }
         }
-        <ul class="dropzone @dropClass"
+        <ul class="dropzone @_dropClass"
             ondragover="event.preventDefault();"
             @ondragstart="HandleDragStart"
             @ondrop="HandleDrop"
@@ -129,6 +129,7 @@
     [CascadingParameter]
     SelectionContainer<TItem>? Container { get; set; }
 
+    /// <summary>Cancels the current asynchronous request when it is superseded or disposed.</summary>
     private CancellationTokenSource? _cts;
 
     /// <summary>
@@ -154,6 +155,7 @@
     [Parameter]
     public bool Total { get; set; } = true;
 
+    /// <summary>Tracks the pages available to the current wizard or page selector.</summary>
     internal List<int> Pages = new List<int>();
 
     /// <summary>
@@ -288,7 +290,8 @@
     [Parameter]
     public EventCallback<IEnumerable<TItem>> OnRemoved { get; set; }
 
-    private string dropClass = "";
+    /// <summary>Selects the CSS state used while a file is dragged over the upload area.</summary>
+    private string _dropClass = "";
 
     private void HandleDragStart(DragEventArgs e)
     {
@@ -300,17 +303,17 @@
 
     private void HandleDragEnter()
     {
-        dropClass = "can-drop";
+        _dropClass = "can-drop";
     }
 
     private void HandleDragLeave()
     {
-        dropClass = "";
+        _dropClass = "";
     }
 
     private async Task HandleDrop()
     {
-        dropClass = "";
+        _dropClass = "";
         if (Container != null && Container.SourceList != null &&
             Container.Item != null && Items != null)
         {

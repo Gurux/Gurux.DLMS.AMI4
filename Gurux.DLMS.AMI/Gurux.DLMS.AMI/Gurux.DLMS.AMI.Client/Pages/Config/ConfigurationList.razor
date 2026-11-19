@@ -43,7 +43,7 @@
             @bind-Value="@Parent.Filter"
             @bind-Value:after="Parent.Updated" />
     <hr />
-    <GXViewTable ViewName="Config.ConfigurationList" ViewColumns="ViewColumnDefaults" TItem="GXMenuLink" @ref="Parent.table"
+    <GXViewTable ViewName="Config.ConfigurationList" ViewColumns="_viewColumnDefaults" TItem="GXMenuLink" @ref="Parent.table"
              Context="conf"
              ItemsProvider="@Parent.GetItems"
              Filter="false"
@@ -83,7 +83,8 @@
     </GXViewTable>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Icon") { Position = 0, Description = "Icon", Visibility = (byte)Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },

@@ -37,18 +37,18 @@
 <h3>@Properties.Resources.StoredHistory</h3>
 <div class="profile-range-controls">
     <label>@Properties.Resources.ProfileRangeStart
-        <input type="datetime-local" class="profile-range-start" @bind="start" @bind:format="yyyy-MM-ddTHH:mm" />
+        <input type="datetime-local" class="profile-range-start" @bind="_start" @bind:format="yyyy-MM-ddTHH:mm" />
     </label>
     <label>@Properties.Resources.ProfileRangeEnd
-        <input type="datetime-local" class="profile-range-end" @bind="end" @bind:format="yyyy-MM-ddTHH:mm" />
+        <input type="datetime-local" class="profile-range-end" @bind="_end" @bind:format="yyyy-MM-ddTHH:mm" />
     </label>
-    <button type="button" class="profile-range-apply" @onclick="ApplyAsync" disabled="@busy">@Properties.Resources.StoredHistory</button>
-    <button type="button" class="profile-read-missing" @onclick="ReadAsync" disabled="@(busy || !CanRead || AttributeId == Guid.Empty)">@Properties.Resources.ProfileReadMissing</button>
+    <button type="button" class="profile-range-apply" @onclick="ApplyAsync" disabled="@_busy">@Properties.Resources.StoredHistory</button>
+    <button type="button" class="profile-read-missing" @onclick="ReadAsync" disabled="@(_busy || !CanRead || AttributeId == Guid.Empty)">@Properties.Resources.ProfileReadMissing</button>
 </div>
 <p>@Properties.Resources.ProfileLocalTime</p>
-@if (error != null) { <p role="alert">@error</p> }
-@if (message != null) { <p role="status">@message</p> }
-@if (coverage != null)
+@if (_error != null) { <p role="alert">@_error</p> }
+@if (_message != null) { <p role="status">@_message</p> }
+@if (_coverage != null)
 {
     <details class="profile-history-coverage">
         <summary>@Properties.Resources.ProfileCoverage</summary>
@@ -64,7 +64,7 @@
         }
     </details>
 }
-<GXTable TItem="GXProfileStoredRow" @ref="table" @key="AttributeId"
+<GXTable TItem="GXProfileStoredRow" @ref="_table" @key="AttributeId"
          Context="value" ItemsProvider="GetItems"
          SelectionMode="SelectionMode.None" CanEdit="false"
          ShowAllUsers="false" ShowRemoved="false" Filter="false">
@@ -84,36 +84,42 @@
     public Guid AttributeId { get; set; }
 
     [Parameter] public bool CanRead { get; set; } = true;
-    private GXTable<GXProfileStoredRow>? table;
-    private DateTime start = DateTime.Today;
-    private DateTime end = DateTime.Today.AddDays(1);
-    private GXProfileHistoryResponse? coverage;
-    private string? error, message;
-    private bool busy;
+    /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
+    private GXTable<GXProfileStoredRow>? _table;
+    /// <summary>Specifies the start of the profile-history interval requested from the server.</summary>
+    private DateTime _start = DateTime.Today;
+    /// <summary>Specifies the end of the profile-history interval requested from the server.</summary>
+    private DateTime _end = DateTime.Today.AddDays(1);
+    /// <summary>Caches the stored profile-history coverage returned for the selected attribute.</summary>
+    private GXProfileHistoryResponse? _coverage;
+    /// <summary>Contains the error and status messages displayed by the profile-history panel.</summary>
+    private string? _error, _message;
+    /// <summary>Prevents overlapping operations while an asynchronous command is running.</summary>
+    private bool _busy;
 
     public async Task RefreshAsync()
     {
-        if (table != null) {
-            await table.RefreshDataAsync(true);
+        if (_table != null) {
+            await _table.RefreshDataAsync(true);
         }
     }
 
     private GXProfileHistoryRequest? CreateRequest(int index = 0, int count = 100)
     {
-        error = null;
-        if (end <= start || TimeZoneInfo.Local.IsInvalidTime(start) || TimeZoneInfo.Local.IsInvalidTime(end))
+        _error = null;
+        if (_end <= _start || TimeZoneInfo.Local.IsInvalidTime(_start) || TimeZoneInfo.Local.IsInvalidTime(_end))
         {
-            error = Properties.Resources.ProfileInvalidRange;
+            _error = Properties.Resources.ProfileInvalidRange;
             return null;
         }
         return new GXProfileHistoryRequest { AttributeId = AttributeId,
-            Start = new DateTimeOffset(start).ToUniversalTime(), End = new DateTimeOffset(end).ToUniversalTime(),
+            Start = new DateTimeOffset(_start).ToUniversalTime(), End = new DateTimeOffset(_end).ToUniversalTime(),
             Index = index, Count = count };
     }
 
     private async Task ApplyAsync()
     {
-        message = null;
+        _message = null;
         if (CreateRequest() != null) {
             await RefreshAsync();
         }
@@ -122,29 +128,29 @@
     private async Task ReadAsync()
     {
         var request = CreateRequest();
-        if (request == null || !CanRead || AttributeId == Guid.Empty || busy) {
+        if (request == null || !CanRead || AttributeId == Guid.Empty || _busy) {
             return;
         }
-        busy = true;
-        message = null;
+        _busy = true;
+        _message = null;
         try
         {
             var response = await Http.PostAsJson<GXProfileHistoryResponse>("api/ProfileHistory/Read", request);
-            message = response.TaskIds.Length == 0 ? Properties.Resources.ProfileNoReadNeeded : null;
+            _message = response.TaskIds.Length == 0 ? Properties.Resources.ProfileNoReadNeeded : null;
             Services.GetService<Gurux.DLMS.AMI.Client.Helpers.GXReadTaskNotifications>()?.Track(response.TaskIds);
             await RefreshAsync();
         }
-        catch (Exception ex) { error = ex.Message; Services.GetService<IGXNotificationService>()?.ReportError(ex); }
-        finally { busy = false; }
+        catch (Exception ex) { _error = ex.Message; Services.GetService<IGXNotificationService>()?.ReportError(ex); }
+        finally { _busy = false; }
     }
 
     private IEnumerable<(string Label, GXProfileRange[] Ranges)> CoverageGroups()
     {
-        yield return (Properties.Resources.ProfileCovered, coverage!.Covered);
-        yield return (Properties.Resources.ProfileMissing, coverage.Missing);
-        yield return (Properties.Resources.ProfileRefresh, coverage.RefreshRanges);
-        yield return (Properties.Resources.ProfileEmpty, coverage.EmptyRanges);
-        yield return (Properties.Resources.ProfileUnavailable, coverage.Unavailable);
+        yield return (Properties.Resources.ProfileCovered, _coverage!.Covered);
+        yield return (Properties.Resources.ProfileMissing, _coverage.Missing);
+        yield return (Properties.Resources.ProfileRefresh, _coverage.RefreshRanges);
+        yield return (Properties.Resources.ProfileEmpty, _coverage.EmptyRanges);
+        yield return (Properties.Resources.ProfileUnavailable, _coverage.Unavailable);
     }
 
     private async ValueTask<ItemsProviderResult<GXProfileStoredRow>> GetItems(GXItemsProviderRequest request)
@@ -157,14 +163,14 @@
         {
             var response = await Http.PostAsJson<GXProfileHistoryResponse>("api/ProfileHistory/List", query, request.CancellationToken);
             request.CancellationToken.ThrowIfCancellationRequested();
-            coverage = response;
+            _coverage = response;
             await InvokeAsync(StateHasChanged);
             return new(response.Values ?? [], ClientHelpers.ToVirtualizedCount(response.Count));
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
-            error = ex.Message;
+            _error = ex.Message;
             Services.GetService<IGXNotificationService>()?.ReportError(ex);
             await InvokeAsync(StateHasChanged);
             return new([], 0);

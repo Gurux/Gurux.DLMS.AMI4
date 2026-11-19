@@ -68,18 +68,26 @@
     [Parameter] public bool Embedded { get; set; }
     /// <summary>Immutable documentation request supplied by the help side panel.</summary>
     [Parameter] public GXHelpRequest? Request { get; set; }
+    /// <summary>Identifies the request for which the current displayed data was retrieved.</summary>
     private GXHelpRequest? _loadedRequest;
+    /// <summary>Contains the contextual help document displayed by the help panel.</summary>
     private GXHelpContent? _content;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Indicates that the displayed data is still being retrieved.</summary>
     private bool _loading;
+    /// <summary>Controls the error state shown when data retrieval fails.</summary>
     private bool _loadFailed;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private long _generation;
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
-    GXHelpService? HelpService;
+    /// <summary>Retrieves the contextual help content selected by the page.</summary>
+    GXHelpService? _helpService;
 
     protected override void OnInitialized()
     {
-        HelpService = Services.GetService<GXHelpService>();
+        _helpService = Services.GetService<GXHelpService>();
         if (!Embedded)
         {
             NavigationManager.LocationChanged += LocationChanged;
@@ -103,7 +111,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_disposed || HelpService == null)
+        if (_disposed || _helpService == null)
         {
             return;
         }
@@ -126,10 +134,10 @@
         _loading = true;
         try
         {
-            var content = await HelpService.GetHelpAsync(request, _lifetime.Token);
+            var content = await _helpService.GetHelpAsync(request, _lifetime.Token);
             if (content == null && topic.StartsWith("module:", StringComparison.Ordinal))
             {
-                content = await HelpService.GetHelpAsync(request with { Topic = "web-client-ui" }, _lifetime.Token);
+                content = await _helpService.GetHelpAsync(request with { Topic = "web-client-ui" }, _lifetime.Token);
             }
             if (generation == _generation)
             {

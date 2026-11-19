@@ -56,7 +56,7 @@
         {
             <p>@Properties.Resources.NoLocalizationPackagesForActiveLanguagesRunCheckManuallyToRefreshCatalogMetadata</p>
         }
-        <GXViewTable ViewName="Admin.LocalizationUpdates" ViewColumns="ViewColumnDefaults" TItem="GXLocalizationUpdate" Context="item" ItemsProvider="GetItems"
+        <GXViewTable ViewName="Admin.LocalizationUpdates" ViewColumns="_viewColumnDefaults" TItem="GXLocalizationUpdate" Context="item" ItemsProvider="GetItems"
                  ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
             <HeaderContent>
                 <GXTh Id="Owner" TItem="GXLocalizationUpdate">@Properties.Resources.Owner</GXTh>
@@ -83,7 +83,8 @@
 </section>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Owner") { Position = 0, Description = "Owner", Visibility = (byte)Visibility.All },
         new("OwnerType") { Position = 1, Description = "Type", Visibility = (byte)Visibility.All },
@@ -92,8 +93,11 @@
         new("OwnerCompatibility") { Position = 4, Description = Properties.Resources.OwnerCompatibility, Visibility = (byte)Visibility.All },
     ];
 
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Caches the localization update result displayed by the page.</summary>
     private GXLocalizationUpdatesResponse? _response;
+    /// <summary>Indicates that the displayed data is still being retrieved.</summary>
     private bool _loading = true;
 
     private void SelectVersion(GXLocalizationUpdate item, string? number)

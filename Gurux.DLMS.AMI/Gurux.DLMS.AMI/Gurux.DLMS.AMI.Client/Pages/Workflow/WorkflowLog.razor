@@ -87,33 +87,37 @@
     </EditForm>
 }
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter]
     public Guid? Id { get; set; }
 
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private GXLog? _active;
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingWorkflowLog);
-            NotificationService?.RemoveByKey("Pages/Workflow/WorkflowLog.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingWorkflowLog);
+            _notificationService?.RemoveByKey("Pages/Workflow/WorkflowLog.OnInitializedAsync");
             //Get selected item.
             if (Id == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             MenuService.Clear();
-            MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "Close", 
+            MenuService.AddMenuItems(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "Close",
             OnClick = EventCallback.Factory.Create(this, OnCancel) });
             //Get workflow log data.
             HttpResponseMessage response = await Http.GetAsync(string.Format("api/Log?source=workflow&id={0}", Id));
@@ -134,7 +138,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Workflow/WorkflowLog.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowLog.OnInitializedAsync");
         }
     }
 

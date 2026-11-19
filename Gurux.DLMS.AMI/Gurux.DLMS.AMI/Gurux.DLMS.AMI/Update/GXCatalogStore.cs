@@ -59,7 +59,7 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
     /// <param name="token">Token used to cancel the operation.</param>
     public async Task UpsertLocalizationsAsync(Gurux.Updater.Model.GXLocalizationCatalog catalog, string source, CancellationToken token)
     {
-        await Writes.WaitAsync(token);
+        await _writes.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -68,14 +68,14 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
             {
                 schema.CreateTable<Gurux.DLMS.AMI.Shared.DTOs.GXLocalization>(false, false);
             }
-        
+
             using var transaction = db.BeginTransaction();
             var rows = await db.SelectAsync<Gurux.DLMS.AMI.Shared.DTOs.GXLocalization>(transaction, GXSelectArgs.SelectAll<Gurux.DLMS.AMI.Shared.DTOs.GXLocalization>(), token);
             foreach (var row in rows)
             {
                 row.Enabled = false;
             }
-        
+
             foreach (var owner in catalog.Items)
             {
                 foreach (var release in owner.Releases)
@@ -107,22 +107,29 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
                     }
                 }
             }
-        
+
             if (rows.Count != 0)
             {
                 await db.UpdateAsync(transaction, GXUpdateArgs.UpdateRange(rows), token);
             }
-        
+
             transaction.Commit();
             await NotifyAsync(db, "configuration.view", "configuration.edit", "localization", "Localization", token);
         }
         finally
         {
-            Writes.Release();
+            _writes.Release();
         }
     }
 
-    static readonly SemaphoreSlim Writes = new(1, 1);
+    /// <summary>Serializes writes so persisted state cannot be overwritten concurrently.</summary>
+    static readonly SemaphoreSlim _writes = new(1, 1);
+    /// <summary>Resolves the configured catalog owner or selects an existing administrator account.</summary>
+    /// <param name="db">The open database connection used to read or persist update state.</param>
+    /// <param name="tx">The caller's database transaction.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the user that owns synchronized catalog records.</returns>
+    /// <exception cref="InvalidOperationException">No configured catalog owner or eligible administrator exists.</exception>
     async Task<GXUser> CreatorAsync(GXDbConnection db, System.Data.IDbTransaction tx, CancellationToken token)
     {
         if (!string.IsNullOrWhiteSpace(options?.CreatorId))
@@ -142,7 +149,12 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
         query.OrderBy.Add<GXUser>(u => u.Id!);
         return (await db.SelectAsync<GXUser>(tx, query, token)).FirstOrDefault() ?? throw new InvalidOperationException("Configure Updater:CreatorId with an existing catalog owner.");
     }
+    /// <summary>Selects the highest stable catalog version that has a downloadable release URL.</summary>
+    /// <param name="versions">The catalog releases to inspect for a stable downloadable version.</param>
+    /// <returns>The highest eligible release number, or null when no stable downloadable release exists.</returns>
     static string? Stable(IEnumerable<CatalogRelease> versions) => versions.Where(v => !v.Prerelease && !string.IsNullOrWhiteSpace(v.Url)).OrderByDescending(v => v.Number, GXReleaseVersionComparer.Instance).FirstOrDefault()?.Number;
+    /// <summary>Creates the catalog-to-local-product mapping table if the installation does not yet contain it.</summary>
+    /// <param name="db">The open database connection used to read or persist update state.</param>
     static void EnsureMapping(GXDbConnection db)
     {
         var schema = new GXSchemaManager(db);
@@ -151,7 +163,17 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
             schema.CreateTable<GXCatalogProduct>(false, false);
         }
     }
+    /// <summary>Retrieves the persisted local-product mapping for a catalog identity inside the caller's transaction.</summary>
+    /// <param name="db">The open database connection used to read or persist update state.</param>
+    /// <param name="tx">The caller's database transaction.</param>
+    /// <param name="key">The lookup key identifying the record or cached value.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the mapping, or null when the catalog identity has not been mapped.</returns>
     static async Task<GXCatalogProduct?> MappingAsync(GXDbConnection db, System.Data.IDbTransaction tx, string key, CancellationToken token) => await db.SingleOrDefaultAsync<GXCatalogProduct>(tx, GXSelectArgs.SelectAll<GXCatalogProduct>(p => p.Id == key), token);
+    /// <summary>Truncates optional text to the configured maximum length.</summary>
+    /// <param name="value">Input value to inspect or transform.</param>
+    /// <param name="max">Maximum number of characters to retain.</param>
+    /// <returns>The original text or its prefix limited to the requested length.</returns>
     static string? Text(string? value, int max) => value?.Length > max ? value[..max] : value;
     /// <summary>Performs the upsert module operation.</summary>
     /// <param name="item">The item.</param>
@@ -178,7 +200,7 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
             }
         }
 
-        await Writes.WaitAsync(token);
+        await _writes.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -236,9 +258,12 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
         }
         finally
         {
-            Writes.Release();
+            _writes.Release();
         }
     }
+    /// <summary>Copies catalog release metadata into a local module-version record.</summary>
+    /// <param name="version">The local module-version record receiving the catalog metadata.</param>
+    /// <param name="release">The catalog release whose download and publication metadata are copied.</param>
     static void Apply(GXModuleVersion version, CatalogRelease release)
     {
         version.Number = release.Number;
@@ -260,7 +285,7 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
             throw new InvalidDataException("Catalog agent ID must contain1–128 characters.");
         }
 
-        await Writes.WaitAsync(token);
+        await _writes.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -322,9 +347,17 @@ public sealed class GXCatalogStore(IGXDatabase database, CatalogUpdaterOptions? 
         }
         finally
         {
-            Writes.Release();
+            _writes.Release();
         }
     }
+    /// <summary>Notifies authorized users about committed catalog changes without rolling them back if notification delivery fails.</summary>
+    /// <param name="db">The open database connection used to read or persist update state.</param>
+    /// <param name="permission">The policy identifying users who receive the catalog-change notification.</param>
+    /// <param name="action">The hub action used to describe the committed catalog change.</param>
+    /// <param name="id">The identifier of the catalog product that changed.</param>
+    /// <param name="name">The optional product display name included in the notification.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task that completes after notifications have been queued or a non-cancellation failure has been logged.</returns>
     async Task NotifyAsync(GXDbConnection db, string permission, string action, string id, string? name, CancellationToken token)
     {
         if (notifications == null)

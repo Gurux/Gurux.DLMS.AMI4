@@ -49,20 +49,20 @@
         <summary>Preview event matching</summary>
         <p class="text-muted">Preview unsaved values using your account as the hypothetical initiating actor. No condition or action scripts run. For deletion events, select a device that still exists; current group membership is used.</p>
         <label>Sample registered event</label>
-        <GXInputDropdown class="form-select" @bind-Value="EventCode" RememberValue="false" Items="@(EventChoices.Select(it => it.Key))" Formatter="@(value => EventChoices.First(it => it.Key == value).Value)" />
+        <GXInputDropdown class="form-select" @bind-Value="_eventCode" RememberValue="false" Items="@(EventChoices.Select(it => it.Key))" Formatter="@(value => EventChoices.First(it => it.Key == value).Value)" />
         <label>Sample device (device and value events)</label>
-        <Gurux.DLMS.AMI.Client.Pages.Device.DeviceDropdownSelector Value="@Device" ValueChanged="@((GXDevice? value) => Device = value)" Disabled="@Busy" />
+        <Gurux.DLMS.AMI.Client.Pages.Device.DeviceDropdownSelector Value="@_device" ValueChanged="@((GXDevice? value) => _device = value)" Disabled="@_busy" />
         <label>Sample target ID (agent or schedule events)</label>
-        <input class="form-control" @bind="TargetId" />
-        <button type="button" class="btn btn-outline-primary mt-2" disabled="@(Busy || string.IsNullOrEmpty(EventCode))" @onclick="Preview">Preview filters and identity</button>
-        @if (Result != null)
+        <input class="form-control" @bind="_targetId" />
+        <button type="button" class="btn btn-outline-primary mt-2" disabled="@(_busy || string.IsNullOrEmpty(_eventCode))" @onclick="Preview">Preview filters and identity</button>
+        @if (_result != null)
         {
             <div class="alert alert-info mt-2" role="status">
-                <div>Trigger: @(Result.TriggerMatches ? "matches" : "does not match")</div>
-                <div>Device and group filters: @(Result.FiltersMatch ? "match" : "do not match")</div>
-                <div>Workflow: @(Result.Enabled ? "enabled" : "disabled")</div>
-                <div>Execution account: @Result.ExecutionUserName (@Result.ExecutionUserId)</div>
-                <div>Condition: @Result.ConditionStatus</div>
+                <div>Trigger: @(_result.TriggerMatches ? "matches" : "does not match")</div>
+                <div>Device and group filters: @(_result.FiltersMatch ? "match" : "do not match")</div>
+                <div>Workflow: @(_result.Enabled ? "enabled" : "disabled")</div>
+                <div>Execution account: @_result.ExecutionUserName (@_result.ExecutionUserId)</div>
+                <div>Condition: @_result.ConditionStatus</div>
                 <small>This result describes the values at the time Preview was clicked.</small>
             </div>
         }
@@ -78,11 +78,16 @@
     [Parameter] public IEnumerable<GXTrigger>? Triggers { get; set; }
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public bool CanPreviewEvents { get; set; } = true;
-    private string? EventCode;
-    private string? TargetId;
-    private GXDevice? Device;
-    private bool Busy;
-    private PreviewWorkflowResponse? Result;
+    /// <summary>Stores the event-code filter applied to the displayed events.</summary>
+    private string? _eventCode;
+    /// <summary>Identifies the target whose details are being retrieved.</summary>
+    private string? _targetId;
+    /// <summary>Identifies the device used to evaluate the workflow preview.</summary>
+    private GXDevice? _device;
+    /// <summary>Prevents overlapping operations while an asynchronous command is running.</summary>
+    private bool _busy;
+    /// <summary>Contains the server's evaluation result for the workflow preview.</summary>
+    private PreviewWorkflowResponse? _result;
 
     private int TimeoutSeconds
     {
@@ -118,30 +123,30 @@
             {
             property.Value = text;
         }
-        Result = null;
+        _result = null;
         GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXWorkflow.Properties)));
     }
 
     private async Task Preview()
     {
-        if (Active == null || Busy) {
+        if (Active == null || _busy) {
             return;
         }
-        Busy = true;
-        Result = null;
+        _busy = true;
+        _result = null;
         var notifications = Services.GetService<IGXNotificationService>();
         try
         {
             notifications?.RemoveByKey("WorkflowPreview");
-            Result = await Http.PostAsJson<PreviewWorkflowResponse>("api/Workflow/Preview", new PreviewWorkflow
+            _result = await Http.PostAsJson<PreviewWorkflowResponse>("api/Workflow/Preview", new PreviewWorkflow
             {
-                Workflow = Active, EventCode = EventCode ?? "", DeviceId = Device?.Id, TargetId = TargetId
+                Workflow = Active, EventCode = _eventCode ?? "", DeviceId = _device?.Id, TargetId = _targetId
             });
         }
         catch (Exception ex)
         {
             notifications?.ReportError(ex, "WorkflowPreview");
         }
-        finally { Busy = false; }
+        finally { _busy = false; }
     }
 }

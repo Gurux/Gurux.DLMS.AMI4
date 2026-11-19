@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ViewGroupController(
         IViewGroupRepository ViewGroupRepository) : ControllerBase
     {
-        private readonly IViewGroupRepository _ViewGroupRepository = ViewGroupRepository;
+        /// <summary>Provides persistence and access checks for view group records.</summary>
+        private readonly IViewGroupRepository _viewGroupRepository = ViewGroupRepository;
 
         /// <summary>
         /// Get View group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetViewGroupResponse()
             {
-                Item = await _ViewGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _viewGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXViewGroupPolicies.Add)]
         public async Task<ActionResult<AddViewGroupResponse>> Post(AddViewGroup request, CancellationToken cancellationToken = default)
         {
-            await _ViewGroupRepository.UpsertAsync(request.ViewGroups, null, cancellationToken);
+            await _viewGroupRepository.UpsertAsync(request.ViewGroups, null, cancellationToken);
             return new AddViewGroupResponse() { Ids = [.. request.ViewGroups.Select(s => s.Id)] };
         }
 
@@ -83,7 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListViewGroups request, CancellationToken cancellationToken)
         {
             ListViewGroupsResponse ret = new();
-            await _ViewGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _viewGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXViewGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveViewGroupResponse>> Post(RemoveViewGroup request, CancellationToken cancellationToken = default)
         {
-            await _ViewGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _viewGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveViewGroupResponse();
         }
     }

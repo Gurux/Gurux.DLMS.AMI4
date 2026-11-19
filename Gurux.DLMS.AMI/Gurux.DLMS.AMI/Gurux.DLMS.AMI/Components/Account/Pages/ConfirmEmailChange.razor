@@ -42,10 +42,11 @@
 
 <h1>@Gurux.DLMS.AMI.Properties.Resources.ConfirmEmailChange</h1>
 
-<StatusMessage Message="@message" />
+<StatusMessage Message="@_message" />
 
 @code {
-    private string? message;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -70,7 +71,7 @@
         var user = await UserManager.FindByIdAsync(UserId);
         if (user is null)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.UnableToFindUserWithIdUserId;
+            _message = Gurux.DLMS.AMI.Properties.Resources.UnableToFindUserWithIdUserId;
             return;
         }
 
@@ -78,7 +79,7 @@
         var result = await UserManager.ChangeEmailAsync(user, Email, code);
         if (!result.Succeeded)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingEmail;
+            _message = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingEmail;
             return;
         }
 
@@ -87,11 +88,11 @@
         var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
         if (!setUserNameResult.Succeeded)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingUserName;
+            _message = Gurux.DLMS.AMI.Properties.Resources.ErrorChangingUserName;
             return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        message = Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmailChange;
+        _message = Gurux.DLMS.AMI.Properties.Resources.ThankYouForConfirmingYourEmailChange;
     }
 }

@@ -49,10 +49,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class ObjectTemplateRepository : IObjectTemplateRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -68,13 +73,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _notificationCache = notificationCache;
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXObjectTemplate), id, action, GXDeviceTemplatePolicies.View, connection, transaction);
@@ -82,7 +93,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? objectId, CancellationToken cancellationToken = default)
         {
-            GXSelectArgs args = GXQuery.GetUsersByObjectTemplate(ServerHelpers.GetUserId(User), objectId);
+            GXSelectArgs args = GXQuery.GetUsersByObjectTemplate(ServerHelpers.GetUserId(_user), objectId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (objectId != null)
             {
@@ -91,7 +102,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -101,11 +112,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds, CancellationToken cancellationToken = default)
         {
-            GXSelectArgs args = GXQuery.GetUsersByObjectTemplates(ServerHelpers.GetUserId(User), objectIds);
+            GXSelectArgs args = GXQuery.GetUsersByObjectTemplates(ServerHelpers.GetUserId(_user), objectIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -118,10 +129,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             objects = objects.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXObjectTemplate, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, objects,
+            await GXHistoryMutation.RunDeleteAsync<GXObjectTemplate, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, objects,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTemplatePolicies.Delete);
             try
             {
                 GXSelectArgs arg = GXSelectArgs.Select<GXObjectTemplate>(a => a.Id, q => objects.Contains(q.Id));
@@ -192,8 +203,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListObjectTemplatesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.View);
-            string userId = ServerHelpers.GetUserId(User);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTemplatePolicies.View);
+            string userId = ServerHelpers.GetUserId(_user);
             GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, null);
             arg.Distinct = true;
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
@@ -268,10 +279,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXObjectTemplate> ReadAsync(Guid id, Expression<Func<GXObjectTemplate, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTemplatePolicies.View);
             try
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, id);
                 //Device ID and name are added.
                 arg.Columns.Add<GXDeviceTemplate>(c => new { c.Id, c.Name });
@@ -320,10 +331,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXObjectTemplate, object>>? columns, CancellationToken cancellationToken = default)
         {
             objects = objects.ToArray();
-            return await GXHistoryMutation.RunAsync<GXObjectTemplate, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, objects,
+            return await GXHistoryMutation.RunAsync<GXObjectTemplate, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, objects,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXDeviceTemplatePolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTemplatePolicies.Edit);
             try
             {
                 DateTime now = DateTime.Now;

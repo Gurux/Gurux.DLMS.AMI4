@@ -51,8 +51,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class UserPropertiesRepository : IUserPropertiesRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
 
         /// <summary>
@@ -67,9 +70,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             // Operation policies can be granted directly without assigning a role.
-            if (User.Identity?.IsAuthenticated != true)
+            if (_user.Identity?.IsAuthenticated != true)
             {
                 throw new UnauthorizedAccessException();
             }
@@ -81,19 +84,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> settings, CancellationToken cancellationToken = default)
         {
             settings = settings.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXUserProperty, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, settings,
+            await GXHistoryMutation.RunDeleteAsync<GXUserProperty, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, settings,
         async () =>
         {
             try
             {
-                if (!User.IsInRole(GXRoles.Admin) &&
-                    !User.IsInRole(GXRoles.Authenticated))
+                if (!_user.IsInRole(GXRoles.Admin) &&
+                    !_user.IsInRole(GXRoles.Authenticated))
                 {
                     throw new UnauthorizedAccessException();
                 }
                 ArgumentNullException.ThrowIfNull(settings);
                 var ids = settings.Distinct().ToArray();
-                var user = new GXUser { Id = ServerHelpers.GetUserId(User) };
+                var user = new GXUser { Id = ServerHelpers.GetUserId(_user) };
                 var query = GXSelectArgs.SelectAll<GXUserProperty>(
                     q => q.User == user && q.Module == null && ids.Contains(q.Id));
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
@@ -142,7 +145,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListUserPropertiesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            GXUser user = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser user = new() { Id = ServerHelpers.GetUserId(_user) };
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserProperty>(
                 q => q.User == user && q.Module == null);
             if (request != null)
@@ -197,8 +200,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                string currentUserId = ServerHelpers.GetUserId(User);
-                if (userId != null && userId != currentUserId && !User.IsInRole(GXRoles.Admin))
+                string currentUserId = ServerHelpers.GetUserId(_user);
+                if (userId != null && userId != currentUserId && !_user.IsInRole(GXRoles.Admin))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -242,14 +245,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXUserProperty, object>>? columns, CancellationToken cancellationToken = default)
         {
             settings = settings.ToArray();
-            await GXHistoryMutation.RunAsync<GXUserProperty>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, settings,
+            await GXHistoryMutation.RunAsync<GXUserProperty>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, settings,
         async () =>
         {
             try
             {
 
                 ArgumentNullException.ThrowIfNull(settings);
-                var currentUserId = ServerHelpers.GetUserId(User);
+                var currentUserId = ServerHelpers.GetUserId(_user);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
                 await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
                 var notifications = new List<(string UserId, string Policy, Guid Id, string? Version)>();
@@ -268,7 +271,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         throw new ArgumentException("The maximum notification count must be positive.");
                     }
                     var ownerId = it.User?.Id ?? currentUserId;
-                    if (ownerId != currentUserId && !User.IsInRole(GXRoles.Admin))
+                    if (ownerId != currentUserId && !_user.IsInRole(GXRoles.Admin))
                     {
                         throw new UnauthorizedAccessException();
                     }
@@ -315,13 +318,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IGXAmiModuleUserSettings ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IGXAmiModuleUserSettings
         {
+            /// <summary>Creates a module identity reference used to scope module-owned user properties.</summary>
             private GXModule Module => new() { Id = scope.ModuleId };
-            private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+            /// <summary>Serializer settings shared by requests or persisted state in this component.</summary>
+            private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
 
+            /// <summary>Validates user identity and the optional module-owned setting name.</summary>
+            /// <param name="userId">Persistence identity of the user whose data or grants are selected.</param>
+            /// <param name="name">Optional setting name, which must be nonblank and at most 64 characters when supplied.</param>
+            /// <exception cref="ArgumentException">The user identity or supplied setting name is invalid.</exception>
             private static void Validate(string userId, string? name = null)
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(userId);
@@ -331,6 +345,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
             }
 
+            /// <summary>Reads a setting by its user, owning module, and natural-key name within the current transaction.</summary>
+            /// <param name="userId">Persistence identity of the user whose data or grants are selected.</param>
+            /// <param name="name">Stable name used to select or register the definition described by this operation.</param>
+            /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+            /// <returns>The stored user setting, or null if it does not exist.</returns>
             private Task<GXUserProperty?> FindAsync(string userId, string name, CancellationToken token)
             {
                 var user = new GXUser { Id = userId };
@@ -339,14 +358,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     GXSelectArgs.SelectAll<GXUserProperty>(s => s.User == user && s.Module == module && s.Name == name), token);
             }
 
+            /// <inheritdoc />
             public async Task<T?> ReadAsync<T>(string userId, string name, CancellationToken cancellationToken = default)
             {
                 ArgumentNullException.ThrowIfNull(name);
                 Validate(userId, name);
                 var row = await FindAsync(userId, name, cancellationToken);
-                return row?.Value == null ? default : JsonSerializer.Deserialize<T>(row.Value, Json);
+                return row?.Value == null ? default : JsonSerializer.Deserialize<T>(row.Value, _json);
             }
 
+            /// <inheritdoc />
             public async Task<IReadOnlyList<AmiModuleUserSetting<T>>> ListAsync<T>(string userId, CancellationToken cancellationToken = default)
             {
                 Validate(userId);
@@ -354,9 +375,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 var module = Module;
                 var rows = await scope.Connection.SelectAsync<GXUserProperty>(scope.Transaction,
                     GXSelectArgs.SelectAll<GXUserProperty>(s => s.User == user && s.Module == module), cancellationToken);
-                return [.. rows.Select(r => new AmiModuleUserSetting<T>(r.Name ?? throw new InvalidOperationException("Stored module user setting has no name."), JsonSerializer.Deserialize<T>(r.Value!, Json)!, r.ConcurrencyStamp!))];
+                return [.. rows.Select(r => new AmiModuleUserSetting<T>(r.Name ?? throw new InvalidOperationException("Stored module user setting has no name."), JsonSerializer.Deserialize<T>(r.Value!, _json)!, r.ConcurrencyStamp!))];
             }
 
+            /// <inheritdoc />
             public async Task UpsertAsync<T>(string userId, string name, T value, bool exclusiveToUser = false, CancellationToken cancellationToken = default)
             {
                 ArgumentNullException.ThrowIfNull(name);
@@ -392,7 +414,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 row.User = user;
                 row.Module = module;
                 var beforeJson = existing == null ? null : GXHistorySnapshot.Serialize(row);
-                row.Value = JsonSerializer.Serialize(value, Json);
+                row.Value = JsonSerializer.Serialize(value, _json);
                 // Preserve the module API's established exclusive/nonexclusive identity scheme.
                 var key = JsonSerializer.Serialize(new[] { scope.ModuleId, exclusiveToUser ? null : userId, name });
                 var insertId = new Guid(SHA256.HashData(Encoding.UTF8.GetBytes(key)).AsSpan(0, 16));
@@ -402,15 +424,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await NotifyAsync(userId, added ? GXUserPropertiesPolicies.Add : GXUserPropertiesPolicies.Edit, row.Id, cancellationToken);
             }
 
+            /// <inheritdoc />
             public Task DeleteAsync(string userId, string name, CancellationToken cancellationToken = default)
                 => DeleteCoreAsync(userId, name, null, cancellationToken);
 
+            /// <inheritdoc />
             public Task DeleteIfUnchangedAsync(string userId, string name, string version, CancellationToken cancellationToken = default)
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(version);
                 return DeleteCoreAsync(userId, name, version, cancellationToken);
             }
 
+            /// <summary>Deletes a module-owned user setting only when its optional version matches, then records history and queues notification.</summary>
+            /// <param name="userId">Persistence identity of the user whose data or grants are selected.</param>
+            /// <param name="name">Stable name used to select or register the definition described by this operation.</param>
+            /// <param name="version">Optional expected concurrency stamp; a mismatch leaves storage unchanged.</param>
+            /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+            /// <returns>A task that completes after any eligible deletion and related history capture.</returns>
             private async Task DeleteCoreAsync(string userId, string name, string? version, CancellationToken token)
             {
                 ArgumentNullException.ThrowIfNull(name);
@@ -432,6 +462,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
             }
 
+            /// <summary>Queues a module-owned user-setting notification for the selected user after the surrounding transaction commits.</summary>
+            /// <param name="userId">Persistence identity of the user whose data or grants are selected.</param>
+            /// <param name="policy">Authorization policy to evaluate or include in an invalidation notification.</param>
+            /// <param name="id">Persisted user-setting identity included in the notification target.</param>
+            /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+            /// <returns>A task that completes after the notification has been registered with the module scope.</returns>
             private Task NotifyAsync(string userId, string policy, Guid id, CancellationToken token)
                 => GXModuleRepositoryNotifications.QueueAsync(scope, policy, id.ToString(), token, [userId]);
         }

@@ -59,7 +59,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="Admin.SystemLog" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXSystemLogPolicies.View })" TItem="GXLog" @ref="table"
+<GXViewTable ViewName="Admin.SystemLog" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXSystemLogPolicies.View })" TItem="GXLog" @ref="_table"
              @bind-Active="Active"
              Context="error"
              ItemsProvider="@GetItems"
@@ -71,19 +71,19 @@
     <FilterContent>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="SystemLog-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Type" Visibility="Visibility.Medium">
             <EnumTypeSelector Type="@TargetType.SystemLog"
-                              @bind-Value="@filter.Type"
+                              @bind-Value="@_filter.Type"
                               OnSelected="@((int? e) => Updated())">
             </EnumTypeSelector>
         </GXFh>
         <GXFh Id="Message" Visibility="Visibility.Medium">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByError"
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Message = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Level" Visibility="Visibility.Medium">
             <GXInputDropdown class="form-select"
@@ -96,7 +96,7 @@
         <GXFh Id="Closed" Visibility="Visibility.Medium">
             <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <HeaderContent>
@@ -127,8 +127,10 @@
 }
 
 @code {
+    /// <summary>Identifies the record whose details are currently open.</summary>
     private Guid? _detailsId;
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("CreationTime") { Position = 0, Description = "CreationTime", Visibility = (byte)Visibility.All },
         new("Type") { Position = 1, Description = "Type", Visibility = (byte)Visibility.All },
@@ -137,9 +139,12 @@
         new("Closed") { Position = 4, Description = "CloseTime", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -212,7 +217,8 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    private GXViewTable<GXLog>? table;
+    /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
+    private GXViewTable<GXLog>? _table;
 
     /// <summary>
     /// Trace level.
@@ -222,7 +228,7 @@
     /// <summary>
     /// System error filter.
     /// </summary>
-    private GXLog filter = new GXLog();
+    private GXLog _filter = new GXLog();
 
 
     public bool IsActive(GXLog item)
@@ -242,32 +248,32 @@
     {
         try
         {
-            if (table != null)
+            if (_table != null)
             {
-                await table.RefreshDataAsync(true);
+                await _table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingSystemLog);
-            NotificationService?.RemoveByKey("Pages/Admin/SystemLog.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (logs) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingSystemLog);
+            _notificationService?.RemoveByKey("Pages/Admin/SystemLog.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (logs) =>
             {
                 foreach (var it in logs)
                 {
@@ -275,7 +281,7 @@
                         it.Type == GXSystemLogPolicies.Clear ||
                         it.Type == GXSystemLogPolicies.Close)
                     {
-                        _ = GXNotificationRefresh.RefreshAsync(table, logs, Updated);
+                        _ = GXNotificationRefresh.RefreshAsync(_table, logs, Updated);
                         break;
                     }
                 }
@@ -292,39 +298,39 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Admin/SystemLog.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Admin/SystemLog.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingSystemLog);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingSystemLog);
         try
         {
             if (ShowClosedErrors)
             {
                 //Show closed errors.
-                filter.Closed = DateTimeOffset.MaxValue;
+                _filter.Closed = DateTimeOffset.MaxValue;
             }
             else
             {
                 //Show active errors.
-                filter.Closed = null;
+                _filter.Closed = null;
             }
             if (TraceLevel == TraceLevel.Off)
             {
-                filter.Level = null;
+                _filter.Level = null;
             }
             else
             {
-                filter.Level = (int)TraceLevel;
+                _filter.Level = (int)TraceLevel;
             }
             ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending
             };
@@ -340,18 +346,18 @@
                 //Mark system logs as seen.
                 if (ret.Logs.Any())
                 {
-                    if (Notifier != null)
+                    if (_notifier != null)
                     {
-                        await Notifier.Mark(Http, TargetType.SystemLog, ret.Logs.Max(s => s.CreationTime));
+                        await _notifier.Mark(Http, TargetType.SystemLog, ret.Logs.Max(s => s.CreationTime));
                     }
                 }
-            
-                if (Id.HasValue && table != null)
+
+                if (Id.HasValue && _table != null)
                 {
                     Active = ret.Logs?.FirstOrDefault(log => log.PublicId == Id.Value);
-                    table.RestoreSelection(Active);
+                    _table.RestoreSelection(Active);
                 }
-            
+
                 return new ItemsProviderResult<GXLog>((ret.Logs ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
@@ -371,19 +377,19 @@
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(ex.ToString());
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     public void Dispose()
     {
-        if (table != null)
+        if (_table != null)
         {
-            GXNotificationRefresh.Remove(table);
+            GXNotificationRefresh.Remove(_table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -392,7 +398,7 @@
 
     public async Task OnClear()
     {
-        NotificationService?.RemoveByKey("Pages/Admin/SystemLog.OnClear");
+        _notificationService?.RemoveByKey("Pages/Admin/SystemLog.OnClear");
         var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearErrors,
             new AmiConfirmationOptions
             {
@@ -412,7 +418,7 @@
         {
             if (args.Confirm)
             {
-                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingSystemLog);
+                using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingSystemLog);
                 try
                 {
                     await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=system", new ClearLog());
@@ -429,7 +435,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 }

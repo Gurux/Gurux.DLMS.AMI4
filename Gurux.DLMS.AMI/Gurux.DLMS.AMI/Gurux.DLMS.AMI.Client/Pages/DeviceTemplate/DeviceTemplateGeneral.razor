@@ -27,26 +27,11 @@
 // --------------------------------------------------------------------------
 *@
 
-@using Gurux.DLMS.AMI.Shared.DIs
 
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
 @using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS
-@using Gurux.DLMS.ManufacturerSettings
-@using Gurux.DLMS.Objects
-@using System.Xml.Linq
-@using System.IO
-@using System.Xml
-@using System.Xml.Serialization
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
-@using System.Text.Json
-@using System.Web;
-@using System.Text.Json.Serialization;
-@using System.Text.Encodings.Web;
 
 @inject IServiceProvider Services
 @inject NavigationManager NavigationManager
@@ -57,7 +42,7 @@
 
 @if (Active != null && Settings != null)
 {
-    @if (isLoading)
+    @if (_isLoading)
     {
         <p>Loading @fileName...</p>
     }
@@ -65,10 +50,10 @@
     {
         @*FileSelector is disabled until user has selected device template.*@
         <GXFileSelector TType="string" Value="@_value"
-                      Style="width:100%"
-                      MaxFileSize="10000000"
-                      OnLoaded="@UpdateDeviceTemplates"
-                      Filter=".gxc" />
+                        Style="width:100%"
+                        MaxFileSize="10000000"
+                        OnLoaded="@UpdateDeviceTemplates"
+                        Filter=".gxc" />
     }
 
     <EditForm EditContext="@GXEditContexts.For(Active)">
@@ -102,7 +87,7 @@
                 </th>
                 <th>
                     <GXInputNumber RememberValue="false" id="waitTime" disabled="@IsDeleting"
-                                 @bind-Value="Active.WaitTime" Min="@GXNumberBounds.Minimum(Active.WaitTime)" Max="@GXNumberBounds.Maximum(Active.WaitTime)" />
+                                   @bind-Value="Active.WaitTime" Min="@GXNumberBounds.Minimum(Active.WaitTime)" Max="@GXNumberBounds.Maximum(Active.WaitTime)" />
                 </th>
             </tr>
             <tr>
@@ -111,7 +96,7 @@
                 </th>
                 <th>
                     <GXInputNumber RememberValue="false" id="resendCount" disabled="@IsDeleting"
-                                 @bind-Value="Active.ResendCount" Min="@GXNumberBounds.Minimum(Active.ResendCount)" Max="@GXNumberBounds.Maximum(Active.ResendCount)" />
+                                   @bind-Value="Active.ResendCount" Min="@GXNumberBounds.Minimum(Active.ResendCount)" Max="@GXNumberBounds.Maximum(Active.ResendCount)" />
                 </th>
             </tr>
             <tr>
@@ -120,15 +105,15 @@
                 </th>
                 <th>
                     <GXInputDropdown RememberValue="false" id="type" class="form-select"
-                                 @bind-Value="Authentication" readonly="true"
+                                     @bind-Value="Authentication" readonly="true"
                                      Items="@(GetAuthentications().Select(it => (byte)it))" Formatter="@((byte value) => ((Gurux.DLMS.Enums.Authentication)value).ToString())" />
                 </th>
             </tr>
             <tr>
                 <th>
                     <GXInputHexAscii Disabled="@(IsDeleting || IsPasswordTileDisabled())"
-                                   @bind-Value="Settings.Password"
-                                   Title="@Properties.Resources.Password">
+                                     @bind-Value="Settings.Password"
+                                     Title="@Properties.Resources.Password">
                     </GXInputHexAscii>
                     <ValidationMessage For="@(() => Settings.Password)" />
                 </th>
@@ -162,17 +147,22 @@
     internal void SettingsChanged()
     {
         if (Active != null)
-            {
+        {
             GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXDeviceTemplate.Settings)));
         }
     }
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
+    /// <summary>References the ciphering editor used to validate device-template security settings.</summary>
     private Ciphering? _ciphering;
+    /// <summary>References the advanced connection editor used to validate device-template settings.</summary>
     private Advanced? _advanced;
+    /// <summary>Retains the communication profiles available to the device template editor.</summary>
     private Profiles? _profiles;
 
     private string? _value { get; set; }
@@ -196,7 +186,8 @@
 
     [CascadingParameter] public DeviceTemplate Owner { get; set; } = default!;
     private bool DeleteTarget { get => Owner.DeleteTarget; set => Owner.DeleteTarget = value; }
-    private bool isLoading;
+    /// <summary>Indicates that the displayed data is still being retrieved.</summary>
+    private bool _isLoading;
     private List<GXDeviceTemplate> templates { get => Owner.ImportedTemplates; set => Owner.ImportedTemplates = value; }
     private string? fileName { get => Owner.ImportedFileName; set => Owner.ImportedFileName = value; }
 
@@ -323,9 +314,9 @@
         fileName = loadedFileName;
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.UpdateDeviceTemplates");
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingDeviceTemplate);
-            isLoading = true;
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.UpdateDeviceTemplates");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.SavingDeviceTemplate);
+            _isLoading = true;
             await InvokeAsync(StateHasChanged);
             templates = ClientHelpers.ConvertToTemplates(Logger, xml ?? throw new ArgumentNullException(nameof(xml)));
             if (Active != null && templates.Any())
@@ -338,11 +329,11 @@
         catch (Exception ex)
         {
             fileName = null;
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.UpdateDeviceTemplates");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.UpdateDeviceTemplates");
         }
         finally
         {
-            isLoading = false;
+            _isLoading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -369,15 +360,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.OnInitializedAsync");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/DeviceTemplateGeneral.OnInitializedAsync");
             if (Active == null && Id != null)
             {
-                using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingDeviceTemplate);
+                using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingDeviceTemplate);
                 try
                 {
                     //Get device template data.
@@ -414,7 +405,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/DeviceTemplateGeneral.OnInitializedAsync");
         }
     }
 

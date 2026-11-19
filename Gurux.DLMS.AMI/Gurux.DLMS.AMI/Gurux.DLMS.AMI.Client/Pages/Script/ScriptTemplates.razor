@@ -63,29 +63,39 @@
     [Parameter]
     public Guid? Id { get; set; }
 
+    /// <summary>Prevents overlapping requests while checking is in progress.</summary>
     private bool _checking;
+    /// <summary>Caches script packages offered by the community catalog.</summary>
     private IReadOnlyList<GXAvailableUpdate> _catalogScripts = [];
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Invalidates catalog results when a newer request supersedes them.</summary>
     private long _catalogRequest;
+    /// <summary>Records whether the current user's permissions allow the check operation.</summary>
     private bool _canCheck;
+    /// <summary>Records when update availability was most recently checked.</summary>
     private DateTimeOffset? _checked;
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
         var authorization = Services.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
         var authentication = Services.GetRequiredService<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider>();
         var state = await authentication.GetAuthenticationStateAsync();
         _canCheck = (await authorization.AuthorizeAsync(state.User, GXUpdatePolicies.Admin)).Succeeded;
         if (_canCheck && !_disposed)
         {
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
             {
                 if (items.Any(item => item.Type == GXConfigurationPolicies.Cron &&
                     item.Id == GXCronNotifications.Completed && IsCatalogCheckCompletion(item.Settings)))
@@ -99,7 +109,7 @@
             }
             catch (Exception error)
             {
-                NotificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
+                _notificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
             }
         }
     }
@@ -147,7 +157,7 @@
         {
             if (!_disposed)
             {
-                NotificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
+                _notificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
             }
         }
     }
@@ -165,8 +175,8 @@
             return;
         }
         _checking = true;
-        using var progressScope = Progress?.ProgressStart(GXProgress.CheckingNewVersions);
-        NotificationService?.RemoveByKey("Pages/Script/ScriptTemplates.OnCheck");
+        using var progressScope = _progress?.ProgressStart(GXProgress.CheckingNewVersions);
+        _notificationService?.RemoveByKey("Pages/Script/ScriptTemplates.OnCheck");
         using var checkCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             _lifetime.Token, progressScope?.CancellationToken ?? CancellationToken.None);
         try
@@ -185,7 +195,7 @@
         }
         catch (Exception error)
         {
-            NotificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
+            _notificationService?.ReportError(error, "Pages/Script/ScriptTemplates.OnCheck");
         }
         finally
         {
@@ -201,7 +211,7 @@
         }
         _disposed = true;
         Interlocked.Increment(ref _catalogRequest);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
         _lifetime.Cancel();
         _lifetime.Dispose();
     }

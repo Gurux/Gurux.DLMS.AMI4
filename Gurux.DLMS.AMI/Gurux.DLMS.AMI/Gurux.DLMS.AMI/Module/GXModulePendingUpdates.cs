@@ -1,3 +1,30 @@
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -7,60 +34,19 @@ using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Server.Module;
 
-/// <summary>An inspected replacement ZIP to retain for the next startup.</summary>
-/// <param name="Id">Module identity.</param>
-/// <param name="Version">Prepared catalog version.</param>
-/// <param name="Zip">Local ZIP source.</param>
-/// <param name="CurrentVersion">Currently installed version.</param>
-/// <param name="Name">Display name.</param>
-public sealed record GXModuleUpdatePackage(string Id, string Version, string Zip, string? CurrentVersion = null, string? Name = null);
-internal sealed class GXModulePendingPackage
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string Version { get; set; } = "";
-    public string? CurrentVersion { get; set; }
-    public string Archive { get; set; } = "";
-    public string Sha256 { get; set; } = "";
-    public GXModulePredecessor? Previous { get; set; }
-}
-internal sealed class GXModulePredecessor
-{
-    public string? Version { get; set; }
-    public string? ReleaseVersion { get; set; }
-    public string? FileName { get; set; }
-    public string? Path { get; set; }
-    public bool? Enabled { get; set; }
-    public ModuleStatus? Status { get; set; }
-    public string? Name { get; set; }
-    public string? Description { get; set; }
-    public string? Icon { get; set; }
-    public string? Protocols { get; set; }
-    public ModuleType? Type { get; set; }
-}
-internal sealed class GXModulePendingBatch
-{
-    public Guid Id { get; set; }
-    public string State { get; set; } = "PendingRestart";
-    public DateTimeOffset PreparedAt { get; set; }
-    public string? Error { get; set; }
-    public List<GXModulePendingPackage> Packages { get; set; } = [];
-    public List<string> RequiredActive { get; set; } = [];
-    public Dictionary<string, string?> PreviousSettings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-    public GXModulePendingUpdateStatus ToResponse() => new()
-    {
-        Id = Id, State = State, PreparedAt = PreparedAt, Error = Error,
-        Modules = [.. Packages.Select(item => new GXModulePendingVersion(item.Id, item.Name, item.CurrentVersion, item.Version))]
-    };
-}
-
 /// <summary>Durable immutable packages and the recovery journal on the persistent module volume.</summary>
 internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
 {
-    private readonly string root = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "Modules", ".pending-updates"));
-    private readonly SemaphoreSlim gate = new(1, 1);
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    /// <summary>Root directory containing persistent files managed by this component.</summary>
+    private readonly string _root = Path.GetFullPath(Path.Combine(environment.ContentRootPath, "Modules", ".pending-updates"));
+    /// <summary>Serializes operations that mutate shared state in this component.</summary>
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    /// <summary>Serializer settings shared by requests or persisted state in this component.</summary>
+    private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
+    /// <summary>Rejects package identity segments containing unsupported characters, traversal markers, or excessive length.</summary>
+    /// <param name="value">Module identity, version, or archive filename segment to validate.</param>
+    /// <exception cref="InvalidDataException">The segment is blank, exceeds the limit, or contains unsupported characters or traversal markers.</exception>
     internal static void ValidateSegment(string value)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length > 200 || value is "." or ".." ||
@@ -69,10 +55,14 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
             throw new InvalidDataException("Invalid module package identity.");
         }
     }
+    /// <summary>Resolves a path below the pending update root and rejects traversal or symbolic links along that path.</summary>
+    /// <param name="relative">Path relative to the pending update root that must not traverse symbolic links or escape storage.</param>
+    /// <returns>The confined absolute path.</returns>
+    /// <exception cref="InvalidDataException">The resolved path escapes pending storage or traverses a symbolic link.</exception>
     private string Confined(string relative)
     {
-        var path = Path.GetFullPath(Path.Combine(root, relative));
-        if (!path.StartsWith(root + Path.DirectorySeparatorChar, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        var path = Path.GetFullPath(Path.Combine(_root, relative));
+        if (!path.StartsWith(_root + Path.DirectorySeparatorChar, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
         {
             throw new InvalidDataException("Module update path is outside the pending directory.");
         }
@@ -82,7 +72,7 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
             {
                 throw new InvalidDataException("Module update directories cannot contain symbolic links.");
             }
-            if (current.FullName == root)
+            if (current.FullName == _root)
             {
                 break;
             }
@@ -93,27 +83,44 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
         }
         return path;
     }
+    /// <summary>Resolves the retained ZIP archive path within the selected pending batch directory.</summary>
+    /// <param name="batch">Pending update journal whose packages and recovery metadata are selected.</param>
+    /// <param name="package">Package entry whose retained archive or expanded directory is selected.</param>
+    /// <returns>The confined absolute archive path.</returns>
     public string ArchivePath(GXModulePendingBatch batch, GXModulePendingPackage package)
         => Confined(batch.Id.ToString("N") + "/" + package.Archive);
+    /// <summary>Validates the module identity and resolves its expanded package directory within the pending batch.</summary>
+    /// <param name="batch">Pending update journal whose packages and recovery metadata are selected.</param>
+    /// <param name="package">Package entry whose retained archive or expanded directory is selected.</param>
+    /// <returns>The confined absolute directory containing the expanded module.</returns>
     public string PackageDirectory(GXModulePendingBatch batch, GXModulePendingPackage package)
     {
         ValidateSegment(package.Id);
         return Confined(batch.Id.ToString("N") + "/expanded/" + package.Id);
     }
+    /// <summary>Runs one journal operation while holding both an in-process gate and an exclusive filesystem lock.</summary>
+    /// <typeparam name="T">Result produced by the supplied callback.</typeparam>
+    /// <param name="action">Journal operation executed while both ownership locks are held.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The result produced by the exclusive journal operation.</returns>
     public async Task<T> ExclusiveAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken token)
     {
-        await gate.WaitAsync(token);
+        await _gate.WaitAsync(token);
         try
         {
-            Directory.CreateDirectory(root);
+            Directory.CreateDirectory(_root);
             using var ownership = new FileStream(Confined("journal.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             return await action(token);
         }
         finally
         {
-            gate.Release();
+            _gate.Release();
         }
     }
+    /// <summary>Reads the pending update recovery journal if one exists.</summary>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The saved update batch, or null when no journal exists.</returns>
+    /// <exception cref="InvalidDataException">The retained journal does not deserialize to an update batch.</exception>
     public async Task<GXModulePendingBatch?> ReadAsync(CancellationToken token)
     {
         var path = Confined("journal.json");
@@ -122,16 +129,20 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
             return null;
         }
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 4096, true);
-        return await JsonSerializer.DeserializeAsync<GXModulePendingBatch>(stream, Json, token)
+        return await JsonSerializer.DeserializeAsync<GXModulePendingBatch>(stream, _json, token)
             ?? throw new InvalidDataException("Invalid pending module journal.");
     }
+    /// <summary>Durably writes the update journal to a temporary file and atomically replaces the previous journal.</summary>
+    /// <param name="batch">Pending update journal whose packages and recovery metadata are selected.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after the replacement journal has been flushed and installed.</returns>
     internal async Task SaveAsync(GXModulePendingBatch batch, CancellationToken token)
     {
         var target = Confined("journal.json");
         var temporary = Confined("journal-" + Guid.NewGuid().ToString("N") + ".tmp");
         try
         {
-            var text = JsonSerializer.Serialize(batch, Json).Replace("\r\n", "\n").Replace("\n", "\r\n");
+            var text = JsonSerializer.Serialize(batch, _json).Replace("\r\n", "\n").Replace("\n", "\r\n");
             await File.WriteAllTextAsync(temporary, text, new System.Text.UTF8Encoding(false), token);
             using (var stream = new FileStream(temporary, FileMode.Open, FileAccess.Write, FileShare.None))
             {
@@ -147,6 +158,13 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
             }
         }
     }
+    /// <summary>Copies and hashes replacement ZIPs, validates the prepared batch, and persists it for the next restart.</summary>
+    /// <param name="packages">Inspected replacement archives to retain as one pending update batch.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="validate">Optional batch validation performed after archive copies and hashes are complete, before journal publication.</param>
+    /// <returns>Public status for the newly prepared pending update batch.</returns>
+    /// <exception cref="InvalidOperationException">Another batch is pending or being applied.</exception>
+    /// <exception cref="InvalidDataException">The package list, identity segments, or archive size are invalid.</exception>
     public Task<GXModulePendingUpdateStatus> QueueAsync(IReadOnlyList<GXModuleUpdatePackage> packages, CancellationToken token, Func<GXModulePendingBatch, CancellationToken, Task>? validate = null)
         => ExclusiveAsync(async ct =>
         {
@@ -193,6 +211,11 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
             await SaveAsync(batch, ct);
             return batch.ToResponse();
         }, token);
+    /// <summary>Checks pending batch identities and verifies that every retained archive still matches its prepared SHA-256 digest.</summary>
+    /// <param name="batch">Pending update journal whose packages and recovery metadata are selected.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes when all pending packages pass verification.</returns>
+    /// <exception cref="InvalidDataException">The batch or a package identity is invalid, or an archive digest no longer matches.</exception>
     public async Task VerifyAsync(GXModulePendingBatch batch, CancellationToken token)
     {
         if (batch.Id == Guid.Empty || batch.Packages.Count == 0)
@@ -212,6 +235,10 @@ internal sealed class GXModulePendingUpdates(IHostEnvironment environment)
             }
         }
     }
+    /// <summary>Marks a queued update as cancelled while preventing cancellation during active application.</summary>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes when pending update cancellation has been persisted.</returns>
+    /// <exception cref="InvalidOperationException">The pending batch is already being applied.</exception>
     public Task CancelAsync(CancellationToken token) => ExclusiveAsync(async ct =>
     {
         var batch = await ReadAsync(ct);

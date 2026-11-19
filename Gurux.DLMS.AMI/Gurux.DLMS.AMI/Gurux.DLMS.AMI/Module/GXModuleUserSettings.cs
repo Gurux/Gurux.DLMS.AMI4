@@ -34,7 +34,8 @@ namespace Gurux.DLMS.AMI.Server.Module;
 /// <summary>Module binding for repository-managed user data, including background operations.</summary>
 public sealed class GXModuleUserSettings(string moduleId, IServiceProvider services) : IGXAmiModuleUserSettings
 {
-    private readonly IServiceScopeFactory scopes = services.GetRequiredService<IServiceScopeFactory>();
+    /// <summary>Creates isolated dependency injection scopes for background operations.</summary>
+    private readonly IServiceScopeFactory _scopes = services.GetRequiredService<IServiceScopeFactory>();
 
     /// <inheritdoc />
     public Task<T?> ReadAsync<T>(string userId, string name, CancellationToken cancellationToken = default)
@@ -52,9 +53,14 @@ public sealed class GXModuleUserSettings(string moduleId, IServiceProvider servi
     public Task DeleteAsync(string userId, string name, CancellationToken cancellationToken = default)
         => ExecuteAsync(async s => { await UserPropertiesRepository.ForModule(s).DeleteAsync(userId, name, cancellationToken); return true; }, cancellationToken);
 
+    /// <summary>Runs a module user-settings operation in an isolated service scope and commits its module repository transaction.</summary>
+    /// <typeparam name="T">Result produced by the supplied callback.</typeparam>
+    /// <param name="operation">Asynchronous operation executed using the validated connection or module repository scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The result produced by the committed user-settings operation.</returns>
     private async Task<T> ExecuteAsync<T>(Func<GXModuleRepositoryScope, Task<T>> operation, CancellationToken token)
     {
-        await using var services = scopes.CreateAsyncScope();
+        await using var services = _scopes.CreateAsyncScope();
         using var suppression = services.ServiceProvider.GetService<IGXAmiSqlEvents>()?.Suppress();
         await using var scope = await GXModuleRepositoryScope.OpenAsync(moduleId, services.ServiceProvider, token);
         var result = await operation(scope);

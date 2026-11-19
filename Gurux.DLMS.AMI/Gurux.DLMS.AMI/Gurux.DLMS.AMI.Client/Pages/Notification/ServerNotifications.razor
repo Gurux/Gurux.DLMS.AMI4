@@ -55,7 +55,7 @@
                     @Properties.Resources.Name
                     <div class="form-check form-switch">
                         <input id="server-notifications-all" class="form-check-input" type="checkbox"
-                               checked="@Notifications.All(IsEnabled)" @onchange="ToggleAll" />
+                               checked="@_notifications.All(IsEnabled)" @onchange="ToggleAll" />
                         <label for="server-notifications-all">@Properties.Resources.All</label>
                     </div>
                 </th>
@@ -63,7 +63,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var group in Notifications.Where(n => string.IsNullOrEmpty(_filter) || n.Contains(_filter, StringComparison.OrdinalIgnoreCase)).GroupBy(GroupName))
+            @foreach (var group in _notifications.Where(n => string.IsNullOrEmpty(_filter) || n.Contains(_filter, StringComparison.OrdinalIgnoreCase)).GroupBy(GroupName))
             {
                 <tr @key="group.Key">
                     <td>@group.Key</td>
@@ -95,25 +95,34 @@
     /// <summary>Optional configuration supplied by an embedding page.</summary>
     [Parameter] public GXConfiguration? Configuration { get; set; }
 
-    private static readonly HashSet<string> NotificationActions = new(StringComparer.Ordinal)
+    /// <summary>Tracks the notification actions selected for the edited rule.</summary>
+    private static readonly HashSet<string> _notificationActions = new(StringComparer.Ordinal)
         { "add", "edit", "delete", "clear", "execute", "error", "close", "status", "status-change", "start", "end" };
-    private static readonly string[] Notifications = typeof(GXUserPolicies).Assembly.GetTypes()
+    /// <summary>Lists the notification events offered by the settings editor.</summary>
+    private static readonly string[] _notifications = typeof(GXUserPolicies).Assembly.GetTypes()
         .Where(t => t.IsClass && t.Name.EndsWith("Policies", StringComparison.Ordinal))
         .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static))
         .Where(f => f.IsLiteral && f.FieldType == typeof(string))
         .Select(f => (string)f.GetRawConstantValue()!)
-        .Where(n => n.Contains('.') && NotificationActions.Contains(ActionName(n)))
+        .Where(n => n.Contains('.') && _notificationActions.Contains(ActionName(n)))
         .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal).ToArray();
 
     private static string GroupName(string name) => name[..name.LastIndexOf('.')];
     private static string ActionName(string name) => name[(name.LastIndexOf('.') + 1)..];
+    /// <summary>Caches the settings currently displayed by the editor.</summary>
     private PerformanceSettings _settings = new();
+    /// <summary>Tracks validation and unsaved changes for the current settings model.</summary>
     private EditContext _editContext = null!;
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
+    /// <summary>Carries the criteria used to filter the displayed records.</summary>
     private string? _filter;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Retains the server-notification configuration currently represented by the form.</summary>
     private GXConfiguration? _loadedConfiguration;
+    /// <summary>Retains the loaded settings so parameter updates can avoid redundant reloads.</summary>
     private string? _loadedSettings;
     private IGXProgress? Progress => Services.GetService<IGXProgress>();
     private IGXNotificationService? NotificationService => Services.GetService<IGXNotificationService>();
@@ -202,7 +211,7 @@
 
     private void ToggleAll(ChangeEventArgs args)
     {
-        _settings.IgnoreNotification = args.Value is true ? null : Notifications.ToArray();
+        _settings.IgnoreNotification = args.Value is true ? null : _notifications.ToArray();
         _editContext.NotifyFieldChanged(new FieldIdentifier(_settings, nameof(PerformanceSettings.IgnoreNotification)));
     }
 

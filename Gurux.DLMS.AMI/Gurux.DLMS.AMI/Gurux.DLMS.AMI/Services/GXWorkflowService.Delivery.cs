@@ -44,31 +44,59 @@ using Gurux.Service.Orm;
 
 namespace Gurux.DLMS.AMI.Server.Services;
 
+/// <summary>Queues and executes workflows while recording invocation identity and delivery state.</summary>
 internal sealed partial class GXWorkflowService
 {
+    /// <summary>History record discriminator for workflow event entries.</summary>
     private const string EventRecord = "workflow.event";
+    /// <summary>History record discriminator for workflow delivery entries.</summary>
     private const string DeliveryRecord = "workflow.delivery";
-    private static readonly SemaphoreSlim DeliveryGate = new(1, 1);
+    /// <summary>Serializes workflow delivery processing.</summary>
+    private static readonly SemaphoreSlim _deliveryGate = new(1, 1);
+    /// <summary>Carries workflow chain identity, nesting depth, actor, delivery, and cancellation.</summary>
+    /// <param name="ChainId">Identity shared by all invocations in the workflow chain.</param>
+    /// <param name="Depth">Nesting depth within the workflow invocation chain.</param>
+    /// <param name="DeliveryId">Durable delivery identifier of the current workflow invocation.</param>
+    /// <param name="ActorId">User or agent that initiated the invocation, when known.</param>
+    /// <param name="Token">Cancellation token bounding the invocation lifetime.</param>
     private sealed record InvocationScope(Guid ChainId, int Depth, Guid DeliveryId, string? ActorId, CancellationToken Token);
-    private static readonly AsyncLocal<InvocationScope?> Current = new();
-    internal static Guid? CurrentOperationId => Current.Value?.DeliveryId is { } id && id != Guid.Empty ? id : null;
-    internal static string? CurrentActorId => Current.Value?.ActorId;
-    internal static void ThrowIfExecutionCancelled() => Current.Value?.Token.ThrowIfCancellationRequested();
-    internal static object? CaptureExecutionScope() => Current.Value;
+    /// <summary>Async-local operation state restored when the enclosing operation finishes.</summary>
+    private static readonly AsyncLocal<InvocationScope?> _current = new();
+    /// <summary>Delivery identifier attached to the current workflow invocation, if available.</summary>
+    internal static Guid? CurrentOperationId => _current.Value?.DeliveryId is { } id && id != Guid.Empty ? id : null;
+    /// <summary>Actor identity attached to the current workflow invocation, if available.</summary>
+    internal static string? CurrentActorId => _current.Value?.ActorId;
+    /// <summary>Throws when cancellation has been requested for the current workflow execution.</summary>
+    internal static void ThrowIfExecutionCancelled() => _current.Value?.Token.ThrowIfCancellationRequested();
+    /// <summary>Captures the async-local workflow execution context for deferred work.</summary>
+    /// <returns>The current invocation context, or null outside workflow execution.</returns>
+    internal static object? CaptureExecutionScope() => _current.Value;
 
+    /// <summary>Runs an asynchronous operation inside a captured workflow scope and restores the previous scope afterward.</summary>
+    /// <typeparam name="T">The callback result or deserialized response type.</typeparam>
+    /// <param name="captured">The previously captured workflow invocation scope, if any.</param>
+    /// <param name="action">The callback executed within the restored scope or settings transaction.</param>
+    /// <returns>A task containing the callback's result after the previous workflow scope is restored.</returns>
     internal static async Task<T> RunInExecutionScopeAsync<T>(object? captured, Func<Task<T>> action)
     {
-        var previous = Current.Value;
+        var previous = _current.Value;
         if (captured is InvocationScope scope)
         {
             scope.Token.ThrowIfCancellationRequested();
-            Current.Value = scope;
+            _current.Value = scope;
         }
         try
         { return await action(); }
-        finally { Current.Value = previous; }
+        finally { _current.Value = previous; }
     }
 
+    /// <summary>Reads a bounded workflow execution setting, using its default when no property is configured.</summary>
+    /// <param name="workflow">The workflow whose execution properties are validated or read.</param>
+    /// <param name="name">The exact execution-property name to locate on the workflow.</param>
+    /// <param name="defaultValue">The value used when the execution property is not configured.</param>
+    /// <param name="maximum">The largest permitted positive integer for this execution property.</param>
+    /// <returns>The configured value or the supplied default when the property is absent.</returns>
+    /// <exception cref="ArgumentException">The property is duplicated, is not an integer, or exceeds its permitted range.</exception>
     internal static int ExecutionSetting(GXWorkflow workflow, string name, int defaultValue, int maximum)
     {
         var values = workflow.Properties?.Where(p => p.Module == null && p.Removed == null && p.Name == name).ToArray() ?? [];
@@ -84,15 +112,23 @@ internal sealed partial class GXWorkflowService
         return value;
     }
 
+    /// <summary>Validates the configured workflow timeout and maximum invocation-chain depth.</summary>
+    /// <param name="workflow">The workflow whose execution properties are validated or read.</param>
+    /// <exception cref="ArgumentException">A configured timeout or depth property is invalid.</exception>
     internal static void ValidateExecutionSettings(GXWorkflow workflow)
     {
         _ = ExecutionSetting(workflow, "execution.timeout-seconds", 60, 3600);
         _ = ExecutionSetting(workflow, "execution.max-depth", 16, 64);
     }
 
+    /// <summary>Adds inherited workflow chain metadata to operation JSON or removes stale metadata outside a chain.</summary>
+    /// <param name="data">The operation JSON whose workflow-chain metadata is adjusted.</param>
+    /// <param name="parent">The optional persisted parent operation from which chain metadata is inherited.</param>
+    /// <returns>The operation JSON with the appropriate chain metadata, or null when neither content nor a chain exists.</returns>
+    /// <exception cref="ArgumentException">The operation data is not a JSON object.</exception>
     internal static string? AttachChain(string? data, GXWorkflowOperation? parent = null)
     {
-        var current = Current.Value;
+        var current = _current.Value;
         current?.Token.ThrowIfCancellationRequested();
         JsonObject? inherited = parent?.Data == null ? null : JsonNode.Parse(parent.Data) as JsonObject;
         Guid chainId = current?.ChainId ?? (Guid.TryParse(inherited?["ChainId"]?.ToString(), out var inheritedId) ? inheritedId : Guid.Empty);
@@ -113,9 +149,12 @@ internal sealed partial class GXWorkflowService
         return json.ToJsonString();
     }
 
+    /// <summary>Initializes an invocation's chain identifier and bounded depth from the current workflow execution scope.</summary>
+    /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+    /// <exception cref="ArgumentException">The event depth is negative.</exception>
     private static void SetChain(GXActionInfo invocation)
     {
-        var current = Current.Value;
+        var current = _current.Value;
         current?.Token.ThrowIfCancellationRequested();
         invocation.ChainId = current?.ChainId ?? (invocation.EventContext?.ChainId is { } id && id != Guid.Empty ? id : invocation.EventId);
         invocation.Depth = current != null ? current.Depth + 1 : invocation.EventContext?.Depth ?? 0;
@@ -131,6 +170,10 @@ internal sealed partial class GXWorkflowService
         }
     }
 
+    /// <summary>Serializes the supported invocation identity, sender, event, and chain metadata for durable delivery.</summary>
+    /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+    /// <returns>The JSON envelope retained for durable event delivery.</returns>
+    /// <exception cref="ArgumentException">The sender cannot be represented by a durable event envelope.</exception>
     private static string SerializeInvocation(GXActionInfo invocation)
     {
         if (invocation.Sender is not (null or GXWorkflowEventContext or GXUser or ClaimsPrincipal or ApplicationUser))
@@ -156,6 +199,10 @@ internal sealed partial class GXWorkflowService
         });
     }
 
+    /// <summary>Reconstructs a durable invocation and resolves its trigger type from the loaded assemblies.</summary>
+    /// <param name="record">The persisted event or delivery envelope to reconstruct.</param>
+    /// <returns>The reconstructed invocation including its original event and chain identifiers.</returns>
+    /// <exception cref="InvalidOperationException">The envelope is absent or its trigger type cannot be resolved uniquely.</exception>
     private static GXActionInfo DeserializeInvocation(GXWorkflowOperation record)
     {
         using var json = JsonDocument.Parse(record.Data ?? throw new InvalidOperationException("The workflow delivery has no data."));
@@ -193,9 +240,16 @@ internal sealed partial class GXWorkflowService
         return invocation;
     }
 
+    /// <summary>Synchronously persists a workflow invocation and wakes the durable delivery worker.</summary>
+    /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+    /// <returns>Whether a database-backed invocation was queued successfully.</returns>
     private bool EnqueueDurable(GXActionInfo invocation)
         => Task.Run(() => EnqueueDurableAsync(invocation, CancellationToken.None)).GetAwaiter().GetResult();
 
+    /// <summary>Persists a workflow invocation when a database factory is available and signals pending delivery work.</summary>
+    /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task indicating whether the invocation was persisted using an available database factory.</returns>
     private async Task<bool> EnqueueDurableAsync(GXActionInfo invocation, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -206,10 +260,16 @@ internal sealed partial class GXWorkflowService
         } // Isolated queue inspection tools can operate without a database.
         SetChain(invocation);
         await PersistEventAsync(factory, invocation, token);
-        signal.Release();
+        _signal.Release();
         return true;
     }
 
+    /// <summary>Finds enabled after-phase workflows matching the invocation or returns its explicit manual recipient.</summary>
+    /// <param name="connection">The open database connection used for the operation.</param>
+    /// <param name="transaction">The transaction that owns the database changes.</param>
+    /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the recipient workflow identifiers captured for this invocation.</returns>
     private static async Task<Guid[]> MatchingWorkflowsAsync(GXDbConnection connection, IDbTransaction transaction,
         GXActionInfo invocation, CancellationToken token)
     {
@@ -226,6 +286,11 @@ internal sealed partial class GXWorkflowService
         return (await connection.SelectAsync<GXWorkflow>(transaction, query, token)).Select(w => w.Id).ToArray();
     }
 
+    /// <summary>Atomically persists a workflow event and snapshots its recipient workflows without duplicating an existing event.</summary>
+    /// <param name="factory">The database factory used to persist or lease durable workflow work.</param>
+    /// <param name="invocation">The workflow event, actor, sender, and chain information to process.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task that completes when the event and its recipient snapshot are committed.</returns>
     internal static async Task PersistEventAsync(IDbConnectionFactory factory, GXActionInfo invocation, CancellationToken token)
     {
         string key = $"{EventRecord}:{invocation.EventId:N}";
@@ -235,7 +300,7 @@ internal sealed partial class GXWorkflowService
         bool ownsGate = !GXHistoryScope.IsActive;
         if (ownsGate)
         {
-            await DeliveryGate.WaitAsync(token);
+            await _deliveryGate.WaitAsync(token);
         }
         try
         {
@@ -302,14 +367,18 @@ internal sealed partial class GXWorkflowService
         {
             if (ownsGate)
             {
-                DeliveryGate.Release();
+                _deliveryGate.Release();
             }
         }
     }
 
+    /// <summary>Expands pending durable event snapshots into idempotent per-workflow delivery records.</summary>
+    /// <param name="factory">The database factory used to persist or lease durable workflow work.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the number of delivery records created from pending events.</returns>
     internal static async Task<int> FanOutAsync(IDbConnectionFactory factory, CancellationToken token)
     {
-        await DeliveryGate.WaitAsync(token);
+        await _deliveryGate.WaitAsync(token);
         try
         {
             await using var connection = await factory.GetConnectionAsync(token);
@@ -369,12 +438,16 @@ internal sealed partial class GXWorkflowService
             await transaction.CommitAsync(token);
             return count;
         }
-        finally { DeliveryGate.Release(); }
+        finally { _deliveryGate.Release(); }
     }
 
+    /// <summary>Claims the oldest available workflow delivery using a renewable lease.</summary>
+    /// <param name="factory">The database factory used to persist or lease durable workflow work.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task containing the leased delivery, or null when no delivery is available.</returns>
     internal static async Task<GXWorkflowOperation?> LeaseNextAsync(IDbConnectionFactory factory, CancellationToken token)
     {
-        await DeliveryGate.WaitAsync(token);
+        await _deliveryGate.WaitAsync(token);
         try
         {
             await using var connection = await factory.GetConnectionAsync(token);
@@ -394,9 +467,15 @@ internal sealed partial class GXWorkflowService
             await transaction.CommitAsync(token);
             return delivery;
         }
-        finally { DeliveryGate.Release(); }
+        finally { _deliveryGate.Release(); }
     }
 
+    /// <summary>Renews the active workflow-delivery lease until cancellation or loss of ownership.</summary>
+    /// <param name="factory">The database factory used to persist or lease durable workflow work.</param>
+    /// <param name="delivery">The leased workflow delivery whose ownership must be retained.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task that renews the lease until cancellation or ownership is lost.</returns>
+    /// <exception cref="InvalidOperationException">The delivery lease is no longer owned by this worker.</exception>
     private static async Task HeartbeatAsync(IDbConnectionFactory factory, GXWorkflowOperation delivery, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
@@ -413,6 +492,14 @@ internal sealed partial class GXWorkflowService
         }
     }
 
+    /// <summary>Records a workflow delivery's outcome and releases its lease, retaining interrupted work for retry.</summary>
+    /// <param name="factory">The database factory used to persist or lease durable workflow work.</param>
+    /// <param name="delivery">The leased workflow delivery whose ownership must be retained.</param>
+    /// <param name="history">The completed workflow execution record to attach to the delivery.</param>
+    /// <param name="interrupted">Whether shutdown interrupted execution and the delivery should remain retryable.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task that completes after the delivery state and execution history are persisted.</returns>
+    /// <exception cref="InvalidOperationException">The delivery lease was replaced before the outcome could be stored.</exception>
     internal static async Task CompleteDeliveryAsync(IDbConnectionFactory factory, GXWorkflowOperation delivery,
         GXWorkflowExecution history, bool interrupted, CancellationToken token)
     {
@@ -442,6 +529,10 @@ internal sealed partial class GXWorkflowService
         }
     }
 
+    /// <summary>Replays unacknowledged workflow source publications and quarantines malformed publication metadata.</summary>
+    /// <param name="factory">The database factory used to persist or lease durable workflow work.</param>
+    /// <param name="token">Cancels the database or remote operation.</param>
+    /// <returns>A task that completes after the pending source publications have been replayed or quarantined.</returns>
     private async Task ResumeSourcePublicationsAsync(IDbConnectionFactory factory, CancellationToken token)
     {
         // Replay source lifecycle events left unacknowledged by an interrupted publication.

@@ -50,7 +50,7 @@
 <div class="row mx-0">
     <div class="col-lg-6">
         <section>
-            <StatusMessage Message="@errorMessage" />
+            <StatusMessage Message="@_errorMessage" />
             <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
                 <h2>@Gurux.DLMS.AMI.Properties.Resources.UseALocalAccountToLogIn</h2>
@@ -73,7 +73,7 @@
                     </label>
                 </div>
                 <div>
-                    @if (qrFeatures.PhoneApprovalEnabled)
+                    @if (_qrFeatures.PhoneApprovalEnabled)
                     {
                         <div class="form-check mb-3">
                             <InputCheckbox id="phone-approval" class="form-check-input" @bind-Value="Input.UsePhoneApproval" />
@@ -89,7 +89,7 @@
                             <a href="Account/ForgotPassword">@Gurux.DLMS.AMI.Properties.Resources.ForgotYourPassword</a>
                         </p>
                     }
-                    @if (publicRegistrationAllowed)
+                    @if (_publicRegistrationAllowed)
                     {
                     <p>
                         <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">@Gurux.DLMS.AMI.Properties.Resources.RegisterAsANewUser</a>
@@ -108,7 +108,7 @@
     <div class="col-lg-4 col-lg-offset-2">
         <section>
             <ExternalLoginPicker />
-            @if (qrFeatures.TotpEnrollmentEnabled)
+            @if (_qrFeatures.TotpEnrollmentEnabled)
             {
                 <hr />
                 <h3>@Gurux.DLMS.AMI.Properties.Resources.UseAnAuthenticatorApp</h3>
@@ -116,7 +116,7 @@
                 <a href="Account/Manage/EnableAuthenticator">@Gurux.DLMS.AMI.Properties.Resources.SetUpTwoFactorAuthentication</a>
                 <p class="text-muted">@Gurux.DLMS.AMI.Properties.Resources.SignInFirstToScanYourPersonalSetupQRCode</p>
             }
-            @if (qrFeatures.PhoneApprovalEnabled)
+            @if (_qrFeatures.PhoneApprovalEnabled)
             {
                 <hr />
                 <h3>@Gurux.DLMS.AMI.Properties.Resources.ApproveWithYourPhone</h3>
@@ -127,9 +127,12 @@
 </div>
 
 @code {
-    private string? errorMessage;
-    private bool publicRegistrationAllowed;
-    private AmiQrLoginFeatures qrFeatures = new(false, false);
+    /// <summary>Contains the authentication or registration failure displayed by the page.</summary>
+    private string? _errorMessage;
+    /// <summary>Controls whether the login page offers public account registration.</summary>
+    private bool _publicRegistrationAllowed;
+    /// <summary>Contains the enabled QR-login capabilities used to select the available login controls.</summary>
+    private AmiQrLoginFeatures _qrFeatures = new(false, false);
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -143,8 +146,8 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
-        publicRegistrationAllowed = (await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted)).PublicRegistrationAllowed;
-        qrFeatures = await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted);
+        _publicRegistrationAllowed = (await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted)).PublicRegistrationAllowed;
+        _qrFeatures = await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted);
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
             // Clear the existing external cookie to ensure a clean login process
@@ -180,15 +183,15 @@
         }
         else
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidLoginAttempt;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidLoginAttempt;
         }
     }
 
     private async Task BeginPhoneApprovalAsync()
     {
-        if (!HttpContext.Request.IsHttps || !qrFeatures.PhoneApprovalEnabled)
+        if (!HttpContext.Request.IsHttps || !_qrFeatures.PhoneApprovalEnabled)
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailableHTTPSAndAnEnabledQRCodeModuleAreRequired;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailableHTTPSAndAnEnabledQRCodeModuleAreRequired;
             return;
         }
         var user = await UserManager.FindByNameAsync(Input.Email);
@@ -196,7 +199,7 @@
             await SignInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
         if (!result.Succeeded)
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidLoginAttempt;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.ErrorInvalidLoginAttempt;
             return;
         }
         try
@@ -207,7 +210,7 @@
                 HttpContext.RequestAborted);
             if (challenge is null)
             {
-                errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailablePleaseTryAgain;
+                _errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailablePleaseTryAgain;
                 return;
             }
             HttpContext.Response.Cookies.Append(QrLoginFlow.CookieName, challenge.Id + "." + challenge.BrowserKey,
@@ -215,7 +218,7 @@
         }
         catch (AmiModuleUnavailableException)
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailablePleaseTryAgain;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.PhoneApprovalIsUnavailablePleaseTryAgain;
             return;
         }
         RedirectManager.RedirectTo("Account/LoginWithQrCode");

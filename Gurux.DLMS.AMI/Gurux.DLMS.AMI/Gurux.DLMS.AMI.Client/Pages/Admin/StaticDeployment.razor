@@ -82,19 +82,29 @@ else if (_status?.HostingEnvironment is "Systemd" or "Linux" or "Container")
 }
 
 @code {
-    static readonly System.Resources.ResourceManager Labels = new("Gurux.DLMS.AMI.Client.Properties.DeploymentResources", typeof(StaticDeployment).Assembly);
-    static string Text(string key) => Labels.GetString(key, System.Globalization.CultureInfo.CurrentUICulture) ?? key;
+    /// <summary>Resolves the localized resource labels displayed by the page.</summary>
+    static readonly System.Resources.ResourceManager _labels = new("Gurux.DLMS.AMI.Client.Properties.DeploymentResources", typeof(StaticDeployment).Assembly);
+    static string Text(string key) => _labels.GetString(key, System.Globalization.CultureInfo.CurrentUICulture) ?? key;
     bool UpdateAvailable => NuGet.Versioning.NuGetVersion.TryParse(_available, out var available) &&
         (!NuGet.Versioning.NuGetVersion.TryParse(_status?.CurrentVersion, out var current) || available > current);
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Caches the most recent deployment status returned by the server.</summary>
     GXDeploymentResponse? _status;
+    /// <summary>Identifies the available release version offered by the update controls.</summary>
     string? _available;
+    /// <summary>Contains the failure message displayed for the most recent operation.</summary>
     string? _error;
+    /// <summary>Identifies the request whose details are displayed.</summary>
     string? _requestId;
+    /// <summary>Caches the application releases offered by the deployment controls.</summary>
     GXDeploymentRelease[] _releases = [];
     bool _maintenanceRequired => _releases.SingleOrDefault(r => r.Version == _available)?.MaintenanceRequired == true;
+    /// <summary>Prevents overlapping requests while starting is in progress.</summary>
     bool _starting;
+    /// <summary>Prevents overlapping requests while reconnecting is in progress.</summary>
     bool _reconnecting;
+    /// <summary>Tracks the background status-polling operation for the displayed deployment.</summary>
     Task? _polling;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -25,11 +25,14 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Http;
 using Gurux.DLMS.AMI.Services;
 
 namespace Gurux.DLMS.AMI.Server.Services;
 
 /// <summary>Applies host network policy to HTTP requests from runtime modules.</summary>
+/// <param name="configuration">Provides the persisted host proxy policy.</param>
+/// <param name="proxy">Downloads permitted content and maintains the bounded proxy cache.</param>
 public sealed class GXAmiHttpProxy(GXHttpProxyConfiguration configuration, GXHttpProxyService proxy) : IGXAmiHttpProxy
 {
     /// <inheritdoc />
@@ -42,9 +45,9 @@ public sealed class GXAmiHttpProxy(GXHttpProxyConfiguration configuration, GXHtt
             var content = await proxy.GetAsync(url, settings, referer, cancellationToken, options.CacheScope);
             return new(content.Body, content.ContentType, content.SourceUrl);
         }
-        catch (GXHttpProxyException ex)
+        catch (GXHttpException ex)
         {
-            throw new GXAmiHttpProxyException(ex.StatusCode, ex.Message);
+            throw new GXAmiHttpProxyException((int)(ex.StatusCode ?? System.Net.HttpStatusCode.BadGateway), ex.Message);
         }
     }
 

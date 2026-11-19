@@ -72,8 +72,10 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -93,19 +95,22 @@
     [Parameter]
     public List<GXGatewayGroup>? GatewayGroups { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXGatewayGroup>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXGatewayGroup>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXGatewayGroup>? _selectionContainer;
 
     /// <summary>
     /// Gateway group filter.
     /// </summary>
-    private GXGatewayGroup filter = new GXGatewayGroup(null);
+    private GXGatewayGroup _filter = new GXGatewayGroup(null);
 
     /// <summary>
     /// Selected gateway group filter.
     /// </summary>
-    private GXGatewayGroup selectedFilter = new GXGatewayGroup(null);
+    private GXGatewayGroup _selectedFilter = new GXGatewayGroup(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -113,13 +118,13 @@
         {
             if (_selected != null)
             {
-                selectedFilter.Name = name;
+                _selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -129,14 +134,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Gateway/GatewayGroupsSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Gateway/GatewayGroupsSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/GatewayGroupsSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Gateway/GatewayGroupsSelector.SearchByName");
         }
     }
 
@@ -148,32 +153,32 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.UserGroups = null;
+                    _filter.UserGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    GXUserGroup? ug = _filter.UserGroups?.FirstOrDefault();
                     if (ug == null)
                     {
                         user = new GXUser();
                         ug = new GXUserGroup();
-                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        _filter.UserGroups = new(new GXUserGroup[] { ug });
                         ug.Users = new(new GXUser[] { user });
                     }
                     else
                     {
-                        user = GXFilterHelpers.GetOrAddUser(filter.UserGroups ??= []);
+                        user = GXFilterHelpers.GetOrAddUser(_filter.UserGroups ??= []);
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Gateway/GatewayGroupsSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Gateway/GatewayGroupsSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/GatewayGroupsSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Gateway/GatewayGroupsSelector.SearchByUser");
         }
     }
 
@@ -190,26 +195,26 @@
             return new(new ItemsProviderResult<GXGatewayGroup>(new GXGatewayGroup[0], 0));
         }
         int total = groups.Count;
-        if (!string.IsNullOrEmpty(selectedFilter.Name))
+        if (!string.IsNullOrEmpty(_selectedFilter.Name))
         {
-            groups = groups.Where(w => (w.Name ?? string.Empty).ToLower().Contains((selectedFilter.Name ?? string.Empty).ToLower())).ToList();
+            groups = groups.Where(w => (w.Name ?? string.Empty).ToLower().Contains((_selectedFilter.Name ?? string.Empty).ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXGatewayGroup>(
-            groups.Skip(request.StartIndex).Take(request.Count), 
+            groups.Skip(request.StartIndex).Take(request.Count),
             total));
     }
 
     private async ValueTask<ItemsProviderResult<GXGatewayGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingGatewayGroups);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingGatewayGroups);
         try
         {
             ListGatewayGroups req = new ListGatewayGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = (GetGroups() ?? []).Select(s => s.Id).ToArray()
@@ -227,7 +232,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -247,8 +252,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
@@ -258,8 +263,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingGatewayGroups);
-            NotificationService?.RemoveByKey("Pages/Gateway/GatewayGroupsSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingGatewayGroups);
+            _notificationService?.RemoveByKey("Pages/Gateway/GatewayGroupsSelector.OnInitializedAsync");
             //Add selected gateways.
             _selected.Items = GetGroups() ?? [];
             bool addDefaultGroups = Action == CrudAction.Create && !_selected.Items.Any();
@@ -289,7 +294,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Gateway/GatewayGroupsSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Gateway/GatewayGroupsSelector.OnInitializedAsync");
         }
     }
 }

@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class AgentGroupController(
         IAgentGroupRepository AgentGroupRepository) : ControllerBase
     {
-        private readonly IAgentGroupRepository _AgentGroupRepository = AgentGroupRepository;
+        /// <summary>Provides persistence and access checks for agent group records.</summary>
+        private readonly IAgentGroupRepository _agentGroupRepository = AgentGroupRepository;
 
         /// <summary>
         /// Get agent group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetAgentGroupResponse()
             {
-                Item = (await _AgentGroupRepository.ReadAsync(id, null, cancellationToken))
+                Item = (await _agentGroupRepository.ReadAsync(id, null, cancellationToken))
             };
         }
 
@@ -74,7 +75,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            var ids = await _AgentGroupRepository.UpsertAsync(request.AgentGroups, null, cancellationToken);
+            var ids = await _agentGroupRepository.UpsertAsync(request.AgentGroups, null, cancellationToken);
             return new AddAgentGroupResponse() { Ids = ids };
         }
 
@@ -88,7 +89,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListAgentGroupsResponse ret = new();
-            await _AgentGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _agentGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -103,7 +104,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _AgentGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _agentGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveAgentGroupResponse();
         }
     }

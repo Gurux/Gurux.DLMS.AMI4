@@ -46,7 +46,7 @@
 <h1>@Gurux.DLMS.AMI.Properties.Resources.ResendEmailConfirmation</h1>
 <h2>@Gurux.DLMS.AMI.Properties.Resources.EnterYourEmail</h2>
 <hr />
-<StatusMessage Message="@message" />
+<StatusMessage Message="@_message" />
 <div class="row mx-0">
     <div class="col-md-4">
         <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
@@ -63,7 +63,8 @@
 </div>
 
 @code {
-    private string? message;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
@@ -78,7 +79,7 @@
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.VerificationEmailSentPleaseCheckYourEmail;
+            _message = Gurux.DLMS.AMI.Properties.Resources.VerificationEmailSentPleaseCheckYourEmail;
             return;
         }
 
@@ -90,7 +91,7 @@
             new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
         await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
 
-        message = Gurux.DLMS.AMI.Properties.Resources.VerificationEmailSentPleaseCheckYourEmail;
+        _message = Gurux.DLMS.AMI.Properties.Resources.VerificationEmailSentPleaseCheckYourEmail;
     }
 
     private sealed class InputModel

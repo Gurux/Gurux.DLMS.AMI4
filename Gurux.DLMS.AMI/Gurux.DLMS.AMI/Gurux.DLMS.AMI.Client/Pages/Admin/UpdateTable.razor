@@ -38,10 +38,10 @@
 
 @if (Modules)
 {
-    <ModulePendingUpdatesPanel @ref="pendingUpdatesPanel" OnApplied="OnUpdated" />
+    <ModulePendingUpdatesPanel @ref="_pendingUpdatesPanel" OnApplied="OnUpdated" />
 }
 
-<GXViewTable ViewName="Admin.UpdateTable" ViewColumns="ViewColumnDefaults" TItem="GXAvailableUpdate" @ref="_table" Context="item" ItemsProvider="GetItems"
+<GXViewTable ViewName="Admin.UpdateTable" ViewColumns="_viewColumnDefaults" TItem="GXAvailableUpdate" @ref="_table" Context="item" ItemsProvider="GetItems"
          Menu="false"
          ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
     <HeaderContent><GXTh Id="AvailableUpdates" TItem="GXAvailableUpdate">@Properties.Resources.AvailableUpdates</GXTh></HeaderContent>
@@ -72,7 +72,8 @@
 </GXViewTable>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("AvailableUpdates") { Position = 0, Description = Properties.Resources.AvailableUpdates, Visibility = (byte)Visibility.All },
     ];
@@ -81,12 +82,18 @@
     public IReadOnlyList<GXAvailableUpdate> Items { get; set; } = [];
     [Parameter] public bool Modules { get; set; }
     [Parameter] public EventCallback OnUpdated { get; set; }
+    /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
     private GXTable<GXAvailableUpdate>? _table;
+    /// <summary>Caches the release versions available for each displayed module.</summary>
     private Dictionary<string, List<ModuleReleaseInfo>> _versions = new();
+    /// <summary>Retains the current selection used by the editing controls.</summary>
     private readonly Dictionary<string, Guid> _selected = new();
+    /// <summary>Avoids loading the available release versions repeatedly.</summary>
     private bool _versionsLoaded;
+    /// <summary>Prevents overlapping requests while updating is in progress.</summary>
     private bool _updating;
-    private ModulePendingUpdatesPanel? pendingUpdatesPanel;
+    /// <summary>References the pending-update panel so changes to the installation queue can refresh it.</summary>
+    private ModulePendingUpdatesPanel? _pendingUpdatesPanel;
 
     private void SelectVersion(string id, object? value)
     {
@@ -111,14 +118,14 @@
             {
                 throw new InvalidOperationException(Properties.Resources.SelectAnInstallableModuleVersion);
             }
-        
+
             using var progress = Services.GetService<IGXProgress>()?.ProgressStart(Gurux.DLMS.AMI.Client.Properties.Resources.UpdatingModule);
             var result = await Http.PostAsJson<InstallModuleResponse>("api/Module/Install", new InstallModule { Module = new GXModule(module.Id), VersionId = version });
             notifications?.Add(new GXNotificationItem(Gurux.UI.Components.Enums.NotificationLevel.Success, result.Restart ? Properties.Resources.ModuleUpdatePrepared : Properties.Resources.ModuleUpdated, "", "Updates.Module"));
             await OnUpdated.InvokeAsync();
-            if (pendingUpdatesPanel != null)
+            if (_pendingUpdatesPanel != null)
             {
-                await pendingUpdatesPanel.RefreshAsync();
+                await _pendingUpdatesPanel.RefreshAsync();
             }
         }
         catch (Exception error)
@@ -156,7 +163,7 @@
                     _selected[item.Id] = selected.Id;
                 }
             }
-        
+
             _versionsLoaded = true;
         }
         var rows = request.Count > 0 ? Items.Skip(request.StartIndex).Take(request.Count) : Items;

@@ -33,22 +33,17 @@ using Microsoft.Extensions.Options;
 
 namespace Gurux.DLMS.AMI.Server.Services;
 
-/// <summary>Host-specific storage for uploaded appearance images.</summary>
-public sealed class ImageStorageOptions
-{
-    /// <summary>Absolute storage directory outside the web root; empty uses the service account's local application data.</summary>
-    public string RootPath { get; set; } = "";
-    /// <summary>Maximum decoded file size in bytes.</summary>
-    public int MaxFileSize { get; set; } = 10 * 1024 * 1024;
-}
-
 /// <summary>Stores images under generated names. Original names never participate in filesystem paths.</summary>
 public sealed partial class GXImageStorage
 {
-    private readonly string root;
-    private readonly int maxSize;
-    private readonly ILogger<GXImageStorage> logger;
-    private static readonly Regex KeyPattern = MyRegex();
+    /// <summary>Root directory containing persistent files managed by this component.</summary>
+    private readonly string _root;
+    /// <summary>Maximum response or stored image size accepted by this component.</summary>
+    private readonly int _maxSize;
+    /// <summary>Records operational failures and diagnostic information.</summary>
+    private readonly ILogger<GXImageStorage> _logger;
+    /// <summary>Validates the supported identifier syntax before storage lookup.</summary>
+    private static readonly Regex _keyPattern = MyRegex();
 
     /// <summary>Validates storage configuration; the directory is created only when writing an image.</summary>
     public GXImageStorage(IOptions<ImageStorageOptions> options, IWebHostEnvironment environment, ILogger<GXImageStorage> logger)
@@ -62,21 +57,21 @@ public sealed partial class GXImageStorage
         {
             throw new ArgumentException("ImageStorage:RootPath must be absolute.");
         }
-        root = Path.GetFullPath(path);
+        _root = Path.GetFullPath(path);
         if (!string.IsNullOrEmpty(environment.WebRootPath))
         {
-            var relative = Path.GetRelativePath(Path.GetFullPath(environment.WebRootPath), root);
+            var relative = Path.GetRelativePath(Path.GetFullPath(environment.WebRootPath), _root);
             if (relative == "." || !Path.IsPathRooted(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar))
             {
                 throw new ArgumentException("Image storage must be outside the web root.");
             }
         }
-        maxSize = options.Value.MaxFileSize;
-        if (maxSize <= 0)
+        _maxSize = options.Value.MaxFileSize;
+        if (_maxSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Image size limit must be positive.");
         }
-        this.logger = logger;
+        this._logger = logger;
     }
 
     /// <summary>Recognizes file content rather than trusting the supplied extension; returns null for inline icons and HTML symbols.</summary>
@@ -86,7 +81,7 @@ public sealed partial class GXImageStorage
         {
             return null;
         }
-        if (value.Length > (long)maxSize * 4 / 3 + 1024)
+        if (value.Length > (long)_maxSize * 4 / 3 + 1024)
         {
             throw new ArgumentException("Image exceeds the configured size limit.");
         }
@@ -102,10 +97,10 @@ public sealed partial class GXImageStorage
             {
                 throw new ArgumentException("Unsupported image content.");
             }
-        
+
             return null;
         }
-        if (bytes.Length > maxSize)
+        if (bytes.Length > _maxSize)
         {
             throw new ArgumentException("Image exceeds the configured size limit.");
         }
@@ -118,7 +113,7 @@ public sealed partial class GXImageStorage
         else if (bytes.Length >= 12 && bytes.AsSpan().StartsWith("RIFF"u8) && bytes.AsSpan(8).StartsWith("WEBP"u8)) { extension = "webp"; type = "image/webp"; }
         else if (svg)
         {
-            using var reader = XmlReader.Create(new StringReader(value), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = maxSize });
+            using var reader = XmlReader.Create(new StringReader(value), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maxSize });
             reader.MoveToContent();
             if (reader.LocalName != "svg")
             {
@@ -137,7 +132,7 @@ public sealed partial class GXImageStorage
     /// <summary>Creates a new immutable image file and returns its relative storage key.</summary>
     public async Task<string> WriteAsync(byte[] bytes, string extension, CancellationToken token = default)
     {
-        if (bytes.Length > maxSize)
+        if (bytes.Length > _maxSize)
         {
             throw new ArgumentException("Image exceeds the configured size limit.");
         }
@@ -157,7 +152,7 @@ public sealed partial class GXImageStorage
             {
                 DeleteImmediate(key);
             }
-        
+
             throw;
         }
         Repository.GXHistoryScope.OnRollback(() => DeleteImmediate(key));
@@ -168,7 +163,7 @@ public sealed partial class GXImageStorage
     public async Task<byte[]> ReadAsync(string key, CancellationToken token = default)
     {
         await using var stream = new FileStream(Resolve(key), FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 81920, FileOptions.Asynchronous);
-        if (stream.Length > maxSize)
+        if (stream.Length > _maxSize)
         {
             throw new InvalidDataException("Stored image exceeds the configured size limit.");
         }
@@ -187,6 +182,8 @@ public sealed partial class GXImageStorage
         DeleteImmediate(key);
     }
 
+    /// <summary>Deletes an unreferenced stored image and logs filesystem failures without interrupting cleanup.</summary>
+    /// <param name="key">The lookup key identifying the record or cached value.</param>
     private void DeleteImmediate(string key)
     {
         var path = Resolve(key);
@@ -196,7 +193,7 @@ public sealed partial class GXImageStorage
         }
         catch (Exception error)when (error is IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(error, "Could not remove unreferenced image {StorageKey}.", key);
+            _logger.LogWarning(error, "Could not remove unreferenced image {StorageKey}.", key);
         }
     }
 
@@ -211,15 +208,21 @@ public sealed partial class GXImageStorage
         return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 
+    /// <summary>Resolves a validated image-storage key beneath the configured image root.</summary>
+    /// <param name="key">The relative image key in year/month/identifier.extension form.</param>
+    /// <returns>The absolute path corresponding to the validated storage key.</returns>
+    /// <exception cref="ArgumentException">The key does not match the permitted image-storage format.</exception>
     private string Resolve(string key)
     {
-        if (!KeyPattern.IsMatch(key))
+        if (!_keyPattern.IsMatch(key))
         {
             throw new ArgumentException("Invalid image storage key.");
         }
-        return Path.Combine(root, key.Replace('/', Path.DirectorySeparatorChar));
+        return Path.Combine(_root, key.Replace('/', Path.DirectorySeparatorChar));
     }
 
+    /// <summary>Creates the generated regular expression that recognizes permitted image-storage keys.</summary>
+    /// <returns>The regular expression used to validate image-storage keys.</returns>
     [GeneratedRegex(@"\A[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\.(png|jpg|gif|bmp|ico|webp|svg)\z", RegexOptions.CultureInvariant)]
     private static partial Regex MyRegex();
 }

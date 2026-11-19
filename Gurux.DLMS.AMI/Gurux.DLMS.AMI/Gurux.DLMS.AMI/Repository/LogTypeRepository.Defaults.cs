@@ -36,15 +36,16 @@ using Gurux.Service.Orm;
 
 namespace Gurux.DLMS.AMI.Server.Repository;
 
+/// <summary>Persists log categories and maintains application-owned defaults.</summary>
 public partial class LogTypeRepository
 {
     /// <inheritdoc />
     public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default)
     {
-        await GXHistoryMutation.RunAllAsync<GXLogType>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices,
+        await GXHistoryMutation.RunAllAsync<GXLogType>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices,
     async () =>
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.Add);
+        await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.Add);
         await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var changed = new List<GXLogType>();
@@ -67,7 +68,7 @@ public partial class LogTypeRepository
     public async Task ResetToDefaultsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
     {
         ids = ids.ToArray();
-        await GXHistoryMutation.RunIdsAsync<GXLogType, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, ids,
+        await GXHistoryMutation.RunIdsAsync<GXLogType, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, ids,
     async () =>
     {
         ArgumentNullException.ThrowIfNull(ids);
@@ -76,7 +77,7 @@ public partial class LogTypeRepository
         {
             throw new ArgumentException("Existing built-in log type identifiers are required.", nameof(ids));
         }
-        await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.Edit);
+        await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.Edit);
         await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
         var rows = await connection.SelectAsync<GXLogType>(transaction,
@@ -120,6 +121,11 @@ public partial class LogTypeRepository
     }, cancellationToken);
     }
 
+    /// <summary>Queues authorized-user notifications for each regenerated log category using its public identity.</summary>
+    /// <param name="rows">Regenerated log-type records requiring change notifications.</param>
+    /// <param name="action">Notification action identifying added or edited default categories.</param>
+    /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>A task that completes after all changed category notifications have been queued.</returns>
     private async Task NotifyDefaultChangesAsync(IEnumerable<GXLogType> rows, NotificationAction action, CancellationToken cancellationToken)
     {
         foreach (var row in rows)

@@ -49,16 +49,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     partial class EnumTypeRepository(IDbConnectionFactory dbFactory,
         IHttpContextAccessor httpContextAccessor) : IEnumTypeRepository
     {
-        private readonly ClaimsPrincipal? User = httpContextAccessor.HttpContext?.User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal? _user = httpContextAccessor.HttpContext?.User;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory = dbFactory;
 
+        /// <inheritdoc />
         public async Task<int> GetLogTypeAsync(string type,
             string name,
             CancellationToken cancellationToken)
         {
             return await GXHistoryScope.RunAsync(_dbFactory, async historyConnection =>
             {
-                if (User == null)
+                if (_user == null)
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -66,7 +69,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 var trackedType = await historyConnection.SingleOrDefaultAsync<GXEnumType>(
                     GXSelectArgs.SelectAll<GXEnumType>(e => e.Type == type && e.Name == historyName), cancellationToken)
                     ?? new GXEnumType { Type = type, Name = historyName };
-                return await GXHistoryMutation.RunAsync<GXEnumType, int>(_dbFactory, User,
+                return await GXHistoryMutation.RunAsync<GXEnumType, int>(_dbFactory, _user,
                     new HttpContextAccessor().HttpContext?.RequestServices, new[] { trackedType }, async () =>
                     {
                         var id = await ApplyChangeAsync();
@@ -77,7 +80,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             async Task<int> ApplyChangeAsync()
             {
-            if (User == null)
+            if (_user == null)
             {
                 throw new UnauthorizedAccessException();
             }
@@ -136,6 +139,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
         }
 
+        /// <inheritdoc />
         public async Task<IEnumerable<GXEnumType>> ListAsync(ListEnumTypes? request,
            ListEnumTypesResponse? response = null,
            CancellationToken cancellationToken = default)
@@ -187,6 +191,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return types;
         }
 
+        /// <inheritdoc />
         public async Task DeleteAsync(string type,
             CancellationToken cancellationToken = default)
         {
@@ -194,15 +199,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 var historyIds = await historyConnection.SelectAsync<int>(
                     GXSelectArgs.Select<GXEnumType>(e => e.Id, e => e.Type == type), cancellationToken);
-                await GXHistoryMutation.RunIdsAsync<GXEnumType, int>(_dbFactory, User,
+                await GXHistoryMutation.RunIdsAsync<GXEnumType, int>(_dbFactory, _user,
                     new HttpContextAccessor().HttpContext?.RequestServices, historyIds,
         async () =>
         {
             try
             {
-                if (User == null ||
-                    !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.Authenticated) &&
-                    User.Identity?.IsAuthenticated != true)
+                if (_user == null ||
+                    !_user.IsInRole(GXRoles.Admin) && !_user.IsInRole(GXRoles.Authenticated) &&
+                    _user.Identity?.IsAuthenticated != true)
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -237,12 +242,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }, cancellationToken);
         }
 
+        /// <inheritdoc />
         public async Task<int> GetLogTypeAsync(string type, Enum value,
             CancellationToken cancellationToken)
         {
             return await GXHistoryScope.RunAsync(_dbFactory, async historyConnection =>
             {
-                if (User == null)
+                if (_user == null)
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -250,7 +256,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 var trackedType = await historyConnection.SingleOrDefaultAsync<GXEnumType>(
                     GXSelectArgs.SelectAll<GXEnumType>(e => e.Type == type && e.Name == historyName), cancellationToken)
                     ?? new GXEnumType { Type = type, Name = historyName };
-                return await GXHistoryMutation.RunAsync<GXEnumType, int>(_dbFactory, User,
+                return await GXHistoryMutation.RunAsync<GXEnumType, int>(_dbFactory, _user,
                     new HttpContextAccessor().HttpContext?.RequestServices, new[] { trackedType }, async () =>
                     {
                         var id = await ApplyChangeAsync();
@@ -261,7 +267,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             async Task<int> ApplyChangeAsync()
             {
-            if (User == null)
+            if (_user == null)
             {
                 throw new UnauthorizedAccessException();
             }
@@ -323,10 +329,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Lifecycle operations share this repository's persistence rules and notification queue.
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IModuleEnumTypeRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModuleEnumTypeRepository
         {
+            /// <inheritdoc />
             public async Task<int> EnsureLogCategoryAsync(string name, CancellationToken token)
             {
                 if (string.IsNullOrWhiteSpace(name) || name.Length > 64)

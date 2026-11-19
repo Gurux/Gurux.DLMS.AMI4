@@ -439,7 +439,16 @@ namespace Gurux.DLMS.AMI
             {
                 context.Response.Headers.CacheControl = "no-store";
                 string marker = Path.Combine(app.Environment.WebRootPath, "version.json");
-                return System.IO.File.Exists(marker) ? (IResult)Results.File(marker, "application/json") : Results.NotFound();
+                if (System.IO.File.Exists(marker))
+                {
+                    return (IResult)Results.File(marker, "application/json");
+                }
+                // Hosted installations do not require a published deployment marker.
+                // Match the version embedded by App.razor so polling also works during development.
+                return Results.Json(new
+                {
+                    version = System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location).FileVersion
+                });
             }).AllowAnonymous();
             await PolicyRepository.InitializeDefaultPolicies(app.Services.GetRequiredService<IDbConnectionFactory>(),
                 app.Services.GetRequiredService<IGXAmiPolicyRegistry>());

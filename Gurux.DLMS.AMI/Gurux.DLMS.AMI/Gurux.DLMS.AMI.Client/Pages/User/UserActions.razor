@@ -64,7 +64,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="User.UserActions" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXUserActionPolicies.View })"
+<GXViewTable ViewName="User.UserActions" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXUserActionPolicies.View })"
              TItem="GXLog" @ref="table"
              @bind-Active="Active"
              Context="action"
@@ -79,13 +79,13 @@
     <FilterContent>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="UserActions-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="User">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByUserName"
-                   @onchange="@((ChangeEventArgs __e) => filter.User!.UserName = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.User!.UserName = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Target">
             @*Target*@
@@ -126,7 +126,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("CreationTime") { Position = 0, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("User") { Position = 1, Description = "User", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -136,9 +137,12 @@
         new("Duration") { Position = 5, Description = "Duration", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected user action ID.
@@ -152,11 +156,11 @@
     {
         get
         {
-            return (int)filter.Action;
+            return (int)_filter.Action;
         }
         set
         {
-            filter.Action = (CrudAction)value;
+            _filter.Action = (CrudAction)value;
         }
     }
 
@@ -226,7 +230,7 @@
     /// <summary>
     /// User action log filter.
     /// </summary>
-    private GXLog filter = new GXLog()
+    private GXLog _filter = new GXLog()
     {
         User = new GXUser()
         {
@@ -254,31 +258,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/User/UserActions.Updated");
+                _notificationService?.RemoveByKey("Pages/User/UserActions.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserActions.Updated");
+            _notificationService?.ReportError(ex, "Pages/User/UserActions.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingUserActions);
-            NotificationService?.RemoveByKey("Pages/User/UserActions.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingUserActions);
+            _notificationService?.RemoveByKey("Pages/User/UserActions.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -302,21 +306,21 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserActions.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/User/UserActions.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingUserActions);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingUserActions);
         try
         {
             ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -344,7 +348,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -356,7 +360,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -366,7 +370,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/User/UserActions.OnShow");
+            _notificationService?.RemoveByKey("Pages/User/UserActions.OnShow");
             if (table?.Active?.Id == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -380,7 +384,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserActions.OnShow");
+            _notificationService?.ReportError(ex, "Pages/User/UserActions.OnShow");
         }
     }
 
@@ -408,7 +412,7 @@
         {
             if (args.Confirm)
             {
-                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingUserAction);
+                using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingUserAction);
                 try
                 {
                     await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=user-action", new ClearLog());
@@ -426,7 +430,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
 
     }

@@ -41,12 +41,12 @@
 
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ApproveLoginWithYourPhone</PageTitle>
 <h1>@Gurux.DLMS.AMI.Properties.Resources.ApproveLoginWithYourPhone</h1>
-@if (challenge is not null && qrImage is not null)
+@if (_challenge is not null && _qrImage is not null)
 {
     <p>@Gurux.DLMS.AMI.Properties.Resources.ScanThisCodeWithAPhoneAlreadySignedInToThisAccountEnterTheNumberBelowOnYourPhoneAndAp</p>
-    <img src="@qrImage" width="300" height="300" class="img-fluid" alt="@Gurux.DLMS.AMI.Properties.Resources.ScanToApproveThisLoginOnYourSignedInPhone" />
-    <p>@Gurux.DLMS.AMI.Properties.Resources.VerificationNumber <strong class="fs-2">@challenge.VerificationNumber</strong></p>
-    <p>This request expires at @challenge.ExpiresAt.ToString("HH:mm:ss 'UTC'"). Waiting for approval…</p>
+    <img src="@_qrImage" width="300" height="300" class="img-fluid" alt="@Gurux.DLMS.AMI.Properties.Resources.ScanToApproveThisLoginOnYourSignedInPhone" />
+    <p>@Gurux.DLMS.AMI.Properties.Resources.VerificationNumber <strong class="fs-2">@_challenge.VerificationNumber</strong></p>
+    <p>This request expires at @_challenge.ExpiresAt.ToString("HH:mm:ss 'UTC'"). Waiting for approval…</p>
     <form id="qr-login-check" method="post" @formname="qr-login-check" @onsubmit="CompleteAsync">
         <AntiforgeryToken />
         <button type="submit" class="btn btn-primary">@Gurux.DLMS.AMI.Properties.Resources.CheckApproval</button>
@@ -59,17 +59,22 @@
 }
 else
 {
-    <p role="alert">@message</p>
+    <p role="alert">@_message</p>
 }
 <p><a href="Account/Login">@Gurux.DLMS.AMI.Properties.Resources.ReturnToLogin</a></p>
 
 @code {
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
-    private AmiQrLoginChallenge? challenge;
-    private string? qrImage;
-    private string message = Gurux.DLMS.AMI.Properties.Resources.ThisRequestHasExpiredOrPhoneApprovalIsUnavailableStartANewLogin;
-    private string id = "";
-    private string browserKey = "";
+    /// <summary>Contains the QR-login challenge presented to the requesting browser.</summary>
+    private AmiQrLoginChallenge? _challenge;
+    /// <summary>Contains the QR image displayed for approving the pending browser login.</summary>
+    private string? _qrImage;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string _message = Gurux.DLMS.AMI.Properties.Resources.ThisRequestHasExpiredOrPhoneApprovalIsUnavailableStartANewLogin;
+    /// <summary>Identifies the QR-login challenge currently being polled for approval.</summary>
+    private string _id = "";
+    /// <summary>Correlates the pending QR-login challenge with the browser that requested it.</summary>
+    private string _browserKey = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,40 +85,40 @@ else
         {
             return;
         }
-        id = cookie[0];
-        browserKey = cookie[1];
+        _id = cookie[0];
+        _browserKey = cookie[1];
         try
         {
-            challenge = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginChallenge?>((service, _) => Task.FromResult(service.GetForBrowser(id, browserKey)), HttpContext.RequestAborted);
-            if (challenge is null)
+            _challenge = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginChallenge?>((service, _) => Task.FromResult(service.GetForBrowser(_id, _browserKey)), HttpContext.RequestAborted);
+            if (_challenge is null)
             {
                 return;
             }
-        
-            var url = Navigation.ToAbsoluteUri("Account/ApproveQrLogin?id=" + Uri.EscapeDataString(challenge.Id)).AbsoluteUri;
+
+            var url = Navigation.ToAbsoluteUri("Account/ApproveQrLogin?id=" + Uri.EscapeDataString(_challenge.Id)).AbsoluteUri;
             var png = await ModuleServices.InvokeAsync<IGXAmiQrCodeGenerator, byte[]>((generator, _) => Task.FromResult(generator.GeneratePng(url)), HttpContext.RequestAborted);
-            qrImage = "data:image/png;base64," + Convert.ToBase64String(png);
+            _qrImage = "data:image/png;base64," + Convert.ToBase64String(png);
         }
         catch (AmiModuleUnavailableException)
         {
-            challenge = null;
+            _challenge = null;
         }
     }
 
     private async Task CompleteAsync()
     {
-        if (challenge is null)
+        if (_challenge is null)
         {
             return;
         }
         AmiQrLoginGrant? grant;
         try
         {
-            grant = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginGrant?>((service, _) => Task.FromResult(service.Consume(id, browserKey)), HttpContext.RequestAborted);
+            grant = await ModuleServices.InvokeAsync<IGXAmiQrLogin, AmiQrLoginGrant?>((service, _) => Task.FromResult(service.Consume(_id, _browserKey)), HttpContext.RequestAborted);
         }
         catch (AmiModuleUnavailableException)
         {
-            challenge = null;
+            _challenge = null;
             return;
         }
         if (grant is null)
@@ -126,8 +131,8 @@ else
             (UserManager.SupportsUserLockout && await UserManager.IsLockedOutAsync(user)) ||
             await UserManager.GetSecurityStampAsync(user) != grant.SecurityStamp)
         {
-            challenge = null;
-            message = Gurux.DLMS.AMI.Properties.Resources.TheAccountChangedOrIsUnavailableStartANewLogin;
+            _challenge = null;
+            _message = Gurux.DLMS.AMI.Properties.Resources.TheAccountChangedOrIsUnavailableStartANewLogin;
             return;
         }
         await SignInManager.SignInWithClaimsAsync(user, grant.RememberMe,
@@ -148,7 +153,7 @@ else
         {
             await ModuleServices.InvokeAsync<IGXAmiQrLogin>((service, _) =>
             {
-                service.Cancel(id, browserKey);
+                service.Cancel(_id, _browserKey);
                 return Task.CompletedTask;
             }, HttpContext.RequestAborted);
         }

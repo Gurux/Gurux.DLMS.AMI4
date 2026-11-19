@@ -68,14 +68,16 @@ public sealed class UpdateController(GXUpdateStatusStore store, GXBackgroundTask
         return NoContent();
     }
 
-    readonly GXUpdateStatusStore store = store;
-    readonly GXBackgroundTaskRunner runner = runner;
+    /// <summary>Persists update status for background operations.</summary>
+    readonly GXUpdateStatusStore _store = store;
+    /// <summary>Runs background work and exposes its execution state.</summary>
+    readonly GXBackgroundTaskRunner _runner = runner;
 
     /// <summary>Performs the list operation.</summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     [HttpGet("List")]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-    public Task<GXAvailableUpdatesResponse> List(CancellationToken cancellationToken = default) => store.ReadAsync(cancellationToken);
+    public Task<GXAvailableUpdatesResponse> List(CancellationToken cancellationToken = default) => _store.ReadAsync(cancellationToken);
 
     /// <summary>Performs the check operation.</summary>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
@@ -84,8 +86,8 @@ public sealed class UpdateController(GXUpdateStatusStore store, GXBackgroundTask
     public async Task<GXAvailableUpdatesResponse> Check(CancellationToken cancellationToken = default)
     {
         // Keep the catalog check alive after this request returns; the client polls its run ID.
-        var runId = await runner.StartAsync(GXBackgroundTaskIds.Update, User, cancellationToken);
-        var response = await store.ReadAsync(cancellationToken);
+        var runId = await _runner.StartAsync(GXBackgroundTaskIds.Update, User, cancellationToken);
+        var response = await _store.ReadAsync(cancellationToken);
         response.RunId = runId;
         return response;
     }

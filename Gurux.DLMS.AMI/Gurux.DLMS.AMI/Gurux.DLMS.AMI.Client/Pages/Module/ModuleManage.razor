@@ -91,7 +91,8 @@ else
             } : null;
     }
 
-    private IGXNotifier? Notifier;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
 
     /// <summary>
     /// Parent component.
@@ -137,8 +138,8 @@ else
 
     protected override Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        if (_notifier == null)
         {
             return Task.CompletedTask;
         }

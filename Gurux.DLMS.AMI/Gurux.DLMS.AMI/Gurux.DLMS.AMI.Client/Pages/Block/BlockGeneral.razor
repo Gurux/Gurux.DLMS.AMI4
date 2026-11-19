@@ -64,7 +64,7 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Location</label>
-                    <GXInputDropdown class="form-select" @bind-Value="Active.Location" RememberValue="false" Items="@(blockList.Select(it => (BlockLocation?)it))" />
+                    <GXInputDropdown class="form-select" @bind-Value="Active.Location" RememberValue="false" Items="@(_blockList.Select(it => (BlockLocation?)it))" />
                 </div>
                 <div class="form-group">
                     <label for="block-page-visibility"><GXLocalizedText Value="@Properties.Resources.PageVisibility" /></label>
@@ -81,7 +81,7 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.BlockType</label>
-                    <GXInputDropdown class="form-select" @bind-Value="Active.BlockType" RememberValue="false" Items="@(blockTypes)" />
+                    <GXInputDropdown class="form-select" @bind-Value="Active.BlockType" RememberValue="false" Items="@(_blockTypes)" />
                 </div>
                 @if (Active.BlockType is BlockType.Html or BlockType.Markdown or BlockType.HtmlFile or BlockType.MarkdownFile or BlockType.RSS)
                 {
@@ -127,9 +127,9 @@
                         <InputText id="title" disabled="@IsDeleting" @bind-Value="Active.Title" class="form-control" />
                     </div>
                     <label>@Properties.Resources.Component</label>
-                    @if (componentList != null)
+                    @if (_componentList != null)
                     {
-                        <GXInputDropdown class="form-select" @bind-Value="SelectedComponent" RememberValue="false" Items="@(componentList.Select(it => it.ClassName))" Formatter="@(value => componentList.FirstOrDefault(it => it.ClassName == value)?.Name)" />
+                        <GXInputDropdown class="form-select" @bind-Value="SelectedComponent" RememberValue="false" Items="@(_componentList.Select(it => it.ClassName))" Formatter="@(value => _componentList.FirstOrDefault(it => it.ClassName == value)?.Name)" />
                     }
                     <hr />
                     <label>@Properties.Resources.Parameters:</label>
@@ -152,10 +152,10 @@
                             }
                         </div>
                     }
-                @if (componentList != null && !string.IsNullOrEmpty(SelectedComponent))
+                @if (_componentList != null && !string.IsNullOrEmpty(SelectedComponent))
                 {
                     //Show component configuration UI if exists.
-                    var comp = componentList.Where(w => w.ClassName == SelectedComponent).SingleOrDefault();
+                    var comp = _componentList.Where(w => w.ClassName == SelectedComponent).SingleOrDefault();
                     if (!string.IsNullOrEmpty(comp?.ConfigurationUI))
                     {
                         Type? type = Type.GetType(comp.ConfigurationUI);
@@ -202,7 +202,7 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Script</label>
-                    <GXInputDropdown class="form-select" @bind-Value="SelectedScript" RememberValue="false" Items="@(scriptList.Select(it => it.Name))" />
+                    <GXInputDropdown class="form-select" @bind-Value="SelectedScript" RememberValue="false" Items="@(_scriptList.Select(it => it.Name))" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Method</label>
@@ -223,7 +223,7 @@
             }
             else
             {
-                NotificationService?.ReportError(new Exception("Unknown block type."));
+                _notificationService?.ReportError(new Exception("Unknown block type."));
             }
             <div class="form-group">
                 <label>@Properties.Resources.Publish</label>
@@ -260,9 +260,12 @@
 }
 @code {
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXBlock? Active { get; set; }
@@ -291,22 +294,23 @@
     /// <summary>
     /// Block list.
     /// </summary>
-    List<BlockLocation> blockList = new List<BlockLocation>();
+    List<BlockLocation> _blockList = new List<BlockLocation>();
     /// <summary>
     ///Block types.
     /// </summary>
-    List<BlockType> blockTypes = new List<BlockType>();
+    List<BlockType> _blockTypes = new List<BlockType>();
 
     /// <summary>
     /// List of available component views.
     /// </summary>
-    IEnumerable<GXComponentView>? componentList;
+    IEnumerable<GXComponentView>? _componentList;
     /// <summary>
     /// Script list.
     /// </summary>
-    List<GXScript> scriptList = new List<GXScript>();
+    List<GXScript> _scriptList = new List<GXScript>();
 
-    private object? Target = null;
+    /// <summary>Retains the target currently being displayed or edited.</summary>
+    private object? _target = null;
 
     /// <summary>
     /// Component parameters.
@@ -315,14 +319,14 @@
 
     void UpdateParameterValue(string name, object? value)
     {
-        if (Target != null)
+        if (_target != null)
         {
-            var prop = Target.GetType().GetProperty(name);
+            var prop = _target.GetType().GetProperty(name);
             if (prop != null)
             {
-                prop.SetValue(Target, Convert.ChangeType(value, prop.PropertyType));
+                prop.SetValue(_target, Convert.ChangeType(value, prop.PropertyType));
                 if (Active != null) {
-                    Active.Body = JsonSerializer.Serialize(Target);
+                    Active.Body = JsonSerializer.Serialize(_target);
                 }
             }
         }
@@ -342,9 +346,9 @@
             if (Active.ComponentView == null)
             {
                 //Select first component if component is not selected.
-                if (componentList != null && componentList.Any())
+                if (_componentList != null && _componentList.Any())
                 {
-                    SelectedComponent = componentList.First().ClassName;
+                    SelectedComponent = _componentList.First().ClassName;
                 }
             }
             if (Active.ComponentView == null)
@@ -361,9 +365,9 @@
                 {
                     Active.Body = null;
                 }
-                if (Active != null && componentList != null)
+                if (Active != null && _componentList != null)
                 {
-                    Active.ComponentView = componentList.Where(where => where.ClassName == value).FirstOrDefault();
+                    Active.ComponentView = _componentList.Where(where => where.ClassName == value).FirstOrDefault();
                     _parameters.Clear();
                     if (Active.ComponentView != null && !string.IsNullOrEmpty(Active.ComponentView.ClassName))
                     {
@@ -374,30 +378,31 @@
                         }
                         if (!string.IsNullOrEmpty(Active.Body))
                         {
-                            Target = JsonSerializer.Deserialize(Active.Body, type);
+                            _target = JsonSerializer.Deserialize(Active.Body, type);
                         }
                         else
                         {
-                            Target = Activator.CreateInstance(type);
+                            _target = Activator.CreateInstance(type);
                         }
-                        if (Target == null)
+                        if (_target == null)
                         {
                             throw new ArgumentException("Unknown component name: " + Active.ComponentView.ClassName);
                         }
-                        foreach (var it in Target.GetType().GetProperties())
+                        foreach (var it in _target.GetType().GetProperties())
                         {
                             if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
                             {
-                                _parameters.Add(new GXKeyValuePair<string, object?>(it.Name, it.GetValue(Target)));
+                                _parameters.Add(new GXKeyValuePair<string, object?>(it.Name, it.GetValue(_target)));
                             }
                         }
-                        Active.Body = JsonSerializer.Serialize(Target);
+                        Active.Body = JsonSerializer.Serialize(_target);
                     }
                 }
             }
         }
     }
 
+    /// <summary>Retains the script selected for the displayed block or automation settings.</summary>
     GXScript? _selectedScript;
 
     /// <summary>
@@ -419,7 +424,7 @@
             SelectedScriptMethod = null;
             if (!string.IsNullOrEmpty(value))
             {
-                foreach (var it in scriptList)
+                foreach (var it in _scriptList)
                 {
                     if (it.Name == value)
                     {
@@ -483,13 +488,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingBlock);
-            NotificationService?.RemoveByKey("Pages/Block/Block.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingBlock);
+            _notificationService?.RemoveByKey("Pages/Block/Block.OnInitializedAsync");
             if (Active == null && Id != null)
             {
                 //Get block data.
@@ -508,39 +513,39 @@
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
 
-            blockList.Add(BlockLocation.Header);
-            blockList.Add(BlockLocation.SidebarLeft);
-            blockList.Add(BlockLocation.SidebarRight);
-            blockList.Add(BlockLocation.ContentHeader);
-            blockList.Add(BlockLocation.Content);
-            blockList.Add(BlockLocation.ContentFooter);
-            blockList.Add(BlockLocation.Footer);
+            _blockList.Add(BlockLocation.Header);
+            _blockList.Add(BlockLocation.SidebarLeft);
+            _blockList.Add(BlockLocation.SidebarRight);
+            _blockList.Add(BlockLocation.ContentHeader);
+            _blockList.Add(BlockLocation.Content);
+            _blockList.Add(BlockLocation.ContentFooter);
+            _blockList.Add(BlockLocation.Footer);
 
 
             //Get available component views.
             var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", new ListComponentViews());
-            componentList = ret.ComponentViews;
+            _componentList = ret.ComponentViews;
             //Get available scripts.
             var ret2 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", new ListScripts());
             foreach (var it in (ret2.Scripts ?? []))
             {
                 if (it.Methods != null && it.Methods.Count != 0)
                 {
-                    scriptList.Add(it);
+                    _scriptList.Add(it);
                 }
             }
-            blockTypes.Add(BlockType.Html);
-            blockTypes.Add(BlockType.Markdown);
-            blockTypes.Add(BlockType.HtmlFile);
-            blockTypes.Add(BlockType.MarkdownFile);
-            blockTypes.Add(BlockType.RSS);
-            if (componentList?.Any() == true)
+            _blockTypes.Add(BlockType.Html);
+            _blockTypes.Add(BlockType.Markdown);
+            _blockTypes.Add(BlockType.HtmlFile);
+            _blockTypes.Add(BlockType.MarkdownFile);
+            _blockTypes.Add(BlockType.RSS);
+            if (_componentList?.Any() == true)
             {
-                blockTypes.Add(BlockType.Component);
+                _blockTypes.Add(BlockType.Component);
             }
-            if (scriptList.Any())
+            if (_scriptList.Any())
             {
-                blockTypes.Add(BlockType.Script);
+                _blockTypes.Add(BlockType.Script);
                 if (Active.ScriptMethod != null)
                 {
                     var selectedMethod = Active.ScriptMethod;
@@ -549,7 +554,7 @@
                 }
                 else
                 {
-                    SelectedScript = scriptList[0].Name;
+                    SelectedScript = _scriptList[0].Name;
                 }
             }
             if (Active.ComponentView != null)
@@ -567,7 +572,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Block/Block.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Block/Block.OnInitializedAsync");
         }
     }
 

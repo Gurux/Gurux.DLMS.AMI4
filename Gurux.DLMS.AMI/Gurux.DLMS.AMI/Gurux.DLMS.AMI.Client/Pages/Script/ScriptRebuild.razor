@@ -40,7 +40,7 @@
 
 <GXHelpContext Topic="ScriptRebuild" />
 
-@if (Rebuild && HasScripts)
+@if (_rebuild && HasScripts)
 {
     <div role="alert"
          class="alert alert-warning alert-dismissible fade show">
@@ -55,24 +55,27 @@
     <br />
 }
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>Whether the current script list contains items.</summary>
     [Parameter]
     public bool HasScripts { get; set; }
 
-    private bool Rebuild = false;
+    /// <summary>Records whether the requested operation should rebuild existing data.</summary>
+    private bool _rebuild = false;
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScriptRebuild);
-            NotificationService?.RemoveByKey("Pages/Script/ScriptRebuild.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScriptRebuild);
+            _notificationService?.RemoveByKey("Pages/Script/ScriptRebuild.OnInitializedAsync");
             //Get script info.
             ListConfiguration req = new ListConfiguration()
             {
@@ -82,7 +85,7 @@
                 }
             };
             var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
-            Rebuild = true;
+            _rebuild = true;
             if (ret.Configurations != null &&
                 ret.Configurations.Count() == 1 &&
                 !string.IsNullOrEmpty(ret.Configurations.First().Settings))
@@ -91,13 +94,13 @@
                 if (settings != null &&
                     settings.Versions == settings.CurrentVersions)
                 {
-                    Rebuild = false;
+                    _rebuild = false;
                 }
             }
             else
             {
                 //If there are no scipts.
-                Rebuild = false;
+                _rebuild = false;
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -106,7 +109,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptRebuild.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptRebuild.OnInitializedAsync");
         }
     }
 
@@ -119,7 +122,7 @@
         {
             RebuildScript req = new RebuildScript();
             var ret = await Http.PostAsJson<RebuildScriptResponse>("api/Script/Rebuild", req);
-            Rebuild = false;
+            _rebuild = false;
             await InvokeAsync(StateHasChanged);
         }
         catch (AccessTokenNotAvailableException exception)
@@ -128,7 +131,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 }

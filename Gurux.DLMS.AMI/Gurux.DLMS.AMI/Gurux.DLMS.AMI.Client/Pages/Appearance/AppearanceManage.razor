@@ -78,12 +78,15 @@ else
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
     {
         ["Id"] = Id!,
-        ["IconPacks"] = IconPacks!
+        ["IconPacks"] = _iconPacks!
     };
 
+    /// <summary>Coordinates configuration reloads without overlapping asynchronous requests.</summary>
     private readonly Gurux.DLMS.AMI.Client.Pages.Config.GXConfigurationRefresh _configurationRefresh = new();
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
-    private IGXNotifier? Notifier;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
 
     /// <summary>
     /// Appearance settings.
@@ -93,7 +96,8 @@ else
         Name = GXConfigurations.Appearance
     };
 
-    IEnumerable<GXAppearance>? IconPacks;
+    /// <summary>Caches the icon packs offered by the appearance controls.</summary>
+    IEnumerable<GXAppearance>? _iconPacks;
     /// <summary>
     /// User action.
     /// </summary>
@@ -125,8 +129,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        if (_notifier == null)
         {
             return;
         }
@@ -147,7 +151,7 @@ else
         }
         if (ret2.Appearances != null)
         {
-            IconPacks = ret2.Appearances;
+            _iconPacks = ret2.Appearances;
         }
 
         //Get appereance settings.
@@ -167,7 +171,7 @@ else
         {
             Configuration = ret.Configurations.First();
         }
-        Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+        _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
         {
             _ = InvokeAsync(() => _configurationRefresh.RefreshAsync(Http, items, GXConfigurations.Appearance, configuration =>
             {
@@ -181,6 +185,6 @@ else
     {
         _disposed = true;
         _configurationRefresh.Dispose();
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

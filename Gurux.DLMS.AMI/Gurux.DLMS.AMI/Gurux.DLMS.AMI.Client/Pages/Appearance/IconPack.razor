@@ -47,17 +47,17 @@
 @inject HttpClient Http
 <GXHelpContext Topic="IconPack" />
 
-@if (Active != null)
+@if (_active != null)
 {
     <GXDialog OnCancel="Cancel"
             CancelButtonTitle="@Properties.Resources.Cancel"
             OkButtonTitle="@Properties.Resources.Ok"
             OnOk="Save">
-        <IconPackEditor Action="@CrudAction.Update" Active="@Active"></IconPackEditor>
+        <IconPackEditor Action="@CrudAction.Update" Active="@_active"></IconPackEditor>
     </GXDialog>
 }
 
-<GXViewTable ViewName="Appearance.IconPack" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="GXAppearance" @ref="table"
+<GXViewTable ViewName="Appearance.IconPack" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="GXAppearance" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Single"
@@ -77,7 +77,7 @@
                      id="Resources"
                      Immediate="true"
                      RememberValue="true"
-                     @bind-Value="@filter.Name"
+                     @bind-Value="@_filter.Name"
                      @bind-Value:after="Updated" />
         </GXFh>
         <GXFh Id="Updated"></GXFh>
@@ -104,7 +104,7 @@
     </ItemContent>
 </GXViewTable>
 
-<GXViewTable ViewName="Appearance.IconPack.Icons" ViewColumns="IconColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="(string, string)" @ref="iconsTable"
+<GXViewTable ViewName="Appearance.IconPack.Icons" ViewColumns="_iconColumnDefaults" ViewPolicies="@(new List<string> { GXAppearancePolicies.View })" TItem="(string, string)" @ref="iconsTable"
          Context="item"
          ItemsProvider="@GetIcons"
          SelectionMode="SelectionMode.Single"
@@ -121,7 +121,7 @@
                      id="Resources"
                      Immediate="true"
                      RememberValue="true"
-                     @bind-Value="@iconFilter"
+                     @bind-Value="@_iconFilter"
                      @bind-Value:after="IconsUpdated" />
         </GXFh>
     </FilterContent>
@@ -140,24 +140,30 @@
 </GXViewTable>
 
 @code {
-    private static readonly GXViewColumn[] IconColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _iconColumnDefaults =
     [
         new("Icon") { Position = 0, Description = "Icon", Visibility = (byte)Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
     ];
 
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Enabled") { Position = 0, Description = "Enabled", Visibility = (byte)Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
         new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
-    GXAppearance? Active;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
+    GXAppearance? _active;
 
     /// <summary>
     /// Is filter shown.
@@ -190,12 +196,12 @@
     /// <summary>
     /// Resource filter.
     /// </summary>
-    private GXAppearance filter = new GXAppearance();
+    private GXAppearance _filter = new GXAppearance();
 
     /// <summary>
     /// Icon filter.
     /// </summary>
-    private string? iconFilter;
+    private string? _iconFilter;
 
     /// <summary>
     /// Update table.
@@ -206,13 +212,13 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Appearance/IconPack.Updated");
+                _notificationService?.RemoveByKey("Pages/Appearance/IconPack.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Appearance/IconPack.Updated");
+            _notificationService?.ReportError(ex, "Pages/Appearance/IconPack.Updated");
         }
     }
 
@@ -230,7 +236,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -243,9 +249,9 @@
             {
                 var icons = ClientHelpers.GetIconPackIcons(table.Active.Name);
                 int total = icons.Count;
-                if (!string.IsNullOrEmpty(iconFilter))
+                if (!string.IsNullOrEmpty(_iconFilter))
                 {
-                    icons = icons.Where(w => w.Item1.ToLower().Contains(iconFilter.ToLower())).ToList();
+                    icons = icons.Where(w => w.Item1.ToLower().Contains(_iconFilter.ToLower())).ToList();
                 }
                 if (request.StartIndex != 0)
                 {
@@ -265,7 +271,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -273,14 +279,14 @@
     private async ValueTask<ItemsProviderResult<GXAppearance>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingIconPack);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingIconPack);
         try
         {
             ListAppearances req = new ListAppearances()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
             };
@@ -310,25 +316,25 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingIconPack);
-            NotificationService?.RemoveByKey("Pages/Appearance/IconPack.OnInitialized");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingIconPack);
+            _notificationService?.RemoveByKey("Pages/Appearance/IconPack.OnInitialized");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -336,7 +342,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Appearance/IconPack.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Appearance/IconPack.OnInitialized");
         }
     }
 
@@ -346,7 +352,7 @@
 
     private void Edit(GXAppearance value)
     {
-        Active = ClientHelpers.Clone<GXAppearance>(value);
+        _active = ClientHelpers.Clone<GXAppearance>(value);
         StateHasChanged();
     }
 
@@ -357,7 +363,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Appearance/IconPack.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Appearance/IconPack.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -370,7 +376,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Appearance/IconPack.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Appearance/IconPack.OnEdit");
         }
     }
 
@@ -383,10 +389,10 @@
         {
             UpdateAppearance req = new UpdateAppearance()
             {
-                Appearances = [Active ?? throw new InvalidOperationException(Properties.Resources.NoAppearanceIsSelected)]
+                Appearances = [_active ?? throw new InvalidOperationException(Properties.Resources.NoAppearanceIsSelected)]
             };
             await Http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Update", req);
-            Active = null;
+            _active = null;
             if (table != null)
             {
                 await table.RefreshDataAsync(true);
@@ -394,7 +400,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -404,13 +410,13 @@
     /// </summary>
     public void Cancel()
     {
-        Active = null;
+        _active = null;
         StateHasChanged();
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

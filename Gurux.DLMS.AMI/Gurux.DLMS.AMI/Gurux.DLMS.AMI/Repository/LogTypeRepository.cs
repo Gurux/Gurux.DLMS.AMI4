@@ -52,9 +52,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public partial class LogTypeRepository : ILogTypeRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -70,12 +74,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _notificationCache = notificationCache;
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private async Task<List<string>> GetNotifiedUsers(Guid id, NotificationAction action)
         {
             _ = id;
@@ -89,10 +97,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             groups = groups.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXLogType, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, groups,
+            await GXHistoryMutation.RunDeleteAsync<GXLogType, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, groups,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             groups = groups.Distinct().ToArray();
             GXSelectArgs arg = GXSelectArgs.Select<GXLogType>(s => new { s.Id, s.PublicId, s.Name, s.NormalizedName }, w => groups.Contains(w.PublicId));
@@ -106,7 +114,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var type in exists)
             {
                 var policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXLogType), type.Id, cancellationToken);
-                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, policies, cancellationToken))
+                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, policies, cancellationToken))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -187,7 +195,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListLogTypesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXLogType>();
             if (request != null)
             {
@@ -216,14 +224,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXLogType>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            if (!(request?.AllUsers == true && User.IsInRole(GXRoles.Admin)))
+            if (!(request?.AllUsers == true && _user.IsInRole(GXRoles.Admin)))
             {
                 var candidates = await connection.SelectAsync<GXLogType>(arg);
                 var allowedIds = new List<long>();
                 foreach (var candidate in candidates)
                 {
                     candidate.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXLogType), candidate.Id, cancellationToken);
-                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, candidate.Policies, cancellationToken))
+                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, candidate.Policies, cancellationToken))
                     {
                         allowedIds.Add(candidate.Id);
                     }
@@ -280,7 +288,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.View);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXLogType>(w => w.PublicId == id);
                 arg.Columns.Add<GXLogType>();
                 arg.Columns.Exclude<GXLogType>(e => e.Logs!);
@@ -288,7 +296,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 var group = (await connection.SingleOrDefaultAsync<GXLogType>(arg)) ?? throw new GXAmiForbiddenException(id.ToString());
                 group.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXLogType), group.Id, cancellationToken);
-                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, group.Policies, cancellationToken))
+                if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, group.Policies, cancellationToken))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -332,7 +340,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXLogType, object>>? columns, CancellationToken cancellationToken = default)
         {
             LogGroups = LogGroups.ToArray();
-            return await GXHistoryMutation.RunAsync<GXLogType, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, LogGroups,
+            return await GXHistoryMutation.RunAsync<GXLogType, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, LogGroups,
         async () =>
         {
             try
@@ -341,16 +349,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 LogGroups = [.. LogGroups];
                 if (LogGroups.Any(g => g.Id == 0))
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.Add);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.Add);
                 }
 
                 if (LogGroups.Any(g => g.Id != 0))
                 {
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXLogTypePolicies.Edit);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXLogTypePolicies.Edit);
                 }
 
                 DateTime now = DateTime.Now;
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 Dictionary<GXLogType, List<string>> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 foreach (GXLogType it in LogGroups)
@@ -359,7 +367,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         var existingType = await connection.SingleOrDefaultAsync<GXLogType>(GXSelectArgs.Select<GXLogType>(t => new { t.PublicId, t.Name, t.NormalizedName }, t => t.Id == it.Id), cancellationToken) ?? throw new ArgumentException("Unknown log type.");
                         var policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXLogType), it.Id, cancellationToken);
-                        if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, policies, cancellationToken))
+                        if (!await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, policies, cancellationToken))
                         {
                             throw new UnauthorizedAccessException();
                         }
@@ -430,7 +438,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.CreationTime,
                             q.Logs
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             it.Creator == null ||
                             string.IsNullOrEmpty(it.Creator.Id))
                         {
@@ -479,10 +487,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Lifecycle operations share this repository's persistence rules and notification queue.
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IModuleLogTypeRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModuleLogTypeRepository
         {
+            /// <inheritdoc />
             public Task<GXLogType?> ReadAsync(CancellationToken token)
             {
                 var normalized = scope.ModuleId.ToUpperInvariant();
@@ -490,6 +504,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     GXSelectArgs.SelectAll<GXLogType>(t => t.NormalizedName == normalized), token);
             }
 
+            /// <inheritdoc />
             public async Task<GXLogType> EnsureAsync(GXPolicy policy, CancellationToken token)
             {
                 var existing = await ReadAsync(token);

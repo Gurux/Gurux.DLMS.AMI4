@@ -51,12 +51,12 @@
 <h1>@Gurux.DLMS.AMI.Properties.Resources.Register</h1>
 
 <StatusMessage Message="@Message" />
-@if (registrationAllowed && !registrationCompleted)
+@if (_registrationAllowed && !_registrationCompleted)
 {
 <div class="row mx-0">
     <div class="col-lg-6">
         <EditForm EditContext="@Gurux.DLMS.AMI.Client.Helpers.GXEditContexts.For(Input)" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register"
-                  data-testid="account-register" data-first-user="@firstUser.ToString().ToLowerInvariant()">
+                  data-testid="account-register" data-first-user="@_firstUser.ToString().ToLowerInvariant()">
             <DataAnnotationsValidator />
             <h2>@Gurux.DLMS.AMI.Properties.Resources.CreateANewAccount</h2>
             <hr />
@@ -88,11 +88,16 @@
 }
 
 @code {
-    private IEnumerable<IdentityError>? identityErrors;
-    private string? errorMessage;
-    private bool registrationAllowed;
-    private bool firstUser;
-    private bool registrationCompleted;
+    /// <summary>Contains the Identity validation failures returned while updating the account.</summary>
+    private IEnumerable<IdentityError>? _identityErrors;
+    /// <summary>Contains the authentication or registration failure displayed by the page.</summary>
+    private string? _errorMessage;
+    /// <summary>Records whether the current installation permits account registration.</summary>
+    private bool _registrationAllowed;
+    /// <summary>Identifies initial setup so the first account can be registered with administrator access.</summary>
+    private bool _firstUser;
+    /// <summary>Prevents the completed registration flow from being submitted again.</summary>
+    private bool _registrationCompleted;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -113,28 +118,28 @@
     private async Task<bool> CheckRegistrationAllowedAsync()
     {
         var registration = await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted);
-        firstUser = registration.FirstUser;
-        registrationAllowed = registration.CanCreate(HttpContext.User);
-        if (!registrationAllowed)
+        _firstUser = registration.FirstUser;
+        _registrationAllowed = registration.CanCreate(HttpContext.User);
+        if (!_registrationAllowed)
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.RegistrationDisabled;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.RegistrationDisabled;
             if (!HttpContext.Response.HasStarted)
             {
                 HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
             }
         }
-        return registrationAllowed;
+        return _registrationAllowed;
     }
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    private string? Message => errorMessage ?? (identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}");
+    private string? Message => _errorMessage ?? (_identityErrors is null ? null : $"Error: {string.Join(", ", _identityErrors.Select(error => error.Description))}");
 
     public async Task RegisterUser(EditContext editContext)
     {
-        identityErrors = null;
-        errorMessage = null;
+        _identityErrors = null;
+        _errorMessage = null;
         try
         {
             await RegisterUserAsync();
@@ -142,11 +147,11 @@
         catch (Exception ex) when (ex is not NavigationException)
         {
             Logger.LogError(ex, "Registration failed. Request ID: {RequestId}", HttpContext.TraceIdentifier);
-            errorMessage = string.Format(Gurux.DLMS.AMI.Properties.Resources.ErrorRegistrationCouldNotBeCompletedRequestID0, HttpContext.TraceIdentifier);
+            _errorMessage = string.Format(Gurux.DLMS.AMI.Properties.Resources.ErrorRegistrationCouldNotBeCompletedRequestID0, HttpContext.TraceIdentifier);
             if (HostEnvironment.IsDevelopment())
             {
                 var cause = ex.GetBaseException();
-                errorMessage += string.Format(Gurux.DLMS.AMI.Properties.Resources.Text01, cause.GetType().Name, cause.Message);
+                _errorMessage += string.Format(Gurux.DLMS.AMI.Properties.Resources.Text01, cause.GetType().Name, cause.Message);
             }
         }
     }
@@ -167,7 +172,7 @@
 
         if (!result.Succeeded)
         {
-            identityErrors = result.Errors;
+            _identityErrors = result.Errors;
             return;
         }
 
@@ -185,20 +190,20 @@
             Logger.LogInformation("Registration: sending the confirmation link. Request ID: {RequestId}", HttpContext.TraceIdentifier);
             await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
         }
-        registrationCompleted = true;
+        _registrationCompleted = true;
         if (!user.IsApproved)
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.RegistrationPendingApproval;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.RegistrationPendingApproval;
             return;
         }
         if (!await UserManager.IsEmailConfirmedAsync(user))
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.RegistrationConfirmationRequired;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.RegistrationConfirmationRequired;
             return;
         }
         if (!await SignInManager.CanSignInAsync(user))
         {
-            errorMessage = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+            _errorMessage = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
             return;
         }
         Logger.LogInformation("Registration: signing in. Request ID: {RequestId}", HttpContext.TraceIdentifier);

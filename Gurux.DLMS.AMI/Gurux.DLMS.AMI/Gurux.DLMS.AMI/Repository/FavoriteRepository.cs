@@ -75,24 +75,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
         Gurux.DLMS.AMI.Module.IGXAmiModuleServices modules) : IFavoriteRepository
     {
 
-        private readonly ClaimsPrincipal? User = httpContextAccessor.HttpContext?.User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal? _user = httpContextAccessor.HttpContext?.User;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory = dbFactory;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache = notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService = authorizationService;
+        /// <summary>Resolves services exported by active modules.</summary>
         private readonly Gurux.DLMS.AMI.Module.IGXAmiModuleServices _modules = modules;
 
         /// <inheritdoc />
         public async Task DeleteAsync(IEnumerable<Guid> userGrouprs, CancellationToken cancellationToken = default)
         {
             userGrouprs = userGrouprs.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXFavorite, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, userGrouprs,
+            await GXHistoryMutation.RunDeleteAsync<GXFavorite, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, userGrouprs,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
-                string userId = ServerHelpers.GetUserId(User);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
+                string userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXSelectArgs.Select<GXFavorite>(a => new { a.Id, a.Name, a.Path },
                     q => userGrouprs.Contains(q.Id));
                 var owner = new GXUser { Id = userId };
@@ -142,8 +147,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListFavoritesResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXFavoritePolicies.View);
-            string userId = ServerHelpers.GetUserId(User);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXFavoritePolicies.View);
+            string userId = ServerHelpers.GetUserId(_user);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXFavorite>();
             arg.Joins.AddInnerJoin<GXFavorite, GXUser>(j => j.User!, j => j.Id!);
             arg.Where.And<GXUser>(w => w.Id == userId);
@@ -204,8 +209,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXFavoritePolicies.View);
-                string userId = ServerHelpers.GetUserId(User);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXFavoritePolicies.View);
+                string userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXFavorite>();
                 arg.Where.And<GXFavorite>(f => f.Id == id);
                 arg.Joins.AddInnerJoin<GXFavorite, GXUser>(j => j.User!, j => j.Id!);
@@ -266,7 +271,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             try
             {
-                var resolved = await _modules.InvokeAsync<Gurux.DLMS.AMI.Module.IGXAmiTargetProvider, Gurux.DLMS.AMI.Module.GXAmiTarget?>((provider, ct) => provider.ResolveAsync(User ?? throw new UnauthorizedAccessException(), target, targetId!, ct), token);
+                var resolved = await _modules.InvokeAsync<Gurux.DLMS.AMI.Module.IGXAmiTargetProvider, Gurux.DLMS.AMI.Module.GXAmiTarget?>((provider, ct) => provider.ResolveAsync(_user ?? throw new UnauthorizedAccessException(), target, targetId!, ct), token);
                 favorite.Name = resolved?.Name;
             }
             catch (Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)
@@ -288,15 +293,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXFavorite, object>>? columns, CancellationToken cancellationToken = default)
         {
             favorites = favorites.ToArray();
-            return await GXHistoryMutation.RunAsync<GXFavorite, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, favorites,
+            return await GXHistoryMutation.RunAsync<GXFavorite, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, favorites,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
                 favorites = favorites.ToList();
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 DateTime now = DateTime.Now;
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 foreach (GXFavorite it in favorites)
@@ -311,7 +316,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     string? id = null;
                     if (tmp.Length >= 3 && tmp[0].Equals("addin", StringComparison.OrdinalIgnoreCase))
                     {
-                        var resolved = await _modules.InvokeAsync<IGXAmiTargetProvider, GXAmiTarget?>((provider, ct) => provider.ResolveAsync(User ?? throw new UnauthorizedAccessException(), tmp[2], tmp.Length > 3 ? tmp[3] : "", ct), cancellationToken);
+                        var resolved = await _modules.InvokeAsync<IGXAmiTargetProvider, GXAmiTarget?>((provider, ct) => provider.ResolveAsync(_user ?? throw new UnauthorizedAccessException(), tmp[2], tmp.Length > 3 ? tmp[3] : "", ct), cancellationToken);
                         if (resolved == null || !resolved.Path.StartsWith("addin/" + tmp[1] + "/", StringComparison.OrdinalIgnoreCase))
                         {
                             throw new UnauthorizedAccessException();
@@ -480,7 +485,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             case TargetType.Content:
                                 try
                                 {
-                                    var moduleTarget = await _modules.InvokeAsync<Gurux.DLMS.AMI.Module.IGXAmiTargetProvider, Gurux.DLMS.AMI.Module.GXAmiTarget?>((provider, ct) => provider.ResolveAsync(User ?? throw new UnauthorizedAccessException(), it.Type!, id, ct), cancellationToken);
+                                    var moduleTarget = await _modules.InvokeAsync<Gurux.DLMS.AMI.Module.IGXAmiTargetProvider, Gurux.DLMS.AMI.Module.GXAmiTarget?>((provider, ct) => provider.ResolveAsync(_user ?? throw new UnauthorizedAccessException(), it.Type!, id, ct), cancellationToken);
                                     it.Name = moduleTarget?.Name;
                                 }
                                 catch (Gurux.DLMS.AMI.Module.AmiModuleUnavailableException)

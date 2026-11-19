@@ -54,7 +54,7 @@
 
 <GXHelpContext Topic="Language" />
 
-@if (Active != null)
+@if (_active != null)
 {
 
 }
@@ -66,7 +66,7 @@ else @if (_authentications != null)
         </ChildContent>
     </GXMenuControl>
 
-    <GXViewTable ViewName="Config.Language" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXLanguagePolicies.View })" TItem="GXLanguage" @ref="table"
+    <GXViewTable ViewName="Config.Language" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXLanguagePolicies.View })" TItem="GXLanguage" @ref="table"
              Context="item"
              ItemsProvider="@GetItems"
              SelectionMode="SelectionMode.Single"
@@ -89,15 +89,19 @@ else @if (_authentications != null)
     <br />
 }
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
         new("ClientId") { Position = 1, Description = Properties.Resources.ClientID, Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Parent component.
@@ -109,7 +113,8 @@ else @if (_authentications != null)
     /// User action.
     /// </summary>
     private CrudAction Action { get; set; }
-    private GXLanguage? Active;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
+    private GXLanguage? _active;
 
     /// <summary>
     /// Selected item.
@@ -122,6 +127,7 @@ else @if (_authentications != null)
     /// </summary>
     protected GXTable<GXLanguage>? table;
 
+    /// <summary>Caches the language records loaded by the localization editor.</summary>
     private List<GXLanguage> _authentications = new List<GXLanguage>();
 
     /// <inheritdoc/>
@@ -137,10 +143,10 @@ else @if (_authentications != null)
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -152,8 +158,8 @@ else @if (_authentications != null)
         }
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingLanguage);
-            NotificationService?.RemoveByKey("Pages/Config/Language.OnInitialized");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingLanguage);
+            _notificationService?.RemoveByKey("Pages/Config/Language.OnInitialized");
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
                 var items = JsonSerializer.Deserialize<AuthenticationSettings[]>(Parent.Active.Settings);
@@ -169,7 +175,7 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Language.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Config/Language.OnInitialized");
         }
     }
 
@@ -181,7 +187,7 @@ else @if (_authentications != null)
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Config/Language.OnRemove");
+            _notificationService?.RemoveByKey("Pages/Config/Language.OnRemove");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -189,7 +195,7 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Language.OnRemove");
+            _notificationService?.ReportError(ex, "Pages/Config/Language.OnRemove");
         }
     }
 
@@ -200,7 +206,7 @@ else @if (_authentications != null)
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Config/Language.OnAdd");
+            _notificationService?.RemoveByKey("Pages/Config/Language.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager,  "Config/Authentication/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -209,7 +215,7 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Language.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/Config/Language.OnAdd");
         }
     }
 
@@ -221,12 +227,12 @@ else @if (_authentications != null)
         try
         {
             Action = CrudAction.Update;
-            Active = value;
+            _active = value;
             InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -237,7 +243,7 @@ else @if (_authentications != null)
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Config/Language.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Config/Language.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -250,12 +256,12 @@ else @if (_authentications != null)
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Config/Language.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Config/Language.OnEdit");
         }
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

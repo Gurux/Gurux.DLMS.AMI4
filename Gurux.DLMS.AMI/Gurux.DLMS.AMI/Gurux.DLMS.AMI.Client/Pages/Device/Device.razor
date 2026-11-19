@@ -53,10 +53,10 @@
 @inject HttpClient Http
 <GXHelpContext Topic="Device" />
 
-@if (!NotInitialized)
+@if (!_notInitialized)
 {
     <h1>
-        @Title
+        @_title
     </h1>
     <CascadingValue Value="this">
         <GXTabControl PersistSelectionInUrl="true" Active="@Action" NavigateOnSelection="false">
@@ -86,9 +86,13 @@
 <br />
 <ModuleViews Area="AmiViewArea.Device" Display="AmiViewDisplay.Append" Target="@Active" Parameters="@TabParameters" />
 @code {
+    /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
+    /// <summary>Tracks uploaded picture data and its pending persistence operation.</summary>
     private GXProfilePictureEdit? _profilePictureEdit;
+    /// <summary>References the custom-property editor used to validate and collect device parameters.</summary>
     private ParametersView? _parametersView;
+    /// <summary>Contains the editable custom properties associated with the current device.</summary>
     private List<IGXProperty> _properties = new();
     public bool CreateImmediately { get; set; }
     public bool DeleteTarget { get; set; }
@@ -172,10 +176,12 @@
                 await _parametersView.CancelAsync();
             }
         }
-        catch (Exception ex) { NotificationService?.ReportError(ex); }
+        catch (Exception ex) { _notificationService?.ReportError(ex); }
         ClientHelpers.NavigateToLastPage(NavigationManager);
     }
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Controls the visibility of the general settings section.</summary>
     internal bool GeneralVisible;
     internal void SetGeneralVisible(bool visible)
     {
@@ -308,8 +314,8 @@
             if (_action != CrudAction.Delete && !ValidateDevice()) {
                 return;
             }
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingDevice);
-            NotificationService?.RemoveByKey("Pages/Device/DeviceGeneral.OnSave");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingDevice);
+            _notificationService?.RemoveByKey("Pages/Device/DeviceGeneral.OnSave");
             //Update device parameters.
             if (_parametersView != null)
             {
@@ -356,7 +362,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceGeneral.OnSave");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceGeneral.OnSave");
         }
     }
 
@@ -364,8 +370,9 @@
         => (_profilePictureEdit ??= new GXProfilePictureEdit(Active.ProfilePicture?.Id, Active.Id == Guid.Empty ? null : Active.Creator?.Id)).SaveAsync(Http,
             Active.ProfilePicture, image => Active.ProfilePicture = image,
             async () => { await Http.PostAsJson<UpdateDeviceResponse>(address, new UpdateDevice { Devices = [Active], LateBinding = lateBinding }); },
-            error => NotificationService?.ReportError(error, "Device.ProfilePicture.Cleanup"));
+            error => _notificationService?.ReportError(error, "Device.ProfilePicture.Cleanup"));
 
+    /// <summary>Controls whether the loaded data can be displayed.</summary>
     private bool _ready;
 
     private IDictionary<string, object> TabParameters => new Dictionary<string, object>
@@ -377,7 +384,8 @@
         ["CustomTemplates"] = CustomTemplates!
     };
 
-    private IGXProgress? Progress;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
     private IDictionary<string, object>? GetTabParameters(GXMenuLink link)
     {
         var type = Type.GetType(link.TargetType ?? string.Empty);
@@ -407,12 +415,13 @@
         FormContext.NotifyFieldChanged(new FieldIdentifier(Active, nameof(GXDevice.ProfilePicture)));
     }
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// If manufacturers or device templates are not installed.
     /// </summary>
-    bool NotInitialized;
+    bool _notInitialized;
     /// <summary>
     /// Action.
     /// </summary>
@@ -436,7 +445,7 @@
     /// <summary>
     /// Page title.
     /// </summary>
-    private string? Title;
+    private string? _title;
 
     /// <summary>
     /// Active item.
@@ -458,6 +467,7 @@
     /// Installed manufacturers.
     /// </summary>
     public GXManufacturer[]? Manufacturers;
+    /// <summary>Caches the device templates offered by the property editor.</summary>
     public GXDeviceTemplate[]? Templates;
 
     /// <summary>
@@ -514,29 +524,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
             switch (Action)
             {
                 case "Add":
-                    Title = Properties.Resources.Add;
+                    _title = Properties.Resources.Add;
                     break;
                 case "Edit":
-                    Title = Properties.Resources.Edit;
+                    _title = Properties.Resources.Edit;
                     break;
                 case "Remove":
-                    Title = Properties.Resources.Remove;
+                    _title = Properties.Resources.Remove;
                     break;
                 default:
                     ClientHelpers.NavigateToLastPage(NavigationManager);
                     return;
             }
-            Title += " " + Properties.Resources.Device;
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDevice);
-            NotificationService?.RemoveByKey("Pages/Device/Device.OnInitializedAsync");
+            _title += " " + Properties.Resources.Device;
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDevice);
+            _notificationService?.RemoveByKey("Pages/Device/Device.OnInitializedAsync");
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get device data.
@@ -656,13 +666,13 @@
             }
             if (empty && (Templates == null || !Templates.Any()))
             {
-                NotInitialized = true;
+                _notInitialized = true;
                 //Ask user to install manufacturers or device templates if they are not installed yet.
-                NotificationService?.Add(new GXNotificationItem(
+                _notificationService?.Add(new GXNotificationItem(
                     Gurux.UI.Components.Enums.NotificationLevel.Information,
                     Properties.Resources.DeviceTemplatesNotInstalled, string.Empty, Closable: true));
             }
-            if (!NotInitialized) {
+            if (!_notInitialized) {
                 InitializeEditorMenu();
             }
             _ready = true;
@@ -673,7 +683,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/Device.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Device/Device.OnInitializedAsync");
         }
     }
 }

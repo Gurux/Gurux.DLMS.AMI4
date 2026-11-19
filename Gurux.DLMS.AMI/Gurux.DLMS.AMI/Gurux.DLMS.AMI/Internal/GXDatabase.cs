@@ -41,39 +41,55 @@ namespace Gurux.DLMS.AMI.Server.Internal;
 /// <remarks>Use one instance per operation or scope. Concurrent commands on an instance are not supported.</remarks>
 public sealed class GXDatabase : IGXDatabase
 {
-    private readonly IDbConnectionFactory? factory;
-    private readonly bool ownsConnection;
-    private readonly SemaphoreSlim connectionGate = new(1, 1);
-    private GXDbConnection? connection;
-    private bool disposed;
+    /// <summary>Creates database connections used by this operation.</summary>
+    private readonly IDbConnectionFactory? _factory;
+    /// <summary>Determines whether disposal also closes the underlying database connection.</summary>
+    private readonly bool _ownsConnection;
+    /// <summary>Prevents overlapping connection initialization.</summary>
+    private readonly SemaphoreSlim _connectionGate = new(1, 1);
+    /// <summary>Database connection leased by the current operation.</summary>
+    private GXDbConnection? _connection;
+    /// <summary>Indicates that disposal has begun and this instance can no longer accept work.</summary>
+    private bool _disposed;
 
     /// <summary>Initializes a new instance of <see cref="GXDatabase"/>.</summary>
     /// <param name="dbFactory">The db factory.</param>
     public GXDatabase(IDbConnectionFactory dbFactory)
     {
-        factory = dbFactory;
-        ownsConnection = true;
+        _factory = dbFactory;
+        _ownsConnection = true;
     }
 
+    /// <summary>Wraps a borrowed database connection without taking responsibility for its lifetime.</summary>
+    /// <param name="borrowedConnection">Existing connection whose lifetime remains owned by the caller.</param>
     private GXDatabase(DbConnection borrowedConnection)
     {
-        connection = new GXDbConnection(borrowedConnection, null);
-        ownsConnection = false;
+        _connection = new GXDbConnection(borrowedConnection, null);
+        _ownsConnection = false;
     }
 
+    /// <summary>Exposes an existing provider connection through the module database contract without owning its lifetime.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <returns>A database adapter borrowing the supplied connection.</returns>
     internal static IGXDatabase UseConnection(DbConnection connection) => new GXDatabase(connection);
 
+    /// <summary>Lazily opens the database connection under a gate and verifies that any supplied transaction belongs to it.</summary>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <returns>The open connection retained by this database adapter.</returns>
+    /// <exception cref="ObjectDisposedException">The database adapter has been disposed.</exception>
+    /// <exception cref="ArgumentException">The supplied transaction belongs to a different connection.</exception>
     [global::System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "Preserves the established argument order used by repository and transaction callers.")]
     private async Task<GXDbConnection> GetConnectionAsync(CancellationToken token = default, IDbTransaction? transaction = null)
     {
         token.ThrowIfCancellationRequested();
-        await connectionGate.WaitAsync(token).ConfigureAwait(false);
+        await _connectionGate.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            if (connection == null)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_connection == null)
             {
-                var created = await factory!.GetConnectionAsync(token).ConfigureAwait(false);
+                var created = await _factory!.GetConnectionAsync(token).ConfigureAwait(false);
                 try
                 {
                     if (created.Connection.State != ConnectionState.Open)
@@ -81,7 +97,7 @@ public sealed class GXDatabase : IGXDatabase
                         await created.Connection.OpenAsync(token).ConfigureAwait(false);
                     }
 
-                    connection = created;
+                    _connection = created;
                 }
                 catch
                 {
@@ -89,23 +105,28 @@ public sealed class GXDatabase : IGXDatabase
                     throw;
                 }
             }
-            if (transaction != null && !ReferenceEquals(transaction.Connection, connection.Connection))
+            if (transaction != null && !ReferenceEquals(transaction.Connection, _connection.Connection))
             {
                 throw new ArgumentException("The transaction must belong to this database connection.", nameof(transaction));
             }
 
-            return connection;
+            return _connection;
         }
         finally
         {
-            connectionGate.Release();
+            _connectionGate.Release();
         }
     }
 
+    /// <summary>Database connection borrowed by this transaction scope.</summary>
     [global::System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "Preserves the established argument order used by repository and transaction callers.")]
     private GXDbConnection Connection => GetConnectionAsync().GetAwaiter().GetResult();
+    /// <summary>Synchronously obtains the adapter connection and verifies the supplied transaction's connection identity.</summary>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <returns>The connection associated with the supplied transaction.</returns>
     [global::System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1068:CancellationToken parameters must come last", Justification = "Preserves the established argument order used by repository and transaction callers.")]
     private GXDbConnection ConnectionFor(IDbTransaction? transaction) => GetConnectionAsync(default, transaction).GetAwaiter().GetResult();
+    /// <summary>Schema operations using the current database connection.</summary>
     private GXSchemaManager Schema => new(Connection);
     /// <inheritdoc />
     public async Task<IGXDatabase> OpenAsync(CancellationToken cancellationToken = default)
@@ -118,8 +139,8 @@ public sealed class GXDatabase : IGXDatabase
     /// <inheritdoc />
     public Task<DbConnection> CreateOpenConnectionAsync()
     {
-        ObjectDisposedException.ThrowIf(disposed, this);
-        return factory != null ? factory.CreateOpenConnectionAsync() : throw new InvalidOperationException("A borrowed database cannot create another connection.");
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _factory != null ? _factory.CreateOpenConnectionAsync() : throw new InvalidOperationException("A borrowed database cannot create another connection.");
     }
 
     /// <inheritdoc />
@@ -227,9 +248,20 @@ public sealed class GXDatabase : IGXDatabase
         => ExecuteAsync(c => c.SingleOrDefaultAsync<T>(transaction, CreateSelectArgs(columns, where), cancellationToken), cancellationToken, transaction)!;
 
     // A missing predicate selects all rows using the ORM overload without a predicate.
+    /// <summary>Builds typed select arguments with optional columns and a predicate.</summary>
+    /// <typeparam name="T">Entity type whose query expressions are constructed.</typeparam>
+    /// <param name="columns">Typed expression selecting the query columns.</param>
+    /// <param name="where">Optional predicate restricting the selected records.</param>
+    /// <returns>ORM select arguments for the requested entity type.</returns>
     private static GXSelectArgs CreateSelectArgs<T>(Expression<Func<T, object>>? columns, Expression<Func<T, bool>>? where)
         => where == null ? GXSelectArgs.Select(columns) : GXSelectArgs.Select(columns, where);
 
+    /// <summary>Obtains a validated database connection and invokes the supplied asynchronous operation on it.</summary>
+    /// <typeparam name="TResult">Result returned by the supplied asynchronous operation.</typeparam>
+    /// <param name="operation">Asynchronous operation executed using the validated connection or module repository scope.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <param name="transaction">Transaction shared by the query or mutation.</param>
+    /// <returns>The result produced by the database operation.</returns>
     private async Task<TResult> ExecuteAsync<TResult>(Func<GXDbConnection, Task<TResult>> operation, CancellationToken token, IDbTransaction? transaction = null)
         => await operation(await GetConnectionAsync(token, transaction).ConfigureAwait(false)).ConfigureAwait(false);
 
@@ -265,47 +297,51 @@ public sealed class GXDatabase : IGXDatabase
     /// <inheritdoc />
     public void Dispose()
     {
-        connectionGate.Wait();
+        _connectionGate.Wait();
         try
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            disposed = true;
-            if (ownsConnection)
+            _disposed = true;
+            if (_ownsConnection)
             {
-                connection?.Dispose();
+                _connection?.Dispose();
             }
         }
         finally
         {
-            connectionGate.Release();
+            _connectionGate.Release();
         }
     }
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await connectionGate.WaitAsync().ConfigureAwait(false);
+        await _connectionGate.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            disposed = true;
-            if (ownsConnection && connection != null)
+            _disposed = true;
+            if (_ownsConnection && _connection != null)
             {
-                await connection.DisposeAsync().ConfigureAwait(false);
+                await _connection.DisposeAsync().ConfigureAwait(false);
             }
         }
         finally
         {
-            connectionGate.Release();
+            _connectionGate.Release();
         }
     }
+    /// <summary>Applies a typed column-selection expression to generic query arguments.</summary>
+    /// <typeparam name="T">Entity type whose query expressions are constructed.</typeparam>
+    /// <param name="args">Query arguments receiving the typed selection.</param>
+    /// <param name="columns">Typed expression selecting the query columns.</param>
     private static void AddColumns<T>(GXSelectArgs args, LambdaExpression? columns)
     {
         if (columns == null)
@@ -317,10 +353,25 @@ public sealed class GXDatabase : IGXDatabase
             args.Columns.Add((Expression<Func<T, object>>)columns);
         }
     }
+    /// <summary>Applies a typed ordering expression to generic query arguments.</summary>
+    /// <typeparam name="T">Entity type whose query expressions are constructed.</typeparam>
+    /// <param name="args">Query arguments receiving the typed selection.</param>
+    /// <param name="columns">Typed expression selecting the query columns.</param>
     private static void AddOrder<T>(GXSelectArgs args, LambdaExpression columns)
         => args.OrderBy.Add((Expression<Func<T, object>>)columns);
+    /// <summary>Adds a typed filter expression to generic query arguments.</summary>
+    /// <typeparam name="T">Entity type whose query expressions are constructed.</typeparam>
+    /// <param name="args">Query arguments receiving the typed selection.</param>
+    /// <param name="predicate">Typed filtering expression added to the query.</param>
     private static void AddWhere<T>(GXSelectArgs args, LambdaExpression predicate)
         => args.Where.And((Expression<Func<T, bool>>)predicate);
+    /// <summary>Adds the selected typed inner or left join to query arguments.</summary>
+    /// <typeparam name="TFrom">Entity type participating in the typed join.</typeparam>
+    /// <typeparam name="TTo">Entity type participating in the typed join.</typeparam>
+    /// <param name="args">Query arguments receiving the typed selection.</param>
+    /// <param name="foreignKey">Expression selecting the foreign-key side of the join.</param>
+    /// <param name="key">Property name used for lookup.</param>
+    /// <param name="inner">Whether to create an inner join instead of a left join.</param>
     private static void AddJoin<TFrom, TTo>(GXSelectArgs args, LambdaExpression foreignKey, LambdaExpression key, bool inner)
     {
         if (inner)
@@ -332,17 +383,26 @@ public sealed class GXDatabase : IGXDatabase
             args.Joins.AddLeftJoin((Expression<Func<TFrom, object>>)foreignKey, (Expression<Func<TTo, object>>)key);
         }
     }
-    private static readonly MethodInfo ColumnsMethod = typeof(GXDatabase).GetMethod(nameof(AddColumns), BindingFlags.Static | BindingFlags.NonPublic)!;
-    private static readonly MethodInfo JoinMethod = typeof(GXDatabase).GetMethod(nameof(AddJoin), BindingFlags.Static | BindingFlags.NonPublic)!;
-    private static readonly MethodInfo WhereMethod = typeof(GXDatabase).GetMethod(nameof(AddWhere), BindingFlags.Static | BindingFlags.NonPublic)!;
-    private static readonly MethodInfo OrderMethod = typeof(GXDatabase).GetMethod(nameof(AddOrder), BindingFlags.Static | BindingFlags.NonPublic)!;
+    /// <summary>Cached reflection target used to add typed query column selections.</summary>
+    private static readonly MethodInfo _columnsMethod = typeof(GXDatabase).GetMethod(nameof(AddColumns), BindingFlags.Static | BindingFlags.NonPublic)!;
+    /// <summary>Cached reflection target used to add typed query joins.</summary>
+    private static readonly MethodInfo _joinMethod = typeof(GXDatabase).GetMethod(nameof(AddJoin), BindingFlags.Static | BindingFlags.NonPublic)!;
+    /// <summary>Cached reflection target used to add typed query predicates.</summary>
+    private static readonly MethodInfo _whereMethod = typeof(GXDatabase).GetMethod(nameof(AddWhere), BindingFlags.Static | BindingFlags.NonPublic)!;
+    /// <summary>Cached reflection target used to add typed query ordering.</summary>
+    private static readonly MethodInfo _orderMethod = typeof(GXDatabase).GetMethod(nameof(AddOrder), BindingFlags.Static | BindingFlags.NonPublic)!;
 
+    /// <summary>Builds ORM query arguments from the module-facing selection contract.</summary>
+    /// <typeparam name="T">Entity type whose query expressions are constructed.</typeparam>
+    /// <param name="query">Query whose filtering or selected columns are updated.</param>
+    /// <param name="count">Whether to build a count query instead of selecting entity data.</param>
+    /// <returns>ORM select or count arguments for the requested entity query.</returns>
     private static GXSelectArgs Select<T>(GXAmiSelectQuery<T> query, bool count = false)
     {
         var args = count ? CreateSelectArgs<T>(x => GXSql.Count(1), query.Predicate) : query.Projection == null ? (query.Predicate == null ? GXSelectArgs.SelectAll<T>() : GXSelectArgs.SelectAll(query.Predicate)) : CreateSelectArgs(query.Projection, query.Predicate);
         foreach (var join in query.Joins.Items)
         {
-            JoinMethod.MakeGenericMethod(join.From, join.To).Invoke(null, [args, join.ForeignKey, join.Key, join.Inner]);
+            _joinMethod.MakeGenericMethod(join.From, join.To).Invoke(null, [args, join.ForeignKey, join.Key, join.Inner]);
         }
 
         if (query.Where.ReplaceKeyFilter)
@@ -352,19 +412,19 @@ public sealed class GXDatabase : IGXDatabase
 
         foreach (var predicate in query.Where.Predicates)
         {
-            WhereMethod.MakeGenericMethod(predicate.Parameters[0].Type).Invoke(null, [args, predicate]);
+            _whereMethod.MakeGenericMethod(predicate.Parameters[0].Type).Invoke(null, [args, predicate]);
         }
 
         if (!count)
         {
             foreach (var columns in query.Columns.Items)
             {
-                ColumnsMethod.MakeGenericMethod(columns.EntityType).Invoke(null, [args, columns.Expression]);
+                _columnsMethod.MakeGenericMethod(columns.EntityType).Invoke(null, [args, columns.Expression]);
             }
 
             foreach (var columns in query.OrderBy.Items)
             {
-                OrderMethod.MakeGenericMethod(columns.EntityType).Invoke(null, [args, columns.Expression]);
+                _orderMethod.MakeGenericMethod(columns.EntityType).Invoke(null, [args, columns.Expression]);
             }
 
             args.Index = query.Index;

@@ -78,14 +78,15 @@
 @code {
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        if (_notifier == null)
         {
             return;
         }
     }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
 
     /// <summary>
     /// User action.
@@ -112,6 +113,6 @@
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

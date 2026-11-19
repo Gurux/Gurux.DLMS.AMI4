@@ -71,7 +71,7 @@ else
             </ChildContent>
         </GXMenuControl>
     }
-    <GXViewTable ViewName="DeviceTemplate.ObjectTemplates" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXObjectTemplatePolicies.View })" TItem="GXObjectTemplate" @ref="table"
+    <GXViewTable ViewName="DeviceTemplate.ObjectTemplates" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXObjectTemplatePolicies.View })" TItem="GXObjectTemplate" @ref="table"
                  Context="template"
                  ItemsProvider="@GetItems"
                  SelectionMode="SelectionMode.Multiple"
@@ -86,7 +86,7 @@ else
                 <GXInputDropdown class="form-select"
                                  Id="objectTemplates-objectType"
                                  RememberValue="true"
-                                 @bind-Value="filterByObjectType"
+                                 @bind-Value="_filterByObjectType"
                                  OnSelected="@((Enums.ObjectType e) => Updated())">
                 </GXInputDropdown>
             </GXFh>
@@ -124,12 +124,13 @@ else
             <GXTd Id="ExpirationTime">@GetExpirationTimes(template)</GXTd>
         </ItemContent>
     </GXViewTable>
-    
+
 }
 
 <br />
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("ObjectType") { Position = 0, Description = "ObjectType", Visibility = (byte)Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Visibility.All },
@@ -138,9 +139,12 @@ else
         new("ExpirationTime") { Position = 4, Description = Properties.Resources.ExpirationTimes, Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Shown object types.
@@ -237,20 +241,20 @@ else
     /// <summary>
     /// Device filter.
     /// </summary>
-    private GXObjectTemplate filter = new GXObjectTemplate();
+    private GXObjectTemplate _filter = new GXObjectTemplate();
 
     /// <summary>
     /// Filter using object type.
     /// </summary>
-    private Enums.ObjectType filterByObjectType;
+    private Enums.ObjectType _filterByObjectType;
     /// <summary>
     /// Filter using object name.
     /// </summary>
-    private string? filterByName;
+    private string? _filterByName;
     /// <summary>
     /// Filter by logical name of the object.
     /// </summary>
-    private string? filterByLogicalName;
+    private string? _filterByLogicalName;
 
     /// <summary>
     /// Table reference.
@@ -283,13 +287,13 @@ else
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplates.Updated");
+                _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplates.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplates.Updated");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplates.Updated");
         }
     }
 
@@ -386,10 +390,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -403,15 +407,15 @@ else
         await Task.Delay(1);
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplates.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplates.OnInitializedAsync");
             //Get selected item.
             if (Device == null &&
                 (AvailableObjectTemplates == null || !AvailableObjectTemplates.Any()))
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -439,7 +443,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplates.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplates.OnInitializedAsync");
         }
     }
 
@@ -448,7 +452,7 @@ else
     /// </summary>
     private async Task SearchByName(ChangeEventArgs args)
     {
-        filterByName = Convert.ToString(args.Value);
+        _filterByName = Convert.ToString(args.Value);
         await Updated();
     }
 
@@ -457,7 +461,7 @@ else
     /// </summary>
     private async Task SearchByLogicalName(ChangeEventArgs args)
     {
-        filterByLogicalName = Convert.ToString(args.Value);
+        _filterByLogicalName = Convert.ToString(args.Value);
         await Updated();
     }
 
@@ -477,44 +481,44 @@ else
                 objects.AddRange(AvailableObjectTemplates);
                 count = AvailableObjectTemplates.Count();
             }
-            if (filterByObjectType != Enums.ObjectType.None)
+            if (_filterByObjectType != Enums.ObjectType.None)
             {
                 objects.RemoveAll(q => q.ObjectType != null &&
                     ((Enums.ObjectType)q.ObjectType).ToString().ToUpper().Contains(
-                        filterByObjectType.ToString().ToUpper()) == false);
+                        _filterByObjectType.ToString().ToUpper()) == false);
             }
-            if (!string.IsNullOrEmpty(filterByName))
+            if (!string.IsNullOrEmpty(_filterByName))
             {
-                objects.RemoveAll(q => q.Name != null && q.Name.ToUpper().Contains(filterByName.ToUpper()) == false);
+                objects.RemoveAll(q => q.Name != null && q.Name.ToUpper().Contains(_filterByName.ToUpper()) == false);
             }
-            if (!string.IsNullOrEmpty(filterByLogicalName))
+            if (!string.IsNullOrEmpty(_filterByLogicalName))
             {
-                objects.RemoveAll(q => q.LogicalName != null && q.LogicalName.ToUpper().Contains(filterByLogicalName.ToUpper()) == false);
+                objects.RemoveAll(q => q.LogicalName != null && q.LogicalName.ToUpper().Contains(_filterByLogicalName.ToUpper()) == false);
             }
             return new ItemsProviderResult<GXObjectTemplate>(objects, count);
         }
         _init = false;
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             if (Device != null)
             {
-                filter.DeviceTemplate = new GXDeviceTemplate() { Id = Device.Id };
+                _filter.DeviceTemplate = new GXDeviceTemplate() { Id = Device.Id };
             }
             ListObjectTemplates req = new ListObjectTemplates()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
@@ -543,7 +547,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -555,7 +559,7 @@ else
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplates.OnEdit");
+            _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplates.OnEdit");
             if (Device == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -568,7 +572,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplates.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/DeviceTemplate/ObjectTemplates.OnEdit");
         }
     }
 
@@ -598,7 +602,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -625,7 +629,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -636,6 +640,6 @@ else
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }

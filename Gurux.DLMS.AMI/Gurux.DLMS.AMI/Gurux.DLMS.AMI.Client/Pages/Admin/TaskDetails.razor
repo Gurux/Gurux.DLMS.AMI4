@@ -1,3 +1,32 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
 @using System.Net.Http.Json
 @using System.Text.Json
 @using System.Text.Json.Serialization
@@ -33,16 +62,21 @@ else if (_task != null)
     <pre class="text-break" style="white-space:pre-wrap">@_task.Data</pre>
     <details>
         <summary>@Properties.Resources.Show</summary>
-        <pre class="text-break" style="white-space:pre-wrap">@JsonSerializer.Serialize(_task, JsonOptions)</pre>
+        <pre class="text-break" style="white-space:pre-wrap">@JsonSerializer.Serialize(_task, _jsonOptions)</pre>
     </details>
 }
 
 @code {
     [Parameter] public Guid Id { get; set; }
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
+    /// <summary>Configures JSON serialization for values exchanged by this editor.</summary>
+    private static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true, ReferenceHandler = ReferenceHandler.IgnoreCycles };
+    /// <summary>Retains the device task whose status and data are displayed.</summary>
     private GXTask? _task;
+    /// <summary>Contains the failure message displayed for the most recent operation.</summary>
     private string? _error;
+    /// <summary>Indicates that the displayed data is still being retrieved.</summary>
     private bool _loading;
+    /// <summary>Cancels the current data load when another target is selected.</summary>
     private CancellationTokenSource? _load;
 
     protected override async Task OnParametersSetAsync()

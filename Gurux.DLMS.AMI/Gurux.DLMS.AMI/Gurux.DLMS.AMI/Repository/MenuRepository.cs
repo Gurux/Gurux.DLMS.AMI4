@@ -58,12 +58,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public partial class MenuRepository : IMenuRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for menu group records.</summary>
         private readonly IMenuGroupRepository _menuGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -82,7 +89,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
@@ -91,6 +98,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXMenu), id, action, GXMenuPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -98,9 +111,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? menuId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXMenuPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXMenuPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByMenu(s => s.Id!,
-                ServerHelpers.GetUserId(User), menuId);
+                ServerHelpers.GetUserId(_user), menuId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (menuId != null)
             {
@@ -109,7 +122,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -119,12 +132,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? menuIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXMenuPolicies.View);
-            GXSelectArgs args = GXQuery.GetUsersByMenus(s => s.Id!, ServerHelpers.GetUserId(User), menuIds);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXMenuPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByMenus(s => s.Id!, ServerHelpers.GetUserId(_user), menuIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -137,12 +150,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             menus = menus.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXMenu, Guid>(_dbFactory, User, _serviceProvider, menus,
+            await GXHistoryMutation.RunDeleteAsync<GXMenu, Guid>(_dbFactory, _user, _serviceProvider, menus,
         async () =>
         {
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXMenuPolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXMenuPolicies.Delete);
                 GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(a => a.Id, q => menus.Contains(q.Id));
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 List<GXMenu> list = connection.Select<GXMenu>(arg);
@@ -206,10 +219,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListMenusResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXMenuPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXMenuPolicies.View);
 
             GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the menus.
                 arg = GXSelectArgs.SelectAll<GXMenu>();
@@ -228,7 +241,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Where.And<GXMenu>(w => request.Included.Contains(w.Id));
                 }
             }
-            else if (User.Identity?.IsAuthenticated == true)
+            else if (_user.Identity?.IsAuthenticated == true)
             {
                 arg = GXSelectArgs.SelectAll<GXMenu>();
                 if (request?.Filter?.Removed == null)
@@ -276,7 +289,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXMenu>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            if (!User.IsInRole(GXRoles.Admin))
+            if (!_user.IsInRole(GXRoles.Admin))
             {
                 var allowed = new List<Guid>();
                 foreach (var candidate in await connection.SelectAsync<GXMenu>(GXSelectArgs.Select<GXMenu>(m => m.Id), cancellationToken))
@@ -338,6 +351,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return menus;
         }
 
+        /// <summary>Initializes an omitted menu-group collection while allowing public audiences with no resource policies.</summary>
+        /// <param name="menu">Menu whose audience, links, or standard configuration are selected.</param>
         internal static void ValidateAudience(GXMenu menu)
         {
             // Empty policies are a public audience; group assignments are optional.
@@ -345,8 +360,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Empty policies are public, including anonymous readers. Configured policies remain enforced.
+        /// <summary>Evaluates the current principal against the menu's resource-policy requirements.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="menu">Menu whose resource policies are evaluated for the current principal.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>True when the menu's policy requirements are satisfied.</returns>
         internal Task<bool> CanViewAsync(GXDbConnection connection, GXMenu menu, CancellationToken cancellationToken = default)
-            => GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, menu.Policies, cancellationToken);
+            => GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, menu.Policies, cancellationToken);
 
         /// <inheritdoc />
         public async Task<GXMenu> ReadAsync(string name, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default)
@@ -398,7 +418,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             var menu = await connection.SingleOrDefaultAsync<GXMenu>(arg, cancellationToken);
             if (menu == null)
             {
-                if (User?.Identity?.IsAuthenticated == true && !User.IsInRole(GXRoles.Admin))
+                if (_user?.Identity?.IsAuthenticated == true && !_user.IsInRole(GXRoles.Admin))
                 {
                     // A menu outside the user's groups is unavailable, just like a
                     // menu rejected by its resource policies below.
@@ -430,7 +450,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     link.Configuration = new GXConfiguration { Id = link.Configuration.Id, Name = link.Configuration.Name };
                 }
                 link.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXMenuLink), link.Id, cancellationToken);
-                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, link.Policies, cancellationToken))
+                if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, link.Policies, cancellationToken))
                 {
                     visible.Add(link);
                 }
@@ -455,15 +475,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXMenu, object>>? columns, CancellationToken cancellationToken = default)
         {
             menus = menus.ToArray();
-            return await GXHistoryMutation.RunAsync<GXMenu, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, menus,
+            return await GXHistoryMutation.RunAsync<GXMenu, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, menus,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXMenuPolicies.Add, GXMenuPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXMenuPolicies.Add, GXMenuPolicies.Edit);
                 DateTime now = DateTime.Now;
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 List<Guid> list = [];
                 Dictionary<GXMenu, List<string>> updates = [];
                 bool translationsChanged = false;
@@ -538,7 +558,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.MenuGroups,
                             q.Links
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             menu.Creator == null ||
                             string.IsNullOrEmpty(menu.Creator.Id))
                         {
@@ -595,7 +615,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 foreach (var link in removedLinks)
                                 {
                                     link.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXMenuLink), link.Id, cancellationToken);
-                                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, User, link.Policies, cancellationToken))
+                                    if (await GXResourcePolicyAccess.AllowsAsync(connection, _authorizationService, _user, link.Policies, cancellationToken))
                                     {
                                         removableLinks.Add(link);
                                     }
@@ -856,6 +876,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return item;
         }
 
+        /// <summary>Creates or updates the standard configuration navigation menu and removes obsolete configuration links.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="group">Menu group receiving standard menu and link registrations.</param>
+        /// <returns>A task that completes after configuration menu provisioning.</returns>
         internal static async Task AddConfigurationMenu(GXDbConnection? connection, GXMenuGroup group)
         {
             var proxyConfiguration = connection == null ? null : await ConfigurationRepository.EnsureHttpProxyConfigurationAsync(connection);
@@ -923,6 +947,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Updates persisted configuration links to current route and label definitions while preserving unrelated customization.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="menu">Menu whose audience, links, or standard configuration are selected.</param>
+        /// <returns>A task that completes after eligible configuration links have been normalized.</returns>
         private static async Task NormalizeConfigurationMenuAsync(GXDbConnection connection, GXMenu menu)
         {
             var definitions = ConfigurationRepository.CreateDefaultConfigurationSettings();
@@ -953,6 +981,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Change only recognized built-in routes and former default labels.
+        /// <summary>Canonicalizes a recognized configuration route and replaces only its obsolete standard label.</summary>
+        /// <param name="link">Menu link whose canonical route or module ownership is checked.</param>
+        /// <param name="definition">Current standard configuration link used as the canonical route and label source.</param>
+        /// <returns>True when the link's route or standard label was changed.</returns>
         internal static bool NormalizeConfigurationLink(GXMenuLink link, GXMenuLink definition)
         {
             if (link.Url == null || !string.Equals(
@@ -979,6 +1011,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return changed;
         }
 
+        /// <summary>Repairs standard configuration navigation when the necessary schema and policy tables are available.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after supported menu repairs have been applied.</returns>
         internal static async Task EnsureConfigurationMenuAsync(GXDbConnection connection, CancellationToken cancellationToken = default)
         {
             var schema = new GXSchemaManager(connection);
@@ -1021,6 +1057,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Creates the public navigation menu when absent and adds the standard visitor-facing links.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="def">Default menu group receiving generated navigation menus.</param>
+        /// <returns>A task that completes after navigation entries have been provisioned.</returns>
         private static async Task AddNavMenu(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.NavMenu);
@@ -1061,6 +1101,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "/Favorites", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Favorites)), null, "Favorite", null, null, GXFavoritePolicies.View);
         }
 
+        /// <summary>Creates the hamburger navigation menu and its standard account and application links.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="def">Default menu group receiving generated navigation menus.</param>
+        /// <param name="creator">Creator identity retained by standard menu or view provisioning.</param>
+        /// <param name="now">Timestamp assigned to newly provisioned navigation records.</param>
+        /// <returns>A task that completes after the menu and links have been provisioned.</returns>
         private static async Task AddHamburgerMenu(GXDbConnection? connection, GXMenuGroup def, GXUser? creator, DateTime now)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.HamburgerMenu);
@@ -1090,6 +1136,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "/Logout", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Logout)), null, "Logout");
         }
 
+        /// <summary>Adds the standard device navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddDeviceTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.DeviceTab);
@@ -1123,6 +1173,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "DeviceTrace", ServerHelpers.GetInvariantString(nameof(Properties.Resources.DeviceTraces)), null, TargetType.DeviceTrace, [TargetType.DeviceTrace], "New device traces", GXDeviceTracePolicies.View, typeof(Client.Pages.Device.DeviceTraces));
         }
 
+        /// <summary>Adds the standard device template navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddDeviceTemplateTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.DeviceTemplateTab);
@@ -1153,6 +1207,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "DeviceTemplateGroup", ServerHelpers.GetInvariantString(nameof(Properties.Resources.DeviceTemplateGroup)), null, TargetType.DeviceTemplateGroup, [TargetType.DeviceTemplateGroup], "New device template group", GXDeviceTemplateGroupPolicies.View, typeof(Client.Pages.DeviceTemplate.DeviceTemplateGroups));
         }
 
+        /// <summary>Creates or updates the user editor tab menu with its localized standard destinations.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="mg">Menu group receiving the generated user tab menu.</param>
+        /// <returns>A task that completes after user detail tab entries have been provisioned.</returns>
         private static async Task AddUserDetailsTabs(GXDbConnection? connection, GXMenuGroup mg)
         {
             var menu = connection == null ? null : await connection.SingleOrDefaultAsync<GXMenu>(GXSelectArgs.SelectAll<GXMenu>(m => m.Name == GXMenus.UserDetailsTab));
@@ -1187,6 +1245,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "PersonalAccessTokens", labels.GetString("PersonalAccessTokens", System.Globalization.CultureInfo.InvariantCulture)!, icon: "personal-access-token", policy: GXTokenPolicies.View, type: typeof(Client.Pages.User.UserPersonalAccessTokens));
         }
 
+        /// <summary>Reads an existing management tab menu or creates and attaches a system-defined preloaded menu to the supplied group.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="group">Menu group receiving standard menu and link registrations.</param>
+        /// <param name="name">Stable name used to select or register the definition described by this operation.</param>
+        /// <returns>The existing or newly created management tab menu.</returns>
         private static async Task<GXMenu> AddManagementTabMenu(GXDbConnection? connection, GXMenuGroup group, string name)
         {
             var menu = connection == null ? null : await connection.SingleOrDefaultAsync<GXMenu>(
@@ -1215,6 +1278,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return menu;
         }
 
+        /// <summary>Creates a tab menu and adds its declared destinations using invariant resource labels and per-tab policies.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="group">Menu group receiving standard menu and link registrations.</param>
+        /// <param name="name">Stable management-tab menu identity.</param>
+        /// <param name="tabs">Declared destinations, resource-label keys, icons, and policies for the tab menu.</param>
+        /// <returns>A task that completes after all declared tab links have been added.</returns>
         private static async Task AddContentTabMenu(GXDbConnection? connection, GXMenuGroup group, string name,
             params (string Path, string Label, string? Icon, string? Policy)[] tabs)
         {
@@ -1230,6 +1299,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         // These tabs render inside their owning editor to preserve its form state and component references.
         // Their labels, order, icons and policies use the same stored defaults as component-backed tabs.
+        /// <summary>Provisions standard content tabs for agent settings, themes, selectors, and other built-in editor content.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="group">Menu group receiving standard menu and link registrations.</param>
+        /// <returns>A task that completes after all content tab menus have been processed.</returns>
         private static async Task AddContentTabMenus(GXDbConnection? connection, GXMenuGroup group)
         {
             await AddContentTabMenu(connection, group, GXMenus.AgentSettingsTab,
@@ -1266,6 +1339,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 ("GeneralInformation", "GeneralInformation", null, null), ("Policies", "Policies", null, null));
         }
 
+        /// <summary>Adds the standard theme editor navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddThemeEditorTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ThemeEditorTab);
@@ -1273,6 +1350,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "General", labels.GetString("GeneralInformation", System.Globalization.CultureInfo.InvariantCulture)!, icon: "theme", policy: GXAppearancePolicies.View, type: typeof(Client.Pages.Appearance.ThemeGeneral));
         }
 
+        /// <summary>Adds the standard trigger details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddTriggerDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.TriggerDetailsTab);
@@ -1280,6 +1361,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "General", labels.GetString("GeneralInformation", System.Globalization.CultureInfo.InvariantCulture)!, icon: "trigger", policy: GXTriggerPolicies.View, type: typeof(Client.Pages.Trigger.TriggerGeneral));
         }
 
+        /// <summary>Adds the standard agent details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddAgentDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.AgentDetailsTab);
@@ -1288,6 +1373,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "AgentGroups", labels.GetString("AgentGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "agent-groups", policy: GXAgentGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Agent.AgentGroupsSelector));
         }
 
+        /// <summary>Adds the standard block details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddBlockDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.BlockDetailsTab);
@@ -1296,6 +1385,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "BlockGroups", labels.GetString("BlockGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "block-groups", policy: GXBlockGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Block.BlockGroupsSelector));
         }
 
+        /// <summary>Adds the standard component view details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddComponentViewDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ComponentViewDetailsTab);
@@ -1304,6 +1397,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ComponentViewGroups", labels.GetString("ComponentViewGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "component-view-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.ComponentView.ComponentViewGroupsSelector));
         }
 
+        /// <summary>Adds the standard device details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddDeviceDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.DeviceDetailsTab);
@@ -1314,6 +1411,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "Objects", labels.GetString("Objects", System.Globalization.CultureInfo.InvariantCulture)!, icon: "objects", policy: GXDevicePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Objects.Objects));
         }
 
+        /// <summary>Adds the standard device template details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddDeviceTemplateDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.DeviceTemplateDetailsTab);
@@ -1324,6 +1425,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ObjectTemplates", labels.GetString("ObjectTemplates", System.Globalization.CultureInfo.InvariantCulture)!, icon: "object-templates", policy: GXDeviceTemplatePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.DeviceTemplate.ObjectTemplates));
         }
 
+        /// <summary>Adds the standard gateway details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddGatewayDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.GatewayDetailsTab);
@@ -1334,6 +1439,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "Devices", labels.GetString("Devices", System.Globalization.CultureInfo.InvariantCulture)!, icon: "devices", policy: GXDevicePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Device.DevicesSelector));
         }
 
+        /// <summary>Adds the standard key management details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddKeyManagementDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.KeyManagementDetailsTab);
@@ -1342,6 +1451,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "KeyManagementGroups", labels.GetString("KeyManagementGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "key-management-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.KeyManagement.KeyManagementGroupsSelector));
         }
 
+        /// <summary>Adds the standard manufacturer details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddManufacturerDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ManufacturerDetailsTab);
@@ -1351,6 +1464,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ModelProfilePicture", labels.GetString("DeviceModelProfilePicture", System.Globalization.CultureInfo.InvariantCulture)!, icon: "device", policy: GXManufacturerPolicies.View, type: typeof(Client.Helpers.ProfilePictureEditor));
         }
 
+        /// <summary>Adds the standard menu details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddMenuDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.MenuDetailsTab);
@@ -1359,6 +1476,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "MenuGroups", labels.GetString("MenuGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "menu-groups", policy: GXMenuGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Menu.MenuGroupsSelector));
         }
 
+        /// <summary>Adds the standard module details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddModuleDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ModuleDetailsTab);
@@ -1368,6 +1489,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "Policies", labels.GetString("Policies", System.Globalization.CultureInfo.InvariantCulture)!, icon: "policy", policy: GXModulePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Module.ModulePolicies));
         }
 
+        /// <summary>Adds the standard schedule details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddScheduleDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ScheduleDetailsTab);
@@ -1379,6 +1504,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "Modules", labels.GetString("ModulesTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "module", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Module.ModulesSelector));
         }
 
+        /// <summary>Adds the standard script details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddScriptDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ScriptDetailsTab);
@@ -1387,6 +1516,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ScriptGroups", labels.GetString("ScriptGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "script-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Script.ScriptGroupsSelector));
         }
 
+        /// <summary>Adds the standard view details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddViewDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ViewDetailsTab);
@@ -1395,6 +1528,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ViewGroups", "View groups", icon: "view-groups", policy: GXViewGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.View.ViewGroupsSelector));
         }
 
+        /// <summary>Adds the standard workflow details navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddWorkflowDetailsTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.WorkflowDetailsTab);
@@ -1424,6 +1561,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ScriptMethods", labels.GetString("ScriptMethods", System.Globalization.CultureInfo.InvariantCulture)!, icon: "script-methods", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Script.ScriptMethodsSelector));
         }
 
+        /// <summary>Adds the standard workflow group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddWorkflowGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.WorkflowGroupTab);
@@ -1433,6 +1574,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard gateway group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddGatewayGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.GatewayGroupTab);
@@ -1442,6 +1587,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard module group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddModuleGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ModuleGroupTab);
@@ -1451,6 +1600,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard menu group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddMenuGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.MenuGroupTab);
@@ -1460,6 +1613,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard device template group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddDeviceTemplateGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.DeviceTemplateGroupTab);
@@ -1469,6 +1626,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard view group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddViewGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ViewGroupTab);
@@ -1478,6 +1639,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard user group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddUserGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.UserGroupTab);
@@ -1488,6 +1653,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ScheduleGroups", labels.GetString("ScheduleGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "schedule-groups", policy: GXScheduleGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Schedule.ScheduleGroupsSelector));
         }
 
+        /// <summary>Adds the standard device group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddDeviceGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.DeviceGroupTab);
@@ -1498,6 +1667,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "AgentGroups", labels.GetString("AgentGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "agent-groups", policy: GXAgentGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Agent.AgentGroupsSelector));
         }
 
+        /// <summary>Adds the standard trigger group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddTriggerGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.TriggerGroupTab);
@@ -1507,6 +1680,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard script group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddScriptGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ScriptGroupTab);
@@ -1516,6 +1693,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard key management group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddKeyManagementGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.KeyManagementGroupTab);
@@ -1525,6 +1706,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard schedule group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddScheduleGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ScheduleGroupTab);
@@ -1534,6 +1719,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard component view group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddComponentViewGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ComponentViewGroupTab);
@@ -1543,6 +1732,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard agent group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddAgentGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.AgentGroupTab);
@@ -1553,6 +1746,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "DeviceGroups", labels.GetString("DeviceGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "device-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Device.DeviceGroupsSelector));
         }
 
+        /// <summary>Adds the standard block group navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddBlockGroupTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.BlockGroupTab);
@@ -1562,6 +1759,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "UserGroups", labels.GetString("UserGroupsTitle", System.Globalization.CultureInfo.InvariantCulture)!, icon: "user-groups", policy: GXUserGroupPolicies.View, type: typeof(Client.Pages.User.UserGroupsSelector));
         }
 
+        /// <summary>Adds the standard block navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddBlockTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.BlockTab);
@@ -1570,6 +1771,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/BlockGroup", labels.GetString("BlockGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "block-groups", policy: GXBlockGroupPolicies.View, type: typeof(Client.Pages.Block.BlockGroups));
         }
 
+        /// <summary>Adds the standard menu navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddMenuTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.MenuTab);
@@ -1578,6 +1783,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/MenuGroup", labels.GetString("MenuGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "menu-groups", policy: GXMenuGroupPolicies.View, type: typeof(Client.Pages.Menu.MenuGroups));
         }
 
+        /// <summary>Adds the standard view navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddViewTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ViewTab);
@@ -1585,6 +1794,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/ViewGroup", "View groups", icon: "view-groups", policy: GXViewGroupPolicies.View, type: typeof(Client.Pages.View.ViewGroups));
         }
 
+        /// <summary>Adds the standard workflow navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddWorkflowTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.WorkflowTab);
@@ -1594,6 +1807,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/WorkflowLog", labels.GetString("WorkflowLogs", System.Globalization.CultureInfo.InvariantCulture)!, icon: "workflow-logs", policy: GXWorkflowLogPolicies.View, type: typeof(Client.Pages.Workflow.WorkflowLogs));
         }
 
+        /// <summary>Adds the standard script navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddScriptTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ScriptTab);
@@ -1604,6 +1821,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "Templates", labels.GetString("Templates", System.Globalization.CultureInfo.InvariantCulture)!, icon: "script", policy: GXUpdatePolicies.Admin, type: typeof(Gurux.DLMS.AMI.Client.Pages.Script.ScriptTemplates));
         }
 
+        /// <summary>Adds the standard trigger navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddTriggerTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.TriggerTab);
@@ -1611,6 +1832,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/Trigger", labels.GetString("Triggers", System.Globalization.CultureInfo.InvariantCulture)!, icon: "triggers", policy: GXTriggerPolicies.View, type: typeof(Client.Pages.Trigger.Triggers));
         }
 
+        /// <summary>Adds the standard component view navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddComponentViewTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ComponentViewTab);
@@ -1618,6 +1843,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/Component", labels.GetString("ComponentViews", System.Globalization.CultureInfo.InvariantCulture)!, icon: "component-views", policy: GXComponentViewPolicies.View, type: typeof(Client.Pages.ComponentView.ComponentViews));
         }
 
+        /// <summary>Adds the standard key management navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddKeyManagementTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.KeyManagementTab);
@@ -1627,6 +1856,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/KeyManagementLog", labels.GetString("KeyManagementLogs", System.Globalization.CultureInfo.InvariantCulture)!, icon: "key-management-logs", policy: GXKeyManagementLogPolicies.View, type: typeof(Client.Pages.KeyManagement.KeyManagementLogs));
         }
 
+        /// <summary>Adds the standard appearance navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddAppearanceTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.AppearanceTab);
@@ -1636,6 +1869,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/appearance/iconpack", labels.GetString("IconPack", System.Globalization.CultureInfo.InvariantCulture)!, icon: "icon-pack", policy: GXAppearancePolicies.View, type: typeof(Client.Pages.Appearance.IconPack));
         }
 
+        /// <summary>Adds the standard manufacturer navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddManufacturerTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ManufacturerTab);
@@ -1643,6 +1880,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/Manufacturer", labels.GetString("Manufacturers", System.Globalization.CultureInfo.InvariantCulture)!, icon: "manufacturers", policy: GXManufacturerPolicies.View, type: typeof(Client.Pages.Manufacturer.Manufacturers));
         }
 
+        /// <summary>Adds the standard module navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddModuleTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ModuleTab);
@@ -1652,6 +1893,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "config/ModuleLog", labels.GetString("ModuleLogs", System.Globalization.CultureInfo.InvariantCulture)!, icon: "module-logs", policy: GXModulePolicies.Edit, type: typeof(Client.Pages.Module.ModuleLogs));
         }
 
+        /// <summary>Adds the standard configuration navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="group">Menu group to receive the generated navigation entries.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddConfigurationTabs(GXDbConnection? connection, GXMenuGroup group)
         {
             var menu = await AddManagementTabMenu(connection, group, GXMenus.ConfigurationTab);
@@ -1661,6 +1906,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 policy: GXMenuPolicies.Edit, type: typeof(Client.Pages.Config.ConfigurationMenuSettings));
         }
 
+        /// <summary>Adds the standard update navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddUpdateTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             var menu = connection == null ? null : await connection.SingleOrDefaultAsync<GXMenu>(GXSelectArgs.Select<GXMenu>(m => m.Id, m => m.Name == GXMenus.UpdateTab));
@@ -1690,6 +1939,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "updates/settings", labels.GetString("UpdateSettings", System.Globalization.CultureInfo.InvariantCulture)!, icon: "settings", policy: GXUpdatePolicies.Admin, type: typeof(Client.Pages.Admin.UpdateSettingsPage));
         }
 
+        /// <summary>Creates or updates the standard user tab menu and attaches it to the supplied menu group.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="mg">Menu group receiving the generated user tab menu.</param>
+        /// <returns>A task that completes after standard user navigation links have been provisioned.</returns>
         private static async Task AddUserTabs(GXDbConnection? connection, GXMenuGroup mg)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.UserTab);
@@ -1723,6 +1976,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
 
+        /// <summary>Adds the standard schedule navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddScheduleTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.ScheduleTab);
@@ -1754,6 +2011,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "ScheduleLog", ServerHelpers.GetInvariantString(nameof(Properties.Resources.ScheduleLogs)), null, TargetType.ScheduleLog, [TargetType.ScheduleLog], "New schedule logs", GXScheduleLogPolicies.View, typeof(Client.Pages.Schedule.ScheduleLogs));
         }
 
+        /// <summary>Adds the standard gateway navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddGatewayTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.GatewayTab);
@@ -1785,6 +2046,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "GatewayLog", ServerHelpers.GetInvariantString(nameof(Properties.Resources.GatewayLogs)), null, TargetType.GatewayLog, [TargetType.GatewayLog], "New gateway logs", GXGatewayLogPolicies.View, typeof(Client.Pages.Gateway.GatewayLogs));
         }
 
+        /// <summary>Adds the standard agent navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddAgentTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.AgentTab);
@@ -1816,6 +2081,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "AgentLog", ServerHelpers.GetInvariantString(nameof(Properties.Resources.AgentLogs)), null, TargetType.AgentLog, [TargetType.AgentLog], "New agent logs", GXAgentLogPolicies.View, typeof(Client.Pages.Agent.AgentLogs));
         }
 
+        /// <summary>Adds standard log destinations and removes the obsolete performance-log link.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="menu">Menu whose audience, links, or standard configuration are selected.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after log menu entries have been reconciled.</returns>
         internal static async Task AddLogLinksAsync(GXDbConnection? connection, GXMenu menu, CancellationToken cancellationToken = default)
         {
             menu.Links = connection == null ? [] : await connection.SelectAsync<GXMenuLink>(
@@ -1855,6 +2125,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await connection.UpdateAsync(GXUpdateArgs.Update(menu, m => new { m.Updated, m.ConcurrencyStamp }), cancellationToken);
             }
         }
+        /// <summary>Adds the standard log navigation entries to the supplied menu group.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="def">Default menu group to populate.</param>
+        /// <returns>A task that completes after the menu entries have been stored.</returns>
         private static async Task AddLogTabs(GXDbConnection? connection, GXMenuGroup def)
         {
             GXSelectArgs arg = GXSelectArgs.Select<GXMenu>(s => s.Id, w => w.Name == GXMenus.LogTab);
@@ -1960,7 +2234,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task EnsureDefaultsAsync(MenuKind kind, CancellationToken cancellationToken = default)
         {
-            await GXHistoryMutation.RunAllAsync<GXMenu>(_dbFactory, User, _serviceProvider,
+            await GXHistoryMutation.RunAllAsync<GXMenu>(_dbFactory, _user, _serviceProvider,
         async () =>
         {
             await ApplyDefaultsAsync(kind, [], false, cancellationToken);
@@ -1971,7 +2245,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task ResetToDefaultsAsync(MenuKind kind, IEnumerable<Guid> menus, CancellationToken cancellationToken = default)
         {
             menus = menus.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXMenu, Guid>(_dbFactory, User, _serviceProvider, menus,
+            await GXHistoryMutation.RunIdsAsync<GXMenu, Guid>(_dbFactory, _user, _serviceProvider, menus,
         async () =>
         {
             var ids = menus?.Distinct().ToArray() ?? [];
@@ -1984,12 +2258,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Authorizes menu restoration, applies requested default menus, and queues notifications for changed identities.</summary>
+        /// <param name="kind">Menu category whose default definitions are restored.</param>
+        /// <param name="ids">Selected stored menu identities to provision or reset.</param>
+        /// <param name="reset">Whether selected definitions replace stored customizations instead of only provisioning missing defaults.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after default menus and notifications have been processed.</returns>
         private async Task ApplyDefaultsAsync(MenuKind kind, Guid[] ids, bool reset, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXMenuPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXMenuPolicies.Edit);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             var changed = await ApplyDefaultMenusAsync(connection, kind, ids, reset,
-                new GXUser { Id = ServerHelpers.GetUserId(User) }, cancellationToken);
+                new GXUser { Id = ServerHelpers.GetUserId(_user) }, cancellationToken);
             foreach (var id in changed)
             {
                 _notificationCache.Add(await GetNotifiedUsers(id, NotificationAction.Edit, connection), new GXTarget(GXMenuPolicies.Edit, id));
@@ -2123,12 +2403,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         // Lifecycle operations share this repository's persistence rules and notification queue.
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IModuleMenuRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModuleMenuRepository
         {
+            /// <summary>Module-scoped log path used for stored diagnostic entries.</summary>
             private string LogPath => $"module/{scope.ModuleId}/Logs/{scope.ModuleId}";
 
+            /// <inheritdoc />
             public async Task EnsureLogLinkAsync(AmiModuleCapture definition, GXPolicy policy, CancellationToken token)
             {
                 if (string.IsNullOrWhiteSpace(definition.TargetType))
@@ -2164,6 +2451,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await GXModuleRepositoryNotifications.QueueAsync(scope, GXMenuPolicies.Edit, menu.Id.ToString(), token);
             }
 
+            /// <inheritdoc />
             public async Task RemoveLogLinkAsync(CancellationToken token)
             {
                 var ownedId = await scope.Settings.ReadLogMenuLinkIdAsync(token);
@@ -2188,6 +2476,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
             }
 
+            /// <summary>Reads a menu link together with its parent menu identity and name inside the module transaction.</summary>
+            /// <param name="id">Menu-link identity read within the owning module transaction.</param>
+            /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+            /// <returns>The matching menu link, or null if it does not exist.</returns>
             private Task<GXMenuLink?> FindLogLinkAsync(Guid id, CancellationToken token)
             {
                 var query = GXSelectArgs.SelectAll<GXMenuLink>(l => l.Id == id);
@@ -2196,6 +2488,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return scope.Connection.SingleOrDefaultAsync<GXMenuLink>(scope.Transaction, query, token);
             }
 
+            /// <summary>Rejects a menu link that does not match the module's own nonsystem log link ownership record.</summary>
+            /// <param name="link">Candidate nonsystem LogTab link that must point to this module log path.</param>
+            /// <exception cref="InvalidOperationException">The link does not match this module log ownership record.</exception>
             private void ValidateOwnership(GXMenuLink link)
             {
                 if (link.Url != LogPath || link.Menu?.Name != "LogTab" || link.SystemDefined == true)

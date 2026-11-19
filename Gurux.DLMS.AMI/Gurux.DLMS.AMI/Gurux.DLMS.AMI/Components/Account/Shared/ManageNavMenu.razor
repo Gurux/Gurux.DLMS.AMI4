@@ -42,7 +42,7 @@
     <li class="nav-item">
         <NavLink class="nav-link" href="Account/Manage/ChangePassword">@Gurux.DLMS.AMI.Properties.Resources.Password</NavLink>
     </li>
-    @if (hasExternalLogins)
+    @if (_hasExternalLogins)
     {
         <li class="nav-item">
             <NavLink class="nav-link" href="Account/Manage/ExternalLogins">@Gurux.DLMS.AMI.Properties.Resources.ExternalLogins</NavLink>
@@ -57,10 +57,11 @@
 </ul>
 
 @code {
-    private bool hasExternalLogins;
+    /// <summary>Controls whether external-provider account management is available.</summary>
+    private bool _hasExternalLogins;
 
     protected override async Task OnInitializedAsync()
     {
-        hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+        _hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
     }
 }

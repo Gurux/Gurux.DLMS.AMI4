@@ -70,19 +70,24 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXMenuGroup? Active { get; set; }
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXMenu>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXMenu>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXMenu>? _selectionContainer;
     /// <summary>
     /// Menu filter.
     /// </summary>
-    private GXMenu filter = new GXMenu(null);
+    private GXMenu _filter = new GXMenu(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -102,13 +107,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/Menu/MenusSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/Menu/MenusSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Menu/MenusSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/Menu/MenusSelector.SearchSelectedByName");
         }
     }
 
@@ -118,14 +123,14 @@
         {
             if (_available != null)
             {
-                filter.Name = name;
-                NotificationService?.RemoveByKey("Pages/Menu/MenusSelector.SearchByName");
+                _filter.Name = name;
+                _notificationService?.RemoveByKey("Pages/Menu/MenusSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Menu/MenusSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Menu/MenusSelector.SearchByName");
         }
     }
 
@@ -137,12 +142,12 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.MenuGroups = null;
+                    _filter.MenuGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXMenuGroup? bg = filter.MenuGroups?.FirstOrDefault();
+                    GXMenuGroup? bg = _filter.MenuGroups?.FirstOrDefault();
                     if (bg == null)
                     {
                         bg = new GXMenuGroup();
@@ -150,7 +155,7 @@
                         GXUserGroup? ug = new GXUserGroup();
                         bg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                         ug.Users = new List<GXUser>(new GXUser[] { user });
-                        filter.MenuGroups = new List<GXMenuGroup>(new GXMenuGroup[] { bg });
+                        _filter.MenuGroups = new List<GXMenuGroup>(new GXMenuGroup[] { bg });
                     }
                     else
                     {
@@ -158,13 +163,13 @@
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Menu/MenusSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Menu/MenusSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Menu/MenusSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Menu/MenusSelector.SearchByUser");
         }
     }
 
@@ -186,14 +191,14 @@
     private async ValueTask<ItemsProviderResult<GXMenu>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingMenus);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingMenus);
         try
         {
             ListMenus req = new ListMenus()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -211,22 +216,22 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingMenus);
-            NotificationService?.RemoveByKey("Pages/Menu/MenusSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingMenus);
+            _notificationService?.RemoveByKey("Pages/Menu/MenusSelector.OnInitializedAsync");
             if (_selected != null && Active?.Menus != null)
             {
                 _selected.Items = Active.Menus;
@@ -243,7 +248,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Menu/MenusSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Menu/MenusSelector.OnInitializedAsync");
         }
     }
 }

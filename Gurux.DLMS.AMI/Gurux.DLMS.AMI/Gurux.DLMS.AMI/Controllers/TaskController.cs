@@ -110,16 +110,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// Task is done.
+        /// Reports the supported format version for separate task output and error fields.
         /// </summary>
+        /// <returns>The supported task outcome format version.</returns>
+        [HttpGet("CompletionFormat")]
+        [Authorize(Policy = GXTaskPolicies.Edit)]
+        public ActionResult<int> CompletionFormat() => 1;
+
+        /// <summary>Persists task completion using legacy or separated outcome fields.</summary>
+        /// <param name="request">Completed tasks and their outcome format version.</param>
+        /// <param name="cancellationToken">Cancels completion persistence.</param>
+        /// <returns>The acknowledgement, or a rejection for an unsupported report.</returns>
         [HttpPost("Done")]
         [Authorize(Policy = GXTaskPolicies.Edit)]
-        public async Task<ActionResult<TaskDoneResponse>> Post(TaskDone request, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<TaskDoneResponse>> Post(GXTaskCompletionReport request, CancellationToken cancellationToken = default)
         {
             if (request.Tasks == null)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
+            if (request.OutcomeVersion is < 0 or > 1)
+            {
+                return BadRequest();
+            }
+            request.NormalizeLegacyErrors();
             await _taskRepository.DoneAsync(request.Tasks, cancellationToken);
             return new TaskDoneResponse();
         }

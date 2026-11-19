@@ -57,14 +57,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class AgentRepository : IAgentRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Provides persistence and access checks for agent group records.</summary>
         private readonly IAgentGroupRepository _agentGroupRepository;
+        /// <summary>Provides persistence and access checks for task records.</summary>
         private readonly ITaskRepository _taskRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for enum type records.</summary>
         private readonly IEnumTypeRepository _enumTypeRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -84,7 +93,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _agentGroupRepository = agentGroupRepository;
@@ -95,6 +104,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXAgent), id, action, GXAgentPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -102,8 +117,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? agentId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.View);
-            GXSelectArgs args = GXQuery.GetUsersByAgent(s => s.Id!, ServerHelpers.GetUserId(User), agentId);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByAgent(s => s.Id!, ServerHelpers.GetUserId(_user), agentId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (agentId != null)
             {
@@ -112,7 +127,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -122,12 +137,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.View);
-            GXSelectArgs args = GXQuery.GetUsersByAgents(s => s.Id!, ServerHelpers.GetUserId(User), agentIds);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.View);
+            GXSelectArgs args = GXQuery.GetUsersByAgents(s => s.Id!, ServerHelpers.GetUserId(_user), agentIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -150,15 +165,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> agents, bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             agents = agents.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXAgent, Guid>(_dbFactory, User, _serviceProvider, agents,
+            await GXHistoryMutation.RunDeleteAsync<GXAgent, Guid>(_dbFactory, _user, _serviceProvider, agents,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.Delete);
             agents.ValidateIds();
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             IEnumerable<GXAgent> exists;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, w => agents.Contains(w.Id));
                 exists = connection.Select<GXAgent>(transaction, arg, cancellationToken);
@@ -166,7 +181,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Check that the user has access rights to the removed agents.
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 var arg = GXQuery.GetAgentsByUser(s => new { s.Id, s.Name }, userId, null,
                    DateTimeOffset.MinValue, null, agents);
                 exists = connection.Select<GXAgent>(transaction, arg, cancellationToken);
@@ -247,16 +262,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListAgentsResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the agents.
                 arg = GXSelectArgs.SelectAll<GXAgent>();
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetAgentsByUser(s => "*", userId, null);
             }
             arg.Columns.Exclude<GXAgent>(e => new { e.ListenerSettings, e.NotifySettings, e.RawNotificationSettings, e.ReaderSettings, e.Template });
@@ -324,8 +339,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListAgentInstallersResponse? response,
             CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.View);
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.View);
+            bool isAdmin = _user.IsInRole(GXRoles.Admin);
             //Admin can see all the agent installers. Installers are not part of any agent group.
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgent>();
             arg.Distinct = true;
@@ -403,14 +418,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.View);
                 bool isAdmin = false;
-                if (User != null)
+                if (_user != null)
                 {
-                    isAdmin = User.IsInRole(GXRoles.Admin);
+                    isAdmin = _user.IsInRole(GXRoles.Admin);
                 }
                 GXSelectArgs arg;
-                if (User == null || isAdmin)
+                if (_user == null || isAdmin)
                 {
                     //Admin can see all the agents.
                     arg = GXSelectArgs.SelectAll<GXAgent>(w => w.Id == id);
@@ -423,7 +438,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetAgentsByUser(s => "*", userId, id);
                 }
                 arg.Columns.Exclude<GXAgentGroup>(e => e.Agents!);
@@ -467,6 +482,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Copies the catalog installer's available version onto each concrete agent while leaving template agents unchanged.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="agents">Agent models to populate from the catalog installer version.</param>
+        /// <returns>A task that completes after the supplied agent models have been populated.</returns>
         private static async Task PopulateAvailableVersionAsync(GXDbConnection connection, IEnumerable<GXAgent> agents)
         {
             var query = GXSelectArgs.Select<GXAgent>(a => new { a.Id, a.AvailableVersion },
@@ -481,6 +500,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Reads distinct recorded agent versions in descending version-number order.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="agent">Agent whose recorded release versions are selected.</param>
+        /// <returns>Version records belonging to the supplied agent.</returns>
         private static async Task<List<GXAgentVersion>> GetAgentVersionsByAgentIdAsync(GXDbConnection connection, GXAgent agent)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgentVersion>(w => w.Agent == agent);
@@ -497,13 +520,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             agents = agents.ToArray();
-            return await GXHistoryMutation.RunAsync<GXAgent, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, agents,
+            return await GXHistoryMutation.RunAsync<GXAgent, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, agents,
         async () =>
         {
             try
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.Add, GXAgentPolicies.Edit);
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.Add, GXAgentPolicies.Edit);
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 DateTime now = DateTime.Now;
                 Dictionary<GXAgent, NotificationAction> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -567,7 +590,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.Versions,
                             q.Creator
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                           agent.Creator == null ||
                           string.IsNullOrEmpty(agent.Creator.Id))
                         {
@@ -732,20 +755,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
             string? data,
             CancellationToken cancellationToken)
         {
-            await UpdateStatusCoreAsync(agentId, connectionInfo, status, data, cancellationToken, true, User);
+            await UpdateStatusCoreAsync(agentId, connectionInfo, status, data, cancellationToken, true, _user);
         }
 
         // Only authenticated, membership-validated hub registrations use this server-owned transition.
+        /// <summary>Records an internal connection or disconnection update without repeating edit-policy authorization.</summary>
+        /// <param name="agentId">Identity of the agent whose status or task claims are changed.</param>
+        /// <param name="connectionInfo">Optional connection details retained with the agent status or task claim.</param>
+        /// <param name="connected">Whether the agent has connected rather than disconnected.</param>
+        /// <returns>A task that completes after the connection status update has been processed.</returns>
         internal Task UpdateConnectionStatusAsync(Guid agentId, string? connectionInfo, bool connected)
             => UpdateStatusCoreAsync(agentId, connectionInfo, connected ? AgentStatus.Connected : AgentStatus.Offline,
-                null, CancellationToken.None, false, connected ? User : new ClaimsPrincipal());
+                null, CancellationToken.None, false, connected ? _user : new ClaimsPrincipal());
 
+        /// <summary>Persists an agent status change, records connection details, and emits associated history, notifications, and workflow events.</summary>
+        /// <param name="agentId">Identity of the agent whose status or task claims are changed.</param>
+        /// <param name="connectionInfo">Optional connection details retained with the agent status or task claim.</param>
+        /// <param name="status">New agent status to persist.</param>
+        /// <param name="data">Optional serialized status-specific details.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <param name="authorize">Whether the public edit policy must be checked before applying the status change.</param>
+        /// <param name="actor">Principal attributed to the mutation or workflow event.</param>
+        /// <returns>A task that completes after the status change and its associated processing.</returns>
         private async Task UpdateStatusCoreAsync(Guid agentId, string? connectionInfo, AgentStatus status,
             string? data, CancellationToken cancellationToken, bool authorize, ClaimsPrincipal actor)
         {
             if (authorize)
                 {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.Edit);
             }
             GXSelectArgs args = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name, s.TraceLevel, s.Status }, where => where.Id == agentId && where.Removed == null);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -847,7 +884,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task UpgradeAsync(IEnumerable<GXAgent> agents,
             CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXAgentPolicies.Add, GXAgentPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXAgentPolicies.Add, GXAgentPolicies.Edit);
             foreach (var it in agents)
             {
                 GXAgent agent = await ReadAsync(it.Id, cancellationToken: cancellationToken) ?? throw new GXAmiNotFoundException(Properties.Resources.Agent + " " + Properties.Resources.Id + " " + it.Id.ToString());

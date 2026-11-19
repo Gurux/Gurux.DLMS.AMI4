@@ -45,7 +45,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class LogController(
         ILogRepository LogRepository) : ControllerBase
     {
-        private readonly ILogRepository _LogRepository = LogRepository;
+        /// <summary>Provides persistence and access checks for log records.</summary>
+        private readonly ILogRepository _logRepository = LogRepository;
 
         /// <summary>
         /// Get log information.
@@ -59,7 +60,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetLogResponse()
             {
-                Item = await _LogRepository.ForSource(source).ReadAsync(id, null, cancellationToken)
+                Item = await _logRepository.ForSource(source).ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -72,7 +73,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         CancellationToken cancellationToken)
         {
             ListLogsResponse ret = new();
-            var repository = string.IsNullOrWhiteSpace(source) || source == "-" ? _LogRepository : _LogRepository.ForSource(source);
+            var repository = string.IsNullOrWhiteSpace(source) || source == "-" ? _logRepository : _logRepository.ForSource(source);
             await repository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
@@ -85,7 +86,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             AddLogResponse response = new()
             {
-                Ids = await _LogRepository.ForSource(source).AddAsync(request.Type, request.Logs, cancellationToken)
+                Ids = await _logRepository.ForSource(source).AddAsync(request.Type, request.Logs, cancellationToken)
             };
             return response;
         }
@@ -101,7 +102,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<ClearLogResponse>> Post([FromQuery] string source, ClearLog request, CancellationToken cancellationToken = default)
         {
             ClearLogResponse ret = new();
-            await _LogRepository.ForSource(source).ClearAsync(request, cancellationToken);
+            await _logRepository.ForSource(source).ClearAsync(request, cancellationToken);
             return ret;
         }
 
@@ -115,7 +116,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("Close")]
         public async Task<ActionResult<CloseLogResponse>> Post([FromQuery] string source, CloseLog request, CancellationToken cancellationToken = default)
         {
-            await _LogRepository.ForSource(source).CloseAsync(request.Ids, cancellationToken);
+            await _logRepository.ForSource(source).CloseAsync(request.Ids, cancellationToken);
             return new CloseLogResponse();
         }
 
@@ -126,7 +127,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("Delete")]
         public async Task<ActionResult<RemoveLogResponse>> Post([FromQuery] string source, RemoveLog request, CancellationToken cancellationToken = default)
         {
-            await _LogRepository.ForSource(source).DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _logRepository.ForSource(source).DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveLogResponse();
         }
     }

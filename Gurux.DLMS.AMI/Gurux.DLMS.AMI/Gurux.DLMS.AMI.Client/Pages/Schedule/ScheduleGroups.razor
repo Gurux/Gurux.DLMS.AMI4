@@ -77,29 +77,29 @@
              DefaultColumns="@_viewColumns"
              DefaultColumnOrder="@_viewColumnOrder"
              DefaultColumnVisibility="@_viewColumnVisibility"
-             OnColumnEditorReset="editor => GXViewColumnEditor.ResetAsync(editor, ScheduleGroupColumns)"
+             OnColumnEditorReset="editor => GXViewColumnEditor.ResetAsync(editor, _scheduleGroupColumns)"
              CanEdit="@CanEdit"
              OnSearch="@Updated">
         <ColumnEditorContent Context="editor">
             <GXViewColumnEditor Editor="editor" ViewName="@GXViews.ScheduleGroup" Title="@Properties.Resources.ScheduleGroups"
-                                DefaultColumns="ScheduleGroupColumns" View="_viewDefaults" Policies="ScheduleGroupViewPolicies"
+                                DefaultColumns="_scheduleGroupColumns" View="_viewDefaults" Policies="_scheduleGroupViewPolicies"
                                 ViewChanged="ApplyViewDefaults" />
         </ColumnEditorContent>
         <FilterContent>
             <GXFh Id="Name">
                 <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
             </GXFh>
             <GXFh Id="CreationTime" Visibility="Visibility.Medium">
                 <GXDateTimeSelector Id="ScheduleGroups-CreationTime"
-                                    @bind-Value="@filter.CreationTime"
+                                    @bind-Value="@_filter.CreationTime"
                                     Placeholder="@Properties.Resources.FilterByCreationTime">
                 </GXDateTimeSelector>
             </GXFh>
             <GXFh Id="Updated">
                 <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                        type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => _filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
             </GXFh>
         </FilterContent>
         <MenuContent>
@@ -122,9 +122,12 @@
 <br />
 
 @code {
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected schedule group ID.
@@ -201,7 +204,7 @@
     /// <summary>
     /// Schedule group filter.
     /// </summary>
-    private GXScheduleGroup filter = new GXScheduleGroup();
+    private GXScheduleGroup _filter = new GXScheduleGroup();
 
     /// <summary>
     /// Table reference.
@@ -217,13 +220,13 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.Updated");
+                _notificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.Updated");
+            _notificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.Updated");
         }
     }
 
@@ -234,19 +237,19 @@
         {
             _viewStorage.ViewChanged += OnViewChanged;
         }
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScheduleGroups);
-            NotificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), async (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScheduleGroups);
+            _notificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), async (items) =>
             {
                 foreach (var it in items)
                 {
@@ -271,11 +274,12 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.OnInitialized");
         }
     }
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+    /// <summary>Records whether administrative actions are available to the current user.</summary>
     private bool _isAdmin;
 
     protected override async Task OnParametersSetAsync()
@@ -283,20 +287,30 @@
         _isAdmin = AuthenticationState != null && (await AuthenticationState).User.IsInRole(GXRoles.Admin);
     }
 
+    /// <summary>Caches the user's saved table defaults before applying column preferences.</summary>
     private GXView? _viewDefaults;
+    /// <summary>Loads the user's saved table layout and column preferences.</summary>
     private IAmiViewStorage? _viewStorage;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Invalidates stale asynchronous results when a newer load or selection supersedes them.</summary>
     private long _viewChangeGeneration;
-    private static readonly List<string> ScheduleGroupViewPolicies = [GXScheduleGroupPolicies.View];
-    private static readonly GXViewColumn[] ScheduleGroupColumns =
+    /// <summary>Lists the policies used to resolve the table layout available to the current user.</summary>
+    private static readonly List<string> _scheduleGroupViewPolicies = [GXScheduleGroupPolicies.View];
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _scheduleGroupColumns =
     [
         new("Name") { Position = 0, Description = "Name" },
         new("CreationTime") { Position = 1, Description = "CreationTime" },
         new("Updated") { Position = 2, Description = "Updated" }
     ];
+    /// <summary>Records whether the user's saved table layout has been applied.</summary>
     private bool _viewDefaultsLoaded;
+    /// <summary>Caches the column identifiers used by the current saved table layout.</summary>
     private string[]? _viewColumns;
+    /// <summary>Caches the user's saved ordering of table columns.</summary>
     private string[]? _viewColumnOrder;
+    /// <summary>Caches the user's saved visibility for each table column.</summary>
     private IReadOnlyDictionary<string, Visibility>? _viewColumnVisibility;
     private SelectionMode DefaultSelectionMode => _viewDefaults?.SelectionMode is byte mode && Enum.IsDefined((SelectionMode)mode)
         ? (SelectionMode)mode : SelectionMode.Multiple;
@@ -318,7 +332,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.LoadViewDefaults");
+            _notificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.LoadViewDefaults");
         }
         finally
         {
@@ -357,7 +371,7 @@
         {
             if (!_disposed)
             {
-                NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.ViewChanged");
+                _notificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.ViewChanged");
             }
         }
     }
@@ -365,7 +379,7 @@
     private void ApplyViewDefaults(GXView? view)
     {
         _viewDefaults = view?.Enabled == false ? null : view;
-        var columns = GXViewColumnDefaults.Merge(ScheduleGroupColumns, _viewDefaults?.Columns);
+        var columns = GXViewColumnDefaults.Merge(_scheduleGroupColumns, _viewDefaults?.Columns);
         _viewColumns = columns.Where(column => column.Visible).Select(column => column.Name!).ToArray();
         _viewColumnOrder = columns.Select(column => column.Name!).ToArray();
         _viewColumnVisibility = columns.Where(column => column.Visibility.HasValue && Enum.IsDefined((Visibility)column.Visibility.Value))
@@ -375,22 +389,22 @@
     private async ValueTask<ItemsProviderResult<GXScheduleGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingScheduleGroups);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingScheduleGroups);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListScheduleGroups req = new ListScheduleGroups()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -412,7 +426,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -424,7 +438,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.OnAdd");
+            _notificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager, "/ScheduleGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -433,7 +447,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.OnAdd");
         }
     }
 
@@ -444,7 +458,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.OnEdit");
+            _notificationService?.RemoveByKey("Pages/Schedule/ScheduleGroups.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -457,7 +471,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/Schedule/ScheduleGroups.OnEdit");
         }
     }
 
@@ -488,7 +502,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -515,7 +529,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -531,7 +545,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

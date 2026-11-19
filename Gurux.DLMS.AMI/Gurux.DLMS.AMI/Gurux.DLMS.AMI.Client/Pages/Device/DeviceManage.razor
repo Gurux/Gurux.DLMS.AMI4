@@ -102,7 +102,8 @@ else
         Path = GXTabRoutes.Active(NavigationManager, "Device", 0, Path);
     }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
 
     /// <summary>
     /// User action.
@@ -133,16 +134,16 @@ else
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        if (_notifier == null)
         {
             return;
         }
 
         //Get selected tab from the url.
         Path = GXTabRoutes.Active(NavigationManager, "Device", 0, Path);
-        _log = Notifier?.GetUserStamps(TargetType.DeviceLog) ?? new GXUserStamp { TargetType = TargetType.DeviceLog };
-        Notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        _log = _notifier?.GetUserStamps(TargetType.DeviceLog) ?? new GXUserStamp { TargetType = TargetType.DeviceLog };
+        _notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
         {
             bool updated = false;
             foreach (var it in stamps)
@@ -161,7 +162,7 @@ else
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

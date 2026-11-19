@@ -33,9 +33,17 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Maps stable stored tab keys to contextual documentation topics.</summary>
 internal static class GXHelpTopics
 {
+    /// <summary>Shared help-context scope identifier used by the component library.</summary>
     internal const string ScopeName = Gurux.UI.Components.Help.GXHelpContext.ScopeName;
+    /// <summary>Topic defaults and optional child-topic aliases for one stored navigation menu.</summary>
+    /// <param name="Topic">Default documentation topic for the menu.</param>
+    /// <param name="Primary">Optional topic key identifying the menu&apos;s primary resource.</param>
+    /// <param name="Groups">Optional topic key identifying a group tab.</param>
+    /// <param name="Logs">Optional topic key identifying a log tab.</param>
+    /// <param name="Nested">Whether tab topics are nested below their containing topic.</param>
     private sealed record Menu(string Topic, string? Primary = null, string? Groups = null, string? Logs = null, bool Nested = false);
-    private static readonly Dictionary<string, Menu> Menus = new(StringComparer.Ordinal)
+    /// <summary>Stable menu keys mapped to their contextual documentation topics.</summary>
+    private static readonly Dictionary<string, Menu> _menus = new(StringComparer.Ordinal)
     {
         ["DeviceTab"] = new("devices", "device", "device-group", "device-log"),
         ["DeviceTemplateTab"] = new("device-templates", "device-template", "device-template-group"),
@@ -105,11 +113,17 @@ internal static class GXHelpTopics
         ["PolicyTab"] = new("policy", Nested: true)
     };
 
+    /// <summary>Resolves the most specific documentation topic for a stored tab and its enclosing page.</summary>
+    /// <param name="menuName">Stable name of the navigation menu containing the tab.</param>
+    /// <param name="link">Stored tab link whose target determines the contextual topic.</param>
+    /// <param name="containingTopic">Optional topic inherited from the containing help context.</param>
+    /// <param name="pageTopic">Optional explicit topic associated with the current page.</param>
+    /// <returns>A normalized topic identifier suitable for the contextual help service.</returns>
     internal static string ForTab(string menuName, GXMenuLink link, string? containingTopic = null, string? pageTopic = null)
     {
         var path = (link.Url ?? string.Empty).Split('?', '#')[0].Trim('/');
         var key = Key(path.Split('/').LastOrDefault() ?? string.Empty);
-        var definition = Menus.GetValueOrDefault(menuName) ?? new Menu(Key(menuName.EndsWith("Tab", StringComparison.Ordinal) ? menuName[..^3] : menuName));
+        var definition = _menus.GetValueOrDefault(menuName) ?? new Menu(Key(menuName.EndsWith("Tab", StringComparison.Ordinal) ? menuName[..^3] : menuName));
         var topic = definition.Nested && !string.IsNullOrWhiteSpace(containingTopic) ? containingTopic : definition.Topic;
         if (menuName == "PolicyTab" && string.IsNullOrWhiteSpace(containingTopic) && !string.IsNullOrWhiteSpace(pageTopic))
         {
@@ -168,9 +182,16 @@ internal static class GXHelpTopics
         return string.IsNullOrEmpty(key) ? topic : topic + "." + key;
     }
 
+    /// <summary>Accepts an expected tab key and its simple plural form.</summary>
+    /// <param name="key">Normalized tab key to compare with the expected alias.</param>
+    /// <param name="expected">Expected normalized tab key, or null when no match is configured.</param>
+    /// <returns>True when an expected key is supplied and either accepted form matches.</returns>
     private static bool Matches(string key, string? expected)
         => expected != null && (key == expected || key == expected + "s");
 
+    /// <summary>Converts component and tab identifiers into normalized documentation slugs with known aliases.</summary>
+    /// <param name="value">Component or tab identifier to normalize into a documentation topic slug.</param>
+    /// <returns>The lowercase hyphen-separated topic key.</returns>
     private static string Key(string value)
     {
         value = Regex.Replace(value, "([A-Z]+)([A-Z][a-z])", "$1-$2");

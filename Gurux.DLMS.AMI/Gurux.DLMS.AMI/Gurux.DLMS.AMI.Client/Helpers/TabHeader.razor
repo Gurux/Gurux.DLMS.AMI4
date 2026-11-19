@@ -85,6 +85,7 @@
 @code {
     [CascadingParameter(Name = GXHelpTopics.ScopeName)]
     private string? ContainingHelpTopic { get; set; }
+    /// <summary>Selects the contextual help topic for the displayed page.</summary>
     private string? _pageHelpTopic;
     private string? GetHelpTopic(GXMenuLink link) => GetModuleView(link) != null ? null
         : GXHelpTopics.ForTab(Name, link, ContainingHelpTopic, _pageHelpTopic);
@@ -137,9 +138,11 @@
     [Parameter]
     public Func<GXMenuLink, bool>? LinkFilter { get; set; }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Menu name.
@@ -163,6 +166,7 @@
     private IDictionary<string, object>? GetParameters(Type? componentType, GXMenuLink link)
         => componentType == null ? ParametersForLink?.Invoke(link)
             : GXTabParameters.Filter(componentType, Parameters, ParametersForLink?.Invoke(link));
+    /// <summary>Retains the navigation menu whose links are rendered by this component.</summary>
     private GXMenu? _menu;
 
     /// <summary>
@@ -170,17 +174,20 @@
     /// </summary>
     private Dictionary<Guid, IEnumerable<GXUserStamp>> _updateStamps = new();
 
+    /// <summary>Loads the saved navigation menu used by this component.</summary>
     private IAmiMenuStorage? _menuStorage;
+    /// <summary>Identifies the item whose settings have already been loaded.</summary>
     private string? _loadedName;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
 
     protected override void OnInitialized()
     {
         _pageHelpTopic = Services.GetService<Gurux.UI.Components.Help.GXHelpService>()?.Topic;
         Loader.Changed += OnModulesChanged;
-        Notifier = Services.GetService<IGXNotifier2>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -190,7 +197,7 @@
         {
             _menuStorage.MenuChanged += OnMenuChanged;
         }
-        Notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), stamps =>
+        _notifier?.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), stamps =>
         {
             bool updated = false;
             foreach (var list in _updateStamps.Values)
@@ -232,7 +239,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load menu {Name}.", Name);
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -243,7 +250,7 @@
         foreach (var link in menu?.Links ?? [])
         {
             _updateStamps[link.Id] = string.IsNullOrEmpty(link.Padges) ? []
-                : Notifier?.GetUserStamps(link.Padges.Split(',', StringSplitOptions.RemoveEmptyEntries)) ?? [];
+                : _notifier?.GetUserStamps(link.Padges.Split(',', StringSplitOptions.RemoveEmptyEntries)) ?? [];
         }
     }
 
@@ -272,7 +279,7 @@
             _menuStorage.MenuChanged -= OnMenuChanged;
         }
         Loader.Changed -= OnModulesChanged;
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

@@ -25,8 +25,8 @@
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
 
-using Gurux.UI.Components;
-using Microsoft.Extensions.DependencyInjection;
+using Gurux.UI.Components.Appearance;
+using Gurux.UI.Components.Enums;
 
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
@@ -37,7 +37,7 @@ public static class AmiAppearanceRegistration
         return services.AddGXAppearance(options =>
         {
             // Preserve AMI's light appearance unless the user explicitly changes it.
-            options.Defaults.ColorMode = GXColorMode.Light;
+            options.Defaults.ColorMode = ColorMode.Light;
             // Register before preferences restore; the resource provider supplies its current definition.
             options.Themes.Add(new GXThemeDefinition { Id = AmiThemeAdapter.ThemeId, Name = "AMI" });
         });

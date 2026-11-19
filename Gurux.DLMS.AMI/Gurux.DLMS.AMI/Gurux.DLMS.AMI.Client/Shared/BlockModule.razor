@@ -113,15 +113,17 @@
     }
 }
 @code {
+    /// <summary>Tracks dismissed content blocks so they remain hidden during this component's lifetime.</summary>
     private readonly HashSet<Guid> _closedBlocks = new();
 
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
         Navigation.LocationChanged += OnLocationChanged;
     }
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public BlockLocation? Location { get; set; }

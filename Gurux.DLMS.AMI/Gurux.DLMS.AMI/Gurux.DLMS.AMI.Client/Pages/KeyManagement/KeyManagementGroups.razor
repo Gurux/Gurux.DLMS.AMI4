@@ -59,7 +59,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="KeyManagement.KeyManagementGroups" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementGroupPolicies.View })"
+<GXViewTable ViewName="KeyManagement.KeyManagementGroups" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXKeyManagementGroupPolicies.View })"
              TItem="GXKeyManagementGroup" @ref="table"
              @bind-Active="Active"
              Context="group"
@@ -74,18 +74,18 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="KeyManagementGroups-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Updated">
             <input class="form-control" placeholder="@Properties.Resources.FilterByUpdateTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -107,16 +107,20 @@
 <br />
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Updated") { Position = 2, Description = "Updated", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Selected key management group ID.
@@ -192,7 +196,7 @@
     /// <summary>
     /// KeyManagement group filter.
     /// </summary>
-    private GXKeyManagementGroup filter = new GXKeyManagementGroup();
+    private GXKeyManagementGroup _filter = new GXKeyManagementGroup();
 
     /// <summary>
     /// Table reference.
@@ -208,31 +212,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.Updated");
+                _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.Updated");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
              {
                  foreach (var it in items)
                  {
@@ -257,29 +261,29 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXKeyManagementGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingKeyManagementGroups);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
             ListKeyManagementGroups req = new ListKeyManagementGroups()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -301,7 +305,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -313,7 +317,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.OnAdd");
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.OnAdd");
             ClientHelpers.NavigateTo(NavigationManager, "/config/KeyManagementGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -322,7 +326,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.OnAdd");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.OnAdd");
         }
     }
 
@@ -333,7 +337,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.OnEdit");
+            _notificationService?.RemoveByKey("Pages/KeyManagement/KeyManagementGroups.OnEdit");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -346,7 +350,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.OnEdit");
+            _notificationService?.ReportError(ex, "Pages/KeyManagement/KeyManagementGroups.OnEdit");
         }
     }
 
@@ -377,7 +381,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -404,7 +408,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -415,7 +419,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

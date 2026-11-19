@@ -27,9 +27,11 @@
 
 namespace Gurux.DLMS.AMI.Client.Shared;
 
+/// <summary>Provides stable view identifiers and recognizes built-in views whose defaults can be restored.</summary>
 public partial class GXViews
 {
-    private static readonly HashSet<string> BuiltInNames = new(StringComparer.Ordinal)
+    /// <summary>Names of code-defined views that can be restored by regenerating their defaults.</summary>
+    private static readonly HashSet<string> _builtInNames = new(StringComparer.Ordinal)
     {
         Schedule, ScheduleGroup, ScheduleLog,
         "Admin.LocalizationUpdates", "Admin.SystemLog", "Admin.Tasks", "Admin.Updates", "Admin.UpdateTable",
@@ -55,5 +57,7 @@ public partial class GXViews
     };
 
     /// <summary>Whether a view has code-defined defaults that can be restored by regeneration.</summary>
-    public static bool IsBuiltIn(string? name) => name != null && BuiltInNames.Contains(name);
+    /// <param name="name">Stable name of the view to read or classify.</param>
+    /// <returns>True when the name identifies a view with regenerable code-defined defaults.</returns>
+    public static bool IsBuiltIn(string? name) => name != null && _builtInNames.Contains(name);
 }

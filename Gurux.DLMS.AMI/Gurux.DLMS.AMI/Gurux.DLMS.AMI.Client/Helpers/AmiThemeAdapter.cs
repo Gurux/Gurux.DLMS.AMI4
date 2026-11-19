@@ -26,6 +26,7 @@
 // --------------------------------------------------------------------------
 
 using Gurux.UI.Components;
+using Gurux.UI.Components.Appearance;
 using System.Drawing;
 using System.Globalization;
 

@@ -32,7 +32,7 @@
 @using Gurux.DLMS.AMI.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
-@if (externalLogins.Length != 0)
+@if (_externalLogins.Length != 0)
 {
     <h3>@Heading</h3>
     <hr />
@@ -41,7 +41,7 @@
             <AntiforgeryToken />
             <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
             <p>
-                @foreach (var provider in externalLogins)
+                @foreach (var provider in _externalLogins)
                 {
                     <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
                 }
@@ -51,7 +51,8 @@
 }
 
 @code {
-    private AuthenticationScheme[] externalLogins = [];
+    /// <summary>Lists the external authentication schemes offered by the login controls.</summary>
+    private AuthenticationScheme[] _externalLogins = [];
 
     /// <summary>Heading displayed only when an external authentication scheme is configured.</summary>
     [Parameter]
@@ -62,6 +63,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        externalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToArray();
+        _externalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToArray();
     }
 }

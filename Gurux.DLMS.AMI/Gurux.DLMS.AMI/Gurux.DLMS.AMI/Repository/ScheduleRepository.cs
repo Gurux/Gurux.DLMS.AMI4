@@ -60,15 +60,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ScheduleRepository : IScheduleRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Provides persistence and access checks for schedule group records.</summary>
         private readonly IScheduleGroupRepository _scheduleGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>Gets or sets the user1.</summary>
-        public ClaimsPrincipal User1 => User;
+        public ClaimsPrincipal User1 => _user;
 
         /// <summary>
         /// Constructor.
@@ -84,7 +90,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _serviceProvider = serviceProvider;
             _scheduleGroupRepository = scheduleGroupRepository;
@@ -92,6 +98,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXSchedule), id, action, GXSchedulePolicies.View, connection, transaction, notifications: _notificationCache);
@@ -256,7 +268,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             schedulers = schedulers.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXSchedule, Guid>(_dbFactory, User, _serviceProvider, schedulers,
+            await GXHistoryMutation.RunDeleteAsync<GXSchedule, Guid>(_dbFactory, _user, _serviceProvider, schedulers,
         async () =>
         {
             await _authorizationService.EnsureAnyPolicyAsync(User1, GXSchedulePolicies.Delete);
@@ -561,7 +573,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXSchedule, object>>? columns, CancellationToken cancellationToken = default)
         {
             schedulers = schedulers.ToArray();
-            return await GXHistoryMutation.RunAsync<GXSchedule, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, schedulers,
+            return await GXHistoryMutation.RunAsync<GXSchedule, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, schedulers,
         async () =>
         {
             await _authorizationService.EnsureAnyPolicyAsync(User1, GXSchedulePolicies.Add, GXSchedulePolicies.Edit);
@@ -1241,7 +1253,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc/>
         public async Task RunAsync(Guid id, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXSchedulePolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXSchedulePolicies.Edit);
             IGXScheduleService scheduleHandler = _serviceProvider.GetRequiredService<IGXScheduleService>();
             GXSchedule schedule = await ReadAsync(id, cancellationToken: cancellationToken) ?? throw new GXAmiForbiddenException(id.ToString());
             //Schedule creator is the user who runs the schedule.
@@ -1253,7 +1265,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXScheduleModule?> GetModuleSettingsAsync(
             GXScheduleModule? settings, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXSchedulePolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXSchedulePolicies.View);
             if (settings == null)
             {
                 throw new GXAmiForbiddenException();
@@ -1274,10 +1286,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task UpdateModuleSettingsAsync(
             GXScheduleModule? settings, CancellationToken cancellationToken)
         {
-            await GXHistoryMutation.RunIdsAsync<GXSchedule, Guid>(_dbFactory, User, _serviceProvider, settings == null ? Array.Empty<Guid>() : new[] { settings.ScheduleId },
+            await GXHistoryMutation.RunIdsAsync<GXSchedule, Guid>(_dbFactory, _user, _serviceProvider, settings == null ? Array.Empty<Guid>() : new[] { settings.ScheduleId },
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXSchedulePolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXSchedulePolicies.Edit);
             if (settings == null)
             {
                 throw new GXAmiForbiddenException();

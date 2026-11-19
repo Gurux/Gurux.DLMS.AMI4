@@ -55,11 +55,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class WorkflowGroupRepository : IWorkflowGroupRepository
     {
 
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Provides persistence and access checks for user group records.</summary>
         private readonly IUserGroupRepository _userGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -77,7 +83,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _userGroupRepository = userGroupRepository;
@@ -85,6 +91,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Reads user groups linked to the selected group through its membership relations.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="workflowGroupId">Identifier of the group whose linked records are selected.</param>
+        /// <returns>The records linked to the requested group.</returns>
         private static async Task<List<GXUserGroup>> GetJoinedUserGroups(GXDbConnection connection, Guid workflowGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
@@ -94,6 +104,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return (await connection.SelectAsync<GXUserGroup>(arg));
         }
 
+        /// <summary>Reads workflows linked to the selected group through its membership relations.</summary>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="workflowGroupId">Identifier of the group whose linked records are selected.</param>
+        /// <returns>The records linked to the requested group.</returns>
         private static async Task<List<GXWorkflow>> GetJoinedWorkflows(GXDbConnection connection, Guid workflowGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXWorkflow>(where => where.Removed == null);
@@ -104,6 +118,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXWorkflowGroup), id, action, GXWorkflowGroupPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -111,7 +131,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(Guid workflowId)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.View);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXWorkflowGroup>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXWorkflowGroup, GXWorkflowGroupWorkflow>(a => a.Id, b => b.WorkflowGroupId);
             arg.Joins.AddInnerJoin<GXWorkflowGroupWorkflow, GXWorkflow>(a => a.WorkflowId, b => b.Id);
@@ -123,9 +143,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByWorkflowGroup(s => s.Id!,
-                ServerHelpers.GetUserId(User), groupId);
+                ServerHelpers.GetUserId(_user), groupId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (groupId != null)
             {
@@ -134,7 +154,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -145,13 +165,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default)
         {
             _ = cancellationToken;
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByWorkflowGroups(s => s.Id!,
-                ServerHelpers.GetUserId(User), groupIds);
+                ServerHelpers.GetUserId(_user), groupIds);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -164,13 +184,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             groups = groups.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXWorkflowGroup, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, groups,
+            await GXHistoryMutation.RunDeleteAsync<GXWorkflowGroup, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, groups,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             IEnumerable<GXWorkflowGroup> exists;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 GXSelectArgs arg = GXSelectArgs.Select<GXWorkflowGroup>(s => new { s.Id, s.Name }, w => groups.Contains(w.Id));
                 exists = connection.Select<GXWorkflowGroup>(arg);
@@ -178,7 +198,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Check that the user has access rights to the removed agent groups.
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 var arg = GXQuery.GetWorkflowGroupsByUser(s => new { s.Id, s.Name }, userId, null,
                     DateTimeOffset.MinValue, null, groups);
                 exists = connection.Select<GXWorkflowGroup>(arg);
@@ -256,16 +276,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListWorkflowGroupsResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the workflow groups.
                 arg = GXSelectArgs.SelectAll<GXWorkflowGroup>();
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetWorkflowGroupsByUser(s => "*", userId, null, request?.Filter?.Removed, request?.Exclude, request?.Included);
             }
             if (request != null)
@@ -345,16 +365,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.View);
                 GXSelectArgs arg;
-                if (User.IsInRole(GXRoles.Admin))
+                if (_user.IsInRole(GXRoles.Admin))
                 {
                     //Admin can see all the groups.
                     arg = GXSelectArgs.SelectAll<GXWorkflowGroup>(w => w.Id == id);
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetWorkflowGroupsByUser(s => "*", userId, id);
                 }
                 arg.Columns.Exclude<GXWorkflowGroup>(e => e.Workflows!);
@@ -458,14 +478,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXWorkflowGroup, object>>? columns, CancellationToken cancellationToken = default)
         {
             WorkflowGroups = WorkflowGroups.ToArray();
-            return await GXHistoryMutation.RunAsync<GXWorkflowGroup, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, WorkflowGroups,
+            return await GXHistoryMutation.RunAsync<GXWorkflowGroup, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, WorkflowGroups,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.Add, GXWorkflowGroupPolicies.Edit);
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.Add, GXWorkflowGroupPolicies.Edit);
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 DateTime now = DateTime.Now;
                 Dictionary<GXWorkflowGroup, List<string>> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -479,7 +499,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         //Get default user groups.
                         it.UserGroups = await _userGroupRepository.GetDefaultUserGroupsAsync(
-                            ServerHelpers.GetUserId(User));
+                            ServerHelpers.GetUserId(_user));
                         if (it.UserGroups?.Count is not > 0)
                         {
                             throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
@@ -521,7 +541,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.UserGroups,
                             q.CreationTime
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             it.Creator == null ||
                             string.IsNullOrEmpty(it.Creator.Id))
                         {

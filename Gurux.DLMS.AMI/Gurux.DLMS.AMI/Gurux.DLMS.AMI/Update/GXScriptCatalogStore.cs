@@ -39,7 +39,8 @@ namespace Gurux.DLMS.AMI.Update;
 /// <summary>Caches immutable manifests without downloading or modifying executable script source.</summary>
 public sealed class GXScriptCatalogStore(IGXDatabase database)
 {
-    private static readonly SemaphoreSlim Writes = new(1, 1);
+    /// <summary>Serializes writes so persisted state cannot be overwritten concurrently.</summary>
+    private static readonly SemaphoreSlim _writes = new(1, 1);
 
     /// <summary>Publishes a complete validated index; withdrawn versions remain retained but disabled.</summary>
     public async Task SynchronizeAsync(string source, GXScriptCatalog catalog, CancellationToken token = default)
@@ -65,7 +66,7 @@ public sealed class GXScriptCatalogStore(IGXDatabase database)
         {
             throw new InvalidDataException("Duplicate script release identity.");
         }
-        await Writes.WaitAsync(token);
+        await _writes.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -74,14 +75,14 @@ public sealed class GXScriptCatalogStore(IGXDatabase database)
             {
                 schema.CreateTable<GXScriptTemplateRelease>(false, false);
             }
-        
+
             using var transaction = db.BeginTransaction(System.Data.IsolationLevel.Serializable);
             var rows = await db.SelectAsync<GXScriptTemplateRelease>(transaction, GXSelectArgs.SelectAll<GXScriptTemplateRelease>(), token);
             foreach (var row in rows)
             {
                 row.Enabled = false;
             }
-        
+
             foreach (var manifest in catalog.Items)
             {
                 var version = NuGetVersion.Parse(manifest.Version).ToNormalizedString();
@@ -91,7 +92,7 @@ public sealed class GXScriptCatalogStore(IGXDatabase database)
                 {
                     throw new InvalidDataException($"Script release {manifest.Id}/{version} was changed after publication.");
                 }
-        
+
                 if (row == null)
                 {
                     row = new GXScriptTemplateRelease
@@ -112,17 +113,17 @@ public sealed class GXScriptCatalogStore(IGXDatabase database)
                     row.Enabled = true;
                 }
             }
-        
+
             foreach (var row in rows)
             {
                 await db.UpdateAsync(transaction, GXUpdateArgs.Update(row, r => new { r.Enabled, r.CatalogSource }), token);
             }
-        
+
             transaction.Commit();
         }
         finally
         {
-            Writes.Release();
+            _writes.Release();
         }
     }
 

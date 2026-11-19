@@ -80,8 +80,10 @@
 </SelectionContainer>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXModuleGroup? ModuleGroup { get; set; }
@@ -102,7 +104,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -132,13 +134,16 @@
     }
 
 
+    /// <summary>References the list of records selected for the current relationship.</summary>
     SelectionList<GXModule>? _selected;
+    /// <summary>References the list of available records that can be added to the current relationship.</summary>
     SelectionList<GXModule>? _available;
+    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
     SelectionContainer<GXModule>? _selectionContainer;
     /// <summary>
     /// Module filter.
     /// </summary>
-    private GXModule filter = new GXModule("");
+    private GXModule _filter = new GXModule("");
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -158,13 +163,13 @@
                         }
                     }
                 }
-                NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchSelectedByName");
+                _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchSelectedByName");
                 await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchSelectedByName");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchSelectedByName");
         }
     }
 
@@ -176,19 +181,19 @@
             {
                 if (!string.IsNullOrEmpty(name))
                 {
-                    filter.Id = name;
+                    _filter.Id = name;
                 }
                 else
                 {
-                    filter.Id = string.Empty;
+                    _filter.Id = string.Empty;
                 }
-                NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByName");
+                _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByName");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchByName");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchByName");
         }
     }
 
@@ -200,12 +205,12 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.ModuleGroups = null;
+                    _filter.ModuleGroups = null;
                 }
                 else
                 {
                     GXUser user;
-                    GXModuleGroup? mg = filter.ModuleGroups?.FirstOrDefault();
+                    GXModuleGroup? mg = _filter.ModuleGroups?.FirstOrDefault();
                     if (mg == null)
                     {
                         mg = new GXModuleGroup(null);
@@ -213,7 +218,7 @@
                         GXUserGroup? ug = new GXUserGroup();
                         mg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                         ug.Users = new List<GXUser>(new GXUser[] { user });
-                        filter.ModuleGroups = new List<GXModuleGroup>(new GXModuleGroup[] { mg });
+                        _filter.ModuleGroups = new List<GXModuleGroup>(new GXModuleGroup[] { mg });
                     }
                     else
                     {
@@ -221,13 +226,13 @@
                     }
                     user.UserName = userName;
                 }
-                NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByUser");
+                _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByUser");
                 await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchByUser");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchByUser");
         }
     }
 
@@ -249,14 +254,14 @@
     private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingModules);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingModules);
         try
         {
             ListModules req = new ListModules()
                 {
                     Index = ScheduleParent != null ? 0 : request.StartIndex,
                     Count = ScheduleParent != null ? 0 : request.Count,
-                    Filter = filter,
+                    Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
@@ -270,12 +275,12 @@
                     {
                         await Loader.RefreshAsync(request.CancellationToken);
                     }
-            
+
                     var available = Loader.AddIns.Where(m => m.Views.Any(v => v.Area == AmiViewArea.ScheduleSettings)).Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var modules = ret.Modules.Where(m => available.Contains(m.Id)).ToArray();
                     return new ItemsProviderResult<GXModule>(modules.Skip(request.StartIndex).Take(request.Count), modules.Length);
                 }
-            
+
                 return new ItemsProviderResult<GXModule>(ret.Modules, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
@@ -286,7 +291,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -304,8 +309,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
@@ -314,11 +319,11 @@
             //Show only the scheduled modules for schedule selector.
             if (ScheduleParent != null)
             {
-        
+
             }
             List<GXModule> modules = GetModules();
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingModules);
-            NotificationService?.RemoveByKey("Pages/Module/ModulesSelector.OnInitializedAsync");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingModules);
+            _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.OnInitializedAsync");
             if (_selected != null && modules != null)
             {
                 _selected.Items = modules;
@@ -335,7 +340,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Module/ModulesSelector.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Module/ModulesSelector.OnInitializedAsync");
         }
     }
 }

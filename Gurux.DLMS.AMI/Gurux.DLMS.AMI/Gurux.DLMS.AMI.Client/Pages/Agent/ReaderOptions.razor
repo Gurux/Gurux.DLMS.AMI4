@@ -69,7 +69,7 @@
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.TraceLevel</label>
-                        <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(TraceLevels)" />
+                        <GXInputDropdown class="form-select" @bind-Value="Settings.TraceLevel" RememberValue="false" Items="@(_traceLevels)" />
                     </div>
                     <ValidationMessage For="@(() => Settings.TraceLevel)" />
                 </fieldset>
@@ -81,10 +81,12 @@
 @code {
     [CascadingParameter] public Agent? Owner { get; set; }
 
-    TraceLevel[] TraceLevels = new TraceLevel[] { TraceLevel.Off, TraceLevel.Error, TraceLevel.Warning, TraceLevel.Info, TraceLevel.Verbose };
+    /// <summary>Lists the diagnostic trace levels offered by the connection editor.</summary>
+    TraceLevel[] _traceLevels = new TraceLevel[] { TraceLevel.Off, TraceLevel.Error, TraceLevel.Warning, TraceLevel.Info, TraceLevel.Verbose };
 
     [Parameter]
     public ReaderSettings? Settings { get; set; }
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
 

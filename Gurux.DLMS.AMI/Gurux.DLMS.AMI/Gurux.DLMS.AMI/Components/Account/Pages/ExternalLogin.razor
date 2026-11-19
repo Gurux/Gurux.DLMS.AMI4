@@ -48,9 +48,9 @@
 
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.Register</PageTitle>
 
-<StatusMessage Message="@message" />
+<StatusMessage Message="@_message" />
 <h1>@Gurux.DLMS.AMI.Properties.Resources.Register</h1>
-@if (registrationAllowed && !registrationCompleted)
+@if (_registrationAllowed && !_registrationCompleted)
 {
 <h2>Associate your @ProviderDisplayName account.</h2>
 <hr />
@@ -76,12 +76,17 @@
 }
 
 @code {
+    /// <summary>Identifies the callback action used to complete an external-provider login.</summary>
     public const string LoginCallbackAction = "LoginCallback";
 
-    private string? message;
-    private ExternalLoginInfo? externalLoginInfo;
-    private bool registrationAllowed;
-    private bool registrationCompleted;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
+    /// <summary>Retains the external-provider identity while the account is registered or linked.</summary>
+    private ExternalLoginInfo? _externalLoginInfo;
+    /// <summary>Records whether the current installation permits account registration.</summary>
+    private bool _registrationAllowed;
+    /// <summary>Prevents the completed registration flow from being submitted again.</summary>
+    private bool _registrationCompleted;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -98,7 +103,7 @@
     [SupplyParameterFromQuery]
     private string? Action { get; set; }
 
-    private string? ProviderDisplayName => externalLoginInfo?.ProviderDisplayName;
+    private string? ProviderDisplayName => _externalLoginInfo?.ProviderDisplayName;
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,7 +119,7 @@
             RedirectManager.RedirectToWithStatus("Account/Login", Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingExternalLoginInformation, HttpContext);
         }
 
-        externalLoginInfo = info;
+        _externalLoginInfo = info;
 
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
@@ -136,29 +141,29 @@
 
     private async Task<bool> CheckRegistrationAllowedAsync()
     {
-        registrationAllowed = (await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted)).CanCreate(HttpContext.User);
-        if (!registrationAllowed)
+        _registrationAllowed = (await RegistrationPolicy.ReadAsync(HttpContext.RequestAborted)).CanCreate(HttpContext.User);
+        if (!_registrationAllowed)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.RegistrationDisabled;
+            _message = Gurux.DLMS.AMI.Properties.Resources.RegistrationDisabled;
             if (!HttpContext.Response.HasStarted)
             {
                 HttpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
             }
         }
-        return registrationAllowed;
+        return _registrationAllowed;
     }
 
     private async Task OnLoginCallbackAsync()
     {
-        if (externalLoginInfo is null)
+        if (_externalLoginInfo is null)
         {
             RedirectManager.RedirectToWithStatus("Account/Login", Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingExternalLoginInformation, HttpContext);
         }
 
         // Sign in the user with this external login provider if the user already has a login.
         var result = await SignInManager.ExternalLoginSignInAsync(
-            externalLoginInfo.LoginProvider,
-            externalLoginInfo.ProviderKey,
+            _externalLoginInfo.LoginProvider,
+            _externalLoginInfo.ProviderKey,
             isPersistent: false,
             bypassTwoFactor: true);
 
@@ -166,8 +171,8 @@
         {
             Logger.LogInformation(
                 "{Name} logged in with {LoginProvider} provider.",
-                externalLoginInfo.Principal.Identity?.Name,
-                externalLoginInfo.LoginProvider);
+                _externalLoginInfo.Principal.Identity?.Name,
+                _externalLoginInfo.LoginProvider);
             RedirectManager.RedirectTo(ReturnUrl);
         }
         else if (result.IsLockedOut)
@@ -176,9 +181,9 @@
         }
 
         // A linked account that cannot sign in must never enter the signup flow.
-        if (await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey) is not null)
+        if (await UserManager.FindByLoginAsync(_externalLoginInfo.LoginProvider, _externalLoginInfo.ProviderKey) is not null)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+            _message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
             return;
         }
         if (!await CheckRegistrationAllowedAsync())
@@ -187,9 +192,9 @@
         }
 
         // If the user does not have an account, then ask the user to create an account.
-        if (externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+        if (_externalLoginInfo.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
         {
-            Input.Email = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+            Input.Email = _externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
         }
     }
 
@@ -199,15 +204,15 @@
         {
             return;
         }
-        if (externalLoginInfo is null)
+        if (_externalLoginInfo is null)
         {
             RedirectManager.RedirectToWithStatus("Account/Login", Gurux.DLMS.AMI.Properties.Resources.ErrorLoadingExternalLoginInformationDuringConfirmation, HttpContext);
         }
 
-        if (await UserManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey) is not null)
+        if (await UserManager.FindByLoginAsync(_externalLoginInfo.LoginProvider, _externalLoginInfo.ProviderKey) is not null)
         {
-            registrationAllowed = false;
-            message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+            _registrationAllowed = false;
+            _message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
             return;
         }
 
@@ -220,10 +225,10 @@
         var result = await UserManager.CreateAsync(user);
         if (result.Succeeded)
         {
-            result = await UserManager.AddLoginAsync(user, externalLoginInfo);
+            result = await UserManager.AddLoginAsync(user, _externalLoginInfo);
             if (result.Succeeded)
             {
-                Logger.LogInformation("User created an account using {Name} provider.", externalLoginInfo.LoginProvider);
+                Logger.LogInformation("User created an account using {Name} provider.", _externalLoginInfo.LoginProvider);
 
                 var userId = await UserManager.GetUserIdAsync(user);
                 var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
@@ -233,28 +238,28 @@
                     NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
                     new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
                 await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
-                registrationCompleted = true;
+                _registrationCompleted = true;
                 if (!user.IsApproved)
                 {
-                    message = Gurux.DLMS.AMI.Properties.Resources.RegistrationPendingApproval;
+                    _message = Gurux.DLMS.AMI.Properties.Resources.RegistrationPendingApproval;
                     return;
                 }
                 if (!await UserManager.IsEmailConfirmedAsync(user))
                 {
-                    message = Gurux.DLMS.AMI.Properties.Resources.RegistrationConfirmationRequired;
+                    _message = Gurux.DLMS.AMI.Properties.Resources.RegistrationConfirmationRequired;
                     return;
                 }
                 if (!await SignInManager.CanSignInAsync(user))
                 {
-                    message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
+                    _message = Gurux.DLMS.AMI.Properties.Resources.AccountSignInNotAllowed;
                     return;
                 }
-                await SignInManager.SignInAsync(user, isPersistent: false, externalLoginInfo.LoginProvider);
+                await SignInManager.SignInAsync(user, isPersistent: false, _externalLoginInfo.LoginProvider);
                 RedirectManager.RedirectTo(ReturnUrl);
             }
         }
 
-        message = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
+        _message = $"Error: {string.Join(",", result.Errors.Select(error => error.Description))}";
     }
 
     private ApplicationUser CreateUser()

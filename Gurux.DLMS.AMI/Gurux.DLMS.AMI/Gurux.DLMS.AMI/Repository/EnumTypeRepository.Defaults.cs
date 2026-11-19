@@ -35,10 +35,13 @@ using Gurux.Service.Orm;
 
 namespace Gurux.DLMS.AMI.Server.Repository;
 
+/// <summary>Persists enumeration definitions and maintains application-owned default entries.</summary>
 partial class EnumTypeRepository
 {
     // These are definitions registered by the agent, localization, scheduler and
     // request logging code. Arbitrary runtime/module categories are not defaults.
+    /// <summary>Builds application-owned enumeration definitions for agent status, user actions, logging, localization, and other standard targets.</summary>
+    /// <returns>The built-in enumeration records to restore or provision.</returns>
     private static GXEnumType[] DefaultDefinitions()
     {
         var defaults = new List<GXEnumType>();
@@ -66,9 +69,11 @@ partial class EnumTypeRepository
         return defaults.ToArray();
     }
 
+    /// <summary>Rejects regeneration of application-owned enumeration defaults unless the caller is an administrator.</summary>
+    /// <exception cref="UnauthorizedAccessException">The caller is not an administrator.</exception>
     private void RequireDefaultsAdministrator()
     {
-        if (User?.IsInRole(GXRoles.Admin) != true)
+        if (_user?.IsInRole(GXRoles.Admin) != true)
         {
             throw new UnauthorizedAccessException();
         }
@@ -77,7 +82,7 @@ partial class EnumTypeRepository
     /// <inheritdoc />
     public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default)
     {
-        await GXHistoryMutation.RunAllAsync<GXEnumType>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices,
+        await GXHistoryMutation.RunAllAsync<GXEnumType>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices,
     async () =>
     {
         RequireDefaultsAdministrator();
@@ -102,7 +107,7 @@ partial class EnumTypeRepository
     public async Task ResetToDefaultsAsync(IEnumerable<int> ids, CancellationToken cancellationToken = default)
     {
         ids = ids.ToArray();
-        await GXHistoryMutation.RunIdsAsync<GXEnumType, int>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, ids,
+        await GXHistoryMutation.RunIdsAsync<GXEnumType, int>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, ids,
     async () =>
     {
         RequireDefaultsAdministrator();

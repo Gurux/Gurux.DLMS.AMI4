@@ -73,7 +73,7 @@
                     }
                     <div class="form-group">
                         <label style="margin:auto">@Properties.Resources.Interface</label>
-                        <GXInputDropdown class="form-select" @bind-Value="Settings.Interface" RememberValue="false" Items="@(InterfaceList.Select(it => (int)it))" Formatter="@(value => ((InterfaceType)value).ToString())" />
+                        <GXInputDropdown class="form-select" @bind-Value="Settings.Interface" RememberValue="false" Items="@(_interfaceList.Select(it => (int)it))" Formatter="@(value => ((InterfaceType)value).ToString())" />
                     </div>
                     <div class="form-group">
                         <GXInputSwitch Text="Received data should be forwarded exactly as it was received,
@@ -142,40 +142,48 @@
     [Parameter]
     public RawNotificationSettings? RawSettings { get; set; }
 
+    /// <summary>Validates the current editor values before they are submitted.</summary>
     private GXValidator? _validator;
 
-    InterfaceType[] InterfaceList = new InterfaceType[] {
+    /// <summary>Lists the DLMS interface types offered by the connection editor.</summary>
+    InterfaceType[] _interfaceList = new InterfaceType[] {
         InterfaceType.HDLC,
         InterfaceType.WRAPPER,
         InterfaceType.WirelessMBus,
         InterfaceType.WiredMBus
     };
 
-    Enums.Authentication[] Authentications = new Enums.Authentication[]
+    /// <summary>Lists the DLMS authentication mechanisms offered by the connection editor.</summary>
+    Enums.Authentication[] _authentications = new Enums.Authentication[]
     {
         Enums.Authentication.None,
         Enums.Authentication.Low,
         Enums.Authentication.High,
         Enums.Authentication.HighGMAC
     };
-    Enums.Security[] Securities = new Enums.Security[] {
+    /// <summary>Lists the DLMS security modes offered by the connection editor.</summary>
+    Enums.Security[] _securities = new Enums.Security[] {
         Enums.Security.None,
         Enums.Security.Encryption,
         Enums.Security.Authentication,
         Enums.Security.AuthenticationEncryption
     };
 
-    TraceLevel[] TraceLevels = new TraceLevel[] {
+    /// <summary>Lists the diagnostic trace levels offered by the connection editor.</summary>
+    TraceLevel[] _traceLevels = new TraceLevel[] {
         TraceLevel.Off,
         TraceLevel.Error,
         TraceLevel.Warning,
         TraceLevel.Info,
         TraceLevel.Verbose };
 
+    /// <summary>Parses and serializes the serial transport settings edited by the form.</summary>
     private GXSerialTemplate _serial = new GXSerialTemplate();
+    /// <summary>Parses and serializes the network transport settings edited by the form.</summary>
     private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
 
 
+    /// <summary>Provides default connection settings while a new device template is being configured.</summary>
     GXDeviceTemplate _defaultDeviceTemplate = new GXDeviceTemplate(Properties.Resources.Nothing);
     private GXDeviceTemplate DefaultDeviceTemplate
     {

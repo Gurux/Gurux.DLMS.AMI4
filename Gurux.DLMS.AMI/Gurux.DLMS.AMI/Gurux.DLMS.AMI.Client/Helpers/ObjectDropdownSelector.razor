@@ -43,8 +43,10 @@
 </GXDropdownSearch>
 
 @code {
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     /// <summary>
@@ -98,7 +100,7 @@
     private async ValueTask<ItemsProviderResult<GXObject?>> GetObjects(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObject);
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingObject);
         try
         {
             Filter ??= new GXObject();
@@ -158,15 +160,15 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     protected override void OnInitialized()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         if (Filter == null)
         {

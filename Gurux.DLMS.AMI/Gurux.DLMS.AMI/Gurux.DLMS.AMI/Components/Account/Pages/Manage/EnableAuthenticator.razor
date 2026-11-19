@@ -46,17 +46,17 @@
 
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.ConfigureAuthenticatorApp</PageTitle>
 
-@if (recoveryCodes is not null)
+@if (_recoveryCodes is not null)
 {
-    <ShowRecoveryCodes RecoveryCodes="recoveryCodes.ToArray()" StatusMessage="@message" />
+    <ShowRecoveryCodes RecoveryCodes="_recoveryCodes.ToArray()" StatusMessage="@_message" />
 }
-else if (!enrollmentEnabled)
+else if (!_enrollmentEnabled)
 {
     <p>@Gurux.DLMS.AMI.Properties.Resources.AuthenticatorEnrollmentHasBeenDisabledByAnAdministratorExistingAuthenticatorLoginsRem</p>
 }
 else
 {
-    <StatusMessage Message="@message" />
+    <StatusMessage Message="@_message" />
     <h3>@Gurux.DLMS.AMI.Properties.Resources.ConfigureAuthenticatorApp</h3>
     <div>
         <p>@Gurux.DLMS.AMI.Properties.Resources.ToUseAnAuthenticatorAppGoThroughTheFollowingSteps</p>
@@ -71,10 +71,10 @@ else
                 </p>
             </li>
             <li>
-                <p>@Gurux.DLMS.AMI.Properties.Resources.ScanTheQRCodeOrEnterThisKey <kbd>@sharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
-                @if (qrCodeImage is not null)
+                <p>@Gurux.DLMS.AMI.Properties.Resources.ScanTheQRCodeOrEnterThisKey <kbd>@_sharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
+                @if (_qrCodeImage is not null)
                 {
-                    <img src="@qrCodeImage" alt="@Gurux.DLMS.AMI.Properties.Resources.ScanThisQRCodeWithYourAuthenticatorApp" class="img-fluid" width="300" height="300" />
+                    <img src="@_qrCodeImage" alt="@Gurux.DLMS.AMI.Properties.Resources.ScanThisQRCodeWithYourAuthenticatorApp" class="img-fluid" width="300" height="300" />
                 }
                 else
                 {
@@ -105,14 +105,21 @@ else
 }
 
 @code {
+    /// <summary>Defines the otpauth URI format used to enroll an authenticator application.</summary>
     private const string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
 
-    private string? message;
-    private ApplicationUser user = default!;
-    private string? sharedKey;
-    private string? qrCodeImage;
-    private bool enrollmentEnabled;
-    private IEnumerable<string>? recoveryCodes;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
+    /// <summary>Retains the authenticated Identity account used by this account-management operation.</summary>
+    private ApplicationUser _user = default!;
+    /// <summary>Contains the authenticator enrollment key displayed for manual entry.</summary>
+    private string? _sharedKey;
+    /// <summary>Contains the QR image used to enroll the authenticator application.</summary>
+    private string? _qrCodeImage;
+    /// <summary>Controls whether authenticator enrollment is available for the account.</summary>
+    private bool _enrollmentEnabled;
+    /// <summary>Contains newly generated recovery codes displayed once to the account owner.</summary>
+    private IEnumerable<string>? _recoveryCodes;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -124,14 +131,14 @@ else
     {
         Input ??= new();
         HttpContext.Response.Headers.CacheControl = "no-store";
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        enrollmentEnabled = (await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted)).TotpEnrollmentEnabled;
-        if (!enrollmentEnabled)
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _enrollmentEnabled = (await QrLoginFlow.FeaturesAsync(ModuleServices, HttpContext.RequestAborted)).TotpEnrollmentEnabled;
+        if (!_enrollmentEnabled)
         {
             return;
         }
 
-        await LoadSharedKeyAndQrCodeUriAsync(user);
+        await LoadSharedKeyAndQrCodeUriAsync(_user);
     }
 
     private async Task OnValidSubmitAsync()
@@ -145,27 +152,27 @@ else
         var verificationCode = Input.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
 
         var is2faTokenValid = await UserManager.VerifyTwoFactorTokenAsync(
-            user, UserManager.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
+            _user, UserManager.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
 
         if (!is2faTokenValid)
         {
-            message = Gurux.DLMS.AMI.Properties.Resources.ErrorVerificationCodeIsInvalid;
+            _message = Gurux.DLMS.AMI.Properties.Resources.ErrorVerificationCodeIsInvalid;
             return;
         }
 
-        await UserManager.SetTwoFactorEnabledAsync(user, true);
-        var userId = await UserManager.GetUserIdAsync(user);
+        await UserManager.SetTwoFactorEnabledAsync(_user, true);
+        var userId = await UserManager.GetUserIdAsync(_user);
         Logger.LogInformation("User with ID '{UserId}' has enabled 2FA with an authenticator app.", userId);
 
-        message = Gurux.DLMS.AMI.Properties.Resources.YourAuthenticatorAppHasBeenVerified;
+        _message = Gurux.DLMS.AMI.Properties.Resources.YourAuthenticatorAppHasBeenVerified;
 
-        if (await UserManager.CountRecoveryCodesAsync(user) == 0)
+        if (await UserManager.CountRecoveryCodesAsync(_user) == 0)
         {
-            recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+            _recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(_user, 10);
         }
         else
         {
-            RedirectManager.RedirectToWithStatus("Account/Manage/TwoFactorAuthentication", message, HttpContext);
+            RedirectManager.RedirectToWithStatus("Account/Manage/TwoFactorAuthentication", _message, HttpContext);
         }
     }
 
@@ -179,7 +186,7 @@ else
             unformattedKey = await UserManager.GetAuthenticatorKeyAsync(user);
         }
 
-        sharedKey = FormatKey(unformattedKey!);
+        _sharedKey = FormatKey(unformattedKey!);
 
         var email = await UserManager.GetEmailAsync(user);
         var authenticatorUri = GenerateQrCodeUri(email!, unformattedKey!);
@@ -187,12 +194,12 @@ else
         {
             var png = await ModuleServices.InvokeAsync<IGXAmiQrCodeGenerator, byte[]>(
                 (generator, _) => Task.FromResult(generator.GeneratePng(authenticatorUri)), HttpContext.RequestAborted);
-            qrCodeImage = "data:image/png;base64," + Convert.ToBase64String(png);
+            _qrCodeImage = "data:image/png;base64," + Convert.ToBase64String(png);
         }
         catch (AmiModuleUnavailableException)
         {
             // Manual enrollment remains available when the optional module is stopped.
-            qrCodeImage = null;
+            _qrCodeImage = null;
         }
     }
 

@@ -50,11 +50,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class PatRepository : IPatRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Loads and manages ASP.NET Identity user records.</summary>
         private readonly UserManager<ApplicationUser> _userManager;
+        /// <summary>Configured cryptographic settings used by this service.</summary>
         private readonly IOptions<CryptoOptions> _options;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
+        /// <summary>Tracks active personal access token connections for revocation.</summary>
         private readonly GXPatConnections? _connections;
 
         /// <summary>
@@ -71,7 +77,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _options = options;
             _dbFactory = dbFactory;
             _userManager = userManager;
@@ -88,8 +94,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<string> AddPersonalTokenAsync(GXPersonalToken token, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
-            ApplicationUser? user = await _userManager.GetUserAsync(User) ?? throw new Exception("Invalid user.");
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
+            ApplicationUser? user = await _userManager.GetUserAsync(_user) ?? throw new Exception("Invalid user.");
             List<string> roles = [];
             if (token.Scopes != null && token.Scopes.Any())
             {
@@ -134,10 +140,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             var effective = await UserPermissions.ReadEffectiveAsync(connection, user.Id);
             var activeRoles = await UserPermissions.ReadRolesAsync(connection, user.Id);
-            if (!User.IsInRole(GXRoles.Admin) || !activeRoles.Contains(GXRoles.Admin, StringComparer.Ordinal))
+            if (!_user.IsInRole(GXRoles.Admin) || !activeRoles.Contains(GXRoles.Admin, StringComparer.Ordinal))
             {
                 // A restricted bearer token must not regain its owner's broader database grants when minting another token.
-                effective = [.. effective.Intersect(User.FindAll("Permission").Select(c => c.Value), StringComparer.Ordinal)];
+                effective = [.. effective.Intersect(_user.FindAll("Permission").Select(c => c.Value), StringComparer.Ordinal)];
             }
             var requested = scopes?.Distinct(StringComparer.Ordinal).ToArray();
             bool restricted = requested?.Length > 0;
@@ -151,7 +157,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                foreach (string role in activeRoles.Where(User.IsInRole))
+                foreach (string role in activeRoles.Where(_user.IsInRole))
                 {
                     claims.Add(new Claim(ClaimTypes.Role, role));
                 }
@@ -194,11 +200,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return value;
         }
 
-        /// <inheritdoc />      
+        /// <inheritdoc />
         public async Task<GXPersonalToken?> GetPersonalTokenByIdAsync(string id, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
-            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
+            ApplicationUser? user = await _userManager.GetUserAsync(_user);
             ListTokensResponse ret = new();
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXPersistedGrants>(where => where.Id == id && where.SubjectId == user!.Id && where.Type == "reference_token");
             arg.Distinct = true;
@@ -214,10 +220,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<IEnumerable<GXPersonalToken>> GetPersonalTokensAsync(ListTokens? request, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTokenPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTokenPolicies.View);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
-            var userId = ServerHelpers.GetUserId(User);
+            var userId = ServerHelpers.GetUserId(_user);
             ListTokensResponse ret = new();
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXPersistedGrants>(where => where.SubjectId == userId && where.Type == "reference_token" && where.ClientId == "Gurux.DLMS.AMI.ServerAPI");
             arg.Distinct = true;
@@ -251,10 +257,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXPersonalToken> RemovePersonalTokenAsync(string id, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTokenPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTokenPolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
-            var userId = ServerHelpers.GetUserId(User);
+            var userId = ServerHelpers.GetUserId(_user);
             GXSelectArgs s = GXSelectArgs.SelectAll<GXPersistedGrants>(where => where.Id == id && where.SubjectId == userId &&
                 where.Type == "reference_token" && where.ClientId == "Gurux.DLMS.AMI.ServerAPI");
             GXPersistedGrants? it = await connection.SingleOrDefaultAsync<GXPersistedGrants>(s) ?? throw new Exception("Unknown token: " + id);
@@ -269,13 +275,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXPersonalToken> ExtendPersonalTokenAsync(string id, DateTimeOffset expiration, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXUserPolicies.View);
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXTokenPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXUserPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXTokenPolicies.Edit);
             if (string.IsNullOrWhiteSpace(id) || expiration <= DateTimeOffset.UtcNow)
                 {
                 throw new ArgumentException("A token identifier and a future expiration are required.");
             }
-            var userId = ServerHelpers.GetUserId(User);
+            var userId = ServerHelpers.GetUserId(_user);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             var metadata = await connection.SingleOrDefaultAsync<GXPersistedGrants>(GXSelectArgs.SelectAll<GXPersistedGrants>(g =>
                 g.Id == id && g.SubjectId == userId && g.Type == "reference_token" && g.ClientId == "Gurux.DLMS.AMI.ServerAPI"), cancellationToken)
@@ -303,6 +309,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ToPersonalToken(metadata);
         }
 
+        /// <summary>Projects persisted token metadata into the public personal-token model using UTC timestamps and parsed scopes.</summary>
+        /// <param name="metadata">Persisted grant containing public token metadata and serialized scope information.</param>
+        /// <returns>The personal-token metadata exposed to the caller.</returns>
         private static GXPersonalToken ToPersonalToken(GXPersistedGrants metadata) => new()
         {
             Id = metadata.Id,
@@ -313,6 +322,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Scopes = ReadScopes(metadata.Data)
         };
 
+        /// <summary>Reads distinct nonblank scope names from optional persisted token JSON while tolerating malformed legacy data.</summary>
+        /// <param name="data">Optional persisted grant JSON containing the Scopes array.</param>
+        /// <returns>Stored scope names, or an empty array when no valid scope collection exists.</returns>
         private static string[] ReadScopes(string? data)
         {
             if (string.IsNullOrWhiteSpace(data)) {

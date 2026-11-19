@@ -60,16 +60,22 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <inheritdoc />
 public class DeviceGroupRepository : IDeviceGroupRepository
 {
-    private readonly ClaimsPrincipal User;
+    /// <summary>Principal whose identity and claims govern repository access.</summary>
+    private readonly ClaimsPrincipal _user;
 
+    /// <summary>Creates database connections for repository queries and mutations.</summary>
     private readonly IDbConnectionFactory _dbFactory;
 
+    /// <summary>Provides persistence and access checks for user records.</summary>
     private readonly IUserRepository _userRepository;
 
+    /// <summary>Provides persistence and access checks for user group records.</summary>
     private readonly IUserGroupRepository _userGroupRepository;
 
+    /// <summary>Publishes change notifications to connected users after mutations.</summary>
     private readonly NotificationCache _notificationCache;
 
+    /// <summary>Evaluates policies before accessing protected data.</summary>
     private readonly IAuthorizationService _authorizationService;
 
     /// <summary>
@@ -81,7 +87,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
         {
             throw new UnauthorizedAccessException();
         }
-        User = httpContextAccessor.HttpContext.User;
+        _user = httpContextAccessor.HttpContext.User;
         _dbFactory = dbFactory;
         _userRepository = userRepository;
         _userGroupRepository = userGroupRepository;
@@ -105,6 +111,12 @@ public class DeviceGroupRepository : IDeviceGroupRepository
         return connection.Select<GXAgentGroup>(transaction, arg);
     }
 
+    /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+    /// <param name="id">Identifier of the affected record.</param>
+    /// <param name="action">Change action used to choose notification recipients.</param>
+    /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+    /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+    /// <returns>User identifiers selected for delivery of the change notification.</returns>
     private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action, GXDbConnection? connection = null, IDbTransaction? transaction = null)
     {
         return GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXDeviceGroup), id, action, "device-group.view", connection, transaction, notifications: _notificationCache);
@@ -113,7 +125,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<GXDeviceGroup>> GetDeviceGroupsByDeviceId(Guid deviceId)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
         GXSelectArgs arg = GXSelectArgs.SelectAll((GXDeviceGroup where) => where.Removed == null);
         arg.Joins.AddInnerJoin((GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id, (GXDeviceGroupDevice gXDeviceGroupDevice) => gXDeviceGroupDevice.DeviceGroupId);
         arg.Joins.AddInnerJoin((GXDeviceGroupDevice gXDeviceGroupDevice) => gXDeviceGroupDevice.DeviceId, (GXDevice gXDevice) => gXDevice.Id);
@@ -129,7 +141,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<GXUserGroup>> GetJoinedUserGroups(GXDbConnection connection, IDbTransaction transaction, Guid deviceGroupId)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
         GXSelectArgs arg = GXSelectArgs.SelectAll((GXUserGroup where) => where.Removed == null);
         arg.Joins.AddInnerJoin((GXUserGroup gXUserGroup) => gXUserGroup.Id, (GXUserGroupDeviceGroup gXUserGroupDeviceGroup) => gXUserGroupDeviceGroup.UserGroupId);
         arg.Joins.AddInnerJoin((GXUserGroupDeviceGroup gXUserGroupDeviceGroup) => gXUserGroupDeviceGroup.DeviceGroupId, (GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id);
@@ -156,7 +168,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<GXAgentGroup>> GetJoinedAgentGroups(Guid deviceGroupId)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
         GXSelectArgs arg = GXSelectArgs.SelectAll((GXAgentGroup where) => where.Removed == null);
         arg.Joins.AddInnerJoin((GXAgentGroup gXAgentGroup) => gXAgentGroup.Id, (GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.AgentGroupId);
         arg.Joins.AddInnerJoin((GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.DeviceGroupId, (GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id);
@@ -172,7 +184,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<GXDeviceGroup>> GetDeviceGroupsByAgentId(Guid agentGroupId)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
         GXSelectArgs arg = GXSelectArgs.SelectAll((GXDeviceGroup where) => where.Removed == null);
         arg.Joins.AddInnerJoin((GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id, (GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.DeviceGroupId);
         arg.Joins.AddInnerJoin((GXAgentGroupDeviceGroup gXAgentGroupDeviceGroup) => gXAgentGroupDeviceGroup.AgentGroupId, (GXAgentGroup gXAgentGroup) => gXAgentGroup.Id);
@@ -188,7 +200,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<GXDeviceGroup>> GetDeviceGroupsByGatewayId(Guid gatewayGroupId)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
         GXSelectArgs arg = GXSelectArgs.SelectAll((GXDeviceGroup where) => where.Removed == null);
         arg.Joins.AddInnerJoin((GXDeviceGroup gXDeviceGroup) => gXDeviceGroup.Id, (GXGatewayDeviceGroup gXGatewayDeviceGroup) => gXGatewayDeviceGroup.DeviceGroupId);
         arg.Joins.AddInnerJoin((GXGatewayDeviceGroup gXGatewayDeviceGroup) => gXGatewayDeviceGroup.GatewayId, (GXGatewayGroup gXGatewayGroup) => gXGatewayGroup.Id);
@@ -204,8 +216,8 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
-        GXSelectArgs args = GXQuery.GetUsersByDeviceGroup(s => s.Id!, ServerHelpers.GetUserId(User), groupId);
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
+        GXSelectArgs args = GXQuery.GetUsersByDeviceGroup(s => s.Id!, ServerHelpers.GetUserId(_user), groupId);
         List<string> result;
         await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
@@ -215,7 +227,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
                 args.Where.And<GXUser>(u => members.Contains(u.Id!));
             }
             List<string> ret = [.. (await connection.SelectAsync<GXUser>(args)).Select(s => s.Id).OfType<string>()];
-            if (User != null && User.IsInRole("admin"))
+            if (_user != null && _user.IsInRole("admin"))
             {
                 IList self = ret;
                 self.AddDistinct(await _userRepository.GetUserIdsInRoleAsync(["admin"]));
@@ -228,13 +240,13 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
-        GXSelectArgs args = GXQuery.GetUsersByDeviceGroups(s => s.Id!, ServerHelpers.GetUserId(User), groupIds);
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
+        GXSelectArgs args = GXQuery.GetUsersByDeviceGroups(s => s.Id!, ServerHelpers.GetUserId(_user), groupIds);
         List<string> result;
         await using (GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync())
         {
             List<string> ret = [.. (await connection.SelectAsync<GXUser>(args)).Select(s => s.Id).OfType<string>()];
-            if (User != null && User.IsInRole("admin"))
+            if (_user != null && _user.IsInRole("admin"))
             {
                 IList self = ret;
                 self.AddDistinct(await _userRepository.GetUserIdsInRoleAsync(["admin"]));
@@ -248,20 +260,20 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     public async Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
     {
         groups = groups.ToArray();
-        await GXHistoryMutation.RunDeleteAsync<GXDeviceGroup, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, groups,
+        await GXHistoryMutation.RunDeleteAsync<GXDeviceGroup, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, groups,
     async () =>
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.delete");
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.delete");
         await using GXDbConnection connection = await _dbFactory.GetHistoryConnectionAsync();
         IEnumerable<GXDeviceGroup> exists;
-        if (User.IsInRole("admin"))
+        if (_user.IsInRole("admin"))
         {
             GXSelectArgs arg = GXSelectArgs.Select(s => new { s.Id, s.Name }, (GXDeviceGroup w) => groups.Contains(w.Id));
             exists = connection.Select<GXDeviceGroup>(arg);
         }
         else
         {
-            GXSelectArgs arg2 = GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(User), columns: s => new { s.Id, s.Name }, groupId: null, removed: DateTimeOffset.MinValue, exclude: null, include: groups);
+            GXSelectArgs arg2 = GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(_user), columns: s => new { s.Id, s.Name }, groupId: null, removed: DateTimeOffset.MinValue, exclude: null, include: groups);
             exists = connection.Select<GXDeviceGroup>(arg2);
             if (!exists.Any())
             {
@@ -322,8 +334,8 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     /// <inheritdoc />
     public async Task<IEnumerable<GXDeviceGroup>> ListAsync(ListDeviceGroups? request, ListDeviceGroupsResponse? response, CancellationToken cancellationToken = default)
     {
-        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
-        GXSelectArgs arg = ((request == null || !request.AllUsers || !User.IsInRole("admin")) ? GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(User), columns: s => "*", groupId: null, removed: request?.Filter?.Removed, exclude: request?.Exclude, include: request?.Included) : GXSelectArgs.SelectAll<GXDeviceGroup>());
+        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
+        GXSelectArgs arg = ((request == null || !request.AllUsers || !_user.IsInRole("admin")) ? GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(_user), columns: s => "*", groupId: null, removed: request?.Filter?.Removed, exclude: request?.Exclude, include: request?.Included) : GXSelectArgs.SelectAll<GXDeviceGroup>());
         if (request != null)
         {
             if (request.Included != null && request.Included.Any())
@@ -423,8 +435,8 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     {
         try
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.view");
-            GXSelectArgs arg = ((!User.IsInRole("admin")) ? GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(User), columns: s => "*", groupId: id) : GXSelectArgs.SelectAll((GXDeviceGroup w) => w.Id == id));
+            await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.view");
+            GXSelectArgs arg = ((!_user.IsInRole("admin")) ? GXQuery.GetDeviceGroupsByUser(userId: ServerHelpers.GetUserId(_user), columns: s => "*", groupId: id) : GXSelectArgs.SelectAll((GXDeviceGroup w) => w.Id == id));
             arg.Columns.Exclude((GXDeviceGroup gXDeviceGroup5) => gXDeviceGroup5.Devices!);
             arg.Distinct = true;
             GXDeviceGroup result;
@@ -537,7 +549,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
     public async Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXDeviceGroup> deviceGroups, Expression<Func<GXDeviceGroup, object>>? columns, CancellationToken cancellationToken = default)
     {
         deviceGroups = deviceGroups.ToArray();
-        return await GXHistoryMutation.RunAsync<GXDeviceGroup, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, deviceGroups,
+        return await GXHistoryMutation.RunAsync<GXDeviceGroup, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, deviceGroups,
     async () =>
     {
         DateTime now = DateTime.Now;
@@ -569,7 +581,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
                         if (userGroups == null || userGroups.Count == 0)
                         {
                             GXDeviceGroup gXDeviceGroup = it;
-                            gXDeviceGroup.UserGroups = await _userGroupRepository.GetDefaultUserGroupsAsync(ServerHelpers.GetUserId(User));
+                            gXDeviceGroup.UserGroups = await _userGroupRepository.GetDefaultUserGroupsAsync(ServerHelpers.GetUserId(_user));
                             List<GXUserGroup>? userGroups2 = it.UserGroups;
                             if (userGroups2 == null || userGroups2.Count == 0)
                             {
@@ -579,10 +591,10 @@ public class DeviceGroupRepository : IDeviceGroupRepository
                     }
                     if (newGroups.Count != 0)
                     {
-                        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.add");
+                        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.add");
                         foreach (var it in newGroups)
                         {
-                            it.Creator = new GXUser { Id = ServerHelpers.GetUserId(User) };
+                            it.Creator = new GXUser { Id = ServerHelpers.GetUserId(_user) };
                             it.CreationTime = now;
                             await UpsertAsync(connection, transaction, it, cancellationToken);
                             _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Add, connection, transaction), new GXTarget("device-group.add", it.Id, it.Name) { ConcurrencyStamp = it.ConcurrencyStamp });
@@ -590,7 +602,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
                     }
                     if (updatedGroups.Count != 0)
                     {
-                        await _authorizationService.EnsureAnyPolicyAsync(User, "device-group.edit");
+                        await _authorizationService.EnsureAnyPolicyAsync(_user, "device-group.edit");
                         foreach (GXDeviceGroup it4 in updatedGroups)
                         {
                             GXSelectArgs m = GXSelectArgs.Select(q => q.ConcurrencyStamp!, (GXDeviceGroup where) => where.Id == it4.Id);
@@ -603,7 +615,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
                             it4.ConcurrencyStamp = Guid.NewGuid().ToString();
                             GXUpdateArgs args2 = GXUpdateArgs.Update(it4, columns);
                             args2.Exclude((GXDeviceGroup q) => new { q.UserGroups, q.CreationTime, q.Devices, q.AgentGroups, q.Properties });
-                            if (!User.IsInRole("admin") || it4.Creator == null || string.IsNullOrEmpty(it4.Creator.Id))
+                            if (!_user.IsInRole("admin") || it4.Creator == null || string.IsNullOrEmpty(it4.Creator.Id))
                             {
                                 args2.Exclude((GXDeviceGroup q) => q.Creator!);
                             }
@@ -622,7 +634,7 @@ public class DeviceGroupRepository : IDeviceGroupRepository
                             }
                             if (it4.Devices != null)
                             {
-                                List<GXDevice> devices = GetDevicessByDeviceGroupId(connection, transaction, User, it4.Id);
+                                List<GXDevice> devices = GetDevicessByDeviceGroupId(connection, transaction, _user, it4.Id);
                                 UniqueComparer<GXDevice, Guid> comparer2 = new();
                                 List<GXDevice> removedDevices = [.. devices.Except(it4.Devices, comparer2)];
                                 List<GXDevice> addedDevices = [.. it4.Devices.Except(devices, comparer2)];

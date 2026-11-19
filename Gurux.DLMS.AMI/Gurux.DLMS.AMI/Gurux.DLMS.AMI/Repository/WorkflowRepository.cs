@@ -56,13 +56,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class WorkflowRepository : IWorkflowRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Schedules or executes workflow actions after repository changes.</summary>
         private readonly IWorkflowHandler _workflowHandler;
+        /// <summary>Provides persistence and access checks for workflow group records.</summary>
         private readonly IWorkflowGroupRepository _workflowGroupRepository;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -81,7 +89,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _serviceProvider = serviceProvider;
@@ -91,6 +99,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _authorizationService = authorizationService;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="connection">Existing database connection to reuse, when supplied.</param>
+        /// <param name="transaction">Transaction in which the query or mutation participates.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private Task<List<string>> GetNotifiedUsers(object id, NotificationAction action,
             GXDbConnection? connection = null, System.Data.IDbTransaction? transaction = null)
             => GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXWorkflow), id, action, GXWorkflowPolicies.View, connection, transaction, notifications: _notificationCache);
@@ -98,13 +112,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? workflowId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByWorkflow(s => s.Id!,
-                ServerHelpers.GetUserId(User), workflowId);
+                ServerHelpers.GetUserId(_user), workflowId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (workflowId.HasValue && workflowId.Value != Guid.Empty)
                 {
-                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), workflowId.Value, cancellationToken);
+                await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXWorkflow), workflowId.Value, cancellationToken);
             }
             if (workflowId != null)
             {
@@ -113,7 +127,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -123,20 +137,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByWorkflows(s => s.Id!,
-                ServerHelpers.GetUserId(User), Ids);
+                ServerHelpers.GetUserId(_user), Ids);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (Ids != null)
                 {
                 foreach (var resourceId in Ids.Distinct())
                     {
-                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), resourceId, cancellationToken);
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXWorkflow), resourceId, cancellationToken);
                 }
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User != null && User.IsInRole(GXRoles.Admin))
+            if (_user != null && _user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -148,16 +162,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken = default)
         {
             workflows = workflows.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXWorkflow, Guid>(_dbFactory, User, _serviceProvider, workflows,
+            await GXHistoryMutation.RunDeleteAsync<GXWorkflow, Guid>(_dbFactory, _user, _serviceProvider, workflows,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.Delete);
             GXSelectArgs arg = GXSelectArgs.Select<GXWorkflow>(a => a.Id, q => workflows.Contains(q.Id));
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXWorkflow> list = connection.Select<GXWorkflow>(arg);
                 foreach (var resource in list)
                     {
-                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), resource.Id, cancellationToken);
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXWorkflow), resource.Id, cancellationToken);
                 }
             DateTime now = DateTime.Now;
             Dictionary<GXWorkflow, List<string>> updates = [];
@@ -205,16 +219,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool includeActivity,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the workflows.
                 arg = GXSelectArgs.SelectAll<GXWorkflow>();
             }
             else
             {
-                string? userId = ServerHelpers.GetUserId(User);
+                string? userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetWorkflowsByUser(s => "*", userId);
             }
             if (request != null)
@@ -232,7 +246,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXWorkflow>(arg, request?.DateFilters);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            await GXAutomationPolicyAccess.ApplyAsync(connection, _authorizationService, User, typeof(GXWorkflow), arg, cancellationToken);
+            await GXAutomationPolicyAccess.ApplyAsync(connection, _authorizationService, _user, typeof(GXWorkflow), arg, cancellationToken);
             arg.Columns.Exclude<GXWorkflow>(w => w.Properties!);
             if (request != null && request.Count != 0)
             {
@@ -294,9 +308,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXWorkflow> ReadAsync(Guid id, bool includeScripts, Expression<Func<GXWorkflow, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.View);
             GXSelectArgs arg;
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the workflows.
                 arg = GXSelectArgs.SelectAll<GXWorkflow>(w => w.Id == id);
@@ -305,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetWorkflowsByUser(s => "*", userId, id);
                 arg.Joins.AddInnerJoin<GXWorkflow, GXWorkflowGroupWorkflow>(x => x.Id, y => y.WorkflowId);
                 arg.Joins.AddInnerJoin<GXWorkflowGroupWorkflow, GXWorkflowGroup>(j => j.WorkflowGroupId, j => j.Id);
@@ -321,7 +335,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             GXWorkflow? workflow = await connection.SingleOrDefaultAsync<GXWorkflow>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
             workflow.Properties = workflow.Properties?.Where(p => p.Removed == null).ToList();
-            await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), id, cancellationToken);
+            await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXWorkflow), id, cancellationToken);
             workflow.Policies = await GXResourcePolicyStorage.ReadAsync(connection, typeof(GXWorkflow), id, cancellationToken);
             workflow.ScriptMethods = GetScriptMethods(connection, workflow, includeScripts);
             //Get trigger activity
@@ -348,27 +362,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXWorkflow, object>>? columns, CancellationToken cancellationToken = default)
         {
             workflows = workflows.ToArray();
-            return await GXHistoryMutation.RunAsync<GXWorkflow, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, workflows,
+            return await GXHistoryMutation.RunAsync<GXWorkflow, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, workflows,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.Add, GXWorkflowPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.Add, GXWorkflowPolicies.Edit);
             DateTime now = DateTime.Now;
             List<Guid> list = [];
-            GXUser user = new() { Id = ServerHelpers.GetUserId(User) };
+            GXUser user = new() { Id = ServerHelpers.GetUserId(_user) };
             Dictionary<GXWorkflow, List<string>> updates = [];
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             foreach (GXWorkflow workflow in workflows)
             {
                 if (workflow.Id != Guid.Empty)
                     {
-                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), workflow.Id, cancellationToken);
+                    await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXWorkflow), workflow.Id, cancellationToken);
                 }
-                await _authorizationService.EnsureAnyPolicyAsync(User, workflow.Id == Guid.Empty ? GXWorkflowPolicies.Add : GXWorkflowPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, workflow.Id == Guid.Empty ? GXWorkflowPolicies.Add : GXWorkflowPolicies.Edit);
                 await GXResourcePolicyAccess.ValidateAsync(connection, workflow.Policies, cancellationToken);
-                await GXAutomationPolicyAccess.EnsureWorkflowReferencesAsync(connection, _authorizationService, User, workflow, cancellationToken);
+                await GXAutomationPolicyAccess.EnsureWorkflowReferencesAsync(connection, _authorizationService, _user, workflow, cancellationToken);
                 workflow.Enabled ??= true;
-                await GXWorkflowIdentityAccess.ValidateAsync(connection, User, workflow, cancellationToken);
-                await GXWorkflowEventFilter.ValidateAsync(connection, _authorizationService, User, workflow, cancellationToken);
+                await GXWorkflowIdentityAccess.ValidateAsync(connection, _user, workflow, cancellationToken);
+                await GXWorkflowEventFilter.ValidateAsync(connection, _authorizationService, _user, workflow, cancellationToken);
                 GXWorkflowService.ValidateExecutionSettings(workflow);
                 // The queued runner currently publishes After only. Never accept Before and silently run it after a change.
                 if (workflow.Phase != TriggerPhase.After)
@@ -440,7 +454,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.WorkflowGroups,
                         q.ScriptMethods,
                     });
-                    if (!User.IsInRole(GXRoles.Admin) ||
+                    if (!_user.IsInRole(GXRoles.Admin) ||
                         workflow.Creator == null ||
                         string.IsNullOrEmpty(workflow.Creator.Id))
                     {
@@ -449,7 +463,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     connection.Update(transaction, args);
                     //Map workflow groups to workflow.
-                    await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowGroupPolicies.View);
+                    await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowGroupPolicies.View);
                     var joined = GXSelectArgs.SelectAll<GXWorkflowGroup>(g => g.Removed == null);
                     joined.Joins.AddInnerJoin<GXWorkflowGroup, GXWorkflowGroupWorkflow>(g => g.Id, map => map.WorkflowGroupId);
                     joined.Where.And<GXWorkflowGroupWorkflow>(map => map.WorkflowId == workflow.Id && map.Removed == null);
@@ -638,10 +652,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task RunAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXWorkflowPolicies.Run);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXWorkflowPolicies.Run);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
-            await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, User, typeof(GXWorkflow), id, cancellationToken);
-            _workflowHandler.ExecuteWorkflow(id, User);
+            await GXAutomationPolicyAccess.EnsureAsync(connection, _authorizationService, _user, typeof(GXWorkflow), id, cancellationToken);
+            _workflowHandler.ExecuteWorkflow(id, _user);
         }
     }
 }

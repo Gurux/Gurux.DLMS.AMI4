@@ -63,7 +63,7 @@
     </ChildContent>
 </GXMenuControl>
 
-<GXViewTable ViewName="Device.DeviceLogs" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXDeviceLogPolicies.View })"
+<GXViewTable ViewName="Device.DeviceLogs" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXDeviceLogPolicies.View })"
              TItem="GXLog" @ref="table"
              Context="error"
              ItemsProvider="@GetItems"
@@ -79,13 +79,13 @@
         <GXFh Id="Device"><DeviceDropdownSelector @bind-Value="_deviceFilter" @bind-Value:after="Updated" /></GXFh>
         <GXFh Id="CreationTime" Visibility="Visibility.Medium">
             <GXDateTimeSelector Id="DeviceLogs-CreationTime"
-                                @bind-Value="@filter.CreationTime"
+                                @bind-Value="@_filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
         </GXFh>
         <GXFh Id="Message">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByError"
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Message = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Level">
             <GXInputDropdown class="form-select"
@@ -98,7 +98,7 @@
         <GXFh Id="Closed">
             <input class="form-control" placeholder="@Properties.Resources.FilterByCloseTime"
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
         </GXFh>
     </FilterContent>
     <MenuContent>
@@ -125,7 +125,8 @@
 
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Device") { Position = 0, Description = "Device", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("CreationTime") { Position = 1, Description = "CreationTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -134,9 +135,12 @@
         new("Closed") { Position = 4, Description = "CloseTime", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
     ];
 
-    private IGXNotifier2? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Action.
@@ -217,7 +221,8 @@
     /// Device error filter.
     /// </summary>
     private GXDevice? _deviceFilter;
-    private GXLog filter = new GXLog();
+    /// <summary>Carries the criteria used to filter the displayed records.</summary>
+    private GXLog _filter = new GXLog();
 
     /// <summary>
     /// Closed errors are shown.
@@ -254,31 +259,31 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Device/DeviceLogs.Updated");
+                _notificationService?.RemoveByKey("Pages/Device/DeviceLogs.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceLogs.Updated");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceLogs.Updated");
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
 
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingDeviceLogs);
-            NotificationService?.RemoveByKey("Pages/Device/DeviceLogs.OnInitialized");
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDeviceLogs);
+            _notificationService?.RemoveByKey("Pages/Device/DeviceLogs.OnInitialized");
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {
                 foreach (var it in items)
                 {
@@ -303,41 +308,41 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceLogs.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceLogs.OnInitialized");
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope2 = Progress?.ProgressStart(GXProgress.RetrievingDeviceLogs);
+        using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingDeviceLogs);
         try
         {
             if (ShowClosedErrors)
             {
                 //Show closed errors.
-                filter.Closed = DateTimeOffset.MaxValue;
+                _filter.Closed = DateTimeOffset.MaxValue;
             }
             else
             {
                 //Show active errors.
-                filter.Closed = null;
+                _filter.Closed = null;
             }
 
             if (TraceLevel == TraceLevel.Off)
             {
-                filter.Level = null;
+                _filter.Level = null;
             }
             else
             {
-                filter.Level = (int)TraceLevel;
+                _filter.Level = (int)TraceLevel;
             }
-            filter.Creator = _deviceFilter?.Id;
+            _filter.Creator = _deviceFilter?.Id;
             ListLogs req = new ListLogs()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData
@@ -352,9 +357,9 @@
                 //Mark device errors as seen.
                 if (ret.Logs.Any())
                 {
-                    if (Notifier != null)
+                    if (_notifier != null)
                     {
-                        await Notifier.Mark(Http, TargetType.DeviceLog, ret.Logs.Max(s => s.CreationTime));
+                        await _notifier.Mark(Http, TargetType.DeviceLog, ret.Logs.Max(s => s.CreationTime));
                     }
                 }
             }
@@ -371,7 +376,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -383,7 +388,7 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Device/DeviceLogs.OnShow");
+            _notificationService?.RemoveByKey("Pages/Device/DeviceLogs.OnShow");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -396,7 +401,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Device/DeviceLogs.OnShow");
+            _notificationService?.ReportError(ex, "Pages/Device/DeviceLogs.OnShow");
         }
     }
 
@@ -422,7 +427,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -448,7 +453,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -459,7 +464,7 @@
             GXNotificationRefresh.Remove(table);
         }
         GXNotificationRefresh.Remove(this);
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 
     /// <summary>
@@ -468,7 +473,7 @@
 
     public async Task OnClear()
     {
-        NotificationService?.RemoveByKey("Pages/Device/DeviceLogs.OnClear");
+        _notificationService?.RemoveByKey("Pages/Device/DeviceLogs.OnClear");
         var confirmation = await Confirmation.ConfirmAsync(Properties.Resources.ConfirmDataClear, Properties.Resources.AreYouSureYouWantToClearLog,
             new AmiConfirmationOptions
             {
@@ -487,7 +492,7 @@
         {
             if (args.Confirm)
             {
-                using var progressScope3 = Progress?.ProgressStart(GXProgress.SavingDeviceLog);
+                using var progressScope3 = _progress?.ProgressStart(GXProgress.SavingDeviceLog);
                 try
                 {
                     await Http.PostAsJson<ClearLogResponse>("api/Log/Clear?source=device-error", new ClearLog());
@@ -503,7 +508,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 }

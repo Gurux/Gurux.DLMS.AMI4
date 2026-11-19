@@ -148,8 +148,10 @@
         }
     }
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Parameter, EditorRequired]
     public GXScript? Active { get; set; }
@@ -184,12 +186,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
         try
         {
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingScriptView);
-            NotificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnInitializedAsync");
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingScriptView);
+            _notificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnInitializedAsync");
             if (Active == null && Id != null)
             {
                 //Get script data.
@@ -214,7 +216,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnInitializedAsync");
         }
     }
 
@@ -225,8 +227,8 @@
     {
         try
         {
-            using var progressScope2 = Progress?.ProgressStart(GXProgress.SavingScriptView);
-            NotificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnValidate");
+            using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingScriptView);
+            _notificationService?.RemoveByKey("Pages/Script/ScriptGeneral.OnValidate");
             if (string.IsNullOrEmpty(Active?.SourceCode))
             {
                 throw new Exception(Properties.Resources.NoScriptToExecute);
@@ -243,18 +245,18 @@
                 foreach (var error in errors)
                 {
                     Logger.LogError("Script error: {Message}; line {Line}; ID {Id}", error.Message, error.Line, error.Id);
-                    NotificationService?.Add(new GXNotificationItem(NotificationLevel.Error,
+                    _notificationService?.Add(new GXNotificationItem(NotificationLevel.Error,
                         error.Message, string.Empty, Closable: false));
                 }
             }
             else
             {
-                NotificationService?.Add(new GXNotificationItem(NotificationLevel.Information, string.Format(Properties.Resources.ScriptBuild0BuildTime1Ms, DateTime.Now, ret.CompileTime), string.Empty, Closable: false));
+                _notificationService?.Add(new GXNotificationItem(NotificationLevel.Information, string.Format(Properties.Resources.ScriptBuild0BuildTime1Ms, DateTime.Now, ret.CompileTime), string.Empty, Closable: false));
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnValidate");
+            _notificationService?.ReportError(ex, "Pages/Script/ScriptGeneral.OnValidate");
         }
     }
 

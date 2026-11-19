@@ -56,12 +56,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public class GatewayRepository : IGatewayRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Provides persistence and access checks for user records.</summary>
         private readonly IUserRepository _userRepository;
+        /// <summary>Provides persistence and access checks for gateway group records.</summary>
         private readonly IGatewayGroupRepository _gatewayGroupRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
@@ -80,7 +87,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _userRepository = userRepository;
             _gatewayGroupRepository = gatewayGroupRepository;
@@ -99,9 +106,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(Guid? gatewayId, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByGateway(s => s.Id!,
-                ServerHelpers.GetUserId(User), gatewayId);
+                ServerHelpers.GetUserId(_user), gatewayId);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             if (gatewayId != null)
             {
@@ -110,7 +117,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -120,13 +127,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.View);
             GXSelectArgs args = GXQuery.GetUsersByGateways(s => s.Id!,
-                ServerHelpers.GetUserId(User), Ids);
+                ServerHelpers.GetUserId(_user), Ids);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             List<GXUser> users = await connection.SelectAsync<GXUser>(args);
             List<string> ret = [.. users.Select(s => s.Id!)];
-            if (User.IsInRole(GXRoles.Admin))
+            if (_user.IsInRole(GXRoles.Admin))
             {
                 ret.AddDistinct(await _userRepository.GetUserIdsInRoleAsync([GXRoles.Admin]));
             }
@@ -184,13 +191,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
             gateways = gateways.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXGateway, Guid>(_dbFactory, User, _serviceProvider, gateways,
+            await GXHistoryMutation.RunDeleteAsync<GXGateway, Guid>(_dbFactory, _user, _serviceProvider, gateways,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.Delete);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.Delete);
                 GXSelectArgs arg = GXSelectArgs.Select<GXGateway>(a => a.Id, q => gateways.Contains(q.Id));
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 List<GXGateway> list = connection.Select<GXGateway>(arg);
@@ -255,16 +262,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListGatewaysResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.View);
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (request != null && request.AllUsers && _user.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the gateways.
                 arg = GXSelectArgs.SelectAll<GXGateway>();
             }
             else
             {
-                string userId = ServerHelpers.GetUserId(User);
+                string userId = ServerHelpers.GetUserId(_user);
                 arg = GXQuery.GetGatewaysByUser(s => "*", userId);
             }
             if (request != null)
@@ -328,16 +335,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.View);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.View);
                 GXSelectArgs arg;
-                if (User.IsInRole(GXRoles.Admin))
+                if (_user.IsInRole(GXRoles.Admin))
                 {
                     //Admin can see all the gateways.
                     arg = GXSelectArgs.SelectAll<GXGateway>(w => w.Id == id);
                 }
                 else
                 {
-                    string userId = ServerHelpers.GetUserId(User);
+                    string userId = ServerHelpers.GetUserId(_user);
                     arg = GXQuery.GetGatewaysByUser(s => "*", userId);
                 }
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -397,14 +404,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXGateway, object>>? columns, CancellationToken cancellationToken = default)
         {
             gateways = gateways.ToArray();
-            return await GXHistoryMutation.RunAsync<GXGateway, IEnumerable<Guid>>(_dbFactory, User, _serviceProvider, gateways,
+            return await GXHistoryMutation.RunAsync<GXGateway, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, gateways,
         async () =>
         {
             try
             {
 
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.Add, GXGatewayPolicies.Edit);
-                GXUser creator = new() { Id = ServerHelpers.GetUserId(User) };
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.Add, GXGatewayPolicies.Edit);
+                GXUser creator = new() { Id = ServerHelpers.GetUserId(_user) };
                 DateTime now = DateTime.Now;
                 Dictionary<GXGateway, List<string>> updates = [];
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
@@ -456,7 +463,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.DeviceGroups,
                             q.Devices,
                         });
-                        if (!User.IsInRole(GXRoles.Admin) ||
+                        if (!_user.IsInRole(GXRoles.Admin) ||
                             gateway.Creator == null ||
                             string.IsNullOrEmpty(gateway.Creator.Id))
                         {
@@ -587,7 +594,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task UpdateStatusAsync(Guid gatewayId, GatewayStatus status, CancellationToken cancellationToken)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXGatewayPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXGatewayPolicies.Edit);
             GXSelectArgs args = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Name }, where => where.Id == gatewayId && where.Removed == null);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             GXGateway? gateway = await connection.SingleOrDefaultAsync<GXGateway>(args) ?? throw new GXAmiNotFoundException(Properties.Resources.Gateway + " " + Properties.Resources.Id + " " + gatewayId.ToString());

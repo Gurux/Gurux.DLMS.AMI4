@@ -34,9 +34,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
     /// <summary>Canonical metadata and explicit permission grants for system roles.</summary>
     internal static class GXRoleDefaults
     {
-        private static readonly IReadOnlyList<string> EmptyPermissions = Array.Empty<string>();
+        /// <summary>Shared immutable permission list for callers without granted permissions.</summary>
+        private static readonly IReadOnlyList<string> _emptyPermissions = Array.Empty<string>();
 
-        private static readonly IReadOnlyList<string> UserPermissions = Array.AsReadOnly(new[]
+        /// <summary>Permissions available to authenticated users.</summary>
+        private static readonly IReadOnlyList<string> _userPermissions = Array.AsReadOnly(new[]
         {
             // Manage the four resources available to ordinary users.
             GXDevicePolicies.View, GXDevicePolicies.Add, GXDevicePolicies.Edit, GXDevicePolicies.Delete,
@@ -73,7 +75,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXLocalizedResourcePolicies.View, GXLanguagePolicies.View
         }.Distinct(StringComparer.Ordinal).ToArray());
 
-        private static readonly IReadOnlyList<string> AgentPermissions = Array.AsReadOnly(new[]
+        /// <summary>Permissions available to authenticated agents.</summary>
+        private static readonly IReadOnlyList<string> _agentPermissions = Array.AsReadOnly(new[]
         {
             GXAgentPolicies.View, GXAgentPolicies.Add, GXAgentPolicies.Edit,
             GXAgentGroupPolicies.View,
@@ -113,12 +116,15 @@ namespace Gurux.DLMS.AMI.Server.Internal
         {
             return CanonicalName(roleName) switch
             {
-                GXRoles.Authenticated => UserPermissions.Concat(AgentPermissions).Distinct(StringComparer.Ordinal).ToArray(),
-                GXRoles.Agent => AgentPermissions,
-                _ => EmptyPermissions
+                GXRoles.Authenticated => _userPermissions.Concat(_agentPermissions).Distinct(StringComparer.Ordinal).ToArray(),
+                GXRoles.Agent => _agentPermissions,
+                _ => _emptyPermissions
             };
         }
 
+        /// <summary>Validates and normalizes a registration identifier before persistence.</summary>
+        /// <param name="name">Identifier to validate or normalize.</param>
+        /// <returns>The validated canonical identifier.</returns>
         private static string CanonicalName(string name)
         {
             foreach (string systemRole in GXRoles.SystemRoles)

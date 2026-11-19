@@ -39,11 +39,14 @@ namespace Gurux.DLMS.AMI.Server.Module;
 /// <param name="database">The database.</param>
 public sealed class GXModuleTableRegistry(IGXDatabase database)
 {
-    private static readonly SemaphoreSlim RegistrationGate = new(1, 1);
+    /// <summary>Serializes module registration and lifecycle changes.</summary>
+    private static readonly SemaphoreSlim _registrationGate = new(1, 1);
     /// <summary>Performs the key operation.</summary>
     /// <param name="schema">The schema.</param>
     /// <param name="name">The name.</param>
     public static string Key(string schema, string name) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(schema.ToUpperInvariant() + "\0" + name.ToUpperInvariant())));
+    /// <summary>Creates the module table ownership registry when the registry table does not yet exist.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
     internal static void EnsureSchema(GXDbConnection db)
     {
         var s = new GXSchemaManager(db);
@@ -52,6 +55,10 @@ public sealed class GXModuleTableRegistry(IGXDatabase database)
             s.CreateTable<GXModuleTableOwnership>(false, false);
         }
     }
+    /// <summary>Reads the current SQL Server schema while using an empty schema for providers without this lookup.</summary>
+    /// <param name="connection">Database connection used for this query or persistence operation.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>The default schema name, or an empty string when no provider-specific schema is needed.</returns>
     internal static async Task<string> DefaultSchemaAsync(DbConnection connection, CancellationToken token)
     {
         if (connection.GetType().Name.Equals("SqliteConnection", StringComparison.OrdinalIgnoreCase))
@@ -87,7 +94,7 @@ public sealed class GXModuleTableRegistry(IGXDatabase database)
             }
         }
 
-        await RegistrationGate.WaitAsync(token);
+        await _registrationGate.WaitAsync(token);
         try
         {
             await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -150,9 +157,14 @@ public sealed class GXModuleTableRegistry(IGXDatabase database)
         }
         finally
         {
-            RegistrationGate.Release();
+            _registrationGate.Release();
         }
     }
+    /// <summary>Reads registered table ownership for a module, treating an absent registry table as empty.</summary>
+    /// <param name="db">Database connection used by the history or registry operation.</param>
+    /// <param name="moduleId">Stable identity of the module owning the stored records.</param>
+    /// <param name="token">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+    /// <returns>Ownership rows for the normalized module identifier.</returns>
     internal static async Task<List<GXModuleTableOwnership>> ReadAsync(GXDbConnection db, string moduleId, CancellationToken token)
     {
         moduleId = moduleId.ToUpperInvariant();

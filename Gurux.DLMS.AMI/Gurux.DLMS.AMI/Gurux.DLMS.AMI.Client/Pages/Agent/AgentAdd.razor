@@ -106,17 +106,25 @@
     }
 </EditForm>
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Caches the agent versions offered for download.</summary>
     private GXAgentVersion[] _downloadVersions = [];
+    /// <summary>Identifies the release selected for download.</summary>
     private string? _downloadVersion;
+    /// <summary>Prevents overlapping requests while loading versions is in progress.</summary>
     private bool _loadingVersions = true;
+    /// <summary>Prevents overlapping requests while downloading is in progress.</summary>
     private bool _downloading;
 
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [Inject]
     public IJSRuntime JSRuntime { get; set; } = default!;
@@ -155,7 +163,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         finally
         {
@@ -168,8 +176,8 @@
     /// </summary>
     public async Task OnToken()
     {
-        using var progressScope1 = Progress?.ProgressStart(GXProgress.SavingAgentAdd);
-        NotificationService?.RemoveByKey("Pages/Agent/AgentAdd.OnToken");
+        using var progressScope1 = _progress?.ProgressStart(GXProgress.SavingAgentAdd);
+        _notificationService?.RemoveByKey("Pages/Agent/AgentAdd.OnToken");
         try
         {
             var scopes = await Http.GetAsJsonAsync<string[]>("api/Role/AgentTokenScopes");
@@ -189,7 +197,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Agent/AgentAdd.OnToken");
+            _notificationService?.ReportError(ex, "Pages/Agent/AgentAdd.OnToken");
         }
     }
 
@@ -217,7 +225,7 @@
         }
         catch (Exception error)
         {
-            NotificationService?.ReportError(error, "Pages/Agent/AgentAdd.Versions");
+            _notificationService?.ReportError(error, "Pages/Agent/AgentAdd.Versions");
         }
         finally
         {
@@ -227,12 +235,12 @@
 
     protected override void OnInitialized()
     {
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
 
         try
         {
-            NotificationService?.RemoveByKey("Pages/Agent/AgentAdd.OnInitialized");
+            _notificationService?.RemoveByKey("Pages/Agent/AgentAdd.OnInitialized");
             MenuService.Clear();
             MenuService.AddMenuItems(new GXMenuItem()
             {
@@ -247,7 +255,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Agent/AgentAdd.OnInitialized");
+            _notificationService?.ReportError(ex, "Pages/Agent/AgentAdd.OnInitialized");
         }
     }
 

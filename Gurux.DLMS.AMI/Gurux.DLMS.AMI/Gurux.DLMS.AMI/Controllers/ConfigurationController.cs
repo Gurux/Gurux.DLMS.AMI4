@@ -55,10 +55,15 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         IHostApplicationLifetime applicationLifetime,
         IServiceProvider serviceProvider) : ControllerBase
     {
-        private static readonly SemaphoreSlim SchemaUpdateLock = new(1, 1);
+        /// <summary>Prevents concurrent database schema update operations.</summary>
+        private static readonly SemaphoreSlim _schemaUpdateLock = new(1, 1);
+        /// <summary>Provides persistence and access checks for configuration records.</summary>
         private readonly IConfigurationRepository _configurationRepository = configurationRepository;
+        /// <summary>Provides persistence and access checks for script records.</summary>
         private readonly IScriptRepository _scriptRepository = scriptRepository;
+        /// <summary>Resolves services needed by repository operations.</summary>
         private readonly IServiceProvider _serviceProvider = serviceProvider;
+        /// <summary>Coordinates application shutdown after an update is requested.</summary>
         private readonly IHostApplicationLifetime _applicationLifetime = applicationLifetime;
 
         /// <summary>
@@ -222,7 +227,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             [FromServices] ILogger<GXConfiguration> logger,
             CancellationToken cancellationToken = default)
         {
-            await SchemaUpdateLock.WaitAsync(cancellationToken);
+            await _schemaUpdateLock.WaitAsync(cancellationToken);
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -237,7 +242,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             }
             finally
             {
-                SchemaUpdateLock.Release();
+                _schemaUpdateLock.Release();
             }
         }
 

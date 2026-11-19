@@ -31,10 +31,16 @@ using Microsoft.AspNetCore.Components;
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
 /// <summary>Handles expired API sessions consistently for all client pages.</summary>
+/// <param name="navigation">Navigation service used to observe page transitions or redirect to login.</param>
 public sealed class GXSessionExpiredHandler(NavigationManager navigation) : DelegatingHandler
 {
-    private int redirecting;
+    /// <summary>Ensures that simultaneous unauthorized API responses trigger only one login redirect.</summary>
+    private int _redirecting;
 
+    /// <summary>Sends an HTTP request and redirects expired same-origin API sessions to login while preserving the return path.</summary>
+    /// <param name="request">HTTP request forwarded to the inner handler.</param>
+    /// <param name="cancellationToken">Token that cancels request transmission or response processing.</param>
+    /// <returns>The original HTTP response, including unauthorized responses that initiated a redirect.</returns>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var response = await base.SendAsync(request, cancellationToken);
@@ -51,7 +57,7 @@ public sealed class GXSessionExpiredHandler(NavigationManager navigation) : Dele
             return response;
         }
 
-        if (Interlocked.Exchange(ref redirecting, 1) == 0)
+        if (Interlocked.Exchange(ref _redirecting, 1) == 0)
         {
             navigation.NavigateTo("Account/Login?returnUrl=" + Uri.EscapeDataString(current), forceLoad: true);
         }

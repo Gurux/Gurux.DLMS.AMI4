@@ -53,16 +53,16 @@
 
 <GXHelpContext Topic="Objects" />
 
-@if (!string.IsNullOrEmpty(DeviceName))
+@if (!string.IsNullOrEmpty(_deviceName))
 {
     <p>
         <div class="oi oi-tablet" style="display: inline;">
             <AuthorizeView Policy="@GXDevicePolicies.Edit">
                 <Authorized>
-                    <a href="@NavigationManager.GetCurrentPagePath("/device/Edit/" + Device?.Id)"><h2 style="display: inline;">@DeviceName</h2></a>
+                    <a href="@NavigationManager.GetCurrentPagePath("/device/Edit/" + Device?.Id)"><h2 style="display: inline;">@_deviceName</h2></a>
                 </Authorized>
                 <NotAuthorized>
-                    <h2 style="display: inline;">@DeviceName</h2>
+                    <h2 style="display: inline;">@_deviceName</h2>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
@@ -103,7 +103,7 @@ else
                 <GXInputDropdown class="form-select"
                                  Id="Objects-ObjectType"
                                  RememberValue="true"
-                                 @bind-Value="filterByObjectType"
+                                 @bind-Value="_filterByObjectType"
                                  OnSelected="@((Enums.ObjectType e) => Updated())">
                 </GXInputDropdown>
             </th>
@@ -135,16 +135,20 @@ else
         </ItemContent>
     </GXTable>
     <br />
-    
+
 }
 
 @code {
+    /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
-    private IGXNotifier? Notifier;
-    private IGXProgress? Progress;
-    private IGXNotificationService? NotificationService;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
+    /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
+    private IGXProgress? _progress;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
 
     /// <summary>
@@ -162,7 +166,7 @@ else
     [Parameter]
     public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
 
-    
+
 
     /// <summary>
     /// Action.
@@ -277,25 +281,25 @@ else
     /// <summary>
     /// Filter using object type.
     /// </summary>
-    private Enums.ObjectType filterByObjectType;
+    private Enums.ObjectType _filterByObjectType;
     /// <summary>
     /// Filter using object name.
     /// </summary>
-    private string? filterByName;
+    private string? _filterByName;
     /// <summary>
     /// Filter by logical name of the object.
     /// </summary>
-    private string? filterByLogicalName;
+    private string? _filterByLogicalName;
 
     /// <summary>
     /// Object filter.
     /// </summary>
-    private GXObject filter = new GXObject();
+    private GXObject _filter = new GXObject();
 
     /// <summary>
     /// Device name.
     /// </summary>
-    private string? DeviceName;
+    private string? _deviceName;
 
     //Get object type as a string.
     public string GetObjectType(int? value)
@@ -316,22 +320,22 @@ else
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Objects/Objects.Updated");
+                _notificationService?.RemoveByKey("Pages/Objects/Objects.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Objects/Objects.Updated");
+            _notificationService?.ReportError(ex, "Pages/Objects/Objects.Updated");
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        Progress = Services.GetService<IGXProgress>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _progress = Services.GetService<IGXProgress>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -343,9 +347,9 @@ else
                 //If object template is shown.
                 return;
             }
-            using var progressScope1 = Progress?.ProgressStart(GXProgress.RetrievingObjects);
-            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnInitializedAsync");
-            filter.Template = new GXObjectTemplate();
+            using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingObjects);
+            _notificationService?.RemoveByKey("Pages/Objects/Objects.OnInitializedAsync");
+            _filter.Template = new GXObjectTemplate();
             if (Device == null && Id != null)
             {
                 //Get device objects.
@@ -359,8 +363,8 @@ else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            DeviceName = Device.Name;
-            Notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            _deviceName = Device.Name;
+            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
             {
                 var updates = items.Where(item => item.Type == GXObjectPolicies.Add ||
                     item.Type == GXObjectPolicies.Edit || item.Type == GXObjectPolicies.Delete ||
@@ -389,7 +393,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnInitializedAsync");
+            _notificationService?.ReportError(ex, "Pages/Objects/Objects.OnInitializedAsync");
         }
     }
 
@@ -398,7 +402,7 @@ else
     /// </summary>
     private Task SearchByName(ChangeEventArgs args)
     {
-        filterByName = Convert.ToString(args.Value);
+        _filterByName = Convert.ToString(args.Value);
         return Updated();
     }
 
@@ -407,7 +411,7 @@ else
     /// </summary>
     private Task SearchByLogicalName(ChangeEventArgs args)
     {
-        filterByLogicalName = Convert.ToString(args.Value);
+        _filterByLogicalName = Convert.ToString(args.Value);
         return Updated();
     }
 
@@ -422,54 +426,54 @@ else
     private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        using var progressScope3 = Progress?.ProgressStart(GXProgress.RetrievingObjects);
+        using var progressScope3 = _progress?.ProgressStart(GXProgress.RetrievingObjects);
         try
         {
             if (request.Removed)
             {
-                filter.Removed = DateTimeOffset.MaxValue;
+                _filter.Removed = DateTimeOffset.MaxValue;
             }
             else
             {
-                filter.Removed = null;
+                _filter.Removed = null;
             }
-            if (filter.Template != null)
+            if (_filter.Template != null)
             {
-                if (!string.IsNullOrEmpty(filterByName))
+                if (!string.IsNullOrEmpty(_filterByName))
                 {
-                    filter.Template.Name = filterByName;
+                    _filter.Template.Name = _filterByName;
                 }
                 else
                 {
-                    filter.Template.Name = null;
+                    _filter.Template.Name = null;
                 }
-                filter.Template.ObjectType = (int)filterByObjectType;
-                if (filter.Template.ObjectType == 0)
+                _filter.Template.ObjectType = (int)_filterByObjectType;
+                if (_filter.Template.ObjectType == 0)
                 {
-                    filter.Template.ObjectType = null;
+                    _filter.Template.ObjectType = null;
                 }
-                if (!string.IsNullOrEmpty(filterByLogicalName))
+                if (!string.IsNullOrEmpty(_filterByLogicalName))
                 {
-                    filter.Template.LogicalName = filterByLogicalName;
+                    _filter.Template.LogicalName = _filterByLogicalName;
                 }
                 else
                 {
-                    filter.Template.LogicalName = null;
+                    _filter.Template.LogicalName = null;
                 }
             }
             if (Device != null)
             {
-                filter.Device = new GXDevice() { Id = Device.Id };
+                _filter.Device = new GXDevice() { Id = Device.Id };
             }
             else if (Id.HasValue && Id.Value != Guid.Empty)
             {
-                filter.Device = new GXDevice() { Id = Id.Value };
+                _filter.Device = new GXDevice() { Id = Id.Value };
             }
             ListObjects req = new ListObjects()
             {
                 Index = request.StartIndex,
                 Count = request.Count,
-                Filter = filter,
+                Filter = _filter,
                 OrderBy = request.OrderBy,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
@@ -490,7 +494,7 @@ else
             {
                 foreach (var it in (ret.Objects ?? []))
                 {
-                    it.Device = filter.Device;
+                    it.Device = _filter.Device;
                 }
                 return new ItemsProviderResult<GXObject>((ret.Objects ?? []), ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -502,7 +506,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -514,8 +518,8 @@ else
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnRead");
-            using var progressScope4 = Progress?.ProgressStart(GXProgress.SavingObject);
+            _notificationService?.RemoveByKey("Pages/Objects/Objects.OnRead");
+            using var progressScope4 = _progress?.ProgressStart(GXProgress.SavingObject);
             if (Active?.Template == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -544,7 +548,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnRead");
+            _notificationService?.ReportError(ex, "Pages/Objects/Objects.OnRead");
         }
     }
 
@@ -555,8 +559,8 @@ else
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnReadSelected");
-            using var progressScope5 = Progress?.ProgressStart(GXProgress.SavingObject);
+            _notificationService?.RemoveByKey("Pages/Objects/Objects.OnReadSelected");
+            using var progressScope5 = _progress?.ProgressStart(GXProgress.SavingObject);
             if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -603,7 +607,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnReadSelected");
+            _notificationService?.ReportError(ex, "Pages/Objects/Objects.OnReadSelected");
         }
     }
 
@@ -614,7 +618,7 @@ else
     {
         try
         {
-            NotificationService?.RemoveByKey("Pages/Objects/Objects.OnShow");
+            _notificationService?.RemoveByKey("Pages/Objects/Objects.OnShow");
             if (table?.Active == null)
             {
                 throw new Exception(Properties.Resources.NoItemIsSelected);
@@ -627,7 +631,7 @@ else
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Objects/Objects.OnShow");
+            _notificationService?.ReportError(ex, "Pages/Objects/Objects.OnShow");
         }
     }
 
@@ -697,7 +701,7 @@ else
             // This is done because value might change and it's not updated if page is not active.
             Device.Objects.Clear();
         }
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

@@ -39,9 +39,9 @@
 
 <PageTitle>@Gurux.DLMS.AMI.Properties.Resources.GenerateTwoFactorAuthentication2FARecoveryCodes</PageTitle>
 
-@if (recoveryCodes is not null)
+@if (_recoveryCodes is not null)
 {
-    <ShowRecoveryCodes RecoveryCodes="recoveryCodes.ToArray()" StatusMessage="@message" />
+    <ShowRecoveryCodes RecoveryCodes="_recoveryCodes.ToArray()" StatusMessage="@_message" />
 }
 else
 {
@@ -67,18 +67,21 @@ else
 }
 
 @code {
-    private string? message;
-    private ApplicationUser user = default!;
-    private IEnumerable<string>? recoveryCodes;
+    /// <summary>Contains the status message displayed for the most recent operation.</summary>
+    private string? _message;
+    /// <summary>Retains the authenticated Identity account used by this account-management operation.</summary>
+    private ApplicationUser _user = default!;
+    /// <summary>Contains newly generated recovery codes displayed once to the account owner.</summary>
+    private IEnumerable<string>? _recoveryCodes;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
 
-        var isTwoFactorEnabled = await UserManager.GetTwoFactorEnabledAsync(user);
+        var isTwoFactorEnabled = await UserManager.GetTwoFactorEnabledAsync(_user);
         if (!isTwoFactorEnabled)
         {
             throw new InvalidOperationException(Gurux.DLMS.AMI.Properties.Resources.CannotGenerateRecoveryCodesForUserBecauseTheyDoNotHave2FAEnabled);
@@ -87,9 +90,9 @@ else
 
     private async Task OnSubmitAsync()
     {
-        var userId = await UserManager.GetUserIdAsync(user);
-        recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
-        message = Gurux.DLMS.AMI.Properties.Resources.YouHaveGeneratedNewRecoveryCodes;
+        var userId = await UserManager.GetUserIdAsync(_user);
+        _recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(_user, 10);
+        _message = Gurux.DLMS.AMI.Properties.Resources.YouHaveGeneratedNewRecoveryCodes;
 
         Logger.LogInformation("User with ID '{UserId}' has generated new 2FA recovery codes.", userId);
     }

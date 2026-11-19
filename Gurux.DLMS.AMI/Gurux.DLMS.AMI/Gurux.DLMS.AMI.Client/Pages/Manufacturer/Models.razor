@@ -50,7 +50,7 @@
 
 <GXHelpContext Topic="Models" />
 
-<GXViewTable ViewName="Manufacturer.Models" ViewColumns="ViewColumnDefaults" TItem="GXDeviceModel" @ref="table"
+<GXViewTable ViewName="Manufacturer.Models" ViewColumns="_viewColumnDefaults" TItem="GXDeviceModel" @ref="table"
          AllowColumnCustomization="false"
          Context="model"
          ItemsProvider="@GetItems"
@@ -67,7 +67,7 @@
     <FilterContent>
         <GXFh Id="Name">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
     </FilterContent>
     <HeaderContent>
@@ -79,14 +79,17 @@
 </GXViewTable>
 <br />
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Name", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private ManufacturerGeneral? Parent { get; set; }
@@ -109,7 +112,7 @@
     /// <summary>
     /// Manufacturer filter.
     /// </summary>
-    private GXManufacturer filter = new GXManufacturer();
+    private GXManufacturer _filter = new GXManufacturer();
 
     /// <summary>
     /// Table reference.
@@ -125,13 +128,13 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Manufacturer/Models.Updated");
+                _notificationService?.RemoveByKey("Pages/Manufacturer/Models.Updated");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Manufacturer/Models.Updated");
+            _notificationService?.ReportError(ex, "Pages/Manufacturer/Models.Updated");
         }
     }
 
@@ -179,9 +182,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -206,7 +209,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -227,14 +230,14 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

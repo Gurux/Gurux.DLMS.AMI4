@@ -108,10 +108,11 @@
 @code {
     protected override void OnInitialized()
     {
-        NotificationService = Services.GetService<IGXNotificationService>();
+        _notificationService = Services.GetService<IGXNotificationService>();
     }
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     private string PrevClass
     {
@@ -182,13 +183,14 @@
     [Parameter]
     public EventCallback<bool> OnComplete { get; set; }
 
+    /// <summary>Tracks the selected position in the displayed sequence.</summary>
     private int _index = 0;
 
     private async Task NextPage()
     {
         try
         {
-            NotificationService?.RemoveByKey("Helpers/Wizard/WizardControl.NextPage");
+            _notificationService?.RemoveByKey("Helpers/Wizard/WizardControl.NextPage");
             if (1 + _index == _pages.Count)
             {
                 //Accept changes.
@@ -208,7 +210,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Helpers/Wizard/WizardControl.NextPage");
+            _notificationService?.ReportError(ex, "Helpers/Wizard/WizardControl.NextPage");
         }
     }
 
@@ -216,13 +218,13 @@
     {
         try
         {
-            NotificationService?.RemoveByKey("Helpers/Wizard/WizardControl.Complete");
+            _notificationService?.RemoveByKey("Helpers/Wizard/WizardControl.Complete");
             //Accept changes.
             await OnComplete.InvokeAsync(true);
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Helpers/Wizard/WizardControl.Complete");
+            _notificationService?.ReportError(ex, "Helpers/Wizard/WizardControl.Complete");
         }
     }
 
@@ -297,6 +299,7 @@
         }
     }
 
+    /// <summary>Tracks the pages available to the current wizard or page selector.</summary>
     List<WizardPage> _pages = new List<WizardPage>();
 
     internal void AddPage(WizardPage page)

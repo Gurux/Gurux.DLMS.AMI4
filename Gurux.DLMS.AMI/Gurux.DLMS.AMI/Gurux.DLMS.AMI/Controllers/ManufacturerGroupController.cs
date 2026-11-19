@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ManufacturerGroupController(
         IManufacturerGroupRepository ManufacturerGroupRepository) : ControllerBase
     {
-        private readonly IManufacturerGroupRepository _ManufacturerGroupRepository = ManufacturerGroupRepository;
+        /// <summary>Provides persistence and access checks for manufacturer group records.</summary>
+        private readonly IManufacturerGroupRepository _manufacturerGroupRepository = ManufacturerGroupRepository;
 
         /// <summary>
         /// Get manufacturer group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetManufacturerGroupResponse()
             {
-                Item = await _ManufacturerGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _manufacturerGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -70,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXManufacturerGroupPolicies.Add)]
         public async Task<ActionResult<AddManufacturerGroupResponse>> Post(AddManufacturerGroup request, CancellationToken cancellationToken = default)
         {
-            await _ManufacturerGroupRepository.UpsertAsync(request.ManufacturerGroups, null, cancellationToken);
+            await _manufacturerGroupRepository.UpsertAsync(request.ManufacturerGroups, null, cancellationToken);
             return new AddManufacturerGroupResponse() { Ids = [.. request.ManufacturerGroups.Select(s => s.Id)] };
         }
 
@@ -83,7 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListManufacturerGroups request, CancellationToken cancellationToken)
         {
             ListManufacturerGroupsResponse ret = new();
-            await _ManufacturerGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _manufacturerGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -98,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXManufacturerGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveManufacturerGroupResponse>> Post(RemoveManufacturerGroup request, CancellationToken cancellationToken = default)
         {
-            await _ManufacturerGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _manufacturerGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveManufacturerGroupResponse();
         }
     }

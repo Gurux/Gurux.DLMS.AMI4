@@ -52,9 +52,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
     /// <inheritdoc />
     public partial class PolicyRepository : IPolicyRepository
     {
-        private readonly ClaimsPrincipal User;
+        /// <summary>Principal whose identity and claims govern repository access.</summary>
+        private readonly ClaimsPrincipal _user;
+        /// <summary>Creates database connections for repository queries and mutations.</summary>
         private readonly IDbConnectionFactory _dbFactory;
+        /// <summary>Evaluates policies before accessing protected data.</summary>
         private readonly IAuthorizationService _authorizationService;
+        /// <summary>Publishes change notifications to connected users after mutations.</summary>
         private readonly NotificationCache _notificationCache;
 
         /// <summary>
@@ -69,12 +73,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            User = httpContextAccessor.HttpContext.User;
+            _user = httpContextAccessor.HttpContext.User;
             _dbFactory = dbFactory;
             _authorizationService = authorizationService;
             _notificationCache = notificationCache;
         }
 
+        /// <summary>Resolves users authorized to receive notifications for the affected entity and change action.</summary>
+        /// <param name="id">Identifier of the affected record.</param>
+        /// <param name="action">Change action used to choose notification recipients.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation.</param>
+        /// <returns>User identifiers selected for delivery of the change notification.</returns>
         private static async Task<List<string>> GetNotifiedUsers(Guid id, NotificationAction action, CancellationToken cancellationToken = default)
         {
             _ = id;
@@ -87,10 +96,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> policies, CancellationToken cancellationToken = default)
         {
             policies = policies.ToArray();
-            await GXHistoryMutation.RunDeleteAsync<GXPolicy, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, policies,
+            await GXHistoryMutation.RunDeleteAsync<GXPolicy, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, policies,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.Delete);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.Delete);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             await GXPolicyStore.DeleteAsync(connection, policies, cancellationToken);
             await NotifyAuthorizationChangedAsync(GXPolicyPolicies.Delete, cancellationToken);
@@ -103,7 +112,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListPolicysResponse? response,
             CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.View);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             return await GXPolicyListQuery.ReadAsync(connection, request, response, cancellationToken);
         }
@@ -111,7 +120,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXPolicy> ReadAsync(Guid id, Expression<Func<GXPolicy, object>>? columns = null, CancellationToken cancellationToken = default)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.View);
             try
             {
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXPolicy>(w => w.Id == id && w.Removed == null);
@@ -152,7 +161,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXPolicy> ReadByNameAsync(string name)
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.View);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.View);
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
             string normalizedName = name.ToUpperInvariant();
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXPolicy>(w => w.NormalizedName == normalizedName && w.Removed == null);
@@ -169,18 +178,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<IEnumerable<Guid>> UpsertAsync(IEnumerable<GXPolicy> policys, CancellationToken cancellationToken = default)
         {
             policys = policys.ToArray();
-            return await GXHistoryMutation.RunAsync<GXPolicy, IEnumerable<Guid>>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, policys,
+            return await GXHistoryMutation.RunAsync<GXPolicy, IEnumerable<Guid>>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, policys,
         async () =>
         {
             var values = policys.ToArray();
             if (values.Any(p => p.Id == Guid.Empty))
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.Add);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.Add);
             }
 
             if (values.Any(p => p.Id != Guid.Empty))
             {
-                await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.Edit);
+                await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.Edit);
             }
 
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
@@ -190,6 +199,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
 
+        /// <summary>Queues an authorization invalidation marker for all stored users after policy requirements change.</summary>
+        /// <param name="policy">Policy identifier attached to the authorization invalidation marker.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after the invalidation notification has been queued.</returns>
         private async Task NotifyAuthorizationChangedAsync(string policy, CancellationToken cancellationToken)
         {
             // Policy requirements can affect any signed-in user. Publish only the invalidation marker.
@@ -198,6 +211,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _notificationCache.Add(users.Select(user => user.Id!), new GXTarget(policy));
         }
 
+        /// <summary>Enumerates the policy identifiers provided by the application itself.</summary>
+        /// <returns>The application-owned policy identifiers.</returns>
         internal static string[] GetSystemPolicyNames()
         {
             return [.. typeof(GXDevicePolicies).Assembly.GetTypes()
@@ -208,6 +223,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 .Concat(typeof(Gurux.DLMS.AMI.Client.Shared.KeyManagement.GXKeyPermissions).GetFields().Where(f => f.IsLiteral).Select(f => (string)f.GetRawConstantValue()!)).Distinct(StringComparer.Ordinal)];
         }
 
+        /// <summary>Builds the application's standard policy definitions and their default role requirements.</summary>
+        /// <returns>Application-owned policy records used during provisioning.</returns>
         private static List<GXPolicy> Policies()
         {
             List<GXPolicy> policies =
@@ -357,6 +374,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return policies;
         }
 
+        /// <summary>Ensures standard resource and view policies exist in the current transaction.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <returns>A task that completes after missing application-owned policies have been inserted.</returns>
         internal static Task EnsureViewPoliciesAsync(GXDbConnection connection, System.Data.IDbTransaction transaction)
             => EnsurePolicyDefaultsAsync(connection, transaction);
 
@@ -388,6 +409,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Inserts missing application-owned policies and their requirement rows without overwriting existing definitions.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after default policy provisioning.</returns>
         internal static async Task EnsurePolicyDefaultsAsync(GXDbConnection connection,
             System.Data.IDbTransaction transaction, CancellationToken cancellationToken = default)
         {
@@ -412,6 +438,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Registers notification sources for standard policy names and their top-level resource families.</summary>
+        /// <param name="connection">Database connection used for this query or persistence operation.</param>
+        /// <param name="transaction">Transaction shared by the query or mutation.</param>
+        /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
+        /// <returns>A task that completes after the source identifiers have been registered.</returns>
         internal static async Task EnsureNotificationSourcesAsync(GXDbConnection connection,
             System.Data.IDbTransaction transaction, CancellationToken cancellationToken = default)
         {
@@ -425,10 +456,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task EnsureDefaultsAsync(CancellationToken cancellationToken = default)
         {
-            await GXHistoryMutation.RunAllAsync<GXPolicy>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices,
+            await GXHistoryMutation.RunAllAsync<GXPolicy>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.Add);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.Add);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
             await EnsurePolicyDefaultsAsync(connection, transaction, cancellationToken);
@@ -446,10 +477,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task ResetToDefaultsAsync(IEnumerable<Guid> policyIds, CancellationToken cancellationToken = default)
         {
             policyIds = policyIds.ToArray();
-            await GXHistoryMutation.RunIdsAsync<GXPolicy, Guid>(_dbFactory, User, new HttpContextAccessor().HttpContext?.RequestServices, policyIds,
+            await GXHistoryMutation.RunIdsAsync<GXPolicy, Guid>(_dbFactory, _user, new HttpContextAccessor().HttpContext?.RequestServices, policyIds,
         async () =>
         {
-            await _authorizationService.EnsureAnyPolicyAsync(User, GXPolicyPolicies.Edit);
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXPolicyPolicies.Edit);
             ArgumentNullException.ThrowIfNull(policyIds);
             var ids = policyIds.Distinct().ToArray();
             if (ids.Length == 0 || ids.Contains(Guid.Empty))
@@ -494,10 +525,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }, cancellationToken);
         }
         // Lifecycle operations share this repository's persistence rules and notification queue.
+        /// <summary>Creates repository operations restricted to the identity and transaction of the supplied module scope.</summary>
+        /// <param name="scope">Module identity and transaction governing all repository operations.</param>
+        /// <returns>A module-scoped repository facade.</returns>
         internal static IModulePolicyRepository ForModule(GXModuleRepositoryScope scope) => new ModuleOperations(scope);
 
+        /// <summary>Implements repository operations within one owning module's identity and transaction scope.</summary>
+        /// <param name="scope">Module or history scope that owns this non-owning adapter.</param>
         private sealed class ModuleOperations(GXModuleRepositoryScope scope) : IModulePolicyRepository
         {
+            /// <inheritdoc />
             public async Task<GXPolicy?> EnsureCaptureAsync(string name, CancellationToken token)
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(name);

@@ -44,7 +44,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class TriggerGroupController(
         ITriggerGroupRepository TriggerGroupRepository) : ControllerBase
     {
-        private readonly ITriggerGroupRepository _TriggerGroupRepository = TriggerGroupRepository;
+        /// <summary>Provides persistence and access checks for trigger group records.</summary>
+        private readonly ITriggerGroupRepository _triggerGroupRepository = TriggerGroupRepository;
 
         /// <summary>
         /// Get trigger group information.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetTriggerGroupResponse()
             {
-                Item = await _TriggerGroupRepository.ReadAsync(id, null, cancellationToken)
+                Item = await _triggerGroupRepository.ReadAsync(id, null, cancellationToken)
             };
         }
 
@@ -74,7 +75,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _TriggerGroupRepository.UpsertAsync(request.TriggerGroups, null, cancellationToken);
+            await _triggerGroupRepository.UpsertAsync(request.TriggerGroups, null, cancellationToken);
             return new AddTriggerGroupResponse()
             {
                 Ids = [.. request.TriggerGroups.Select(s => s.Id)]
@@ -91,7 +92,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListTriggerGroupsResponse ret = new();
-            await _TriggerGroupRepository.ListAsync(request, ret, cancellationToken);
+            await _triggerGroupRepository.ListAsync(request, ret, cancellationToken);
             return ret;
         }
 
@@ -102,7 +103,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXTriggerGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveTriggerGroupResponse>> Post(RemoveTriggerGroup request, CancellationToken cancellationToken = default)
         {
-            await _TriggerGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
+            await _triggerGroupRepository.DeleteAsync(request.Ids, request.Delete, true, cancellationToken);
             return new RemoveTriggerGroupResponse();
         }
     }

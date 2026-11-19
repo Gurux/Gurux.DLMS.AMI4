@@ -45,7 +45,7 @@
     }
     else
     {
-        <GXViewTable ViewName="Admin.ScriptUpdates" ViewColumns="ViewColumnDefaults" TItem="GXAvailableUpdate" Context="item" ItemsProvider="GetItems"
+        <GXViewTable ViewName="Admin.ScriptUpdates" ViewColumns="_viewColumnDefaults" TItem="GXAvailableUpdate" Context="item" ItemsProvider="GetItems"
                      Menu="true" SelectionMode="SelectionMode.Single" @bind-Active="_active" ShowAllUsers="false" ShowRemoved="false" ShowAllData="true">
             <MenuContent>
                 <GXContextMenuItem Text="@Properties.Resources.Import" Id="import" OnClick="ImportSelectedAsync" Policy="@GXScriptPolicies.Add" />
@@ -173,7 +173,8 @@
 </section>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Name") { Position = 0, Description = "Script", Visibility = (byte)Visibility.All },
         new("InstalledVersion") { Position = 1, Description = Properties.Resources.UpdatesInstalledVersion, Visibility = (byte)Visibility.All },
@@ -185,17 +186,29 @@
     public IReadOnlyList<GXAvailableUpdate> Items { get; set; } = [];
     [Parameter] public EventCallback OnUpdated { get; set; }
 
+    /// <summary>Identifies the notification entry replaced or cleared when the page retries the associated operation.</summary>
     private const string ErrorKey = "Pages/Admin/Updates.Scripts";
+    /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Retains the current selection used by the editing controls.</summary>
     private readonly Dictionary<string, string> _selected = new();
+    /// <summary>References the script-template preview displayed before installation.</summary>
     private ScriptTemplatePreview? _preview;
+    /// <summary>Identifies the row whose content is being previewed.</summary>
     private string? _previewRowId;
+    /// <summary>Contains the name shown in the content preview.</summary>
     private string? _previewName;
+    /// <summary>Contains the name assigned to imported content.</summary>
     private string? _importName;
+    /// <summary>Contains the failure message displayed for the most recent operation.</summary>
     private string? _error;
+    /// <summary>Controls whether imported content may replace local modifications.</summary>
     private bool _overwriteLocalChanges;
+    /// <summary>Prevents overlapping operations while an asynchronous command is running.</summary>
     private bool _busy;
+    /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private GXAvailableUpdate? _active;
 
     private async Task ImportSelectedAsync()
@@ -325,12 +338,12 @@
             {
                 return;
             }
-        
+
             if (preview.ScriptId != item.ScriptId || preview.CatalogId != item.CatalogId || preview.Version != version || string.IsNullOrWhiteSpace(preview.Sha256))
             {
                 throw new InvalidOperationException(Properties.Resources.TheReturnedComparisonDoesNotMatchTheSelectedScriptVersionCompareTheSourceAgain);
             }
-        
+
             _preview = preview;
             _previewRowId = item.Id;
             _previewName = item.Name;

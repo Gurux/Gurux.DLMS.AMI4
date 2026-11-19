@@ -53,7 +53,7 @@
 
 <GXHelpContext Topic="Settings" />
 
-<GXViewTable ViewName="Manufacturer.Settings" ViewColumns="ViewColumnDefaults" TItem="GXDeviceSettings" @ref="table"
+<GXViewTable ViewName="Manufacturer.Settings" ViewColumns="_viewColumnDefaults" TItem="GXDeviceSettings" @ref="table"
          Context="item"
          ItemsProvider="@GetItems"
          OnChecked="@(items => Parent!.Owner.InstalledSettings = items.ToArray())"
@@ -70,7 +70,7 @@
         </GXFh>
         <GXFh Id="InterfaceType">
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => _filter.Name = Convert.ToString(__e.Value))" />
         </GXFh>
         <GXFh Id="Security"></GXFh>
         <GXFh Id="PreEstablished"></GXFh>
@@ -94,7 +94,8 @@
 <br />
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("Authentication") { Position = 0, Description = "Authentication", Visibility = (byte)Visibility.All },
         new("InterfaceType") { Position = 1, Description = "InterfaceType", Visibility = (byte)Visibility.All },
@@ -103,9 +104,11 @@
         new("Installed") { Position = 4, Description = "Installed", Visibility = (byte)Visibility.All },
     ];
 
-    private IGXNotifier? Notifier;
+    /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
+    private IGXNotifier? _notifier;
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     [CascadingParameter]
     private ManufacturerGeneral? Parent { get; set; }
@@ -153,7 +156,7 @@
     /// <summary>
     /// Settings filter.
     /// </summary>
-    private GXDeviceSettings filter = new GXDeviceSettings();
+    private GXDeviceSettings _filter = new GXDeviceSettings();
 
     /// <summary>
     /// Table reference.
@@ -181,9 +184,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier = Services.GetService<IGXNotifier>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
@@ -205,7 +208,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -226,7 +229,7 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/Manufacturer/Settings.Updated");
+                _notificationService?.RemoveByKey("Pages/Manufacturer/Settings.Updated");
                 await table.RefreshDataAsync(true);
                 //Select first setting.
                 GXDeviceSettings? first = Version?.Settings?.FirstOrDefault();
@@ -242,7 +245,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/Manufacturer/Settings.Updated");
+            _notificationService?.ReportError(ex, "Pages/Manufacturer/Settings.Updated");
         }
     }
 
@@ -262,7 +265,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
         return default;
     }
@@ -293,7 +296,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
@@ -320,13 +323,13 @@
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex);
+            _notificationService?.ReportError(ex);
         }
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
 

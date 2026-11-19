@@ -52,7 +52,7 @@
                 @bind-Value="@Filter"
                 @bind-Value:after="Update" />
         <hr />
-        <GXViewTable ViewName="User.UserRoleEditor" ViewColumns="ViewColumnDefaults" ViewPolicies="@(new List<string> { GXRolePolicies.View })"
+        <GXViewTable ViewName="User.UserRoleEditor" ViewColumns="_viewColumnDefaults" ViewPolicies="@(new List<string> { GXRolePolicies.View })"
          TItem="GXRole" @ref="table"
                  Context="it"
                  ItemsProvider="@GetItems"
@@ -94,7 +94,8 @@
 </GXAccordion>
 
 @code {
-    private static readonly GXViewColumn[] ViewColumnDefaults =
+    /// <summary>Defines the default columns and formatting used by the page's table.</summary>
+    private static readonly GXViewColumn[] _viewColumnDefaults =
     [
         new("DefaultRole") { Position = 0, Description = "DefaultRole", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
         new("Name") { Position = 1, Description = "Name", Visibility = (byte)Gurux.UI.Components.Enums.Visibility.All },
@@ -103,17 +104,19 @@
 
     protected override void OnInitialized()
     {
-        Notifier = Services.GetService<IGXNotifier2>();
-        NotificationService = Services.GetService<IGXNotificationService>();
-        if (Notifier == null)
+        _notifier = Services.GetService<IGXNotifier2>();
+        _notificationService = Services.GetService<IGXNotificationService>();
+        if (_notifier == null)
         {
             return;
         }
     }
 
-    private IGXNotifier2? Notifier;
+    /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
+    private IGXNotifier2? _notifier;
 
-    private IGXNotificationService? NotificationService;
+    /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
+    private IGXNotificationService? _notificationService;
 
     /// <summary>
     /// Filter.
@@ -124,11 +127,13 @@
     /// Table reference.
     /// </summary>
     protected GXTable<GXRole>? table;
+    /// <summary>Caches the roles offered by the role editor.</summary>
     private string? _availableRoles;
 
     [Parameter]
     public List<GXRole>? Roles { get; set; }
 
+    /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private GXRole? _active = null;
     //If role is not active it can't be the default role.
     private string? IsDefault(GXRole selected)
@@ -198,18 +203,18 @@
         {
             if (table != null)
             {
-                NotificationService?.RemoveByKey("Pages/User/UserRoleEditor.Update");
+                _notificationService?.RemoveByKey("Pages/User/UserRoleEditor.Update");
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            NotificationService?.ReportError(ex, "Pages/User/UserRoleEditor.Update");
+            _notificationService?.ReportError(ex, "Pages/User/UserRoleEditor.Update");
         }
     }
 
     public void Dispose()
     {
-        Notifier?.RemoveListener(this);
+        _notifier?.RemoveListener(this);
     }
 }
