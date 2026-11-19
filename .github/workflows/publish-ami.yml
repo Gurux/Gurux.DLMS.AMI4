@@ -96,7 +96,11 @@ jobs:
         run: .github/tests/source-release.tests.ps1
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          # UI NuGet packages use StaticWebAssetPackageManifest, read by SDK 11+.
+          # The server and client still target net10.0.
+          dotnet-version: |
+            10.0.x
+            11.0.x
       - name: Test release and package rules
         run: |
           & .github/tests/agent-release.tests.ps1

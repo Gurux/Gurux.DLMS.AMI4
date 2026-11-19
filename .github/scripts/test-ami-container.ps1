@@ -54,6 +54,16 @@ try {
     }
     if (-not $healthy) { throw 'AMI image did not pass its built-in HTTP/version health probe.' }
     $baseUrl = $url -replace '/Account/Login$', ''
+    foreach ($asset in @(
+        @{ Path = '_content/Gurux.UI.Components/Appearance/appearance.js'; ContentType = '(java|ecma)script' },
+        @{ Path = '_content/Gurux.UI.Components/Appearance/themes/default.min.css'; ContentType = 'text/css' }
+    )) {
+        $response = Invoke-WebRequest -Uri "$baseUrl/$($asset.Path)" -TimeoutSec 10
+        if ($response.StatusCode -ne 200 -or $response.RawContentLength -eq 0 -or
+            $response.Headers['Content-Type'] -notmatch $asset.ContentType) {
+            throw "AMI container did not serve its appearance asset: $($asset.Path)"
+        }
+    }
     $apiVersion = (Invoke-WebRequest -Uri "$baseUrl/api/Configuration/Version" -TimeoutSec 5).Content.Trim()
     $marker = (Invoke-WebRequest -Uri "$baseUrl/version.json" -TimeoutSec 5).Content | ConvertFrom-Json
     if ($marker.version -cne $apiVersion -or ($ExpectedVersion -and $apiVersion -cne $ExpectedVersion)) { throw 'API/client image version mismatch.' }

@@ -45,6 +45,23 @@ try {
     Reject { Assert-AmiPackageLayout -Directory $fixture }
     New-Item -ItemType Directory -Path (Join-Path $fixture 'wwwroot/lib/bootstrap/dist/css') -Force | Out-Null
     '.nav{display:flex;list-style:none}' | Set-Content (Join-Path $fixture 'wwwroot/lib/bootstrap/dist/css/bootstrap.min.css')
+    Reject { Assert-AmiPackageLayout -Directory $fixture }
+    $appearanceAssets = @('_content/Gurux.UI.Components/Appearance/appearance.js', '_content/Gurux.UI.Components/Appearance/themes/default.min.css')
+    $manifestPath = Join-Path $fixture 'Gurux.DLMS.AMI.staticwebassets.endpoints.json'
+    foreach ($asset in $appearanceAssets) {
+        $assetPath = Join-Path $fixture "wwwroot/$asset"
+        New-Item -ItemType Directory -Path (Split-Path $assetPath) -Force | Out-Null
+        'fixture' | Set-Content -LiteralPath $assetPath
+    }
+    '{"Endpoints":[]}' | Set-Content -LiteralPath $manifestPath
+    Reject { Assert-AmiPackageLayout -Directory $fixture }
+    $endpoints = @($appearanceAssets | ForEach-Object { @{ Route = $_; AssetFile = $_; Selectors = @() } })
+    @{ Endpoints = @($endpoints[0]) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath
+    Reject { Assert-AmiPackageLayout -Directory $fixture }
+    @{ Endpoints = $endpoints } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $manifestPath
+    Remove-Item -LiteralPath (Join-Path $fixture "wwwroot/$($appearanceAssets[0])")
+    Reject { Assert-AmiPackageLayout -Directory $fixture }
+    'fixture' | Set-Content -LiteralPath (Join-Path $fixture "wwwroot/$($appearanceAssets[0])")
     Assert-AmiPackageLayout -Directory $fixture
     'private development config' | Set-Content -LiteralPath (Join-Path $fixture 'appsettings.Development.json')
     Reject { Assert-AmiPackageLayout -Directory $fixture }

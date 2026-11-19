@@ -105,6 +105,21 @@ function Assert-AmiPackageLayout {
     if (-not (Test-Path -LiteralPath (Join-Path $Directory 'wwwroot/lib/bootstrap/dist/css/bootstrap.min.css') -PathType Leaf)) {
         throw 'AMI release is missing Bootstrap CSS required by navigation and tabs.'
     }
+    $manifestPath = Join-Path $Directory 'Gurux.DLMS.AMI.staticwebassets.endpoints.json'
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw 'AMI release is missing its static asset endpoint manifest.'
+    }
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    # SDK 10 silently ignores the StaticWebAssetPackageManifest items in SDK 11 UI packages.
+    # Files on disk are insufficient: MapStaticAssets also needs their published endpoints.
+    foreach ($asset in @('_content/Gurux.UI.Components/Appearance/appearance.js', '_content/Gurux.UI.Components/Appearance/themes/default.min.css')) {
+        $endpoints = @($manifest.Endpoints | Where-Object {
+            $_.Route -ceq $asset -and $_.AssetFile -ceq $asset -and @($_.Selectors).Count -eq 0
+        })
+        if ($endpoints.Count -eq 0 -or -not (Test-Path -LiteralPath (Join-Path $Directory "wwwroot/$asset") -PathType Leaf)) {
+            throw "AMI release is missing a required appearance asset or its endpoint: $asset. Publish with .NET SDK 11 or later."
+        }
+    }
     if (@(Get-ChildItem -LiteralPath $Directory -Recurse -File -Filter 'appsettings.Development*.json').Count) {
         throw 'Development settings must not be included in an AMI release.'
     }
