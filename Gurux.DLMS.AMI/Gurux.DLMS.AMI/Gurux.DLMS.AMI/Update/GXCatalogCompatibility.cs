@@ -60,17 +60,18 @@ internal static class GXCatalogCompatibility
     /// <param name="release">Release whose dependencies are evaluated.</param>
     /// <param name="assemblies">Available host assembly versions indexed by DLL basename.</param>
     /// <returns>True when metadata and every dependency satisfy the catalog policy.</returns>
-    /// <remarks>Microsoft dependencies must exist. Their runtime API compatibility is enforced during loading and execution.</remarks>
+    /// <remarks>Microsoft dependencies must exist. System dependencies accept newer host versions. Runtime API compatibility is enforced during loading and execution.</remarks>
     internal static bool IsCompatible(GXUpdateRelease release, IReadOnlyDictionary<string, Version> assemblies)
     {
         var result = GXModuleCompatibility.Check(release, assemblies);
         // AMI 4.1 builds are interchangeable; other contracts retain the runtime loader's minimum policy.
-        // Microsoft libraries are shared with the host; allow version differences, but require availability.
+        // Microsoft libraries require availability; System libraries also require at least the referenced version.
         return result.IsKnown && result.IsAmiVersionCompatible != false && result.Issues.All(issue =>
             (issue.Name.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) && issue.InstalledVersion != null) ||
             Version.TryParse(issue.RequiredVersion, out var required) &&
             Version.TryParse(issue.InstalledVersion, out var installed) &&
-            (Gurux.DLMS.AMI.Server.Module.GXAmiAssemblyCompatibility.IsCompatible41(issue.Name, required, installed) ||
+            ((issue.Name.StartsWith("System.", StringComparison.OrdinalIgnoreCase) && installed >= required) ||
+             Gurux.DLMS.AMI.Server.Module.GXAmiAssemblyCompatibility.IsCompatible41(issue.Name, required, installed) ||
              (string.Equals(issue.Name, "Gurux.UI.Components.dll", StringComparison.OrdinalIgnoreCase) ||
               string.Equals(issue.Name, "Gurux.DLMS.AMI.Module.dll", StringComparison.OrdinalIgnoreCase) ||
               string.Equals(issue.Name, "Gurux.DLMS.AMI.Shared.dll", StringComparison.OrdinalIgnoreCase)) &&
