@@ -1,0 +1,8 @@
+version: 4.1.2611.1901
+links:
+  - menu: NavMenu
+    url: /Extension
+    titleResource: Extensions
+    icon: extension
+    policy: module.view
+    applyPolicyIfMissing: true

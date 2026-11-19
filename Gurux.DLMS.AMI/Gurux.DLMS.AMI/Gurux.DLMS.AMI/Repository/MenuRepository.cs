@@ -1096,7 +1096,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await AddLink(connection, menu, Visibility.All, "/Agent", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Agents)), null, "Agents", [TargetType.AgentLog], "New Logs", GXAgentPolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Gateway", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Gateway)), null, "Gateway", [TargetType.GatewayLog], "New Logs", GXGatewayPolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Logs", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Logs)), null, "Log", null, null, GXLogPolicies.View);
-            await AddLink(connection, menu, Visibility.All, "/Extension", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Extensions)), null, "Extension", null, null, null);
+            await AddLink(connection, menu, Visibility.All, "/Extension", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Extensions)), null, "Extension", null, null, GXModulePolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Config", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Configuration)), null, "Configuration", null, null, GXConfigurationPolicies.View);
             await AddLink(connection, menu, Visibility.All, "/Favorites", ServerHelpers.GetInvariantString(nameof(Properties.Resources.Favorites)), null, "Favorite", null, null, GXFavoritePolicies.View);
         }

@@ -35,8 +35,11 @@ using Gurux.Updater.Services;
 
 namespace Gurux.DLMS.AMI.Update;
 
+/// <summary>Evaluates catalog releases against the host dependency policy and serializes catalog metadata.</summary>
 internal static class GXCatalogCompatibility
 {
+    /// <summary>Creates web JSON options supporting catalog enum names.</summary>
+    /// <returns>Serializer options using camel-case string enums.</returns>
     internal static JsonSerializerOptions JsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -44,6 +47,8 @@ internal static class GXCatalogCompatibility
         return options;
     }
 
+    /// <summary>Reads assembly versions available from the runtime and application directory.</summary>
+    /// <returns>Available assembly versions indexed by DLL basename.</returns>
     internal static IReadOnlyDictionary<string, Version> HostAssemblies()
     {
         var paths = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator) ?? [])
@@ -51,18 +56,29 @@ internal static class GXCatalogCompatibility
         return GXModuleCompatibility.ReadAssemblyVersions(paths.Distinct(StringComparer.OrdinalIgnoreCase));
     }
 
+    /// <summary>Checks release metadata and dependencies while allowing Microsoft assembly version differences.</summary>
+    /// <param name="release">Release whose dependencies are evaluated.</param>
+    /// <param name="assemblies">Available host assembly versions indexed by DLL basename.</param>
+    /// <returns>True when metadata and every dependency satisfy the catalog policy.</returns>
+    /// <remarks>Microsoft dependencies must exist. Their runtime API compatibility is enforced during loading and execution.</remarks>
     internal static bool IsCompatible(GXUpdateRelease release, IReadOnlyDictionary<string, Version> assemblies)
     {
         var result = GXModuleCompatibility.Check(release, assemblies);
         // UI.Components is host-provided; treat its reference as a same-major minimum.
-        // Keep the catalog's other assembly and metadata checks unchanged.
+        // Microsoft libraries are shared with the host; allow version differences, but require availability.
         return result.IsKnown && result.IsAmiVersionCompatible != false && result.Issues.All(issue =>
+            (issue.Name.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) && issue.InstalledVersion != null) ||
             string.Equals(issue.Name, "Gurux.UI.Components.dll", StringComparison.OrdinalIgnoreCase) &&
             Version.TryParse(issue.RequiredVersion, out var required) &&
             Version.TryParse(issue.InstalledVersion, out var installed) &&
             required.Major == installed.Major && installed >= required);
     }
 
+    /// <summary>Applies dependency checks to modules while allowing applications and agents to replace their own libraries.</summary>
+    /// <param name="type">Product deployment category.</param>
+    /// <param name="release">Release to evaluate.</param>
+    /// <param name="assemblies">Available host assembly versions indexed by DLL basename.</param>
+    /// <returns>True when the release satisfies its deployment category policy.</returns>
     internal static bool IsCompatible(CatalogProductType type, GXUpdateRelease release, IReadOnlyDictionary<string, Version> assemblies)
     {
         // Applications replace the host; agents execute with their own libraries.
@@ -70,6 +86,8 @@ internal static class GXCatalogCompatibility
         return type is CatalogProductType.Agent or CatalogProductType.Application || IsCompatible(release, assemblies);
     }
 
+    /// <summary>Computes a stable fingerprint for invalidating cached host compatibility results.</summary>
+    /// <returns>The SHA-256 digest of sorted host assembly names and versions.</returns>
     internal static string HostAssemblyFingerprint() => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
         string.Join("\n", HostAssemblies().OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
             .Select(pair => pair.Key.ToUpperInvariant() + ":" + pair.Value)))));

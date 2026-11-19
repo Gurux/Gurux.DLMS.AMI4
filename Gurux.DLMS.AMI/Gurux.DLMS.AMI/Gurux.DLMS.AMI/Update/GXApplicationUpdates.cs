@@ -88,6 +88,8 @@ internal static class GXApplicationUpdates
         public string? Before { get; set; }
         /// <summary>Authorization policy required to display the navigation entry.</summary>
         public string? Policy { get; set; }
+        /// <summary>Whether to assign the declared policy to existing matching links that have no policy memberships.</summary>
+        public bool ApplyPolicyIfMissing { get; set; }
         /// <summary>Optional component type associated with the navigation entry.</summary>
         public string? Component { get; set; }
     }
@@ -115,6 +117,7 @@ internal static class GXApplicationUpdates
             {
                 if (string.IsNullOrWhiteSpace(link.Menu) || string.IsNullOrWhiteSpace(link.Url) ||
                     string.IsNullOrWhiteSpace(link.TitleResource) ||
+                    link.ApplyPolicyIfMissing && string.IsNullOrWhiteSpace(link.Policy) ||
                     _labels.GetString(link.TitleResource, System.Globalization.CultureInfo.InvariantCulture) == null ||
                     link.Component != null && typeof(Client.Pages.Script.ScriptTemplates).Assembly.GetType(link.Component) == null)
                 {
@@ -246,21 +249,35 @@ internal static class GXApplicationUpdates
         await connection.InsertAsync(transaction, GXInsertArgs.Insert(appearance), token);
     }
 
-    /// <summary>Adds a missing packaged menu link while preserving existing links and administrator customizations.</summary>
+    /// <summary>Adds a missing packaged menu link or explicitly assigns a missing policy while preserving administrator customizations.</summary>
     /// <param name="connection">The open database connection used for the operation.</param>
     /// <param name="transaction">The transaction that owns the database changes.</param>
     /// <param name="menu">The existing menu that receives the packaged link.</param>
     /// <param name="definition">The validated packaged appearance or menu-link definition to apply.</param>
     /// <param name="token">Cancels the database or remote operation.</param>
-    /// <returns>A task that completes after the missing menu link and any ordering changes have been persisted.</returns>
+    /// <returns>A task that completes after the menu link, requested policy assignment and any ordering changes have been persisted.</returns>
     private static async Task AddLinkAsync(GXDbConnection connection, IDbTransaction transaction, GXMenu menu, Link definition, CancellationToken token)
     {
         var links = await connection.SelectAsync<GXMenuLink>(transaction,
             GXSelectArgs.SelectAll<GXMenuLink>(link => link.Menu == menu && link.Removed == null), token);
         static string Normalize(string? url) => (url ?? "").Trim('/');
-        if (links.Any(link => string.Equals(Normalize(link.Url), Normalize(definition.Url), StringComparison.OrdinalIgnoreCase)))
+        var existing = links.Where(link => string.Equals(Normalize(link.Url), Normalize(definition.Url), StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (existing.Length != 0)
         {
-            // Preserve existing links, including administrator customizations.
+            if (definition.ApplyPolicyIfMissing)
+            {
+                foreach (var link in existing)
+                {
+                    var policies = await connection.SelectAsync<GXMenuLinkPolicy>(transaction,
+                        GXSelectArgs.Select<GXMenuLinkPolicy>(policy => policy.PolicyId, policy => policy.MenuLinkId == link.Id), token);
+                    if (policies.Count == 0)
+                    {
+                        await GXResourcePolicyStorage.SaveAsync(connection, typeof(GXMenuLink), link.Id,
+                            [definition.Policy!], token, transaction);
+                    }
+                }
+            }
+            // Preserve existing link fields and any administrator-defined policies.
             return;
         }
         var before = definition.Before == null ? null : links.FirstOrDefault(link =>
