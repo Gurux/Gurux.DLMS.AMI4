@@ -33,20 +33,23 @@ namespace Gurux.DLMS.AMI.Server.Module;
 /// <summary>Provides shared assembly compatibility.</summary>
 public static class GXSharedAssemblyCompatibility
 {
-    /// <summary>Requires a host assembly with the same major version and at least the requested version.</summary>
+    /// <summary>Accepts any AMI 4.1 host build; other assemblies require the same major and at least the referenced version.</summary>
     /// <param name="reference">The shared assembly reference declared by the module.</param>
     /// <param name="offered">The assembly supplied by the host.</param>
     /// <exception cref="Gurux.DLMS.AMI.Module.AmiModuleDependencyException">The assembly versions are incompatible or unspecified.</exception>
     public static void Validate(AssemblyName reference, Assembly offered)
     {
         var actual = offered.GetName();
-        if (reference.Version == null || actual.Version == null || reference.Version.Major != actual.Version.Major || actual.Version < reference.Version)
+        if (!GXAmiAssemblyCompatibility.IsCompatible41(reference.Name, reference.Version, actual.Version) &&
+            (reference.Version == null || actual.Version == null || reference.Version.Major != actual.Version.Major || actual.Version < reference.Version))
         {
             throw new Gurux.DLMS.AMI.Module.AmiModuleDependencyException($"Shared assembly '{reference.Name}' requires AssemblyVersion {reference.Version} with matching major; host offers {actual.Version}.");
         }
     }
-    /// <summary>Performs the validate references operation.</summary>
-    /// <param name="path">The path.</param>
+    /// <summary>Validates every shared assembly reference in the module DLL against the host compatibility policy.</summary>
+    /// <param name="path">Path to the managed module or dependency DLL whose metadata is inspected.</param>
+    /// <exception cref="BadImageFormatException">The file does not contain managed assembly metadata.</exception>
+    /// <exception cref="Gurux.DLMS.AMI.Module.AmiModuleDependencyException">A shared dependency does not satisfy the host compatibility policy.</exception>
     public static void ValidateReferences(string path)
     {
         using var stream = File.OpenRead(path);

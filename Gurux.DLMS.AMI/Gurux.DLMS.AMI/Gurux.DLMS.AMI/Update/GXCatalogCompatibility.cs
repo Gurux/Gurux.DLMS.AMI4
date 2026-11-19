@@ -56,7 +56,7 @@ internal static class GXCatalogCompatibility
         return GXModuleCompatibility.ReadAssemblyVersions(paths.Distinct(StringComparer.OrdinalIgnoreCase));
     }
 
-    /// <summary>Checks release metadata and dependencies while allowing Microsoft assembly version differences.</summary>
+    /// <summary>Checks release metadata, accepting compatible host contracts and available Microsoft dependencies.</summary>
     /// <param name="release">Release whose dependencies are evaluated.</param>
     /// <param name="assemblies">Available host assembly versions indexed by DLL basename.</param>
     /// <returns>True when metadata and every dependency satisfy the catalog policy.</returns>
@@ -64,14 +64,17 @@ internal static class GXCatalogCompatibility
     internal static bool IsCompatible(GXUpdateRelease release, IReadOnlyDictionary<string, Version> assemblies)
     {
         var result = GXModuleCompatibility.Check(release, assemblies);
-        // UI.Components is host-provided; treat its reference as a same-major minimum.
+        // AMI 4.1 builds are interchangeable; other contracts retain the runtime loader's minimum policy.
         // Microsoft libraries are shared with the host; allow version differences, but require availability.
         return result.IsKnown && result.IsAmiVersionCompatible != false && result.Issues.All(issue =>
             (issue.Name.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) && issue.InstalledVersion != null) ||
-            string.Equals(issue.Name, "Gurux.UI.Components.dll", StringComparison.OrdinalIgnoreCase) &&
             Version.TryParse(issue.RequiredVersion, out var required) &&
             Version.TryParse(issue.InstalledVersion, out var installed) &&
-            required.Major == installed.Major && installed >= required);
+            (Gurux.DLMS.AMI.Server.Module.GXAmiAssemblyCompatibility.IsCompatible41(issue.Name, required, installed) ||
+             (string.Equals(issue.Name, "Gurux.UI.Components.dll", StringComparison.OrdinalIgnoreCase) ||
+              string.Equals(issue.Name, "Gurux.DLMS.AMI.Module.dll", StringComparison.OrdinalIgnoreCase) ||
+              string.Equals(issue.Name, "Gurux.DLMS.AMI.Shared.dll", StringComparison.OrdinalIgnoreCase)) &&
+             required.Major == installed.Major && installed >= required));
     }
 
     /// <summary>Applies dependency checks to modules while allowing applications and agents to replace their own libraries.</summary>
