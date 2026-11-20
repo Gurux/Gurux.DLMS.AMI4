@@ -212,6 +212,16 @@
                         </TabHeader>
                     </ChildContent>
                 </GXTabControl>
+                <details class="mt-3">
+                    <summary>@GXAttributeEnumValues.Text("AttributeEnumValues")</summary>
+                    @foreach (var attribute in GetAttributes())
+                    {
+                        <details @key="attribute" class="mt-2">
+                            <summary>@(attribute.Index): @(attribute.Name)</summary>
+                            <AttributeEnumEditor Template="@(attribute)" Disabled="@(IsDeleting != null)" />
+                        </details>
+                    }
+                </details>
             </div>
         </div>
     </EditForm>
@@ -547,7 +557,7 @@
     }
 
     /// <summary>
-    /// Save object template.
+    /// Validates enum definitions, applies pending attribute edits and saves or removes the selected object template.
     /// </summary>
     public async void OnSave()
     {
@@ -556,6 +566,18 @@
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_action != CrudAction.Delete && !await GXEditContexts.ValidateAsync(GXEditContexts.For(Active)))
+            {
+                return;
+            }
+            if (_action != CrudAction.Delete && _modified.Count != 0)
+            {
+                // Apply validated working attribute copies before submitting the object.
+                foreach (var attribute in _modified.Values.ToArray())
+                {
+                    UpdateInstance(attribute, true);
+                }
             }
             using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingObjectTemplate);
             _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnSave");

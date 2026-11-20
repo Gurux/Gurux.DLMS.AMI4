@@ -257,7 +257,7 @@
         try
         {
             _dialogMessages?.Clear();
-            if (_dialogContext != null && !_dialogContext.Validate()) {
+            if (_dialogContext != null && !await GXEditContexts.ValidateAsync(_dialogContext)) {
                 return;
             }
 

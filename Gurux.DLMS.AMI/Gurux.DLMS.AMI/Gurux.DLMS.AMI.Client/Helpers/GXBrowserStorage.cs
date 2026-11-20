@@ -32,16 +32,51 @@ using Microsoft.JSInterop;
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
 /// <summary>Keeps server resources in IndexedDB and small user preferences in local storage.</summary>
+/// <param name="js">Imports the resource-cache module and performs browser storage calls.</param>
+/// <param name="logger">Receives diagnostics when persistent browser storage is unavailable.</param>
+/// <param name="preferences">Stores non-resource user preferences.</param>
 public sealed class GXBrowserStorage(IJSRuntime js, ILogger<GXBrowserStorage> logger,
     GXLocalStorage preferences) : IGXLocalStorage, IAsyncDisposable
 {
+    /// <summary>Retains a cached resource value, including an explicit removed value.</summary>
+    /// <param name="Value">The resource text, or null when the resource was removed.</param>
     private sealed record Entry(string? Value);
+    /// <summary>Retains resources in memory when persistence is unavailable.</summary>
     private readonly ConcurrentDictionary<string, Entry> _memory = new();
+    /// <summary>Tracks groups cleared during this browser session.</summary>
     private readonly ConcurrentDictionary<string, byte> _clearedGroups = new();
+    /// <summary>Shares the current JavaScript module import between concurrent storage operations.</summary>
     private Task<IJSObjectReference>? _module;
+    /// <summary>Combines the optional storage group and key into a resource identity.</summary>
+    /// <param name="group">The storage group, or an empty string for ungrouped values.</param>
+    /// <param name="key">The value's key inside the group.</param>
+    /// <returns>The key prefixed by its nonempty group.</returns>
     private static string Key(string group, string key) => string.IsNullOrEmpty(group) ? key : group + ":" + key;
+    /// <summary>Distinguishes server resource caches from ordinary user preferences.</summary>
+    /// <param name="key">The storage key or group prefix to inspect.</param>
+    /// <returns>True when the key belongs to an AMI resource or initial-state cache.</returns>
     private static bool IsResource(string key) => key.StartsWith("ami-resource:", StringComparison.Ordinal) || key.StartsWith("ami-initial:", StringComparison.Ordinal);
-    private Task<IJSObjectReference> Module() => _module ??= js.InvokeAsync<IJSObjectReference>("import", "./resource-cache.js").AsTask();
+
+    /// <summary>Imports the resource-cache module and permits retry after a failed browser import.</summary>
+    /// <returns>The shared module used by persistent resource operations.</returns>
+    /// <exception cref="JSException">The import failed; the caller may fall back to its in-memory resource.</exception>
+    private async Task<IJSObjectReference> Module()
+    {
+        var import = _module;
+        try
+        {
+            import ??= _module = js.InvokeAsync<IJSObjectReference>("import", "./resource-cache.js").AsTask();
+            return await import;
+        }
+        catch (JSException)
+        {
+            if (ReferenceEquals(_module, import))
+            {
+                _module = null;
+            }
+            throw;
+        }
+    }
 
     /// <inheritdoc />
     public Task SetValueAsync(string key, string? value) => SetValueAsync("", key, value);

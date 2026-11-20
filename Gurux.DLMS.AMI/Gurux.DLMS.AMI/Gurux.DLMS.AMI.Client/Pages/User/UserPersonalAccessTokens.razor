@@ -36,7 +36,6 @@
 @inject HttpClient Http
 @inject IGXNotificationService Notifications
 @inject IGXAmiConfirmation Confirmation
-@inject AuthenticationStateProvider Authentication
 
 <GXHelpContext Topic="PersonalAccessTokens" />
 <h1>@Properties.Resources.PersonalAccessTokens</h1>
@@ -92,6 +91,10 @@
 </AuthorizeView>
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     [Parameter] public GXUser? User { get; set; }
     private GXTable<GXPersonalToken>? _table;
     private GXPersonalToken[] _items = [];
@@ -105,7 +108,12 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        var principal = (await Authentication.GetAuthenticationStateAsync()).User;
+        var authenticationState = AuthenticationState;
+        var principal = (await authenticationState).User;
+        if (authenticationState != AuthenticationState)
+        {
+            return;
+        }
         var currentUserId = ClientHelpers.GetUserId(principal, false);
         var owner = principal.Identity?.IsAuthenticated == true && currentUserId == User?.Id ? User?.Id : null;
         if (_owner == owner) {
@@ -188,7 +196,7 @@
         if (_busy || _extensionToken == null || string.IsNullOrEmpty(_owner) || _owner != _extensionOwner) {
             return;
         }
-        if (_extensionContext?.Validate() != true || _expiration == null || TimeZoneInfo.Local.IsInvalidTime(_expiration.Value))
+        if ((_extensionContext == null || !await GXEditContexts.ValidateAsync(_extensionContext)) || _expiration == null || TimeZoneInfo.Local.IsInvalidTime(_expiration.Value))
         {
             _extensionError = Properties.Resources.ExpirationMustBeLater;
             return;

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.12.35728.132
+# Visual Studio Version 18
+VisualStudioVersion = 18.12.12405.243
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gurux.DLMS.AMI", "Gurux.DLMS.AMI\Gurux.DLMS.AMI\Gurux.DLMS.AMI.csproj", "{A08BA6B3-2260-4EE3-BCA5-E901588A48D7}"
 EndProject

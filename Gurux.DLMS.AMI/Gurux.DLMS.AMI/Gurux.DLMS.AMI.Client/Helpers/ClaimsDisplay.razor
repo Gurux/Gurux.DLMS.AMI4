@@ -34,20 +34,30 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using System.Security.Claims
 
-@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @ClaimType: @Claim
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
 
     [Parameter]
     public string? ClaimType { get; set; }
 
     public string? Claim { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        Claim = null;
+        var authenticationState = AuthenticationState;
+        var authState = await authenticationState;
+        if (authenticationState != AuthenticationState)
+        {
+            return;
+        }
         var user = authState.User;
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {

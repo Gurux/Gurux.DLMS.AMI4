@@ -77,15 +77,26 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         return GXReleaseVersionComparer.Instance.Compare(remote, local) > 0 ? GXUpdateStatus.UpdateAvailable : GXUpdateStatus.UpToDate;
     }
 
-    /// <summary>Combines the core application's installed version with its latest compatible stable catalog release.</summary>
+    /// <summary>Combines the installed core version with catalog releases, skipping catalog inspection for the local placeholder version.</summary>
     /// <param name="catalog">The cached catalog used to resolve the core application product and releases.</param>
     /// <returns>The core application's installed and available release information.</returns>
     GXAvailableUpdate Core(GXUpdateCatalog? catalog)
     {
+        var installed = CoreVersion();
+        if (IsDevelopmentVersion(installed))
+        {
+            return new GXAvailableUpdate
+            {
+                Id = options.CoreProductId,
+                Name = "Gurux DLMS AMI",
+                InstalledVersion = installed,
+                Status = GXUpdateStatus.Unknown
+            };
+        }
         var item = catalog?.Items.FirstOrDefault(i => i.Type == CatalogProductType.Application &&
             string.Equals(i.Id, options.CoreProductId, StringComparison.OrdinalIgnoreCase));
         var release = StableRelease(item);
-        var installed = CoreVersion();
+
         return new GXAvailableUpdate
         {
             Id = options.CoreProductId,
@@ -98,6 +109,12 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
             Status = Status(installed, release?.Version)
         };
     }
+
+    /// <summary>Identifies the local placeholder core version, including informational version suffixes.</summary>
+    /// <param name="version">The installed core version to inspect.</param>
+    /// <returns>True when the numeric version is 0.0.1 or 0.0.1.0.</returns>
+    static bool IsDevelopmentVersion(string? version) =>
+        GXReleaseVersionComparer.Instance.Compare(version?.Split('-', '+')[0], "0.0.1.0") == 0;
 
     /// <summary>Selects the highest compatible non-prerelease version from the supplied catalog item.</summary>
     /// <param name="item">The catalog product whose compatible stable releases are inspected.</param>
@@ -206,6 +223,7 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
 
     /// <summary>Performs the read operation.</summary>
     /// <param name="token">Token used to cancel the operation.</param>
+    /// <returns>The inventory with cached core releases cleared for local placeholder builds.</returns>
     public async Task<GXAvailableUpdatesResponse> ReadAsync(CancellationToken token = default)
     {
         await using var db = new GXDbConnection(await database.CreateOpenConnectionAsync(), null);
@@ -239,7 +257,15 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
         };
         snapshot.Checked ??= checkedAt;
         snapshot.Core.InstalledVersion = CoreVersion();
-        snapshot.Core.Status = Status(snapshot.Core.InstalledVersion, snapshot.Core.AvailableVersion);
+        if (IsDevelopmentVersion(snapshot.Core.InstalledVersion))
+        {
+            // Discard release metadata cached by a previous production build.
+            snapshot.Core = Core(null);
+        }
+        else
+        {
+            snapshot.Core.Status = Status(snapshot.Core.InstalledVersion, snapshot.Core.AvailableVersion);
+        }
         var cached = snapshot.Modules.ToDictionary(m => m.Id, StringComparer.OrdinalIgnoreCase);
         var moduleUpdates = new List<GXAvailableUpdate>();
         foreach (var module in await InstalledModulesAsync(db, token))
@@ -297,6 +323,7 @@ public sealed class GXUpdateStatusStore(IGXDatabase database, CatalogUpdaterOpti
     /// <param name="catalog">The catalog.</param>
     /// <param name="deviceProfiles">The device profiles.</param>
     /// <param name="token">Token used to cancel the operation.</param>
+    /// <returns>A task that completes when the checked inventory has been persisted.</returns>
     public async Task SaveCheckAsync(GXUpdateCatalog catalog, GXAvailableUpdate deviceProfiles, CancellationToken token = default)
     {
         await _writes.WaitAsync(token);

@@ -30,7 +30,6 @@
 @using Gurux.DLMS.AMI.Client.Pages.User
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<CreatorSelector> Logger
 @if (Action != CrudAction.Create)
 {
@@ -42,6 +41,10 @@
 }
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
 
     /// <summary>
     /// Target user.
@@ -58,12 +61,18 @@
     /// <summary>Records whether administrative actions are available to the current user.</summary>
     private bool _isAdmin;
 
-    protected override async Task OnInitializedAsync()
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
     {
         try
         {
-            //Read admin state only once.
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _isAdmin = false;
+            var authenticationState = AuthenticationState;
+            var authState = await authenticationState;
+            if (authenticationState != AuthenticationState)
+            {
+                return;
+            }
             var user = authState.User;
             if (user.Identity != null && user.Identity.IsAuthenticated)
             {

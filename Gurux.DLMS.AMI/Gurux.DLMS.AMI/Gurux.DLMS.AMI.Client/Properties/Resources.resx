@@ -3281,4 +3281,19 @@
   <data name="WriteTasksProgress" xml:space="preserve"><value>{0} of {1} write tasks completed.</value></data>
   <data name="WriteTasksFailed" xml:space="preserve"><value>Writing failed.</value></data>
   <data name="WriteTasksUnavailable" xml:space="preserve"><value>Write task status is unavailable.</value></data>
+  <data name="AttributeEnumValues" xml:space="preserve"><value>Enumerated values</value></data>
+  <data name="AttributeEnumStartBit" xml:space="preserve"><value>Start bit</value></data>
+  <data name="AttributeEnumBitCount" xml:space="preserve"><value>Number of bits</value></data>
+  <data name="AttributeEnumBitOrderHelp" xml:space="preserve"><value>Bit positions start at 0 on the left of the bit string. Enter the start position, field width and named numeric value. Positions can extend beyond 64 bits.</value></data>
+  <data name="AttributeEnumLabelRequired" xml:space="preserve"><value>Enter a description for every enumerated value.</value></data>
+  <data name="AttributeEnumDuplicateValue" xml:space="preserve"><value>Each value must be unique within the same field.</value></data>
+  <data name="AttributeEnumInvalidBitField" xml:space="preserve"><value>Enter a non-negative start bit and value, and a positive field width. The value must fit within the field.</value></data>
+  <data name="AttributeEnumValueOutOfRange" xml:space="preserve"><value>The enumerated value is outside the range of the attribute data type.</value></data>
+  <data name="AttributeEnumIntegerRequired" xml:space="preserve"><value>Enter a whole number between -2147483648 and 2147483647.</value></data>
+  <data name="DeviceTemplateImportNoDevices" xml:space="preserve"><value>The device file contains no devices.</value></data>
+  <data name="DeviceTemplateImportNoObjects" xml:space="preserve"><value>There are no objects. Read the association view first.</value></data>
+  <data name="AsyncValidationRequired" xml:space="preserve"><value>This form requires asynchronous validation.</value></data>
+  <data name="RestartingTitle" xml:space="preserve"><value>Restarting…</value></data>
+  <data name="RestartingMessage" xml:space="preserve"><value>The server is temporarily unavailable. This page will return automatically when the server is ready.</value></data>
+  <data name="RestartingChecking" xml:space="preserve"><value>Checking the server connection…</value></data>
 </root>

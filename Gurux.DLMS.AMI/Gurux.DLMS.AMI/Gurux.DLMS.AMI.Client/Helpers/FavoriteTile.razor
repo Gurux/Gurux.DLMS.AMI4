@@ -73,12 +73,12 @@
     /// <summary>
     /// Select the star.
     /// </summary>
+    /// <returns>A task that completes after the favorite is saved.</returns>
     async Task Select()
     {
         try
         {
             Checked = true;
-            StateHasChanged();
             NotificationService.RemoveByKey("An error occurred while adding a favorite.");
             using var progressScope1 = Progress.ProgressStart(GXProgress.RetrievingFavoriteTile);
             //Add favorite.
@@ -95,7 +95,6 @@
             {
                 //If object is not create yet.
                 Checked = false;
-                StateHasChanged();
             }
         }
         catch (AccessTokenNotAvailableException exception)

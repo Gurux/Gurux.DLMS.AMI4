@@ -35,7 +35,6 @@
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject ILogger<CatalogUpdatePage> Logger
 @inject HttpClient Http
-@inject AuthenticationStateProvider Authentication
 @implements IDisposable
 
 <PageTitle>@(_entry?.Name ?? Properties.Resources.CatalogUpdateRelease)</PageTitle>
@@ -63,6 +62,10 @@
 </AuthorizeView>
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     [Parameter, SupplyParameterFromQuery(Name = "productId")] public string? ProductId { get; set; }
     [Parameter, SupplyParameterFromQuery(Name = "version")] public string? Version { get; set; }
     private GXCatalogUpdateEntry? _entry;
@@ -75,12 +78,13 @@
         _request?.Dispose();
         var request = _request = new CancellationTokenSource();
         var token = request.Token;
+        var authenticationState = AuthenticationState;
         _entry = null;
         _error = false;
         _loading = true;
         try
         {
-            if (!(await Authentication.GetAuthenticationStateAsync()).User.IsInRole(GXRoles.Admin) ||
+            if (!(await authenticationState).User.IsInRole(GXRoles.Admin) ||
                 string.IsNullOrWhiteSpace(ProductId) || string.IsNullOrWhiteSpace(Version)) {
                 return;
             }
@@ -91,7 +95,7 @@
             }
             response.EnsureSuccessStatusCode();
             var entry = await response.Content.ReadFromJsonAsync<GXCatalogUpdateEntry>(token);
-            if (!request.IsCancellationRequested) {
+            if (!request.IsCancellationRequested && authenticationState == AuthenticationState) {
                 _entry = entry;
             }
         }
@@ -100,11 +104,11 @@
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
         {
             Logger.LogError(error, "{Message}", error.Message);
-            if (!request.IsCancellationRequested) {
+            if (!request.IsCancellationRequested && authenticationState == AuthenticationState) {
                 _error = true;
             }
         }
-        finally { if (!request.IsCancellationRequested) {
+        finally { if (!request.IsCancellationRequested && authenticationState == AuthenticationState) {
             _loading = false;
         } }
     }

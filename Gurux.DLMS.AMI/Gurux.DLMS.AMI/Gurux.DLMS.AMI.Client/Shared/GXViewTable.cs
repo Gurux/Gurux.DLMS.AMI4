@@ -250,6 +250,10 @@ public class GXViewTable<TItem> : GXTable<TItem>, IDisposable, IAsyncDisposable
             editor => GXViewColumnEditor.ResetAsync(editor, ViewColumns));
     }
 
+    /// <summary>
+    /// Applies the view selected by the column editor before its event callback renders the table.
+    /// </summary>
+    /// <param name="view">The selected view, or null to use the default view.</param>
     private void ApplyChangedView(GXView? view)
     {
         if (_disposed)
@@ -261,7 +265,6 @@ public class GXViewTable<TItem> : GXTable<TItem>, IDisposable, IAsyncDisposable
         ApplyViewDefaults();
         // StateHasChanged alone does not rerun this component's parameter lifecycle.
         base.OnParametersSet();
-        StateHasChanged();
     }
 
     private async void OnViewChanged(object? sender, GXViewChangedEventArgs args)

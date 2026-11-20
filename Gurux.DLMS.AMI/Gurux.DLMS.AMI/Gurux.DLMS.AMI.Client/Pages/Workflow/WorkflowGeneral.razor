@@ -41,7 +41,6 @@
 @inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject AuthenticationStateProvider Authentication
 @inject IAuthorizationService Authorization
 <GXHelpContext Topic="WorkflowGeneral" />
 
@@ -115,6 +114,10 @@
     </EditForm>
 }
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     protected EditContext FormContext => GXEditContexts.For(Active ?? throw new InvalidOperationException(Properties.Resources.InvalidTarget));
 
     /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
@@ -262,6 +265,79 @@
     /// <summary>Caches the script methods available to the workflow editor.</summary>
     private GXScriptMethod[]? _scriptMethods = null;
 
+    /// <summary>Identifies the authentication snapshot used for the optional script and trigger catalogs.</summary>
+    private Task<AuthenticationState>? _authenticationState;
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_authenticationState != AuthenticationState && Active != null)
+        {
+            await LoadRelatedCatalogsAsync();
+        }
+    }
+
+    /// <summary>Refreshes optional workflow catalogs using the current user's permissions.</summary>
+    /// <returns>A task that completes when permitted script and trigger choices are loaded.</returns>
+    private async Task LoadRelatedCatalogsAsync()
+    {
+        var authenticationState = AuthenticationState;
+        var active = Active;
+        try
+        {
+            _authenticationState = authenticationState;
+            _triggers = [];
+            _scriptMethods = null;
+            _canViewTriggers = false;
+            var caller = (await authenticationState).User;
+            // Related catalogs are optional. Basic workflow fields must remain
+            // available when the user cannot browse scripts or triggers.
+            GXScriptMethod[]? scriptMethods = null;
+            if ((await Authorization.AuthorizeAsync(caller, null, GXScriptPolicies.View)).Succeeded)
+            {
+                var ret1 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", new ListScripts());
+                if (ret1.Scripts != null && ret1.Scripts.Any())
+                {
+                    List<GXScriptMethod> methods = [new GXScriptMethod()];
+                    foreach (var script in ret1.Scripts)
+                    {
+                        foreach (var method in (script.Methods ?? []))
+                        {
+                            if (method.IsFunction)
+                            {
+                                methods.Add(method);
+                            }
+                        }
+                    }
+                    scriptMethods = methods.ToArray();
+                }
+            }
+            var canViewTriggers = (await Authorization.AuthorizeAsync(caller, null, GXTriggerPolicies.View)).Succeeded;
+            IEnumerable<GXTrigger> triggers = [];
+            if (canViewTriggers)
+            {
+                var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", new ListTriggers());
+                triggers = ret.Triggers ?? [];
+            }
+            if (authenticationState != AuthenticationState || active != Active)
+            {
+                return;
+            }
+            _scriptMethods = scriptMethods;
+            _canViewTriggers = canViewTriggers;
+            _triggers = triggers;
+        }
+        catch (AccessTokenNotAvailableException error)
+        {
+            error.Redirect();
+        }
+        catch (Exception error)
+        {
+            _notificationService?.ReportError(error);
+        }
+    }
+
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _notifier = Services.GetService<IGXNotifier2>();
@@ -295,35 +371,7 @@
             }
 
 
-            var caller = (await Authentication.GetAuthenticationStateAsync()).User;
-            // Related catalogs are optional. Basic workflow fields must remain
-            // available when the user cannot browse scripts or triggers.
-            _scriptMethods = null;
-            if ((await Authorization.AuthorizeAsync(caller, null, GXScriptPolicies.View)).Succeeded)
-            {
-                var ret1 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", new ListScripts());
-                if (ret1.Scripts != null && ret1.Scripts.Any())
-                {
-                    List<GXScriptMethod> methods = [new GXScriptMethod()];
-                    foreach (var script in ret1.Scripts)
-                    {
-                        foreach (var method in (script.Methods ?? []))
-                        {
-                            if (method.IsFunction)
-                            {
-                                methods.Add(method);
-                            }
-                        }
-                    }
-                    _scriptMethods = methods.ToArray();
-                }
-            }
-            _canViewTriggers = (await Authorization.AuthorizeAsync(caller, null, GXTriggerPolicies.View)).Succeeded;
-            if (_canViewTriggers)
-            {
-                var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", new ListTriggers());
-                _triggers = ret.Triggers ?? [];
-            }
+            await LoadRelatedCatalogsAsync();
             if (Action == CrudAction.Create && _triggers.Any() && Active.TriggerActivity == null)
             {
                 //Select first item if trigger is not selected.

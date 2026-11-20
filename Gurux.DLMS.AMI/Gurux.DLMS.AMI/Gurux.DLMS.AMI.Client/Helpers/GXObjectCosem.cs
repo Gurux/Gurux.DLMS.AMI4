@@ -29,6 +29,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.Enums;
 using Gurux.DLMS.Objects;
+using Gurux.DLMS.ManufacturerSettings;
 using Gurux.DLMS.Secure;
 using Gurux.DLMS.UI.Components.Objects;
 using System.Globalization;
@@ -65,7 +66,9 @@ public sealed class GXObjectCosem
         Refresh(model);
     }
 
-    /// <summary>Refresh confirmed values without replacing pending editor changes.</summary>
+    /// <summary>Refreshes confirmed values, access rights and named choices without replacing pending editor changes.</summary>
+    /// <param name="latest">The persisted object containing the current attribute templates and values.</param>
+    /// <exception cref="ArgumentNullException">The persisted object is null.</exception>
     public void Refresh(GXObject latest)
     {
         _model = latest ?? throw new ArgumentNullException(nameof(latest));
@@ -87,6 +90,23 @@ public sealed class GXObjectCosem
             }
             Target.SetAccess(index, Target is GXDLMSProfileGeneric && index == 2
                 ? AccessMode.Read : (AccessMode)template.AccessLevel);
+            var settings = Target.Attributes.Find(index);
+            if (settings == null)
+            {
+                settings = new GXDLMSAttributeSettings { Index = index };
+                Target.Attributes.Add(settings);
+            }
+            settings.Values.Clear();
+            foreach (var item in template.ListItems ?? [])
+            {
+                settings.Values.Add(new GXObisValueItem
+                {
+                    Value = item.Value,
+                    UIValue = item.UIValue,
+                    Shift = item.Shift,
+                    MaskSize = item.MaskSize
+                });
+            }
             if (Target.GetDirty(index, out _) || Target is GXDLMSProfileGeneric && index == 2) {
                 continue;
             }

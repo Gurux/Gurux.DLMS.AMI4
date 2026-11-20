@@ -46,12 +46,12 @@ using Gurux.DLMS.AMI.Server.Midlewares;
 namespace Gurux.DLMS.AMI.Server.Controllers;
 
 /// <summary>Provides resource API endpoints.</summary>
-/// <param name="menus">The menus.</param>
-/// <param name="appearances">The appearances.</param>
-/// <param name="texts">The texts.</param>
-/// <param name="localization">The localization.</param>
-/// <param name="logger">The logger.</param>
-/// <param name="database">The database.</param>
+/// <param name="menus">Reads menus after applying the current user's resource policies.</param>
+/// <param name="appearances">Reads permitted themes, icon packs, and images.</param>
+/// <param name="texts">Resolves localized resource values and their cache versions.</param>
+/// <param name="localization">Resolves the requesting user's resource language.</param>
+/// <param name="logger">Records resource failures that leave other startup groups available.</param>
+/// <param name="database">Reads server-configured preload selections without loading unrelated resource data.</param>
 /// <param name="blocks">The blocks visible to the requesting user.</param>
 /// <param name="languageService">Resolves the profile or browser culture independently of available translations.</param>
 [ApiController]
@@ -61,9 +61,37 @@ public sealed class ResourceController(IMenuRepository menus, IAppearanceReposit
     IDbConnectionFactory? database = null, IBlockRepository? blocks = null,
     GXLanguageService? languageService = null) : ControllerBase
 {
-    /// <summary>Performs the initial operation.</summary>
-    /// <param name="request">The request parameters.</param>
-    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <summary>Reads fresh dependency versions, falling back to authorized full reads if metadata is unavailable.</summary>
+    /// <param name="menuNames">Menu names whose dependencies must be checked together.</param>
+    /// <param name="cancellationToken">Cancels the metadata reads.</param>
+    /// <returns>Current menu fingerprints, or an empty map that prevents cache reuse on failure.</returns>
+    /// <exception cref="OperationCanceledException">The startup request was canceled.</exception>
+    private async Task<IReadOnlyDictionary<string, string>> ReadMenuVersionsAsync(
+        IEnumerable<string> menuNames, CancellationToken cancellationToken)
+    {
+        if (database == null)
+        {
+            return new Dictionary<string, string>(StringComparer.Ordinal);
+        }
+        try
+        {
+            return await GXInitialMenuSnapshot.ReadAsync(database, menuNames, User, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            logger.LogWarning(error, "Initial menu dependency versions unavailable; reading authorized menus directly.");
+            return new Dictionary<string, string>(StringComparer.Ordinal);
+        }
+    }
+
+    /// <summary>Loads startup resources, batch-checking menu dependencies before fully reading changed menus.</summary>
+    /// <param name="request">Resource keys, cached versions, and preload selections for the initial view.</param>
+    /// <param name="cancellationToken">Cancels database reads when the client abandons startup.</param>
+    /// <returns>The authorized resource groups and their cache versions, or a validation error for invalid input.</returns>
     [HttpPost("Initial")]
     [AllowAnonymous]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -213,11 +241,27 @@ public sealed class ResourceController(IMenuRepository menus, IAppearanceReposit
                 }
             });
         }
+        var scopes = HttpContext?.RequestServices?.GetService<IServiceScopeFactory>();
+        var versions = scopes != null && database != null && menuNames.Count != 0 ? await ReadMenuVersionsAsync(menuNames, cancellationToken) : null;
+        var loadedMenus = scopes != null && menuNames.Count != 0
+            ? await GXInitialMenuLoader.LoadAsync(menuNames, scopes, cancellationToken, versions, database, () => ReadMenuVersionsAsync(menuNames, cancellationToken)) : null;
         foreach (var name in menuNames)
         {
             await Read("menu:" + name, async () =>
         {
-            var menu = await menus.ReadAsync(name, null, cancellationToken);
+            GXMenu menu;
+            if (loadedMenus != null && loadedMenus.TryGetValue(name, out var loaded))
+            {
+                if (loaded.Error != null)
+                {
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(loaded.Error).Throw();
+                }
+                menu = loaded.Menu!;
+            }
+            else
+            {
+                menu = await menus.ReadAsync(name, null, cancellationToken);
+            }
             if (string.IsNullOrWhiteSpace(menu.Name))
             {
                 return;

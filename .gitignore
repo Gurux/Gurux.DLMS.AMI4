@@ -277,3 +277,4 @@ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/appsettings.Development.json
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI/Tests/
 /Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/Testing/
 /.github/workflows/ui-tests.yml
+/Gurux.DLMS.AMI.ContainerUpdater/.vs

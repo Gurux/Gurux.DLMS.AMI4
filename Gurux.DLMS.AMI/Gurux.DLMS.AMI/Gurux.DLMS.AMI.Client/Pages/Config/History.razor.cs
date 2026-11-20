@@ -41,7 +41,9 @@ namespace Gurux.DLMS.AMI.Client.Pages;
 public partial class History : IDisposable
 {
     [Inject] private HttpClient Http { get; set; } = default!;
-    [Inject] private AuthenticationStateProvider Authentication { get; set; } = default!;
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
     [Inject] private IServiceProvider Services { get; set; } = default!;
     [Inject] private IGXAmiConfirmation Confirmation { get; set; } = default!;
 
@@ -59,9 +61,15 @@ public partial class History : IDisposable
     private bool _applyingDefaults;
 
     /// <inheritdoc />
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        _isAdmin = (await Authentication.GetAuthenticationStateAsync()).User.IsInRole(Shared.GXRoles.Admin);
+        var authenticationState = AuthenticationState;
+        var isAdmin = (await authenticationState).User.IsInRole(Shared.GXRoles.Admin);
+        if (authenticationState != AuthenticationState || _disposed)
+        {
+            return;
+        }
+        _isAdmin = isAdmin;
         if (_disposed)
         {
             return;
@@ -71,8 +79,11 @@ public partial class History : IDisposable
         await LoadTypesAsync();
     }
 
+    /// <summary>Loads recording settings for the current identity and rejects superseded responses.</summary>
+    /// <returns>A task that completes after current recording settings are retrieved.</returns>
     private async Task LoadTypesAsync()
     {
+        var authenticationState = AuthenticationState;
         if (_disposed || _loadingTypes || _saving.Count != 0)
         {
             return;
@@ -87,7 +98,7 @@ public partial class History : IDisposable
         {
             var response = await Http.PostAsJson<ListChangeHistoryTypesResponse>("api/ChangeHistoryType/List",
                 new ListChangeHistoryTypes { OrderBy = nameof(GXChangeHistoryType.Name) }, cancellation.Token);
-            if (!_disposed)
+            if (!_disposed && authenticationState == AuthenticationState)
             {
                 _types = [.. response.Items ?? []];
                 _typesLoaded = true;
@@ -96,7 +107,14 @@ public partial class History : IDisposable
         catch (AccessTokenNotAvailableException error) { error.Redirect(); }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception error) { NotificationService?.ReportError(error, "Pages/History.LoadTypesAsync"); }
-        finally { _loadingTypes = false; }
+        finally
+        {
+            _loadingTypes = false;
+            if (!_disposed && authenticationState != AuthenticationState)
+            {
+                await LoadTypesAsync();
+            }
+        }
     }
 
     private async Task SaveRecordingAsync(GXChangeHistoryType type, bool value)

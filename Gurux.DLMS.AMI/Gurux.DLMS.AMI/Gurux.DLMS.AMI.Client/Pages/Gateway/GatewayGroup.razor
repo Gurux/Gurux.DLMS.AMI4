@@ -167,7 +167,7 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_action != CrudAction.Delete && !GXEditContexts.For(Active).Validate()) {
+            if (_action != CrudAction.Delete && !await GXEditContexts.ValidateAsync(GXEditContexts.For(Active))) {
                 return;
             }
             using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingGatewayGroup);

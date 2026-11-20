@@ -51,7 +51,6 @@
 @inject IServiceProvider Services
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject AuthenticationStateProvider Authentication
 @inject IGXAmiConfirmation Confirmation
 @implements IDisposable
 @implements IGXAmiComponent
@@ -161,6 +160,10 @@ else if (_canView)
 
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     /// <summary>Defines the default columns and formatting used by the page's table.</summary>
     private static readonly GXViewColumn[] _viewColumnDefaults =
     [
@@ -205,7 +208,12 @@ else if (_canView)
     private bool _canView;
     protected override async Task OnParametersSetAsync()
     {
-        var caller = (await Authentication.GetAuthenticationStateAsync()).User;
+        var authenticationState = AuthenticationState;
+        var caller = (await authenticationState).User;
+        if (authenticationState != AuthenticationState)
+        {
+            return;
+        }
         _canView = caller.Identity?.IsAuthenticated == true &&
             (User == null || ClientHelpers.GetUserId(caller, false) == User.Id);
     }

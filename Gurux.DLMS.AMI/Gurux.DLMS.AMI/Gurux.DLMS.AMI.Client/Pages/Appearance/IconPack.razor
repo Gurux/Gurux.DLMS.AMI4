@@ -350,10 +350,10 @@
     /// Edit theme.
     /// </summary>
 
+    /// <param name="value">The icon pack to clone for editing.</param>
     private void Edit(GXAppearance value)
     {
         _active = ClientHelpers.Clone<GXAppearance>(value);
-        StateHasChanged();
     }
 
     /// <summary>
@@ -411,7 +411,6 @@
     public void Cancel()
     {
         _active = null;
-        StateHasChanged();
     }
 
     public void Dispose()

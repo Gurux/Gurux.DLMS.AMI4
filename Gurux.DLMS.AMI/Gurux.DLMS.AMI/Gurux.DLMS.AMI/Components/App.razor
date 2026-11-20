@@ -42,6 +42,7 @@
     <meta name="gx-wasm-version" content="@(System.Diagnostics.FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location).FileVersion)" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    <link rel="stylesheet" href="_restarting/restarting.css" />
     <link rel="stylesheet" data-gx-bootstrap href="@Assets["_content/Gurux.UI.Components/Appearance/themes/default.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Gurux.DLMS.AMI.styles.css"]" />
@@ -52,6 +53,7 @@
 
 <body>
     <Routes @rendermode="PageRenderMode" />
+    <script src="_restarting/restarting.js"></script>
     <script src="deployment-version.js"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>

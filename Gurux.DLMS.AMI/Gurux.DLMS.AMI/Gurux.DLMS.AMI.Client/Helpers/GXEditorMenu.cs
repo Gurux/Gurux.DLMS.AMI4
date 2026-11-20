@@ -48,6 +48,8 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
     private bool _busy;
     /// <summary>Prevents command callbacks from acting after the menu has been released.</summary>
     private bool _disposed;
+    /// <summary>Invalidates pending validation and save callbacks when the editor is replaced or disposed.</summary>
+    private int _generation;
     /// <summary>Form context of the save callback currently issuing navigation on this asynchronous flow.</summary>
     private static readonly AsyncLocal<EditContext?> _activeSave = new();
     /// <summary>Form state shared by all tabs editing the current model.</summary>
@@ -78,6 +80,7 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
         {
             return;
         }
+        ++_generation;
         _messages?.Clear();
         Context = GXEditContexts.For(model);
         _messages = new ValidationMessageStore(Context);
@@ -92,12 +95,18 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
                         return;
                     }
                     _busy = true;
+                    var context = Context;
+                    var generation = _generation;
                     var previousSave = _activeSave.Value;
                     try
                     {
-                        if (action == CrudAction.Delete || Validate())
+                        if (action == CrudAction.Delete || await ValidateAsync())
                         {
-                            _activeSave.Value = Context;
+                            if (_disposed || generation != _generation || !ReferenceEquals(Context, context))
+                            {
+                                return;
+                            }
+                            _activeSave.Value = context;
                             await save();
                         }
                     }
@@ -118,22 +127,47 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
         ]);
     }
 
-    /// <summary>Combines data annotation validation with EditContext validation and publishes field errors.</summary>
-    /// <returns>True when both validation passes accept the current model.</returns>
+    /// <summary>Validates forms whose validators complete synchronously without blocking the UI thread.</summary>
+    /// <returns>True when annotation and form validation accept the current model.</returns>
+    /// <exception cref="InvalidOperationException">The form requires asynchronous validation; use <see cref="ValidateAsync"/> instead.</exception>
     public bool Validate()
     {
-        _messages?.Clear();
+        var validation = ValidateAsync();
+        if (!validation.IsCompleted)
+        {
+            throw new InvalidOperationException(Properties.Resources.ResourceManager.GetString("AsyncValidationRequired"));
+        }
+        return validation.GetAwaiter().GetResult();
+    }
+
+    /// <summary>Combines annotation and form validation, awaiting asynchronous validators when supported.</summary>
+    /// <returns>True when both validation passes accept the current model.</returns>
+    public async Task<bool> ValidateAsync()
+    {
+        var context = Context;
+        var messages = _messages;
+        var generation = _generation;
+        messages?.Clear();
         var results = new List<ValidationResult>();
-        bool valid = Validator.TryValidateObject(Context.Model, new ValidationContext(Context.Model), results, true);
+#if NET11_0_OR_GREATER
+        bool valid = await Validator.TryValidateObjectAsync(context.Model, new ValidationContext(context.Model), results, true);
+#else
+        bool valid = Validator.TryValidateObject(context.Model, new ValidationContext(context.Model), results, true);
+#endif
+        if (_disposed || generation != _generation || !ReferenceEquals(Context, context))
+        {
+            return false;
+        }
         foreach (var result in results)
             {
             foreach (var member in result.MemberNames.DefaultIfEmpty(string.Empty))
                 {
-                _messages?.Add(new FieldIdentifier(Context.Model, member), result.ErrorMessage ?? string.Empty);
+                messages?.Add(new FieldIdentifier(context.Model, member), result.ErrorMessage ?? string.Empty);
             }
         }
-        Context.NotifyValidationStateChanged();
-        return Context.Validate() && valid;
+        context.NotifyValidationStateChanged();
+        bool formValid = await GXEditContexts.ValidateAsync(context);
+        return !_disposed && generation == _generation && ReferenceEquals(Context, context) && formValid && valid;
     }
 
     /// <summary>Adds a server or application validation message to a field and notifies the form.</summary>
@@ -150,6 +184,7 @@ public sealed class GXEditorMenu(IGXMenuService menus) : IDisposable
     /// <summary>Releases command registrations and validation messages and prevents subsequent command execution.</summary>
     public void Dispose()
     {
+        ++_generation;
         _disposed = true;
         _messages?.Clear();
         _menu.Dispose();

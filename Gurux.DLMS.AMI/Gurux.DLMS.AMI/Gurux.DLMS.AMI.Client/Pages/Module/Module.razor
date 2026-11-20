@@ -42,7 +42,6 @@
 @using Gurux.DLMS.AMI.Client.Layout
 @inject ModuleLoader Loader
 @using Gurux.DLMS.AMI.Module.Enums
-@inject AuthenticationStateProvider Authentication
 @inject IAuthorizationService Authorization
 @inject IGXMenuService SharedMenuService
 @implements IDisposable
@@ -77,6 +76,10 @@
 }
 <br />
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     /// <summary>Owns editing commands and connects their enabled state to the current form.</summary>
     private GXEditorMenu? _editorMenu;
     private GXEditorMenu EditorMenu => _editorMenu ??= new GXEditorMenu(SharedMenuService);
@@ -320,6 +323,26 @@
         }
         ClientHelpers.NavigateToLastPage(NavigationManager);
     }
+    /// <summary>Identifies the authentication snapshot used to authorize the configuration view.</summary>
+    private Task<AuthenticationState>? _authenticationState;
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_authenticationState != AuthenticationState)
+        {
+            _authenticationState = AuthenticationState;
+            _configurationUI = null;
+            _module = null;
+            if (_ready)
+            {
+                await ShowModuleSettings();
+            }
+        }
+    }
+
+    /// <summary>Loads the module configuration component after checking the current user's access.</summary>
+    /// <returns>A task that completes when the authorized configuration view is initialized.</returns>
     public async Task ShowModuleSettings()
     {
         if (_disposed)
@@ -327,9 +350,12 @@
             return;
         }
         var token = _lifetime.Token;
+        var authenticationState = AuthenticationState;
+        var active = Active;
+        var moduleId = active?.Id;
         try
         {
-            if (Active != null && _configurationUI == null)
+            if (active != null && _configurationUI == null)
             {
                 if (!Loader.IsInitialized)
                 {
@@ -341,14 +367,14 @@
                     return;
                 }
 
-                var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == Active.Id)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Configuration && v.Key == null);
-                if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await Authentication.GetAuthenticationStateAsync()).User, declaredView.Policy)).Succeeded)
+                var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == moduleId)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Configuration && v.Key == null);
+                if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await authenticationState).User, declaredView.Policy)).Succeeded)
                 {
                     return;
                 }
 
-                var configurationUI = await Loader.GetViewTypeAsync(Active.Id, AmiViewArea.Configuration, cancellationToken: token);
-                if (_disposed)
+                var configurationUI = await Loader.GetViewTypeAsync(moduleId!, AmiViewArea.Configuration, cancellationToken: token);
+                if (_disposed || authenticationState != AuthenticationState || active != Active || moduleId != Active?.Id)
                 {
                     return;
                 }

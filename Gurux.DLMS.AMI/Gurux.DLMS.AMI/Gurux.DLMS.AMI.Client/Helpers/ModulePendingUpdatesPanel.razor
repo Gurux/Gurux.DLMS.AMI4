@@ -34,7 +34,6 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
-@inject AuthenticationStateProvider Authentication
 @inject IAuthorizationService Authorization
 @inject IGXAmiConfirmation Confirmation
 @inject IGXNotificationService Notifications
@@ -68,42 +67,91 @@
             }
             <button type="button" class="btn btn-secondary" disabled="@_busy" @onclick="CancelAsync">@Properties.Resources.CancelPendingModuleUpdate</button>
         }
-        <button type="button" class="btn btn-link" disabled="@_busy" @onclick="RefreshAsync">@Properties.Resources.Refresh</button>
+        <button type="button" class="btn btn-link" disabled="@_busy" @onclick="RefreshFromMenuAsync">@Properties.Resources.Refresh</button>
     </section>
 }
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     [Parameter] public string? ModuleId { get; set; }
     [Parameter] public EventCallback OnApplied { get; set; }
     private GXModulePendingUpdateStatus? _status;
     private readonly CancellationTokenSource _lifetime = new();
     private bool _authorized, _canRestart, _busy, _restarting, _disposed;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    /// <summary>Defers server requests until the component is interactive.</summary>
+    private bool _interactive;
+    /// <summary>Rejects pending statuses superseded by a newer request.</summary>
+    private long _loadGeneration;
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
     {
-        if (!firstRender)
+        var authenticationState = AuthenticationState;
+        _authorized = false;
+        _canRestart = false;
+        var user = (await authenticationState).User;
+        var authorized = (await Authorization.AuthorizeAsync(user, GXModulePolicies.Add)).Succeeded &&
+            (await Authorization.AuthorizeAsync(user, GXModulePolicies.Edit)).Succeeded;
+        var canRestart = (await Authorization.AuthorizeAsync(user, GXConfigurationPolicies.Edit)).Succeeded;
+        if (_disposed || authenticationState != AuthenticationState)
         {
             return;
         }
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
-        _authorized = (await Authorization.AuthorizeAsync(user, GXModulePolicies.Add)).Succeeded &&
-            (await Authorization.AuthorizeAsync(user, GXModulePolicies.Edit)).Succeeded;
-        _canRestart = (await Authorization.AuthorizeAsync(user, GXConfigurationPolicies.Edit)).Succeeded;
-        await RefreshAsync();
+        _authorized = authorized;
+        _canRestart = canRestart;
+        if (!_authorized)
+        {
+            _status = null;
+        }
+        if (_interactive)
+        {
+            await LoadPendingAsync();
+        }
     }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactive = true;
+            await RefreshAsync();
+        }
+    }
+
+    /// <summary>Reloads pending updates and renders changes requested by the parent module view.</summary>
+    /// <returns>A task that completes after the refreshed status is rendered.</returns>
     public async Task RefreshAsync()
     {
+        await LoadPendingAsync();
+        if (!_disposed)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>Retrieves pending updates without forcing a render during a UI event or parameter update.</summary>
+    /// <returns>A task that completes when the current pending status has been retrieved.</returns>
+    private async Task LoadPendingAsync()
+    {
+        var authenticationState = AuthenticationState;
+        var generation = ++_loadGeneration;
         if (!_authorized || _disposed)
         {
             return;
         }
         try
         {
-            _status = await Http.GetFromJsonAsync<GXModulePendingUpdateStatus>("api/Module/Pending", _lifetime.Token);
-            if (!_disposed)
+            var status = await Http.GetFromJsonAsync<GXModulePendingUpdateStatus>("api/Module/Pending", _lifetime.Token);
+            if (_disposed || authenticationState != AuthenticationState || generation != _loadGeneration || !_authorized)
             {
-                StateHasChanged();
+                return;
             }
+            _status = status;
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {
@@ -113,6 +161,10 @@
             Notifications.ReportError(error, "Modules.Pending");
         }
     }
+    /// <summary>Reloads pending updates when the refresh button is selected.</summary>
+    /// <returns>A task that completes when the refresh finishes.</returns>
+    private Task RefreshFromMenuAsync() => LoadPendingAsync();
+
     private async Task CancelAsync()
     {
         if (_busy)
@@ -124,7 +176,7 @@
         {
             using var response = await Http.PostAsJsonAsync("api/Module/Pending/Cancel", new { }, _lifetime.Token);
             await response.EnsureSuccessAsync(_lifetime.Token);
-            await RefreshAsync();
+            await LoadPendingAsync();
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
         {

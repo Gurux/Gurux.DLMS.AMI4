@@ -30,11 +30,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IGXMenuService Menu
-@inject AuthenticationStateProvider Authentication
 @inject IAuthorizationService Authorization
 @implements IDisposable
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     [Parameter] public string? Source { get; set; }
     [Parameter] public EventCallback OnClear { get; set; }
     private GXPageMenu? _menu;
@@ -54,9 +57,10 @@
         {
             return;
         }
-        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        var authenticationState = AuthenticationState;
+        var user = (await authenticationState).User;
         var allowed = await Authorization.AuthorizeAsync(user, GXLogPolicies.Clear);
-        if (_disposed || version != _version || !allowed.Succeeded)
+        if (_disposed || version != _version || authenticationState != AuthenticationState || !allowed.Succeeded)
         {
             return;
         }

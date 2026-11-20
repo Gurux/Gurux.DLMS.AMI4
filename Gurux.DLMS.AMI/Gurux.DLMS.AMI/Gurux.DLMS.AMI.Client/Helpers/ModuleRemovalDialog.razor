@@ -98,11 +98,11 @@
         }
         _mode=ModuleDataRemoval.Preserve;_results=[];_error=null;_open=true;StateHasChanged();
     }
+    /// <summary>Closes the removal dialog when no removal is in progress.</summary>
     public void Cancel() {
         if (!_busy)
         {
             _open = false;
-            StateHasChanged();
         }
     }
     private async Task ConfirmAsync()

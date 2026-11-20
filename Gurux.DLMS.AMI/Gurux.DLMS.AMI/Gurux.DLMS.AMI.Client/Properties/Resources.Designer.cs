@@ -10,8 +10,8 @@
 
 namespace Gurux.DLMS.AMI.Client.Properties {
     using System;
-
-
+    
+    
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -19,19 +19,19 @@ namespace Gurux.DLMS.AMI.Client.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-
+        
         private static global::System.Resources.ResourceManager resourceMan;
-
+        
         private static global::System.Globalization.CultureInfo resourceCulture;
-
+        
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Resources() {
         }
-
+        
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return resourceMan;
             }
         }
-
+        
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -59,7 +59,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 resourceCulture = value;
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to About.
         /// </summary>
@@ -68,7 +68,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("About", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to For information about Gurux products, see:.
         /// </summary>
@@ -77,7 +77,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AboutInfo", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to About Gurux.DLMS.AMI.
         /// </summary>
@@ -86,7 +86,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AboutTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Access control.
         /// </summary>
@@ -95,7 +95,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AccessControl", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manage roles and access policies..
         /// </summary>
@@ -104,7 +104,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AccessControlDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Access failed.
         /// </summary>
@@ -113,7 +113,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AccessFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Access rights.
         /// </summary>
@@ -122,7 +122,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AccessRights", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Access visibility.
         /// </summary>
@@ -131,7 +131,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AccessVisibility", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Action.
         /// </summary>
@@ -140,7 +140,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Action", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Actions.
         /// </summary>
@@ -149,7 +149,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Actions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Action tasks added..
         /// </summary>
@@ -158,7 +158,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ActionTasksAdded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Activate.
         /// </summary>
@@ -167,7 +167,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Activate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Activation.
         /// </summary>
@@ -176,7 +176,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Activation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Active.
         /// </summary>
@@ -185,7 +185,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Active", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Active device errors.
         /// </summary>
@@ -194,7 +194,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ActiveDeviceErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Active system errors.
         /// </summary>
@@ -203,7 +203,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ActiveSystemErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Activities.
         /// </summary>
@@ -212,7 +212,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Activities", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Add.
         /// </summary>
@@ -221,7 +221,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Add", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Add all.
         /// </summary>
@@ -230,7 +230,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AddAll", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Add device.
         /// </summary>
@@ -239,7 +239,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AddDevice", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Add missing defaults.
         /// </summary>
@@ -248,7 +248,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AddMissingNotificationDefaults", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Add schedule.
         /// </summary>
@@ -257,7 +257,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AddSchedule", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Add to favorites.
         /// </summary>
@@ -266,7 +266,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AddToFavorites", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Administrator.
         /// </summary>
@@ -275,7 +275,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Admin", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Administrator settings.
         /// </summary>
@@ -284,7 +284,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AdministratorSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Advanced.
         /// </summary>
@@ -293,7 +293,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Advanced", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent.
         /// </summary>
@@ -302,7 +302,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Agent", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent group.
         /// </summary>
@@ -311,7 +311,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent groups.
         /// </summary>
@@ -320,7 +320,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent ID.
         /// </summary>
@@ -329,7 +329,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentID", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent logs.
         /// </summary>
@@ -338,7 +338,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agents.
         /// </summary>
@@ -347,7 +347,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Agents", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent access token created. Copy the token now; you will not be able to view it again..
         /// </summary>
@@ -356,7 +356,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentTokenCreateSucceeded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to update the agents?\r\nAll running jobs will complete before this action begins. All queued jobs will be delayed until the update is complete..
         /// </summary>
@@ -365,7 +365,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Agent updates.
         /// </summary>
@@ -374,7 +374,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AgentUpdatesTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Algorithm.
         /// </summary>
@@ -383,7 +383,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Algorithm", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Alive time.
         /// </summary>
@@ -392,7 +392,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AliveTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All.
         /// </summary>
@@ -401,7 +401,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("All", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All newer versions.
         /// </summary>
@@ -410,7 +410,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllNewerVersions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Allow clients to retrieve feeds and map tiles through this server..
         /// </summary>
@@ -419,7 +419,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllowClientsToRetrieveFeedsAndMapTilesThroughThisServer", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Allow column customization.
         /// </summary>
@@ -428,7 +428,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllowColumnCustomization", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enable lockout for new users.
         /// </summary>
@@ -437,7 +437,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllowedForNewUsers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Allowed server origins (one per line).
         /// </summary>
@@ -446,7 +446,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllowedServerOriginsOnePerLine", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Allowed username characters.
         /// </summary>
@@ -455,7 +455,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllowedUserNameCharacters", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All (AND).
         /// </summary>
@@ -464,7 +464,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AllRequirements", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Also available.
         /// </summary>
@@ -473,7 +473,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AlsoAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gurux.DLMS.AMI forum.
         /// </summary>
@@ -482,7 +482,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AmiForum", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to If you have questions or need help, visit the.
         /// </summary>
@@ -491,7 +491,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AMiQuestions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to AMI did not confirm the restart. Check the server or its service manager, then refresh this page..
         /// </summary>
@@ -500,7 +500,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AmiRestartNotConfirmed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Number of rows shown in the view.
         /// </summary>
@@ -509,7 +509,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AmountOfTheRowsShownOnTheView", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Announcement.
         /// </summary>
@@ -518,7 +518,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Announcement", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Announcements.
         /// </summary>
@@ -527,7 +527,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Announcements", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to An unhandled error has occurred..
         /// </summary>
@@ -536,7 +536,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AnUnhandledErrorHasOccurred", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to At least one (OR).
         /// </summary>
@@ -545,7 +545,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AnyRequirement", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Appearance.
         /// </summary>
@@ -554,7 +554,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Appearance", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Appearances.
         /// </summary>
@@ -563,7 +563,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Appearances", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Application settings.
         /// </summary>
@@ -572,7 +572,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ApplicationSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Review the server settings and configure the options needed for your installation..
         /// </summary>
@@ -581,7 +581,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ApplicationSettingsDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Apply built-in defaults?.
         /// </summary>
@@ -590,7 +590,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ApplyBuiltInDefaults", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Apply defaults.
         /// </summary>
@@ -599,7 +599,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ApplyDefaults", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to A remote object identifier is required..
         /// </summary>
@@ -608,7 +608,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ARemoteObjectIdentifierIsRequired", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear device history? This action cannot be undone..
         /// </summary>
@@ -617,7 +617,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearDeviceHistoryThisActionCannotBeUndone", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear the errors?.
         /// </summary>
@@ -626,7 +626,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear history? This action cannot be undone..
         /// </summary>
@@ -635,7 +635,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearHistoryThisActionCannotBeUndone", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear the log?.
         /// </summary>
@@ -644,7 +644,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearLog", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear the history of object {0}? This action cannot be undone..
         /// </summary>
@@ -653,7 +653,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearObject0HistoryThisActionCannotBeUndone", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear performance counters?.
         /// </summary>
@@ -662,7 +662,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearPerformance", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear the tasks?.
         /// </summary>
@@ -671,7 +671,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToClearTasks", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to close the errors?.
         /// </summary>
@@ -680,7 +680,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToCloseErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to close the selected items?.
         /// </summary>
@@ -689,7 +689,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToCloseSelectedItems", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to delete the selected items?.
         /// </summary>
@@ -698,7 +698,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToDeleteSelectedItems", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to install the selected items?.
         /// </summary>
@@ -707,7 +707,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToInstallSelectedItems", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to refresh notifications?.
         /// </summary>
@@ -716,7 +716,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToRefreshNotifications", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to regenerate menus?.
         /// </summary>
@@ -725,7 +725,97 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AreYouSureYouWantToRegenerateMenus", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This form requires asynchronous validation..
+        /// </summary>
+        internal static string AsyncValidationRequired {
+            get {
+                return ResourceManager.GetString("AsyncValidationRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Number of bits.
+        /// </summary>
+        internal static string AttributeEnumBitCount {
+            get {
+                return ResourceManager.GetString("AttributeEnumBitCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bit positions start at 0 on the left of the bit string. Enter the start position, field width and named numeric value. Positions can extend beyond 64 bits..
+        /// </summary>
+        internal static string AttributeEnumBitOrderHelp {
+            get {
+                return ResourceManager.GetString("AttributeEnumBitOrderHelp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Each value must be unique within the same field..
+        /// </summary>
+        internal static string AttributeEnumDuplicateValue {
+            get {
+                return ResourceManager.GetString("AttributeEnumDuplicateValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter a whole number between -2147483648 and 2147483647..
+        /// </summary>
+        internal static string AttributeEnumIntegerRequired {
+            get {
+                return ResourceManager.GetString("AttributeEnumIntegerRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter a non-negative start bit and value, and a positive field width. The value must fit within the field..
+        /// </summary>
+        internal static string AttributeEnumInvalidBitField {
+            get {
+                return ResourceManager.GetString("AttributeEnumInvalidBitField", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enter a description for every enumerated value..
+        /// </summary>
+        internal static string AttributeEnumLabelRequired {
+            get {
+                return ResourceManager.GetString("AttributeEnumLabelRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start bit.
+        /// </summary>
+        internal static string AttributeEnumStartBit {
+            get {
+                return ResourceManager.GetString("AttributeEnumStartBit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The enumerated value is outside the range of the attribute data type..
+        /// </summary>
+        internal static string AttributeEnumValueOutOfRange {
+            get {
+                return ResourceManager.GetString("AttributeEnumValueOutOfRange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enumerated values.
+        /// </summary>
+        internal static string AttributeEnumValues {
+            get {
+                return ResourceManager.GetString("AttributeEnumValues", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to Enter an attribute expiration duration shorter than one day..
         /// </summary>
@@ -734,7 +824,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AttributeExpirationLessThanOneDay", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Attribute index.
         /// </summary>
@@ -743,7 +833,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AttributeIndex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read once (static).
         /// </summary>
@@ -752,7 +842,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AttributeReadOnce", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Attributes.
         /// </summary>
@@ -761,7 +851,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Attributes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authentication.
         /// </summary>
@@ -770,7 +860,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Authentication", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authentication in progress.
         /// </summary>
@@ -779,7 +869,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AuthenticationInProgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authentication key.
         /// </summary>
@@ -788,7 +878,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AuthenticationKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authentication service.
         /// </summary>
@@ -797,7 +887,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AuthenticationService", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Author.
         /// </summary>
@@ -806,7 +896,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Author", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authoring information.
         /// </summary>
@@ -815,7 +905,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AuthoringInformation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to By {0} on {1}.
         /// </summary>
@@ -824,7 +914,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AuthoringInformationFormat", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Auto connect.
         /// </summary>
@@ -833,7 +923,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AutoConnect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Identification script for automatic connections.
         /// </summary>
@@ -842,7 +932,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AutoConnectIdentificationScript", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Automatic checks run with the scheduled cron tasks. Manual checks are always available..
         /// </summary>
@@ -851,7 +941,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AutomaticChecksRunWithTheScheduledCronTasksManualChecksAreAlwaysAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Available languages.
         /// </summary>
@@ -860,7 +950,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AvailableLanguages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Available updates.
         /// </summary>
@@ -869,7 +959,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AvailableUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Available version.
         /// </summary>
@@ -878,7 +968,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("AvailableVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Back.
         /// </summary>
@@ -887,7 +977,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Back", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Basic settings.
         /// </summary>
@@ -896,7 +986,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BasicSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Choose your language and time zone in your user settings. Save your changes to apply them to your account..
         /// </summary>
@@ -905,7 +995,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BasicSettingsDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Baud rate.
         /// </summary>
@@ -914,7 +1004,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Baudrate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Block.
         /// </summary>
@@ -923,7 +1013,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Block", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Block cipher key.
         /// </summary>
@@ -932,7 +1022,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BlockCipherKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Blocked.
         /// </summary>
@@ -941,7 +1031,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Blocked", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Block group.
         /// </summary>
@@ -950,7 +1040,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BlockGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Block groups.
         /// </summary>
@@ -959,7 +1049,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BlockGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Blocks.
         /// </summary>
@@ -968,7 +1058,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Blocks", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Block type.
         /// </summary>
@@ -977,7 +1067,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BlockType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Body.
         /// </summary>
@@ -986,7 +1076,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Body", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 0-circle
         ///0-circle-fill
@@ -1036,7 +1126,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BootstrapIcons", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Broadcast key.
         /// </summary>
@@ -1045,7 +1135,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BroadcastKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Built in.
         /// </summary>
@@ -1054,7 +1144,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("BuiltInLanguage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Calculate.
         /// </summary>
@@ -1063,7 +1153,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Calculate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Calculated.
         /// </summary>
@@ -1072,7 +1162,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Calculated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Cancel.
         /// </summary>
@@ -1081,7 +1171,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Cancel", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Cancel pending update.
         /// </summary>
@@ -1090,7 +1180,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CancelPendingModuleUpdate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The default role cannot be removed. Save another role as the default before removing it..
         /// </summary>
@@ -1099,7 +1189,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CannotRemoveDefaultRole", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Capture.
         /// </summary>
@@ -1108,7 +1198,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Capture", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This script is managed by the catalog. Create a copy to change its source code..
         /// </summary>
@@ -1117,7 +1207,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CatalogScriptReadOnly", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Release.
         /// </summary>
@@ -1126,7 +1216,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CatalogUpdateRelease", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Summary.
         /// </summary>
@@ -1135,7 +1225,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CatalogUpdateSummary", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Catalog updates are currently unavailable..
         /// </summary>
@@ -1144,7 +1234,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CatalogUpdatesUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Catalog version.
         /// </summary>
@@ -1153,7 +1243,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CatalogVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Catalog version for {0}.
         /// </summary>
@@ -1162,7 +1252,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CatalogVersionFor0", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Changes.
         /// </summary>
@@ -1171,7 +1261,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Changes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Charge per unit.
         /// </summary>
@@ -1180,7 +1270,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ChargePerUnit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Charge per unit scaling type.
         /// </summary>
@@ -1189,7 +1279,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ChargePerUnitScalingType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Charge tables.
         /// </summary>
@@ -1198,7 +1288,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ChargeTables", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Check for updates.
         /// </summary>
@@ -1207,7 +1297,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CheckForUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Checking updates.
         /// </summary>
@@ -1216,7 +1306,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CheckingUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Check manually.
         /// </summary>
@@ -1225,7 +1315,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CheckManually", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Choose a theme for your workspace. Open Themes, edit a theme, enable it and save. When several themes are enabled, the theme with the highest priority is used..
         /// </summary>
@@ -1234,7 +1324,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ChooseThemeDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Choose the order and visibility of configuration entries..
         /// </summary>
@@ -1243,7 +1333,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ChooseTheOrderAndVisibilityOfConfigurationEntries", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Choose your theme.
         /// </summary>
@@ -1252,7 +1342,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ChooseYourTheme", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Ciphering.
         /// </summary>
@@ -1261,7 +1351,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Ciphering", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Clear.
         /// </summary>
@@ -1270,7 +1360,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Clear", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Clear visible.
         /// </summary>
@@ -1279,7 +1369,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ClearVisible", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Client address.
         /// </summary>
@@ -1288,7 +1378,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ClientAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Client ID.
         /// </summary>
@@ -1297,7 +1387,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ClientID", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Client secret.
         /// </summary>
@@ -1306,7 +1396,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ClientSecret", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Client system title.
         /// </summary>
@@ -1315,7 +1405,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ClientSystemTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Clone.
         /// </summary>
@@ -1324,7 +1414,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Clone", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Closable.
         /// </summary>
@@ -1333,7 +1423,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Closable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Close.
         /// </summary>
@@ -1342,7 +1432,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Close", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Close comparison.
         /// </summary>
@@ -1351,7 +1441,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CloseComparison", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Closed.
         /// </summary>
@@ -1360,7 +1450,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Closed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Closed.
         /// </summary>
@@ -1369,7 +1459,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CloseTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Color.
         /// </summary>
@@ -1378,7 +1468,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Color", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Column.
         /// </summary>
@@ -1387,7 +1477,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Column", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Columns.
         /// </summary>
@@ -1396,7 +1486,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Columns", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Commodity reference type.
         /// </summary>
@@ -1405,7 +1495,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommodityReferenceType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Commodity scaler.
         /// </summary>
@@ -1414,7 +1504,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommodityScaler", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Communication window.
         /// </summary>
@@ -1423,7 +1513,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunicationWindow", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Community publication approved.
         /// </summary>
@@ -1432,7 +1522,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityApprovedTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The device template was approved and a community publication pull request was created. Final publication follows repository review and merge..
         /// </summary>
@@ -1441,7 +1531,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityDeviceTemplateApproved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The device template has been sent for review. You will be notified when a publication pull request is created or the submission is rejected..
         /// </summary>
@@ -1450,7 +1540,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityDeviceTemplatePending", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The device template was rejected for community publication..
         /// </summary>
@@ -1459,7 +1549,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityDeviceTemplateRejected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Community submission could not be tracked.
         /// </summary>
@@ -1468,7 +1558,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityFailedTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Awaiting community review.
         /// </summary>
@@ -1477,7 +1567,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityPendingTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device profile publication details.
         /// </summary>
@@ -1486,7 +1576,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityProfileDetails", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Firmware or variant (optional).
         /// </summary>
@@ -1495,7 +1585,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityProfileFirmware", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enter a manufacturer and model, and select the communication profile to publish..
         /// </summary>
@@ -1504,7 +1594,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityProfileRequiredMetadata", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0}: Community publication approved.
         /// </summary>
@@ -1513,7 +1603,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityPublicationApprovedForName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0}: Community publication rejected.
         /// </summary>
@@ -1522,7 +1612,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityPublicationRejectedForName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The submission could not be tracked. It may have reached the review service. Contact the administrator before retrying..
         /// </summary>
@@ -1531,7 +1621,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityPublishFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Community publication rejected.
         /// </summary>
@@ -1540,7 +1630,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityRejectedTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The script has been sent for review. You will be notified when it is approved or rejected..
         /// </summary>
@@ -1549,7 +1639,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityReviewPending", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0}: Awaiting community review.
         /// </summary>
@@ -1558,7 +1648,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityReviewPendingForName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The script was approved for anonymous community publication. Catalog version: {0}..
         /// </summary>
@@ -1567,7 +1657,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityScriptApproved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The script was rejected for community publication..
         /// </summary>
@@ -1576,7 +1666,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunityScriptRejected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0}: Community submission could not be tracked.
         /// </summary>
@@ -1585,7 +1675,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CommunitySubmissionFailedForName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Compare source.
         /// </summary>
@@ -1594,7 +1684,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CompareSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Compare the source again if the script or catalog has changed..
         /// </summary>
@@ -1603,7 +1693,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CompareTheSourceAgainIfTheScriptOrCatalogHasChanged", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Completed.
         /// </summary>
@@ -1612,7 +1702,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CompletedTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Component.
         /// </summary>
@@ -1621,7 +1711,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Component", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Component type.
         /// </summary>
@@ -1630,7 +1720,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ComponentType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Component.
         /// </summary>
@@ -1639,7 +1729,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ComponentView", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Component group.
         /// </summary>
@@ -1648,7 +1738,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ComponentViewGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Component groups.
         /// </summary>
@@ -1657,7 +1747,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ComponentViewGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Components.
         /// </summary>
@@ -1666,7 +1756,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ComponentViews", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Compression.
         /// </summary>
@@ -1675,7 +1765,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Compression", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Condition.
         /// </summary>
@@ -1684,7 +1774,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Condition", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration.
         /// </summary>
@@ -1693,7 +1783,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Configuration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration is unavailable..
         /// </summary>
@@ -1702,7 +1792,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfigurationIsUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration layout.
         /// </summary>
@@ -1711,7 +1801,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfigurationLayout", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The configuration menu is unavailable..
         /// </summary>
@@ -1720,7 +1810,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfigurationMenuIsUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration tables updated successfully..
         /// </summary>
@@ -1729,7 +1819,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfigurationTablesUpdatedSuccessfully", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configure your account.
         /// </summary>
@@ -1738,7 +1828,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfigureYourAccount", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configure your account by following the steps outlined.
         /// </summary>
@@ -1747,7 +1837,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfigureYourAccountByFollowingTheStepsOutlined", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to A confirmation dialog host is already attached..
         /// </summary>
@@ -1756,7 +1846,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmationDialogHostAlreadyAttached", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Confirm close.
         /// </summary>
@@ -1765,7 +1855,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmClose", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Confirm data clearing.
         /// </summary>
@@ -1774,7 +1864,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmDataClear", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Confirm deletion.
         /// </summary>
@@ -1783,7 +1873,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmDelete", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Confirm installed on meter.
         /// </summary>
@@ -1792,7 +1882,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmInstalledOnMeter", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Restore automatic notification defaults? Other notification subscriptions will be preserved..
         /// </summary>
@@ -1801,7 +1891,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmResetNotificationDefaults", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Confirm restart.
         /// </summary>
@@ -1810,7 +1900,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmRestart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Revoke the selected personal access tokens? They will no longer authenticate new requests..
         /// </summary>
@@ -1819,7 +1909,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmRevokePersonalAccessTokens", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Confirm update.
         /// </summary>
@@ -1828,7 +1918,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConfirmUpdate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Connecting....
         /// </summary>
@@ -1837,7 +1927,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Connecting", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} from {1}.
         /// </summary>
@@ -1846,7 +1936,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConnectionInformationFormat", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Connection uptime.
         /// </summary>
@@ -1855,7 +1945,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ConnectionUpTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content.
         /// </summary>
@@ -1864,7 +1954,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Content", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content group.
         /// </summary>
@@ -1873,7 +1963,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ContentGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content groups.
         /// </summary>
@@ -1882,7 +1972,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ContentGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Contents.
         /// </summary>
@@ -1891,7 +1981,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Contents", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content type.
         /// </summary>
@@ -1900,7 +1990,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ContentType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content type group.
         /// </summary>
@@ -1909,7 +1999,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ContentTypeGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content type groups.
         /// </summary>
@@ -1918,7 +2008,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ContentTypeGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Content types.
         /// </summary>
@@ -1927,7 +2017,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ContentTypes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Copy.
         /// </summary>
@@ -1936,7 +2026,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Copy", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Copyright.
         /// </summary>
@@ -1945,7 +2035,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Copyright", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All rights reserved..
         /// </summary>
@@ -1954,7 +2044,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CopyrightAllRightsReserved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Count.
         /// </summary>
@@ -1963,7 +2053,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Count", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Create device from template.
         /// </summary>
@@ -1972,7 +2062,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CreateDeviceFromTemplate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Create the device immediately..
         /// </summary>
@@ -1981,7 +2071,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CreateTheDeviceImmediately", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Creation time.
         /// </summary>
@@ -1990,7 +2080,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CreationTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Creation time.
         /// </summary>
@@ -1999,7 +2089,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CreationTime2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Creator.
         /// </summary>
@@ -2008,7 +2098,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Creator", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Cron started..
         /// </summary>
@@ -2017,7 +2107,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CronStarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to CSS class.
         /// </summary>
@@ -2026,7 +2116,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CSSClass", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to CSS role.
         /// </summary>
@@ -2035,7 +2125,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CSSRole", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to CSS URL.
         /// </summary>
@@ -2044,7 +2134,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CSSURL", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Current expiration.
         /// </summary>
@@ -2053,7 +2143,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CurrentExpiration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Current saved source.
         /// </summary>
@@ -2062,7 +2152,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CurrentSavedSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Current time.
         /// </summary>
@@ -2071,7 +2161,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CurrentTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Custom.
         /// </summary>
@@ -2080,7 +2170,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Custom", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Custom build.
         /// </summary>
@@ -2089,7 +2179,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("CustomBuild", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Daily.
         /// </summary>
@@ -2098,7 +2188,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Daily", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Data.
         /// </summary>
@@ -2107,7 +2197,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Data", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Database schema updates required.
         /// </summary>
@@ -2116,7 +2206,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DatabaseSchemaUpdatesRequired", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Database updates.
         /// </summary>
@@ -2125,7 +2215,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DatabaseUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Data bits.
         /// </summary>
@@ -2134,7 +2224,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DataBits", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Data index.
         /// </summary>
@@ -2143,7 +2233,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DataIndex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Data type.
         /// </summary>
@@ -2152,7 +2242,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DataType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to days.
         /// </summary>
@@ -2161,7 +2251,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Days", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Deactivate.
         /// </summary>
@@ -2170,7 +2260,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Deactivate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Deactivation.
         /// </summary>
@@ -2179,7 +2269,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Deactivation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default.
         /// </summary>
@@ -2188,7 +2278,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Default", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default device template.
         /// </summary>
@@ -2197,7 +2287,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DefaultDeviceTemplate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default group.
         /// </summary>
@@ -2206,7 +2296,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DefaultGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default lockout duration (minutes).
         /// </summary>
@@ -2215,7 +2305,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DefaultLockoutTimespanInMinutes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default placement.
         /// </summary>
@@ -2224,7 +2314,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DefaultPlacement", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default role.
         /// </summary>
@@ -2233,7 +2323,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DefaultRole", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Default values.
         /// </summary>
@@ -2242,7 +2332,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DefaultValues", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Delete.
         /// </summary>
@@ -2251,7 +2341,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Delete", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Delete module data and tables.
         /// </summary>
@@ -2260,7 +2350,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeleteModuleDataAndTables", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Delete module data, keep tables.
         /// </summary>
@@ -2269,7 +2359,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeleteModuleDataKeepTables", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Delivery.
         /// </summary>
@@ -2278,7 +2368,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Delivery", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Delta.
         /// </summary>
@@ -2287,7 +2377,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Delta", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Description.
         /// </summary>
@@ -2296,7 +2386,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Description", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Destination.
         /// </summary>
@@ -2305,7 +2395,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Destination", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Destroy material.
         /// </summary>
@@ -2314,7 +2404,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DestroyMaterial", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Detected.
         /// </summary>
@@ -2323,7 +2413,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Detected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Detection information.
         /// </summary>
@@ -2332,7 +2422,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DetectionInformation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device.
         /// </summary>
@@ -2341,7 +2431,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Device", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device actions.
         /// </summary>
@@ -2350,7 +2440,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceActions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device errors.
         /// </summary>
@@ -2359,7 +2449,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device group.
         /// </summary>
@@ -2368,7 +2458,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device groups.
         /// </summary>
@@ -2377,7 +2467,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device model profile picture.
         /// </summary>
@@ -2386,7 +2476,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceModelProfilePicture", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device profiles.
         /// </summary>
@@ -2395,7 +2485,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceProfiles", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Devices.
         /// </summary>
@@ -2404,7 +2494,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Devices", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Devices.
         /// </summary>
@@ -2413,7 +2503,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DevicesTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device system title.
         /// </summary>
@@ -2422,7 +2512,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceSystemTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device template.
         /// </summary>
@@ -2431,7 +2521,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No device template file is selected..
         /// </summary>
@@ -2440,7 +2530,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplateFileIsNotSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device template group.
         /// </summary>
@@ -2449,7 +2539,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplateGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device template groups.
         /// </summary>
@@ -2458,7 +2548,25 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplateGroups", resourceCulture);
             }
         }
-
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The device file contains no devices..
+        /// </summary>
+        internal static string DeviceTemplateImportNoDevices {
+            get {
+                return ResourceManager.GetString("DeviceTemplateImportNoDevices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There are no objects. Read the association view first..
+        /// </summary>
+        internal static string DeviceTemplateImportNoObjects {
+            get {
+                return ResourceManager.GetString("DeviceTemplateImportNoObjects", resourceCulture);
+            }
+        }
+        
         /// <summary>
         ///   Looks up a localized string similar to Device template name.
         /// </summary>
@@ -2467,7 +2575,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplateName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device templates.
         /// </summary>
@@ -2476,7 +2584,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device template settings are missing..
         /// </summary>
@@ -2485,7 +2593,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplateSettingsAreMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to [url:config/Manufacturer]Manufacturers[/url] or [url:DeviceTemplate]device templates[/url] must be added before devices can be added..
         /// </summary>
@@ -2494,7 +2602,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplatesNotInstalled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device template type.
         /// </summary>
@@ -2503,7 +2611,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTemplateType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Device traces.
         /// </summary>
@@ -2512,7 +2620,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DeviceTraces", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Direction.
         /// </summary>
@@ -2521,7 +2629,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Direction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Direct permissions.
         /// </summary>
@@ -2530,7 +2638,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DirectPermissions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Disabled.
         /// </summary>
@@ -2539,7 +2647,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Disabled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Discard changes.
         /// </summary>
@@ -2548,7 +2656,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DiscardChanges", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to You have unsaved changes. Do you want to leave this page and discard your changes?.
         /// </summary>
@@ -2557,7 +2665,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DiscardChangesQuestion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Disconnect.
         /// </summary>
@@ -2566,7 +2674,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Disconnect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to DLMS settings.
         /// </summary>
@@ -2575,7 +2683,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DLMSSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Download the agent.
         /// </summary>
@@ -2584,7 +2692,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("DownloadAgent", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Duration.
         /// </summary>
@@ -2593,7 +2701,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Duration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Meter establishes the connection.
         /// </summary>
@@ -2602,7 +2710,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Dynamic", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Edit.
         /// </summary>
@@ -2611,7 +2719,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Edit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Edit a copy.
         /// </summary>
@@ -2620,7 +2728,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EditCopy", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email.
         /// </summary>
@@ -2629,7 +2737,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Email", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email addresses.
         /// </summary>
@@ -2638,7 +2746,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EmailAddresses", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email confirmed.
         /// </summary>
@@ -2647,7 +2755,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EmailConfirmed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email header.
         /// </summary>
@@ -2656,7 +2764,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EmailHeader", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email notifications will be sent when an email provider is available. You can save the settings now..
         /// </summary>
@@ -2666,7 +2774,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "w", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email notification threshold.
         /// </summary>
@@ -2675,7 +2783,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EmailNotificationThreshold", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Email text.
         /// </summary>
@@ -2684,7 +2792,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EmailText", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enabled.
         /// </summary>
@@ -2693,7 +2801,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Enabled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enable Swagger.
         /// </summary>
@@ -2702,7 +2810,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EnableSwagger", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to End time.
         /// </summary>
@@ -2711,7 +2819,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EndTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to End time (optional).
         /// </summary>
@@ -2720,7 +2828,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EndTimeOptional", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to English name.
         /// </summary>
@@ -2729,7 +2837,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("EnglishName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enter one address per line, or separate addresses with commas or semicolons. Leave empty to disable email notifications..
         /// </summary>
@@ -2739,7 +2847,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "eEma", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enumeration.
         /// </summary>
@@ -2748,7 +2856,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Enumeration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Error.
         /// </summary>
@@ -2757,7 +2865,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Error", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Errors.
         /// </summary>
@@ -2766,7 +2874,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Errors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Error severity level.
         /// </summary>
@@ -2775,7 +2883,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ErrorSeverityLevel", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Execute.
         /// </summary>
@@ -2784,7 +2892,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Execute", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Execution time.
         /// </summary>
@@ -2793,7 +2901,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ExecutionTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Expiration.
         /// </summary>
@@ -2802,7 +2910,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Expiration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select a valid date and time later than the current expiration..
         /// </summary>
@@ -2811,7 +2919,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ExpirationMustBeLater", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Expiration time.
         /// </summary>
@@ -2820,7 +2928,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ExpirationTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Expiration times.
         /// </summary>
@@ -2829,7 +2937,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ExpirationTimes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Export.
         /// </summary>
@@ -2838,7 +2946,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Export", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extend expiration.
         /// </summary>
@@ -2847,7 +2955,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ExtendExpiration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extension.
         /// </summary>
@@ -2856,7 +2964,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Extension", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Extensions.
         /// </summary>
@@ -2865,7 +2973,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Extensions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to External identifier.
         /// </summary>
@@ -2874,7 +2982,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ExternalIdentifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Fallback cache timeout (seconds, 0 disables caching).
         /// </summary>
@@ -2883,7 +2991,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FallbackCacheTimeoutSeconds0DisablesCaching", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Favorite.
         /// </summary>
@@ -2892,7 +3000,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Favorite", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Favorites.
         /// </summary>
@@ -2901,7 +3009,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Favorites", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Fields.
         /// </summary>
@@ -2910,7 +3018,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Fields", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Replace empty values with zero.
         /// </summary>
@@ -2919,7 +3027,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Fill", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by attribute index....
         /// </summary>
@@ -2928,7 +3036,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByAttributeIndex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by available version....
         /// </summary>
@@ -2937,7 +3045,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByAvailableVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by close time....
         /// </summary>
@@ -2946,7 +3054,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByCloseTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by creation time....
         /// </summary>
@@ -2955,7 +3063,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByCreationTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by description....
         /// </summary>
@@ -2964,7 +3072,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by detected....
         /// </summary>
@@ -2973,7 +3081,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByDetected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by detection time....
         /// </summary>
@@ -2982,7 +3090,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByDetectionTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by device name....
         /// </summary>
@@ -2991,7 +3099,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByDevice", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by device type....
         /// </summary>
@@ -3000,7 +3108,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByDeviceType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by email....
         /// </summary>
@@ -3009,7 +3117,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByEmail", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by enabled.
         /// </summary>
@@ -3018,7 +3126,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByEnabled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by end time....
         /// </summary>
@@ -3027,7 +3135,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByEndTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by error....
         /// </summary>
@@ -3036,7 +3144,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByError", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by execution time....
         /// </summary>
@@ -3045,7 +3153,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByExecutionTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by given name....
         /// </summary>
@@ -3054,7 +3162,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByGivenName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by IP address....
         /// </summary>
@@ -3063,7 +3171,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByIpAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by last login....
         /// </summary>
@@ -3072,7 +3180,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByLastLogin", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by latest version....
         /// </summary>
@@ -3081,7 +3189,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByLatestVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by location....
         /// </summary>
@@ -3090,7 +3198,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByLocation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by log....
         /// </summary>
@@ -3099,7 +3207,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByLog", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by logical name....
         /// </summary>
@@ -3108,7 +3216,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByLogicalName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by message....
         /// </summary>
@@ -3117,7 +3225,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByMessage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by name....
         /// </summary>
@@ -3126,7 +3234,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by object....
         /// </summary>
@@ -3135,7 +3243,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByObject", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by object type....
         /// </summary>
@@ -3144,7 +3252,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByObjectType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by path....
         /// </summary>
@@ -3153,7 +3261,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByPath", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by read time....
         /// </summary>
@@ -3162,7 +3270,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByReadTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by start time....
         /// </summary>
@@ -3171,7 +3279,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByStartTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by surname....
         /// </summary>
@@ -3180,7 +3288,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterBySurname", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by system title....
         /// </summary>
@@ -3189,7 +3297,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterBySystemTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by type....
         /// </summary>
@@ -3198,7 +3306,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by updated....
         /// </summary>
@@ -3207,7 +3315,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByUpdated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by updated time....
         /// </summary>
@@ -3216,7 +3324,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByUpdatedTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by update time....
         /// </summary>
@@ -3225,7 +3333,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByUpdateTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by user....
         /// </summary>
@@ -3234,7 +3342,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByUser", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by user name....
         /// </summary>
@@ -3243,7 +3351,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByUserName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by value....
         /// </summary>
@@ -3252,7 +3360,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByValue", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by version....
         /// </summary>
@@ -3261,7 +3369,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter by version number....
         /// </summary>
@@ -3270,7 +3378,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterByVersionNumber", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Filter permissions by name.
         /// </summary>
@@ -3279,7 +3387,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FilterPermissionsByName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Firmware file.
         /// </summary>
@@ -3288,7 +3396,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FirmwareFile", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 0
         ///1
@@ -3344,7 +3452,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FontawesomeIcons", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configure the agent with your AMI server address and the token, then start it. Open Agents to check that it has connected. You can review or revoke tokens in your user settings..
         /// </summary>
@@ -3353,7 +3461,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsAgentConfigure", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The agent connects Gurux.DLMS.AMI to your devices. It authenticates to the server with a personal access token (PAT)..
         /// </summary>
@@ -3362,7 +3470,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsAgentDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Open Configure your account and select Download the agent. Install it on a computer that can reach your devices..
         /// </summary>
@@ -3371,7 +3479,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsAgentDownload", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 1. Download an agent and create a PAT.
         /// </summary>
@@ -3380,7 +3488,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsAgentTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to On the same page, enter a token name and expiration time, then generate an access token. Copy the token when it is displayed..
         /// </summary>
@@ -3389,7 +3497,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsAgentToken", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Follow these steps to connect an agent, prepare device templates, add devices, and schedule their operations..
         /// </summary>
@@ -3398,7 +3506,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configure each device with its own connection details and credentials, even when several devices share a template..
         /// </summary>
@@ -3407,7 +3515,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsDeviceDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Save the device, open it from Devices, and read an object to check the connection. Review the device logs if the read fails..
         /// </summary>
@@ -3416,7 +3524,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsDeviceSave", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Review the client and server addresses, authentication and security settings. Enter the credentials and keys required by the device..
         /// </summary>
@@ -3425,7 +3533,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsDeviceSecurity", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Open Add device, choose the appropriate device template, and enter the device name, agent, media and address information..
         /// </summary>
@@ -3434,7 +3542,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsDeviceSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 4. Add and configure a device.
         /// </summary>
@@ -3443,7 +3551,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsDeviceTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Prepare the device settings before adding a device. Use manufacturer settings or import your own Gurux device template..
         /// </summary>
@@ -3452,7 +3560,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsImportDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 2. Import manufacturer settings or a custom device template.
         /// </summary>
@@ -3461,7 +3569,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsImportTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Open Manufacturers, check for available settings, select the manufacturer settings you need, and choose Install..
         /// </summary>
@@ -3470,7 +3578,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsManufacturerImport", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Open Add schedule, give it a name, and set its execution time or recurrence..
         /// </summary>
@@ -3479,7 +3587,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsScheduleCreate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Use a schedule to run device operations automatically..
         /// </summary>
@@ -3488,7 +3596,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsScheduleDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Enable and save the schedule. Review the schedule logs after it runs to check the result..
         /// </summary>
@@ -3497,7 +3605,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsScheduleSave", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Choose the devices and the operations or scripts that the schedule should run..
         /// </summary>
@@ -3506,7 +3614,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsScheduleTargets", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 5. Schedule device operations.
         /// </summary>
@@ -3515,7 +3623,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsScheduleTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Give the device a name and choose the agent and connection settings needed to reach it..
         /// </summary>
@@ -3524,7 +3632,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsTemplateConnection", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to A device template supplies the protocol settings and objects for a device..
         /// </summary>
@@ -3533,7 +3641,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsTemplateDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to To use a custom template, open Add device template, select a .gxc file exported from Gurux.DLMS.Director, review the settings, give the template a name, and save it..
         /// </summary>
@@ -3542,7 +3650,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsTemplateImport", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Review the settings inherited from the template and save the device..
         /// </summary>
@@ -3551,7 +3659,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsTemplateSave", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Open Add device and select the manufacturer, model, version and device settings, or choose a custom device template..
         /// </summary>
@@ -3560,7 +3668,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsTemplateSelect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 3. Create a device from a device template.
         /// </summary>
@@ -3569,7 +3677,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("FundamentalsTemplateTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway.
         /// </summary>
@@ -3578,7 +3686,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Gateway", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway group.
         /// </summary>
@@ -3587,7 +3695,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway groups.
         /// </summary>
@@ -3596,7 +3704,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway ID.
         /// </summary>
@@ -3605,7 +3713,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayID", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway identification script.
         /// </summary>
@@ -3614,7 +3722,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayIdentificationScript", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway identifier.
         /// </summary>
@@ -3623,7 +3731,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayIdentifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway log.
         /// </summary>
@@ -3632,7 +3740,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayLog", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateway logs.
         /// </summary>
@@ -3641,7 +3749,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select a gateway..
         /// </summary>
@@ -3650,7 +3758,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GatewayMustBeSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gateways.
         /// </summary>
@@ -3659,7 +3767,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Gateways", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to General.
         /// </summary>
@@ -3668,7 +3776,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("General", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to General information.
         /// </summary>
@@ -3677,7 +3785,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GeneralInformation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generate access token.
         /// </summary>
@@ -3686,7 +3794,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GenerateAccessToken", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generation.
         /// </summary>
@@ -3695,7 +3803,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Generation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Generic.
         /// </summary>
@@ -3704,7 +3812,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Generic", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Customize your workspace, learn the basics, and connect your first device..
         /// </summary>
@@ -3713,7 +3821,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GetStartedDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Get Started with Gurux.DLMS.AMI.
         /// </summary>
@@ -3722,7 +3830,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GetStartedWithGuruxDlmsAmi", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Given name.
         /// </summary>
@@ -3731,7 +3839,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GivenName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Bring site online.
         /// </summary>
@@ -3740,7 +3848,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GoOnLine", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Group.
         /// </summary>
@@ -3749,7 +3857,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Group", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Gurux DLMS AMI.
         /// </summary>
@@ -3758,7 +3866,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("GuruxDLMSAMI", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Hello.
         /// </summary>
@@ -3767,7 +3875,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Hello", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to here.
         /// </summary>
@@ -3776,7 +3884,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Here", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Hex.
         /// </summary>
@@ -3785,7 +3893,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Hex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Hide on listed pages.
         /// </summary>
@@ -3794,7 +3902,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HideOnListedPages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Hide {0}.
         /// </summary>
@@ -3803,7 +3911,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HideWalkthroughCard", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Themes with higher priority are preferred when several are available..
         /// </summary>
@@ -3812,7 +3920,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HigherPriorityThemesArePreferredWhenSeveralAreAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Home.
         /// </summary>
@@ -3821,7 +3929,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Home", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Host name.
         /// </summary>
@@ -3830,7 +3938,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HostName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to hours.
         /// </summary>
@@ -3839,7 +3947,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Hours", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to HTML style:.
         /// </summary>
@@ -3848,7 +3956,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HTMLStyle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to HTTP proxy.
         /// </summary>
@@ -3857,7 +3965,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HTTPProxy", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to https://example.com/feed.xml.
         /// </summary>
@@ -3866,7 +3974,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("HttpsExampleComFeedXml", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Icon.
         /// </summary>
@@ -3875,7 +3983,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Icon", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Icon pack.
         /// </summary>
@@ -3884,7 +3992,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("IconPack", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Icons.
         /// </summary>
@@ -3893,7 +4001,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Icons", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to ID.
         /// </summary>
@@ -3902,7 +4010,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Id", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Identification:.
         /// </summary>
@@ -3911,7 +4019,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Identification", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Identifier.
         /// </summary>
@@ -3920,7 +4028,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Identifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Identify wait time.
         /// </summary>
@@ -3929,7 +4037,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("IdentifyWaitTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Publish immediately.
         /// </summary>
@@ -3938,7 +4046,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Immediately", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Import.
         /// </summary>
@@ -3947,7 +4055,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Import", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Import custom device template.
         /// </summary>
@@ -3956,7 +4064,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ImportCustomDeviceTemplate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Importing script.
         /// </summary>
@@ -3965,7 +4073,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ImportingScript", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Import script.
         /// </summary>
@@ -3974,7 +4082,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ImportScript", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Include the scheme and optional port, for example https://gurux.fi and https://tile.openstreetmap.org. Wildcards and private networks are not allowed..
         /// </summary>
@@ -3984,7 +4092,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "Wild", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Index.
         /// </summary>
@@ -3993,7 +4101,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Index", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Inherit.
         /// </summary>
@@ -4002,7 +4110,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Inherit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Install.
         /// </summary>
@@ -4011,7 +4119,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Install", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All {0} {1} settings..
         /// </summary>
@@ -4020,7 +4128,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InstallAllSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Installation.
         /// </summary>
@@ -4029,7 +4137,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Installation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Installed.
         /// </summary>
@@ -4038,7 +4146,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Installed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to install support for the following meters?.
         /// </summary>
@@ -4047,7 +4155,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InstallMetersVerify", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to All {0} versions..
         /// </summary>
@@ -4056,7 +4164,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InstallVersions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Interface.
         /// </summary>
@@ -4065,7 +4173,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Interface", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Interface type.
         /// </summary>
@@ -4074,7 +4182,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InterfaceType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authenticated users.
         /// </summary>
@@ -4083,7 +4191,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Internal", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Interval.
         /// </summary>
@@ -4092,7 +4200,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Interval", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid action..
         /// </summary>
@@ -4101,7 +4209,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidAction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid alive time..
         /// </summary>
@@ -4110,7 +4218,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidAliveTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid attribute index..
         /// </summary>
@@ -4119,7 +4227,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidAttributeIndex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid authentication key..
         /// </summary>
@@ -4128,7 +4236,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidAuthenticationKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid block cipher key..
         /// </summary>
@@ -4137,7 +4245,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidBlockCipherKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid broadcast key.
         /// </summary>
@@ -4146,7 +4254,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidBroadcastKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid destination..
         /// </summary>
@@ -4155,7 +4263,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidDestination", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid expiration time..
         /// </summary>
@@ -4164,7 +4272,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidExpirationTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid firmware..
         /// </summary>
@@ -4173,7 +4281,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidFirmware", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid host name..
         /// </summary>
@@ -4182,7 +4290,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidHostName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Sorry, there&apos;s nothing at this address..
         /// </summary>
@@ -4191,7 +4299,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidHttpAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid ID..
         /// </summary>
@@ -4200,7 +4308,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidId", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid identification..
         /// </summary>
@@ -4209,7 +4317,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidIdentification", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid identifier..
         /// </summary>
@@ -4218,7 +4326,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidIdentifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid index..
         /// </summary>
@@ -4227,7 +4335,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidIndex", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid index.
         /// </summary>
@@ -4236,7 +4344,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidIndex2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid interval..
         /// </summary>
@@ -4245,7 +4353,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidInterval", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid password or key..
         /// </summary>
@@ -4254,7 +4362,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid key type..
         /// </summary>
@@ -4263,7 +4371,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidKeyType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid link..
         /// </summary>
@@ -4272,7 +4380,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidLink", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid name..
         /// </summary>
@@ -4281,7 +4389,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid notification action..
         /// </summary>
@@ -4290,7 +4398,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidNotificationAction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The notifier is invalid..
         /// </summary>
@@ -4299,7 +4407,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidNotifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid object..
         /// </summary>
@@ -4308,7 +4416,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidObject", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid password..
         /// </summary>
@@ -4317,7 +4425,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidPassword", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid port..
         /// </summary>
@@ -4326,7 +4434,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidPort", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid start time..
         /// </summary>
@@ -4335,7 +4443,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidStartTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid system title..
         /// </summary>
@@ -4344,7 +4452,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidSystemTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid target..
         /// </summary>
@@ -4353,7 +4461,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidTarget", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid text..
         /// </summary>
@@ -4362,7 +4470,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidText", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invalid thread count..
         /// </summary>
@@ -4371,7 +4479,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvalidThreadsAmount", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invite.
         /// </summary>
@@ -4380,7 +4488,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Invite", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Invocation counter.
         /// </summary>
@@ -4389,7 +4497,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("InvocationCounter", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to IP address.
         /// </summary>
@@ -4398,7 +4506,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("IpAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Keep data and tables.
         /// </summary>
@@ -4407,7 +4515,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeepDataAndTables", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key management.
         /// </summary>
@@ -4416,7 +4524,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagement", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authentication key.
         /// </summary>
@@ -4425,7 +4533,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementAuthenticationKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Broadcast key.
         /// </summary>
@@ -4434,7 +4542,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementBroadcast", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key management group.
         /// </summary>
@@ -4443,7 +4551,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key management groups.
         /// </summary>
@@ -4452,7 +4560,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to High-level security password.
         /// </summary>
@@ -4461,7 +4569,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementHLSPassword", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key management ID.
         /// </summary>
@@ -4470,7 +4578,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementID", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key.
         /// </summary>
@@ -4479,7 +4587,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Keys.
         /// </summary>
@@ -4488,7 +4596,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementKeys", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key type.
         /// </summary>
@@ -4497,7 +4605,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementKeyType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Low-level security password.
         /// </summary>
@@ -4506,7 +4614,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementLLSPassword", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key management logs.
         /// </summary>
@@ -4515,7 +4623,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Master key.
         /// </summary>
@@ -4524,7 +4632,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementMasterKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Private key.
         /// </summary>
@@ -4533,7 +4641,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementPrivateKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Public key.
         /// </summary>
@@ -4542,7 +4650,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementPublicKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key management.
         /// </summary>
@@ -4551,7 +4659,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagements", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unicast key.
         /// </summary>
@@ -4560,7 +4668,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyManagementUnicastKey", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key material is hidden..
         /// </summary>
@@ -4569,7 +4677,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyMaterialIsHidden", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key material is hidden. Import a new key to rotate it; use lifecycle actions to change its state..
         /// </summary>
@@ -4578,7 +4686,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyMaterialIsHiddenImportANewKeyToRotateItUseLifecycleActionsToChangeItsState", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key storage.
         /// </summary>
@@ -4587,7 +4695,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KeyStorage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to KMIP connection name.
         /// </summary>
@@ -4596,7 +4704,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KMIPConnectionName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to KMIP server.
         /// </summary>
@@ -4605,7 +4713,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("KMIPServer", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Language.
         /// </summary>
@@ -4614,7 +4722,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Language", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Languages.
         /// </summary>
@@ -4623,7 +4731,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Languages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last action.
         /// </summary>
@@ -4632,7 +4740,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastAction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last checked: {0} ago..
         /// </summary>
@@ -4641,7 +4749,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastChecked", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last delivery.
         /// </summary>
@@ -4650,7 +4758,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastDevelivery", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last error.
         /// </summary>
@@ -4659,7 +4767,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastError", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last execution time.
         /// </summary>
@@ -4668,7 +4776,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastExecutionTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last login.
         /// </summary>
@@ -4677,7 +4785,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastLogin", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last read.
         /// </summary>
@@ -4686,7 +4794,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastRead", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last write.
         /// </summary>
@@ -4695,7 +4803,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LastWrite", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Latest (including prereleases).
         /// </summary>
@@ -4704,7 +4812,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LatestIncludingPrereleases", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Latest stable.
         /// </summary>
@@ -4713,7 +4821,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LatestStable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Learn the fundamentals.
         /// </summary>
@@ -4722,7 +4830,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LearnTheFundamentals", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Level.
         /// </summary>
@@ -4731,7 +4839,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Level", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to /lib/bootstrap-icons/bootstrap-icons.min.css.
         /// </summary>
@@ -4740,7 +4848,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LibBootstrapIconsBootstrapIconsMinCss", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to License.
         /// </summary>
@@ -4749,7 +4857,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("License", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Lifecycle.
         /// </summary>
@@ -4758,7 +4866,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Lifecycle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Link.
         /// </summary>
@@ -4767,7 +4875,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Link", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Links.
         /// </summary>
@@ -4776,7 +4884,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Links", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to List.
         /// </summary>
@@ -4785,7 +4893,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("List", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Listener port.
         /// </summary>
@@ -4794,7 +4902,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ListenerPort", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Loading.
         /// </summary>
@@ -4803,7 +4911,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Loading", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Loading….
         /// </summary>
@@ -4812,7 +4920,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Loading2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Loading....
         /// </summary>
@@ -4821,7 +4929,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Loading3", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Loading update settings….
         /// </summary>
@@ -4830,7 +4938,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LoadingUpdateSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Local changes.
         /// </summary>
@@ -4839,7 +4947,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LocalChanges", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Local encrypted storage.
         /// </summary>
@@ -4848,7 +4956,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LocalEncryptedStorage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Localization.
         /// </summary>
@@ -4857,7 +4965,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Localization", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The localization catalog is not configured..
         /// </summary>
@@ -4866,7 +4974,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LocalizationCatalogIsNotConfigured", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Localization version for {0}.
         /// </summary>
@@ -4875,7 +4983,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LocalizationVersionFor0", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Localize.
         /// </summary>
@@ -4884,7 +4992,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Localize", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Location.
         /// </summary>
@@ -4893,7 +5001,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Location", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Location order.
         /// </summary>
@@ -4902,7 +5010,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LocationOrder", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Lockout.
         /// </summary>
@@ -4911,7 +5019,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Lockout", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log agent actions.
         /// </summary>
@@ -4920,7 +5028,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogAgentActions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log device actions.
         /// </summary>
@@ -4929,7 +5037,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogDeviceActions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to /Log/Edit/.
         /// </summary>
@@ -4938,7 +5046,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogEdit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Logging.
         /// </summary>
@@ -4947,7 +5055,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Logging", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Logical address.
         /// </summary>
@@ -4956,7 +5064,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogicalAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Logical device name.
         /// </summary>
@@ -4965,7 +5073,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogicalDeviceName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Logical name.
         /// </summary>
@@ -4974,7 +5082,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogicalName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log in.
         /// </summary>
@@ -4983,7 +5091,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Login", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log out.
         /// </summary>
@@ -4992,7 +5100,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogOut", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Logs.
         /// </summary>
@@ -5001,7 +5109,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Logs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log schedule actions.
         /// </summary>
@@ -5010,7 +5118,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogScheduleActions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log slow REST requests to the system log when their duration reaches this many milliseconds..
         /// </summary>
@@ -5019,7 +5127,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogSlowRESTRequestsToTheSystemLogWhenTheirDurationReachesThisManyMilliseconds", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log source is required..
         /// </summary>
@@ -5028,7 +5136,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogSourceIsRequired", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log type.
         /// </summary>
@@ -5037,7 +5145,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log types.
         /// </summary>
@@ -5046,7 +5154,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogTypes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log user actions.
         /// </summary>
@@ -5055,7 +5163,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("LogUserActions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to When maintenance mode is enabled, only administrators can access the site. Other visitors see the message configured below. Administrators can sign in directly on the login page..
         /// </summary>
@@ -5064,7 +5172,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MaintenanceModeDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Maintenance mode is expected to end at.
         /// </summary>
@@ -5073,7 +5181,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MaintenanceModeEnds", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manage.
         /// </summary>
@@ -5082,7 +5190,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Manage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manage script catalog updates.
         /// </summary>
@@ -5091,7 +5199,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ManageScriptCatalogUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manufacturer.
         /// </summary>
@@ -5100,7 +5208,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Manufacturer", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manufacturer group.
         /// </summary>
@@ -5109,7 +5217,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ManufacturerGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manufacturer groups.
         /// </summary>
@@ -5118,7 +5226,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ManufacturerGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manufacturers.
         /// </summary>
@@ -5127,7 +5235,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Manufacturers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Mark compromised.
         /// </summary>
@@ -5136,7 +5244,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MarkCompromised", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 10k
         ///10mp
@@ -5209,7 +5317,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MaterialIcons", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Maximum.
         /// </summary>
@@ -5218,7 +5326,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Maximum", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Maximum failed access attempts.
         /// </summary>
@@ -5227,7 +5335,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MaximumFailedAccessAttempts", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Maximum notifications.
         /// </summary>
@@ -5236,7 +5344,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MaximumNotifications", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Maximum response size (bytes).
         /// </summary>
@@ -5245,7 +5353,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MaximumResponseSizeBytes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Media.
         /// </summary>
@@ -5254,7 +5362,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Media", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menu.
         /// </summary>
@@ -5263,7 +5371,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Menu", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menu defaults have been applied..
         /// </summary>
@@ -5272,7 +5380,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MenuDefaultsHaveBeenApplied", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Manage menus and menu links..
         /// </summary>
@@ -5281,7 +5389,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MenuDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menu group.
         /// </summary>
@@ -5290,7 +5398,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MenuGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menu groups.
         /// </summary>
@@ -5299,7 +5407,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MenuGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menu kind.
         /// </summary>
@@ -5308,7 +5416,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MenuKind", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menu location.
         /// </summary>
@@ -5317,7 +5425,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MenuLocation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Menus.
         /// </summary>
@@ -5326,7 +5434,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Menus", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Message.
         /// </summary>
@@ -5335,7 +5443,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Message", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Meter ID for deployment confirmation.
         /// </summary>
@@ -5344,7 +5452,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("MeterIDForDeploymentConfirmation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Method.
         /// </summary>
@@ -5353,7 +5461,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Method", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Minimum.
         /// </summary>
@@ -5362,7 +5470,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Minimum", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to minutes.
         /// </summary>
@@ -5371,7 +5479,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Minutes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Model.
         /// </summary>
@@ -5380,7 +5488,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Model", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Models.
         /// </summary>
@@ -5389,7 +5497,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Models", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module.
         /// </summary>
@@ -5398,7 +5506,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Module", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module data.
         /// </summary>
@@ -5407,7 +5515,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleData", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No module file is selected..
         /// </summary>
@@ -5416,7 +5524,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleFileIsNotSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module group.
         /// </summary>
@@ -5425,7 +5533,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module groups.
         /// </summary>
@@ -5434,7 +5542,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module logs.
         /// </summary>
@@ -5443,7 +5551,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The server must restart to apply the module changes. Restart now?.
         /// </summary>
@@ -5452,7 +5560,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleNeedsRestart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Pending version:.
         /// </summary>
@@ -5461,7 +5569,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModulePendingVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module removal is already pending..
         /// </summary>
@@ -5470,7 +5578,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleRemovalIsAlreadyPending", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Running version:.
         /// </summary>
@@ -5479,7 +5587,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleRunningVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Modules.
         /// </summary>
@@ -5488,7 +5596,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModulesTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module updated..
         /// </summary>
@@ -5497,7 +5605,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module updated. Restart the server to apply the change..
         /// </summary>
@@ -5506,7 +5614,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdatedRestartTheServerToApplyTheChange", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module update failed.
         /// </summary>
@@ -5515,7 +5623,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdateFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module update prepared. Restart AMI to apply it..
         /// </summary>
@@ -5524,7 +5632,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdatePrepared", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The update failed. Previous module versions were retained. See the server log for details..
         /// </summary>
@@ -5533,7 +5641,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdatePreviousVersionsRetained", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Module update prepared — restart required.
         /// </summary>
@@ -5542,7 +5650,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdateRestartRequired", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The module updates were applied successfully..
         /// </summary>
@@ -5551,7 +5659,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ModuleUpdatesApplied", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Name.
         /// </summary>
@@ -5560,7 +5668,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Name", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Name:.
         /// </summary>
@@ -5569,7 +5677,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Name2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Native name.
         /// </summary>
@@ -5578,7 +5686,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NativeName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Navigation menu.
         /// </summary>
@@ -5587,7 +5695,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NavigationMenu", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Network.
         /// </summary>
@@ -5596,7 +5704,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Network", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Never.
         /// </summary>
@@ -5605,7 +5713,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Never", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to New expiration.
         /// </summary>
@@ -5614,7 +5722,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NewExpiration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Next delivery.
         /// </summary>
@@ -5623,7 +5731,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NextDevelivery", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Next estimated run time.
         /// </summary>
@@ -5632,7 +5740,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NextEstimatedRunTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
@@ -5641,7 +5749,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("No", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No additional language packages are currently available in the catalog..
         /// </summary>
@@ -5650,7 +5758,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoAdditionalLanguagePackages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No appearance is selected..
         /// </summary>
@@ -5659,7 +5767,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoAppearanceIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No authentication configuration is selected..
         /// </summary>
@@ -5668,7 +5776,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoAuthenticationConfigurationIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No recent updates are available..
         /// </summary>
@@ -5677,7 +5785,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoCatalogUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No compatible script templates are available..
         /// </summary>
@@ -5686,7 +5794,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoCompatibleScriptTemplatesAreAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No compatible versions.
         /// </summary>
@@ -5695,7 +5803,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoCompatibleVersions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No device profiles are installed or available..
         /// </summary>
@@ -5704,7 +5812,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoDeviceProfileUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No installable version is available..
         /// </summary>
@@ -5713,7 +5821,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoInstallableVersionAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No item has been selected..
         /// </summary>
@@ -5722,7 +5830,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoItemHasBeenSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No item is selected..
         /// </summary>
@@ -5731,7 +5839,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoItemIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No language is selected..
         /// </summary>
@@ -5740,7 +5848,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoLanguageIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No localization packages are available for the active languages. Select Check manually to refresh the catalog metadata..
         /// </summary>
@@ -5749,7 +5857,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoLocalizationPackagesForActiveLanguagesRunCheckManuallyToRefreshCatalogMetadata", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No log history is available for this module..
         /// </summary>
@@ -5758,7 +5866,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoLogHistoryIsAvailableForThisModule", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No manufacturer is selected..
         /// </summary>
@@ -5767,7 +5875,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoManufacturerIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No module is selected..
         /// </summary>
@@ -5776,7 +5884,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoModuleIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No modules are installed or available..
         /// </summary>
@@ -5785,7 +5893,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoModuleUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to None.
         /// </summary>
@@ -5794,7 +5902,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("None", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No object is selected..
         /// </summary>
@@ -5803,7 +5911,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoObjectIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No script to execute..
         /// </summary>
@@ -5812,7 +5920,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoScriptToExecute", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No selected attributes..
         /// </summary>
@@ -5821,7 +5929,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoSelectedAttributes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No selected device groups..
         /// </summary>
@@ -5830,7 +5938,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoSelectedDeviceGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No selected devices..
         /// </summary>
@@ -5839,7 +5947,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoSelectedDevices", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No selected objects..
         /// </summary>
@@ -5848,7 +5956,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoSelectedObjects", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to You are not authorized to access this resource..
         /// </summary>
@@ -5857,7 +5965,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotAuthorized", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Not found.
         /// </summary>
@@ -5866,7 +5974,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Nothing.
         /// </summary>
@@ -5875,7 +5983,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Nothing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Nothing to write..
         /// </summary>
@@ -5884,7 +5992,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NothingToWrite", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notification.
         /// </summary>
@@ -5893,7 +6001,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Notification", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notification delivery.
         /// </summary>
@@ -5902,7 +6010,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationDelivery", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notification group.
         /// </summary>
@@ -5911,7 +6019,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notification groups.
         /// </summary>
@@ -5920,7 +6028,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notification log.
         /// </summary>
@@ -5929,7 +6037,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notification port.
         /// </summary>
@@ -5938,7 +6046,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationPort", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notifications.
         /// </summary>
@@ -5947,7 +6055,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Notifications", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} was added..
         /// </summary>
@@ -5956,7 +6064,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationTargetAdded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} was cleared..
         /// </summary>
@@ -5965,7 +6073,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationTargetCleared", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} was closed..
         /// </summary>
@@ -5974,7 +6082,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationTargetClosed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} was deleted..
         /// </summary>
@@ -5983,7 +6091,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationTargetDeleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} was edited..
         /// </summary>
@@ -5992,7 +6100,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotificationTargetEdited", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Notify.
         /// </summary>
@@ -6001,7 +6109,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Notify", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Not imported.
         /// </summary>
@@ -6010,7 +6118,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NotImported", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No tutorial videos are available..
         /// </summary>
@@ -6019,7 +6127,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoTutorialVideos", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No updates for installed manufacturers..
         /// </summary>
@@ -6028,7 +6136,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoUpdatesForInstalledManufacturers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No user is selected..
         /// </summary>
@@ -6037,7 +6145,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("NoUserIsSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Objects.
         /// </summary>
@@ -6046,7 +6154,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Objects", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Object templates.
         /// </summary>
@@ -6055,7 +6163,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ObjectTemplates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Object type.
         /// </summary>
@@ -6064,7 +6172,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ObjectType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to OK.
         /// </summary>
@@ -6073,7 +6181,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Ok", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to One exact page path per line. Use / for the home page. Leave empty to show on all pages..
         /// </summary>
@@ -6082,7 +6190,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("OneExactPagePathPerLineUseForTheHomePageLeaveEmptyToShowOnAllPages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Only security updates.
         /// </summary>
@@ -6091,7 +6199,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("OnlySecurityUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Operation.
         /// </summary>
@@ -6100,7 +6208,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Operation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Options.
         /// </summary>
@@ -6109,7 +6217,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Options", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Order.
         /// </summary>
@@ -6118,7 +6226,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Order", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Owner.
         /// </summary>
@@ -6127,7 +6235,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Owner", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Owner compatibility.
         /// </summary>
@@ -6136,7 +6244,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("OwnerCompatibility", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The page is unavailable, or you do not have permission to access it..
         /// </summary>
@@ -6145,7 +6253,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PageIsUnavailableOrAccessIsNotPermitted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Page not found.
         /// </summary>
@@ -6154,7 +6262,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PageNotFound", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Pages.
         /// </summary>
@@ -6163,7 +6271,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Pages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Page selection path.
         /// </summary>
@@ -6172,7 +6280,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PageSelectionPath", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Page size.
         /// </summary>
@@ -6181,7 +6289,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PageSize", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Page visibility.
         /// </summary>
@@ -6190,7 +6298,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PageVisibility", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Parameters.
         /// </summary>
@@ -6199,7 +6307,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Parameters", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Parity.
         /// </summary>
@@ -6208,7 +6316,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Parity", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Password.
         /// </summary>
@@ -6217,7 +6325,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Password", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Path.
         /// </summary>
@@ -6226,7 +6334,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Path", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Path relative to the server&apos;s public content directory (wwwroot)..
         /// </summary>
@@ -6235,7 +6343,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PathRelativeToTheServerSPublicContentDirectoryWwwroot", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The pending module update changed while AMI was restarting. Refresh the module list to see its current status..
         /// </summary>
@@ -6244,7 +6352,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PendingModuleUpdateChanged", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Performance.
         /// </summary>
@@ -6253,7 +6361,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Performance", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Performance is disabled..
         /// </summary>
@@ -6262,7 +6370,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PerformanceIsDisabled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Performance snapshot interval (seconds): .
         /// </summary>
@@ -6271,7 +6379,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PerformanceSnapshotIntervalSeconds", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Performance snapshot interval in seconds defines how often performance values are saved to the database..
         /// </summary>
@@ -6281,7 +6389,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "tabase", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Permissions.
         /// </summary>
@@ -6290,7 +6398,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Permissions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Permitted usage.
         /// </summary>
@@ -6299,7 +6407,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PermittedUsage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Personal access tokens.
         /// </summary>
@@ -6308,7 +6416,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PersonalAccessTokens", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Physical address.
         /// </summary>
@@ -6317,7 +6425,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PhysicalAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Plain text. Use {Url} for your site&apos;s address. The same text is used for all updates matching the selected threshold..
         /// </summary>
@@ -6327,7 +6435,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "edTh", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Access policies.
         /// </summary>
@@ -6336,7 +6444,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Policies", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Policies.
         /// </summary>
@@ -6345,7 +6453,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Policies2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Policy.
         /// </summary>
@@ -6354,7 +6462,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Policy", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Requirements.
         /// </summary>
@@ -6363,7 +6471,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PolicyRequirements", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Port.
         /// </summary>
@@ -6372,7 +6480,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Port", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Pre-established.
         /// </summary>
@@ -6381,7 +6489,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PreEstablished", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Pre-established connection.
         /// </summary>
@@ -6390,7 +6498,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PreEstablishedConnection", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Preload.
         /// </summary>
@@ -6399,7 +6507,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Preload", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Preloading is enabled by the parent menu..
         /// </summary>
@@ -6408,7 +6516,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PreloadingIsEnabledByTheParentMenu", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to (prerelease).
         /// </summary>
@@ -6417,7 +6525,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Prerelease", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Previously installed source.
         /// </summary>
@@ -6426,7 +6534,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PreviouslyInstalledSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Price scale.
         /// </summary>
@@ -6435,7 +6543,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PriceScale", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Priority.
         /// </summary>
@@ -6444,7 +6552,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Priority", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Priority controls resource ordering..
         /// </summary>
@@ -6453,7 +6561,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PriorityControlsResourceOrdering", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Privacy policy.
         /// </summary>
@@ -6462,7 +6570,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PrivacyPolicy", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Private.
         /// </summary>
@@ -6471,7 +6579,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Private", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read coverage.
         /// </summary>
@@ -6480,7 +6588,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileCoverage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Successfully read.
         /// </summary>
@@ -6489,7 +6597,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileCovered", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Successfully read with no rows.
         /// </summary>
@@ -6498,7 +6606,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileEmpty", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select a valid interval with the end after the start..
         /// </summary>
@@ -6507,7 +6615,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileInvalidRange", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select the interval in local time. Recent values are checked again for delayed measurements..
         /// </summary>
@@ -6516,7 +6624,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileLocalTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Not yet read.
         /// </summary>
@@ -6525,7 +6633,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The selected interval is already covered..
         /// </summary>
@@ -6534,7 +6642,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileNoReadNeeded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Profile picture.
         /// </summary>
@@ -6543,7 +6651,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfilePicture", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to End (exclusive).
         /// </summary>
@@ -6552,7 +6660,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileRangeEnd", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Start (inclusive).
         /// </summary>
@@ -6561,7 +6669,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileRangeStart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read missing values.
         /// </summary>
@@ -6570,7 +6678,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileReadMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The profile read has been queued. Stored values will update when the read completes..
         /// </summary>
@@ -6579,7 +6687,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileReadQueued", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Recent intervals to check again.
         /// </summary>
@@ -6588,7 +6696,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileRefresh", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Profiles.
         /// </summary>
@@ -6597,7 +6705,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Profiles", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No longer available from the meter.
         /// </summary>
@@ -6606,7 +6714,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ProfileUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Protocol.
         /// </summary>
@@ -6615,7 +6723,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Protocol", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Clean up unused items and old data according to retention settings..
         /// </summary>
@@ -6624,7 +6732,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PruneDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Max. items removed per run (0 = no limit).
         /// </summary>
@@ -6633,7 +6741,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PruneMaxItemsPerRun", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to 0 = no limit.
         /// </summary>
@@ -6642,7 +6750,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PruneNoRemovalLimit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Set how long data is kept before cleanup. A retention period of 0 disables cleanup for that category. The removal limit is the maximum number of items removed from each category in one run. Run uses the saved settings..
         /// </summary>
@@ -6651,7 +6759,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PruneRetentionHelp", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retention period.
         /// </summary>
@@ -6660,7 +6768,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PruneRetentionPeriod", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Everyone.
         /// </summary>
@@ -6669,7 +6777,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Public", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Publish.
         /// </summary>
@@ -6678,7 +6786,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Publish", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The selected script will be sent to ami.gurux.fi for review and published anonymously under CC0 1.0 Universal if approved. Review may take some time. You will be notified when the script is approved or rejected..
         /// </summary>
@@ -6687,7 +6795,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PublishCommunityConfirmation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The selected saved device template will be sent anonymously to ami.gurux.fi for review and public distribution under CC0 1.0. Passwords, keys, connection details and meter values are excluded. Approved profiles are proposed to Gurux.DLMS.DeviceProfiles through a GitHub pull request. You will be notified when the proposal is created or rejected..
         /// </summary>
@@ -6696,7 +6804,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PublishDeviceTemplateCommunityConfirmation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Publish to community.
         /// </summary>
@@ -6705,7 +6813,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PublishToCommunity", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Push.
         /// </summary>
@@ -6714,7 +6822,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Push", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Push events.
         /// </summary>
@@ -6723,7 +6831,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("PushEvents", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Raw notification processing.
         /// </summary>
@@ -6732,7 +6840,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RawNotificationProcessing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Raw notifications.
         /// </summary>
@@ -6741,7 +6849,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RawNotifications", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read.
         /// </summary>
@@ -6750,7 +6858,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Read", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reader.
         /// </summary>
@@ -6759,7 +6867,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reader", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Readers.
         /// </summary>
@@ -6768,7 +6876,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Readers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Readers.
         /// </summary>
@@ -6777,7 +6885,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadersTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reading....
         /// </summary>
@@ -6786,7 +6894,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reading", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reading blocks....
         /// </summary>
@@ -6795,7 +6903,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadingBlocks", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to readme.md.
         /// </summary>
@@ -6804,7 +6912,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadmeMd", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read tasks added..
         /// </summary>
@@ -6813,7 +6921,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadTasksAdded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reading failed..
         /// </summary>
@@ -6822,7 +6930,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadTasksFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read tasks in progress..
         /// </summary>
@@ -6831,7 +6939,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadTasksInProgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} of {1} read tasks completed..
         /// </summary>
@@ -6840,7 +6948,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadTasksProgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read tasks queued..
         /// </summary>
@@ -6849,7 +6957,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadTasksQueued", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read task status is unavailable..
         /// </summary>
@@ -6858,7 +6966,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReadTasksUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Ready.
         /// </summary>
@@ -6867,7 +6975,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Ready", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Rebuild.
         /// </summary>
@@ -6876,7 +6984,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Rebuild", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reconnect.
         /// </summary>
@@ -6885,7 +6993,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reconnect", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Refresh.
         /// </summary>
@@ -6894,7 +7002,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Refresh", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Refreshed.
         /// </summary>
@@ -6903,7 +7011,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Refreshed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Regenerate.
         /// </summary>
@@ -6912,7 +7020,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Regenerate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to update the agents&apos; tokens?.
         /// </summary>
@@ -6921,7 +7029,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RegenerateAgentTokens", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Register.
         /// </summary>
@@ -6930,7 +7038,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Register", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Release notes.
         /// </summary>
@@ -6939,7 +7047,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReleaseNotes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reload.
         /// </summary>
@@ -6948,7 +7056,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reload", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remote object identifier.
         /// </summary>
@@ -6957,7 +7065,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoteObjectIdentifier", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove.
         /// </summary>
@@ -6966,7 +7074,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Remove", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove agent logs.
         /// </summary>
@@ -6975,7 +7083,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveAgentLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove all.
         /// </summary>
@@ -6984,7 +7092,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveAll", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Removed.
         /// </summary>
@@ -6993,7 +7101,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Removed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove device logs.
         /// </summary>
@@ -7002,7 +7110,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveDeviceLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove from favorites.
         /// </summary>
@@ -7011,7 +7119,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveFromFavorites", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove gateway logs.
         /// </summary>
@@ -7020,7 +7128,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveGatewayLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove modules.
         /// </summary>
@@ -7029,7 +7137,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveModules", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove performance logs.
         /// </summary>
@@ -7038,7 +7146,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemovePerformanceLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove schedule logs.
         /// </summary>
@@ -7047,7 +7155,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveScheduleLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove system logs.
         /// </summary>
@@ -7056,7 +7164,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveSystemLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove tasks.
         /// </summary>
@@ -7065,7 +7173,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveTasks", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove user logs.
         /// </summary>
@@ -7074,7 +7182,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveUserLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Remove users who have never logged in.
         /// </summary>
@@ -7083,7 +7191,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemoveUsersWhoNewerLoggedIn", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Removing modules….
         /// </summary>
@@ -7092,7 +7200,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RemovingModules", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Replace script source.
         /// </summary>
@@ -7101,7 +7209,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReplaceScriptSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Replacing script source.
         /// </summary>
@@ -7110,7 +7218,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReplacingScriptSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reply.
         /// </summary>
@@ -7119,7 +7227,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reply", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Report.
         /// </summary>
@@ -7128,7 +7236,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Report", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Report group.
         /// </summary>
@@ -7137,7 +7245,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReportGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Report groups.
         /// </summary>
@@ -7146,7 +7254,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReportGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Report logs.
         /// </summary>
@@ -7155,7 +7263,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReportLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reports.
         /// </summary>
@@ -7164,7 +7272,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reports", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Request timeout (seconds).
         /// </summary>
@@ -7173,7 +7281,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequestTimeoutSeconds", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Authentication required.
         /// </summary>
@@ -7182,7 +7290,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireAuthenticatedUser", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a confirmed account.
         /// </summary>
@@ -7191,7 +7299,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireConfirmedAccount", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a confirmed email address.
         /// </summary>
@@ -7200,7 +7308,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireConfirmedEmail", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a confirmed phone number.
         /// </summary>
@@ -7209,7 +7317,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireConfirmedPhoneNumber", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Required.
         /// </summary>
@@ -7218,7 +7326,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Required", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a digit.
         /// </summary>
@@ -7227,7 +7335,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireDigit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Minimum password length.
         /// </summary>
@@ -7236,7 +7344,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequiredLength", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Minimum unique characters.
         /// </summary>
@@ -7245,7 +7353,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequiredUniqueChars", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a lowercase letter.
         /// </summary>
@@ -7254,7 +7362,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireLowercase", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Combine requirements.
         /// </summary>
@@ -7263,7 +7371,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequirementOperator", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a non-alphanumeric character.
         /// </summary>
@@ -7272,7 +7380,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireNonAlphanumeric", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Requires migration.
         /// </summary>
@@ -7281,7 +7389,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequiresMigration", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require a unique email address.
         /// </summary>
@@ -7290,7 +7398,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireUniqueEmail", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Require an uppercase letter.
         /// </summary>
@@ -7299,7 +7407,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RequireUppercase", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Resend count.
         /// </summary>
@@ -7308,7 +7416,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ResendCount", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reset.
         /// </summary>
@@ -7317,7 +7425,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Reset", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Reset to defaults.
         /// </summary>
@@ -7326,7 +7434,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ResetNotificationDefaults", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Restart.
         /// </summary>
@@ -7335,7 +7443,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Restart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Restart AMI.
         /// </summary>
@@ -7344,7 +7452,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RestartAmi", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Restart AMI to apply the prepared module updates? Connections will be interrupted. The configured container or service manager must start AMI again..
         /// </summary>
@@ -7353,7 +7461,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RestartAmiForModuleUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to REST statistics.
         /// </summary>
@@ -7362,7 +7470,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RESTStatistic", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Result.
         /// </summary>
@@ -7371,7 +7479,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Result", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retrieving block groups....
         /// </summary>
@@ -7380,7 +7488,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetrievingBlockGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retrieving script source.
         /// </summary>
@@ -7389,7 +7497,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetrievingScriptSource", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retrieving updates.
         /// </summary>
@@ -7398,7 +7506,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetrievingUpdates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retrieving view....
         /// </summary>
@@ -7407,7 +7515,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetrievingView", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retrieving view group....
         /// </summary>
@@ -7416,7 +7524,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetrievingViewGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Retrieving view groups....
         /// </summary>
@@ -7425,7 +7533,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetrievingViewGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Try again.
         /// </summary>
@@ -7434,7 +7542,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RetryTutorialVideos", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Review publication.
         /// </summary>
@@ -7443,7 +7551,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ReviewCommunityPublication", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Revoke.
         /// </summary>
@@ -7452,7 +7560,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Revoke", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Roles.
         /// </summary>
@@ -7461,7 +7569,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Roles", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to RSS feed URL.
         /// </summary>
@@ -7470,7 +7578,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RSSFeedURL", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Run.
         /// </summary>
@@ -7479,7 +7587,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Run", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Run cron.
         /// </summary>
@@ -7488,7 +7596,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RunCron", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Run cron every.
         /// </summary>
@@ -7497,7 +7605,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("RunCronEvery", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Runtime.
         /// </summary>
@@ -7506,7 +7614,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Runtime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Save.
         /// </summary>
@@ -7515,7 +7623,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Save", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Save as default.
         /// </summary>
@@ -7524,7 +7632,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SaveAsDefault", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Save as default for all users.
         /// </summary>
@@ -7533,7 +7641,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SaveAsDefaultForAllUsers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Save configuration.
         /// </summary>
@@ -7542,7 +7650,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SaveConfigurationText", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Saved.
         /// </summary>
@@ -7551,7 +7659,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Saved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The saved view could not be read..
         /// </summary>
@@ -7560,7 +7668,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SavedViewCouldNotBeRead", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Save the key management and its KMIP connection before binding a remote object..
         /// </summary>
@@ -7569,7 +7677,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SaveTheKeyManagementAndItsKMIPConnectionBeforeBindingARemoteObject", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Saving….
         /// </summary>
@@ -7578,7 +7686,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Saving", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Saving view....
         /// </summary>
@@ -7587,7 +7695,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SavingView", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Saving view group....
         /// </summary>
@@ -7596,7 +7704,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SavingViewGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Scaler.
         /// </summary>
@@ -7605,7 +7713,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Scaler", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedule.
         /// </summary>
@@ -7614,7 +7722,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Schedule", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedule execution time.
         /// </summary>
@@ -7623,7 +7731,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScheduleExecutionTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedule group.
         /// </summary>
@@ -7632,7 +7740,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScheduleGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedule groups.
         /// </summary>
@@ -7641,7 +7749,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScheduleGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedule log.
         /// </summary>
@@ -7650,7 +7758,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScheduleLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedule name.
         /// </summary>
@@ -7659,7 +7767,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScheduleName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Schedules.
         /// </summary>
@@ -7668,7 +7776,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SchedulesTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script.
         /// </summary>
@@ -7677,7 +7785,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Script", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script build {0}. Build time: {1} ms..
         /// </summary>
@@ -7686,7 +7794,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptBuild0BuildTime1Ms", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script catalog.
         /// </summary>
@@ -7695,7 +7803,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptCatalog", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script groups.
         /// </summary>
@@ -7704,7 +7812,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script imported..
         /// </summary>
@@ -7713,7 +7821,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptImported", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script logs.
         /// </summary>
@@ -7722,7 +7830,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script methods.
         /// </summary>
@@ -7731,7 +7839,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptMethods", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script name.
         /// </summary>
@@ -7740,7 +7848,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptName", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Scripts must be rebuilt before they can be used. This may take some time..
         /// </summary>
@@ -7749,7 +7857,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptRebuildWarning", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Scripts.
         /// </summary>
@@ -7758,7 +7866,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Scripts", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Script source replaced..
         /// </summary>
@@ -7767,7 +7875,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ScriptSourceReplaced", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Search.
         /// </summary>
@@ -7776,7 +7884,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Search", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to seconds.
         /// </summary>
@@ -7785,7 +7893,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Seconds", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Security.
         /// </summary>
@@ -7794,7 +7902,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Security", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Security update.
         /// </summary>
@@ -7803,7 +7911,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SecurityUpdate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Security update available.
         /// </summary>
@@ -7812,7 +7920,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SecurityUpdateAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Security update required.
         /// </summary>
@@ -7821,7 +7929,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SecurityUpdateRequired", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select a DLMS key role..
         /// </summary>
@@ -7830,7 +7938,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectADLMSKeyRole", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select an installable module version..
         /// </summary>
@@ -7839,7 +7947,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectAnInstallableModuleVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select a raw notification parser script..
         /// </summary>
@@ -7848,7 +7956,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectARawNotificationParserScript", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selected.
         /// </summary>
@@ -7857,7 +7965,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Selected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selected attributes.
         /// </summary>
@@ -7866,7 +7974,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectedAttributes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selected device groups.
         /// </summary>
@@ -7875,7 +7983,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectedDeviceGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selected devices.
         /// </summary>
@@ -7884,7 +7992,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectedDevices", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selected items will be reset to defaults. Without a selection, only missing defaults will be added..
         /// </summary>
@@ -7894,7 +8002,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selected objects.
         /// </summary>
@@ -7903,7 +8011,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectedObjects", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Selection mode.
         /// </summary>
@@ -7912,7 +8020,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectionMode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select one active personal access token to extend..
         /// </summary>
@@ -7921,7 +8029,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectOneActiveToken", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select one device template to publish..
         /// </summary>
@@ -7930,7 +8038,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectOneDeviceTemplate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select one script to publish..
         /// </summary>
@@ -7939,7 +8047,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectOneScript", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Select visible.
         /// </summary>
@@ -7948,7 +8056,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SelectVisible", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Send.
         /// </summary>
@@ -7957,7 +8065,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Send", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Separate email addresses with commas or semicolons. Leave empty to use your confirmed account email..
         /// </summary>
@@ -7967,7 +8075,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "ail", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Serial number.
         /// </summary>
@@ -7976,7 +8084,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SerialNumber", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Serial port.
         /// </summary>
@@ -7985,7 +8093,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SerialPort", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Server address.
         /// </summary>
@@ -7994,7 +8102,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ServerAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Server content file.
         /// </summary>
@@ -8003,7 +8111,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ServerContentFile", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Server notifications.
         /// </summary>
@@ -8012,7 +8120,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ServerNotifications", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Run on the server.
         /// </summary>
@@ -8021,7 +8129,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ServerSide", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Settings.
         /// </summary>
@@ -8030,7 +8138,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Settings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Settings saved..
         /// </summary>
@@ -8039,7 +8147,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SettingsSaved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Configuration.
         /// </summary>
@@ -8048,7 +8156,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SettingsTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show.
         /// </summary>
@@ -8057,7 +8165,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Show", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show all data.
         /// </summary>
@@ -8066,7 +8174,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowAllData", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show closed errors.
         /// </summary>
@@ -8075,7 +8183,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowClosedErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show data for all users.
         /// </summary>
@@ -8084,7 +8192,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowDataForAllUsers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show filter.
         /// </summary>
@@ -8093,7 +8201,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowFilter", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show menu.
         /// </summary>
@@ -8102,7 +8210,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowMenu", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show on listed pages.
         /// </summary>
@@ -8111,7 +8219,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowOnListedPages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show prereleases.
         /// </summary>
@@ -8120,7 +8228,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowPrereleases", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show removed targets.
         /// </summary>
@@ -8129,7 +8237,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowRemoved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Show total count.
         /// </summary>
@@ -8138,7 +8246,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ShowTotal", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Sign in.
         /// </summary>
@@ -8147,7 +8255,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SignIn", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Sign in.
         /// </summary>
@@ -8156,7 +8264,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SignIn2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Sign in to access this page..
         /// </summary>
@@ -8165,7 +8273,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SignInToAccessThisPage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Site email address.
         /// </summary>
@@ -8174,7 +8282,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SiteEmailAddress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Site information.
         /// </summary>
@@ -8183,7 +8291,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SiteInformation", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The site is in maintenance mode.
         /// </summary>
@@ -8192,7 +8300,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SiteIsInMaintenanceMode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The site is in maintenance mode..
         /// </summary>
@@ -8201,7 +8309,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SiteIsOnMaintenanceMode", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Site version.
         /// </summary>
@@ -8210,7 +8318,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SiteVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Size of the database connection pool.
         /// </summary>
@@ -8219,7 +8327,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SizeOfTheDatabaseConnectionPool", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Slow REST Request.
         /// </summary>
@@ -8228,7 +8336,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SlowRESTRequest", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Some tables still require an update..
         /// </summary>
@@ -8237,7 +8345,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SomeTablesStillRequireAnUpdate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Source.
         /// </summary>
@@ -8246,7 +8354,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Source", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to ?source=.
         /// </summary>
@@ -8255,7 +8363,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Source2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Stack trace.
         /// </summary>
@@ -8264,7 +8372,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StackTrace", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Start.
         /// </summary>
@@ -8273,7 +8381,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Start", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Start time.
         /// </summary>
@@ -8282,7 +8390,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StartTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Start time (optional).
         /// </summary>
@@ -8291,7 +8399,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StartTimeOptional", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to State.
         /// </summary>
@@ -8300,7 +8408,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("State", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Status.
         /// </summary>
@@ -8309,7 +8417,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Status", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Stop bits.
         /// </summary>
@@ -8318,7 +8426,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StopBits", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Stopped waiting for removal. Refresh the module list to check the result..
         /// </summary>
@@ -8327,7 +8435,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StoppedWaitingForRemovalRefreshTheModuleListToCheckTheResult", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Storage ID.
         /// </summary>
@@ -8336,7 +8444,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StorageID", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Stored history.
         /// </summary>
@@ -8345,7 +8453,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("StoredHistory", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Subtotal.
         /// </summary>
@@ -8354,7 +8462,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Subtotal", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Subtotal group.
         /// </summary>
@@ -8363,7 +8471,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SubtotalGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Subtotal groups.
         /// </summary>
@@ -8372,7 +8480,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SubtotalGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Subtotal logs.
         /// </summary>
@@ -8381,7 +8489,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SubtotalLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Subtotals.
         /// </summary>
@@ -8390,7 +8498,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Subtotals", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Supported languages.
         /// </summary>
@@ -8399,7 +8507,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SupportedLanguages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Surname.
         /// </summary>
@@ -8408,7 +8516,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Surname", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to System.
         /// </summary>
@@ -8417,7 +8525,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("System", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Application-defined.
         /// </summary>
@@ -8426,7 +8534,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SystemDefined", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to System log.
         /// </summary>
@@ -8435,7 +8543,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SystemLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to System restarted..
         /// </summary>
@@ -8444,7 +8552,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SystemRestarted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to System settings.
         /// </summary>
@@ -8453,7 +8561,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SystemSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to System title.
         /// </summary>
@@ -8462,7 +8570,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SystemTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to System uptime.
         /// </summary>
@@ -8471,7 +8579,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("SystemUpTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Table.
         /// </summary>
@@ -8480,7 +8588,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Table", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Target.
         /// </summary>
@@ -8489,7 +8597,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Target", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Delete the target and its content..
         /// </summary>
@@ -8498,7 +8606,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TargetDeleteQuestion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Disable the target and unpublish its content..
         /// </summary>
@@ -8507,7 +8615,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TargetDisableQuestion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to No target object is selected..
         /// </summary>
@@ -8516,7 +8624,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TargetObjectHasNotBeenSelected", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Target type.
         /// </summary>
@@ -8525,7 +8633,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TargetType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Task.
         /// </summary>
@@ -8534,7 +8642,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Task", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Task in progress....
         /// </summary>
@@ -8543,7 +8651,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TaskOnProgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Tasks.
         /// </summary>
@@ -8552,7 +8660,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Tasks", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Task status.
         /// </summary>
@@ -8561,7 +8669,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TaskStatus", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Task type.
         /// </summary>
@@ -8570,7 +8678,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TaskType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Task wait time.
         /// </summary>
@@ -8579,7 +8687,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TaskWaitTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Templates.
         /// </summary>
@@ -8588,7 +8696,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Templates", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Template type.
         /// </summary>
@@ -8597,7 +8705,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TemplateType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Text.
         /// </summary>
@@ -8606,7 +8714,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Text", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to    .
         /// </summary>
@@ -8615,7 +8723,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Text2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The agent download URL is missing..
         /// </summary>
@@ -8624,7 +8732,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheAgentDownloadURLIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The attribute template is missing..
         /// </summary>
@@ -8633,7 +8741,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheAttributeTemplateIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The blocks have been regenerated..
         /// </summary>
@@ -8642,7 +8750,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheBlocksHaveBeenRegenerated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The communication window end is missing..
         /// </summary>
@@ -8651,7 +8759,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheCommunicationWindowEndIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The communication window start is missing..
         /// </summary>
@@ -8660,7 +8768,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheCommunicationWindowStartIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The component for this tab is unavailable. Check the menu link settings..
         /// </summary>
@@ -8669,7 +8777,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheComponentForThisTabIsUnavailableCheckTheMenuLinkSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The enum value is missing..
         /// </summary>
@@ -8678,7 +8786,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheEnumValueIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Key metadata is read from the configured KMIP server. Key material is not copied into AMI storage..
         /// </summary>
@@ -8687,7 +8795,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheKeyMetadataIsReadFromTheConfiguredKMIPServerMaterialIsNotCopiedIntoAMIStorage", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The log was not found or is not available to this user..
         /// </summary>
@@ -8696,7 +8804,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheLogWasNotFoundOrIsNotAvailableToThisUser", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The maximum notification count must be positive..
         /// </summary>
@@ -8705,7 +8813,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheMaximumNotificationCountMustBePositive", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Theme.
         /// </summary>
@@ -8714,7 +8822,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Theme", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The modules&apos; database tables will also be removed..
         /// </summary>
@@ -8723,7 +8831,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheModulesDatabaseTablesWillAlsoBeRemoved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The network media type name is missing..
         /// </summary>
@@ -8732,7 +8840,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheNetworkMediaTypeNameIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The notifications have been refreshed..
         /// </summary>
@@ -8741,7 +8849,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheNotificationsHaveBeenRefreshed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The number of raw notification workers must be greater than zero..
         /// </summary>
@@ -8750,7 +8858,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheNumberOfRawNotificationWorkersMustBeGreaterThanZero", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The page list is empty. This block is shown on all pages..
         /// </summary>
@@ -8759,7 +8867,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ThePageListIsEmptyThisBlockIsShownOnAllPages", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The previously installed source is unavailable..
         /// </summary>
@@ -8768,7 +8876,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ThePreviouslyInstalledSourceIsUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to A security update is available for your version of Gurux.DLMS.AMI. Update immediately to protect your server..
         /// </summary>
@@ -8778,7 +8886,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                         "ourS", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The returned comparison does not match the selected script version. Compare the source again..
         /// </summary>
@@ -8787,7 +8895,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheReturnedComparisonDoesNotMatchTheSelectedScriptVersionCompareTheSourceAgain", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The schedule editor is not ready to save..
         /// </summary>
@@ -8796,7 +8904,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheScheduleEditorIsNotReadyToSave", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The selected modules&apos; data will be permanently deleted..
         /// </summary>
@@ -8805,7 +8913,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheSelectedModulesDataWillBePermanentlyDeleted", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The selected version is not available in the current release channel..
         /// </summary>
@@ -8814,7 +8922,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheSelectedVersionIsNotAvailableInTheCurrentReleaseChannel", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The serial media type name is missing..
         /// </summary>
@@ -8823,7 +8931,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheSerialMediaTypeNameIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The server did not return module removal results..
         /// </summary>
@@ -8832,7 +8940,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheServerDidNotReturnModuleRemovalResults", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The user ID is missing..
         /// </summary>
@@ -8841,7 +8949,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TheUserIDIsMissing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This action cannot be undone..
         /// </summary>
@@ -8850,7 +8958,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ThisActionCannotBeUndone", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This is the privacy policy page of our application. Your data is important to us..
         /// </summary>
@@ -8859,7 +8967,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ThisIsThePrivacyPolicyPageOfOurApplicationYourDataIsImportantToUs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This module has no schedule editor..
         /// </summary>
@@ -8868,7 +8976,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ThisModuleHasNoScheduleEditor", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to This script has local changes. Replacing its source will overwrite those changes..
         /// </summary>
@@ -8877,7 +8985,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ThisScriptHasLocalChangesReplacingItsSourceWillOverwriteThoseChanges", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Threads.
         /// </summary>
@@ -8886,7 +8994,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Threads", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Time.
         /// </summary>
@@ -8895,7 +9003,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Time", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Time zone.
         /// </summary>
@@ -8904,7 +9012,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TimeZone", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Title.
         /// </summary>
@@ -8913,7 +9021,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Title", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Copy this token now. It is not stored, and you will not be able to view it again..
         /// </summary>
@@ -8922,7 +9030,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TokenCreateInfo", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Personal access token created. Copy the token now; you will not be able to view it again..
         /// </summary>
@@ -8931,7 +9039,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TokenCreateSucceeded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Tokens.
         /// </summary>
@@ -8940,7 +9048,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TokensTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The token stays the same. Agent settings do not need to be changed..
         /// </summary>
@@ -8949,7 +9057,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TokenValueUnchanged", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read value.
         /// </summary>
@@ -8958,7 +9066,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ToolTipReadValue", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Read values.
         /// </summary>
@@ -8967,7 +9075,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ToolTipReadValues", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Total.
         /// </summary>
@@ -8976,7 +9084,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Total", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Total count.
         /// </summary>
@@ -8985,7 +9093,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TotalCount", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Total time (ms).
         /// </summary>
@@ -8994,7 +9102,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TotalTimeMs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Trace level.
         /// </summary>
@@ -9003,7 +9111,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TraceLevel", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Trace levels.
         /// </summary>
@@ -9012,7 +9120,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TraceLevels", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Traces.
         /// </summary>
@@ -9021,7 +9129,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Traces", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Transfer.
         /// </summary>
@@ -9030,7 +9138,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Transfer", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Trigger.
         /// </summary>
@@ -9039,7 +9147,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Trigger", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Trigger group.
         /// </summary>
@@ -9048,7 +9156,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TriggerGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Trigger groups.
         /// </summary>
@@ -9057,7 +9165,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TriggerGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Triggers.
         /// </summary>
@@ -9066,7 +9174,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Triggers", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Videos.
         /// </summary>
@@ -9075,7 +9183,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TutorialVideos", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Watch Gurux.DLMS.AMI tutorials..
         /// </summary>
@@ -9084,7 +9192,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TutorialVideosDescription", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Videos could not be loaded. Please try again..
         /// </summary>
@@ -9093,7 +9201,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("TutorialVideosUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Type.
         /// </summary>
@@ -9102,7 +9210,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Type", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Type:.
         /// </summary>
@@ -9111,7 +9219,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Type2", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to UI data type.
         /// </summary>
@@ -9120,7 +9228,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UIDataType", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to load the block content file..
         /// </summary>
@@ -9129,7 +9237,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UnableToLoadTheBlockContentFile", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to load the RSS feed..
         /// </summary>
@@ -9138,7 +9246,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UnableToLoadTheRSSFeed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unable to save update settings..
         /// </summary>
@@ -9147,7 +9255,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UnableToSaveUpdateSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unique.
         /// </summary>
@@ -9156,7 +9264,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Unique", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unit.
         /// </summary>
@@ -9165,7 +9273,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Unit", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unit charge active.
         /// </summary>
@@ -9174,7 +9282,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UnitChargeActive", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unit charge passive.
         /// </summary>
@@ -9183,7 +9291,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UnitChargePassive", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unknown.
         /// </summary>
@@ -9192,7 +9300,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Unknown", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Unsaved changes.
         /// </summary>
@@ -9201,7 +9309,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UnsavedChanges", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update.
         /// </summary>
@@ -9210,7 +9318,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Update", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Updated.
         /// </summary>
@@ -9219,7 +9327,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Updated", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update information is unavailable. Check manually to try again..
         /// </summary>
@@ -9228,7 +9336,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateInformationUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Available.
         /// </summary>
@@ -9237,7 +9345,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update settings.
         /// </summary>
@@ -9246,7 +9354,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update settings are unavailable..
         /// </summary>
@@ -9255,7 +9363,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateSettingsAreUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update settings saved..
         /// </summary>
@@ -9264,7 +9372,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateSettingsSaved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} hours.
         /// </summary>
@@ -9273,7 +9381,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesHours", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Installed version.
         /// </summary>
@@ -9282,7 +9390,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesInstalledVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Last checked: {0}.
         /// </summary>
@@ -9291,7 +9399,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesLastChecked", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Latest version.
         /// </summary>
@@ -9300,7 +9408,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesLatestVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Less than a minute ago.
         /// </summary>
@@ -9309,7 +9417,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesLessThanAMinuteAgo", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} minutes.
         /// </summary>
@@ -9318,7 +9426,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesMinutes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Not installed.
         /// </summary>
@@ -9327,7 +9435,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesNotInstalled", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} hour.
         /// </summary>
@@ -9336,7 +9444,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesOneHour", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} minute.
         /// </summary>
@@ -9345,7 +9453,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesOneMinute", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} ago.
         /// </summary>
@@ -9354,7 +9462,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesTimeAgo", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update available.
         /// </summary>
@@ -9363,7 +9471,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesUpdateAvailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Up to date.
         /// </summary>
@@ -9372,7 +9480,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatesUpToDate", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update tables.
         /// </summary>
@@ -9381,7 +9489,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateTables", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Update the following configuration tables to the current schema..
         /// </summary>
@@ -9390,7 +9498,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateTheFollowingConfigurationTablesToTheCurrentSchema", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Updating.
         /// </summary>
@@ -9399,7 +9507,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdateVersion", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Updating….
         /// </summary>
@@ -9408,7 +9516,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Updating", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Updating database schema.
         /// </summary>
@@ -9417,7 +9525,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatingDatabaseSchema", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Updating module.
         /// </summary>
@@ -9426,7 +9534,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpdatingModule", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Upgradeable modules.
         /// </summary>
@@ -9435,7 +9543,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UpgradeableModules", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Upload file.
         /// </summary>
@@ -9444,7 +9552,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UploadFile", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Upload module.
         /// </summary>
@@ -9453,7 +9561,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UploadModule", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to URL.
         /// </summary>
@@ -9462,7 +9570,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Url", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Use Change password in the key list to change the meter password..
         /// </summary>
@@ -9471,7 +9579,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UseChangePasswordInTheKeyList", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Use logical name referencing.
         /// </summary>
@@ -9480,7 +9588,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UseLogicalNameReferencing", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User.
         /// </summary>
@@ -9489,7 +9597,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("User", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User actions.
         /// </summary>
@@ -9498,7 +9606,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserAction", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User actions.
         /// </summary>
@@ -9507,7 +9615,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserActions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to usererror-id.
         /// </summary>
@@ -9516,7 +9624,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UsererrorId", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User errors.
         /// </summary>
@@ -9525,7 +9633,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserErrors", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User group.
         /// </summary>
@@ -9534,7 +9642,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User groups.
         /// </summary>
@@ -9543,7 +9651,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserGroupsTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User management.
         /// </summary>
@@ -9552,7 +9660,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserManagement", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to User settings.
         /// </summary>
@@ -9561,7 +9669,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UserSettings", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Users removed..
         /// </summary>
@@ -9570,7 +9678,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UsersRemoved", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Users.
         /// </summary>
@@ -9579,7 +9687,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("UsersTitle", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Value.
         /// </summary>
@@ -9588,7 +9696,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Value", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Values.
         /// </summary>
@@ -9597,7 +9705,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Values", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Variables.
         /// </summary>
@@ -9606,7 +9714,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Variables", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Verify.
         /// </summary>
@@ -9615,7 +9723,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Verify", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Version.
         /// </summary>
@@ -9624,7 +9732,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Version", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Versions.
         /// </summary>
@@ -9633,7 +9741,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Versions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Version to install.
         /// </summary>
@@ -9642,7 +9750,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("VersionToInstall", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to View defaults have been applied..
         /// </summary>
@@ -9651,7 +9759,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ViewDefaultsHaveBeenApplied", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to View group.
         /// </summary>
@@ -9660,7 +9768,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("ViewGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Visibility.
         /// </summary>
@@ -9669,7 +9777,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Visibility", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Visible.
         /// </summary>
@@ -9678,7 +9786,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Visible", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Waiting for AMI to restart and apply the module updates….
         /// </summary>
@@ -9687,7 +9795,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WaitingForAmiRestart", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Wait time.
         /// </summary>
@@ -9696,7 +9804,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WaitTime", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to The card could not be hidden. Please try again..
         /// </summary>
@@ -9705,7 +9813,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WalkthroughHideFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Your hidden card preferences could not be loaded..
         /// </summary>
@@ -9714,7 +9822,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WalkthroughPreferencesUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Walkthroughs.
         /// </summary>
@@ -9723,7 +9831,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Walkthroughs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to We do not collect or share any personal information without your consent..
         /// </summary>
@@ -9732,7 +9840,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WeDoNotCollectOrShareAnyPersonalInformationWithoutYourConsent", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Weekly.
         /// </summary>
@@ -9741,7 +9849,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Weekly", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Welcome to Gurux.DLMS.AMI..
         /// </summary>
@@ -9750,7 +9858,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WelcomeText", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Who can register accounts.
         /// </summary>
@@ -9759,7 +9867,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WhoCanRegisterAccounts", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Workflow.
         /// </summary>
@@ -9768,7 +9876,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Workflow", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Workflow {0} started at {1}..
         /// </summary>
@@ -9777,7 +9885,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Workflow0StartedAt1", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Workflow group.
         /// </summary>
@@ -9786,7 +9894,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WorkflowGroup", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Workflow groups.
         /// </summary>
@@ -9795,7 +9903,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WorkflowGroups", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Workflow logs.
         /// </summary>
@@ -9804,7 +9912,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WorkflowLogs", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Workflows.
         /// </summary>
@@ -9813,7 +9921,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Workflows", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Write.
         /// </summary>
@@ -9822,7 +9930,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Write", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Write tasks added..
         /// </summary>
@@ -9831,7 +9939,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WriteTasksAdded", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Writing failed..
         /// </summary>
@@ -9840,7 +9948,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WriteTasksFailed", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Write tasks in progress..
         /// </summary>
@@ -9849,7 +9957,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WriteTasksInProgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to {0} of {1} write tasks completed..
         /// </summary>
@@ -9858,7 +9966,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WriteTasksProgress", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Write tasks queued..
         /// </summary>
@@ -9867,7 +9975,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WriteTasksQueued", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Write task status is unavailable..
         /// </summary>
@@ -9876,7 +9984,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("WriteTasksUnavailable", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Yes.
         /// </summary>
@@ -9885,7 +9993,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
                 return ResourceManager.GetString("Yes", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Your site is in maintenance mode..
         /// </summary>

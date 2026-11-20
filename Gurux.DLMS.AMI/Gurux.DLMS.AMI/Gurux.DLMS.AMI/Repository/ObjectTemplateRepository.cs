@@ -326,6 +326,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
+        /// <remarks>Each supplied attribute replaces its non-null enum list within the object's existing history transaction.</remarks>
         public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXObjectTemplate> objects,
             Expression<Func<GXObjectTemplate, object>>? columns, CancellationToken cancellationToken = default)
@@ -343,11 +344,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     if (obj.Id == Guid.Empty)
                     {
+                        foreach (var attribute in obj.Attributes ?? [])
+                        {
+                            GXAttributeListItems.Validate(attribute);
+                        }
                         obj.CreationTime = now;
                         await connection.InsertAsync(GXInsertArgs.Insert(obj), cancellationToken);
                     }
                     else
                     {
+                        var accessible = await connection.SingleOrDefaultAsync<GXObjectTemplate>(
+                            GXQuery.GetObjectTemplatesByUser(ServerHelpers.GetUserId(_user), obj.Id), cancellationToken);
+                        if (accessible == null)
+                        {
+                            throw new GXAmiForbiddenException(obj.Id.ToString());
+                        }
                         if (columns != null)
                         {
                             await connection.UpdateAsync(GXUpdateArgs.Update(obj, columns), cancellationToken);
@@ -357,6 +368,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         {
                             foreach (var att in obj.Attributes)
                             {
+                                var objectId = obj.Id;
+                                var ownership = GXSelectArgs.Select<GXAttributeTemplate>(attribute => attribute.Id,
+                                    attribute => attribute.Id == att.Id);
+                                ownership.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(attribute => attribute.ObjectTemplate!, template => template.Id);
+                                ownership.Where.And<GXObjectTemplate>(template => template.Id == objectId);
+                                var stored = await connection.SingleOrDefaultAsync<GXAttributeTemplate>(ownership, cancellationToken);
+                                if (stored == null)
+                                {
+                                    throw new GXAmiForbiddenException(att.Id.ToString());
+                                }
+                                await GXAttributeListItems.SaveAsync(connection, att, cancellationToken);
                                 await connection.UpdateAsync(GXUpdateArgs.Update(att, u => new
                                 {
                                     u.DefaultValue,

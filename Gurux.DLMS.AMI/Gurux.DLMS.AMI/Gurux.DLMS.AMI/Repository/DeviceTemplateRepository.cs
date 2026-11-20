@@ -433,6 +433,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
+        /// <remarks>The returned object and attribute templates include their named values and bit-field coordinates.</remarks>
         public async Task<GXDeviceTemplate> ReadAsync(Guid id, Expression<Func<GXDeviceTemplate, object>>? columns = null, CancellationToken cancellationToken = default)
         {
             try
@@ -458,6 +459,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Columns.Add<GXAttributeTemplate>();
                 arg.Distinct = true;
                 arg.Joins.AddLeftJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate!);
+                arg.Columns.Add<GXAttributeListItem>();
+                arg.Joins.AddLeftJoin<GXAttributeTemplate, GXAttributeListItem>(attribute => attribute.Id, item => item.Template!);
+                arg.Columns.Exclude<GXAttributeListItem>(item => item.Template!);
                 arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
                 arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate!);
                 ret.Objects = connection.Select<GXObjectTemplate>(arg);
@@ -528,6 +532,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
+        /// <remarks>New templates persist imported attribute value lists in the same transaction as their owning attributes.</remarks>
         public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXDeviceTemplate> DeviceTemplates,
             Expression<Func<GXDeviceTemplate, object>>? columns, CancellationToken cancellationToken = default)
@@ -598,6 +603,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 foreach (var at in ot.Attributes)
                                 {
                                     at.ObjectTemplate = ot;
+                                    foreach (var item in at.ListItems ?? [])
+                                    {
+                                        item.Template = at;
+                                    }
                                 }
                             }
                         }
@@ -635,8 +644,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         e.Updated,
                         e.Removed,
+                        e.ListItems
                     });
                     connection.Insert(transaction, args);
+                    // Persist imported named values after their owning attributes have received identifiers.
+                    var listItems = attributes.SelectMany(attribute => attribute.ListItems ?? []).ToArray();
+                    if (listItems.Length != 0)
+                    {
+                        connection.Insert(transaction, GXInsertArgs.InsertRange(listItems));
+                    }
                     foreach (var it in newTemplates)
                     {
                         notifications.Add((await GetNotifiedUsers(it.Id, NotificationAction.Add, connection, transaction),

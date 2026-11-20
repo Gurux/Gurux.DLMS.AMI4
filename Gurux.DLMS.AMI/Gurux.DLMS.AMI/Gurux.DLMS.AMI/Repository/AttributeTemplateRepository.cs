@@ -300,6 +300,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXQuery.GetAttributeTemplatesByUser(s => s.Id, userId, id);
                 arg.Distinct = true;
+                arg.Columns.Add<GXAttributeListItem>();
+                arg.Joins.AddLeftJoin<GXAttributeTemplate, GXAttributeListItem>(attribute => attribute.Id, item => item.Template!);
+                arg.Columns.Exclude<GXAttributeListItem>(item => item.Template!);
                 await using var connection = await _dbFactory.GetHistoryConnectionAsync();
                 GXAttributeTemplate? obj = await connection.SingleOrDefaultAsync<GXAttributeTemplate>(arg) ?? throw new GXAmiForbiddenException(id.ToString());
                 return obj;
@@ -331,6 +334,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
+        /// <remarks>For full updates, a non-null enum list replaces the stored rows; null preserves existing enum rows.</remarks>
         public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXAttributeTemplate> objects,
             Expression<Func<GXAttributeTemplate, object>>? columns, CancellationToken cancellationToken = default)
@@ -349,12 +353,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     if (obj.Id == Guid.Empty)
                     {
+                        GXAttributeListItems.Validate(obj);
                         obj.CreationTime = now;
                         await connection.InsertAsync(GXInsertArgs.Insert(obj), cancellationToken);
                     }
                     else if (columns != null)
                     {
                         await connection.UpdateAsync(GXUpdateArgs.Update(obj, columns), cancellationToken);
+                    }
+                    else
+                    {
+                        var accessible = await connection.SingleOrDefaultAsync<GXAttributeTemplate>(
+                            GXQuery.GetAttributeTemplatesByUser(attribute => attribute.Id, ServerHelpers.GetUserId(_user), obj.Id), cancellationToken);
+                        if (accessible == null)
+                        {
+                            throw new GXAmiForbiddenException(obj.Id.ToString());
+                        }
+                        await GXAttributeListItems.SaveAsync(connection, obj, cancellationToken);
+                        await connection.UpdateAsync(GXUpdateArgs.Update(obj, attribute => new
+                        {
+                            attribute.Name, attribute.DataType, attribute.UIDataType, attribute.DefaultValue,
+                            attribute.Scaler, attribute.Unit, attribute.AccessLevel, attribute.ExpirationTime, attribute.Weight
+                        }), cancellationToken);
                     }
                 }
                 List<string> users = await GetNotifiedUsers(objects.Select(s => s.Id).ToArray(), NotificationAction.Edit, connection);

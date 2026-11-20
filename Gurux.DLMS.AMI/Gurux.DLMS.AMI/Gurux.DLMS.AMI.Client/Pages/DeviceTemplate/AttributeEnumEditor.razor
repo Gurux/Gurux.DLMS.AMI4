@@ -1,0 +1,342 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Helpers
+@implements IDisposable
+
+<fieldset class="attribute-enum-editor" disabled="@Disabled">
+    <legend class="h6">@GXAttributeEnumValues.Text("AttributeEnumValues")</legend>
+    @if (GXAttributeEnumValues.IsBitString(Template))
+    {
+        <p class="form-text">@GXAttributeEnumValues.Text("AttributeEnumBitOrderHelp")</p>
+    }
+    <GXMenuControl ReadOnly="@Disabled">
+        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="BeginAdd" />
+    </GXMenuControl>
+    <GXTable TItem="GXAttributeListItem" @ref="_table" Context="item" ItemsProvider="GetItems"
+             Save="false" Filter="false" Total="false" ShowAllData="true" ShowAllUsers="false" ShowRemoved="false"
+             Menu="@(!Disabled)" CanEdit="false" SelectionMode="SelectionMode.Single" @bind-Active="_selected" ItemKey="@(item => item)">
+        <MenuContent>
+            @if (!Disabled)
+            {
+                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="BeginEdit" />
+                <GXContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="BeginRemove" />
+            }
+        </MenuContent>
+        <HeaderContent>
+            <th scope="col">@Properties.Resources.Value</th>
+            <th scope="col">@Properties.Resources.Description</th>
+            @if (GXAttributeEnumValues.IsBitString(Template))
+            {
+                <th scope="col">@GXAttributeEnumValues.Text("AttributeEnumStartBit")</th>
+                <th scope="col">@GXAttributeEnumValues.Text("AttributeEnumBitCount")</th>
+            }
+        </HeaderContent>
+        <ItemContent>
+            <td>@item.Value</td>
+            <td>@item.UIValue</td>
+            @if (GXAttributeEnumValues.IsBitString(Template))
+            {
+                <td data-enum-shift>@item.Shift</td>
+                <td>@item.MaskSize</td>
+            }
+        </ItemContent>
+    </GXTable>
+    <ValidationMessage For="@(() => Template.ListItems)" />
+</fieldset>
+@if (_draft != null && _dialogContext != null)
+{
+    <GXDialog @key="_draft" Title="@DialogTitle" Save="false" ManageFocus="true"
+              OkButtonTitle="@(_deleting ? Properties.Resources.Remove : Properties.Resources.Save)"
+              CancelButtonTitle="@Properties.Resources.Cancel" OnOk="ApplyDialogAsync" OnCancel="CancelDialog">
+        <CascadingValue Value="_dialogContext" IsFixed="true">
+            <ValidationSummary />
+            <fieldset disabled="@(Disabled || _deleting)">
+                <div class="form-group">
+                    <label for="@(_dialogId + "-value")">@Properties.Resources.Value</label>
+                    <InputNumber id="@(_dialogId + "-value")" class="form-control" @bind-Value="_draft.Value"
+                                 ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
+                </div>
+                <div class="form-group">
+                    <label for="@(_dialogId + "-description")">@Properties.Resources.Description</label>
+                    <InputText id="@(_dialogId + "-description")" class="form-control" @bind-Value="_draft.UIValue" />
+                </div>
+                @if (GXAttributeEnumValues.IsBitString(Template))
+                {
+                    <div class="form-group">
+                        <label for="@(_dialogId + "-shift")">@GXAttributeEnumValues.Text("AttributeEnumStartBit")</label>
+                        <InputNumber id="@(_dialogId + "-shift")" class="form-control" min="0" @bind-Value="_draft.Shift"
+                                     ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
+                    </div>
+                    <div class="form-group">
+                        <label for="@(_dialogId + "-width")">@GXAttributeEnumValues.Text("AttributeEnumBitCount")</label>
+                        <InputNumber id="@(_dialogId + "-width")" class="form-control" min="1" @bind-Value="_draft.MaskSize"
+                                     ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
+                    </div>
+                }
+            </fieldset>
+            @if (_dialogError != null)
+            {
+                <p role="alert" class="text-danger">@_dialogError</p>
+            }
+        </CascadingValue>
+    </GXDialog>
+}
+
+@code {
+    /// <summary>Gets or sets the attribute whose named values and bit fields are managed.</summary>
+    [Parameter, EditorRequired]
+    public GXAttributeTemplate Template { get; set; } = default!;
+
+    /// <summary>Gets or sets whether commands may change the attribute.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Gets or sets the enclosing template form whose list changes are validated.</summary>
+    [CascadingParameter]
+    private EditContext? FormContext { get; set; }
+
+    /// <summary>Identifies dialog inputs independently of other attribute editors on the page.</summary>
+    private readonly string _dialogId = $"attribute-enum-{Guid.NewGuid():N}";
+    /// <summary>Retains the form whose validation events are subscribed.</summary>
+    private EditContext? _context;
+    /// <summary>Stores validation errors owned by this attribute editor.</summary>
+    private ValidationMessageStore? _validation;
+    /// <summary>Refreshes the displayed rows after a confirmed command.</summary>
+    private GXTable<GXAttributeListItem>? _table;
+    /// <summary>Identifies the row targeted by the context menu.</summary>
+    private GXAttributeListItem? _selected;
+    /// <summary>Tracks the template currently displayed by the table.</summary>
+    private GXAttributeTemplate? _displayedTemplate;
+    /// <summary>Contains the isolated dialog values until confirmation.</summary>
+    private GXAttributeListItem? _draft;
+    /// <summary>Identifies the original row being edited or removed; null indicates an addition.</summary>
+    private GXAttributeListItem? _editing;
+    /// <summary>Validates dialog input without changing the enclosing template form.</summary>
+    private EditContext? _dialogContext;
+    /// <summary>Indicates that the dialog confirms removal rather than editing.</summary>
+    private bool _deleting;
+    /// <summary>Contains a localized error for an invalid proposed list change.</summary>
+    private string? _dialogError;
+
+    /// <summary>Gets the localized operation shown in the dialog title.</summary>
+    private string DialogTitle => _deleting ? Properties.Resources.Remove : _editing == null ? Properties.Resources.Add : Properties.Resources.Edit;
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ReferenceEquals(_displayedTemplate, Template) || Disabled)
+        {
+            _displayedTemplate = Template;
+            _selected = null;
+            CancelDialog();
+        }
+        if (!ReferenceEquals(_context, FormContext))
+        {
+            Dispose();
+            _context = FormContext;
+            if (_context != null)
+            {
+                _validation = new ValidationMessageStore(_context);
+                _context.OnValidationRequested += Validate;
+            }
+        }
+        if (_selected != null && Template.ListItems?.Contains(_selected) != true)
+        {
+            _selected = null;
+            CancelDialog();
+        }
+        if (_table != null)
+        {
+            await _table.RefreshDataAsync(false);
+        }
+    }
+
+    /// <summary>Returns a snapshot of the current working list for the local table.</summary>
+    /// <param name="request">The table's request for the complete local list.</param>
+    /// <returns>The current enum rows and total count.</returns>
+    private ValueTask<ItemsProviderResult<GXAttributeListItem>> GetItems(GXItemsProviderRequest request)
+    {
+        var rows = Template.ListItems?.ToArray() ?? [];
+        return ValueTask.FromResult(new ItemsProviderResult<GXAttributeListItem>(rows, rows.Length));
+    }
+
+    /// <summary>Opens an addition dialog with the first unused value in the default field.</summary>
+    private void BeginAdd()
+    {
+        if (Disabled)
+        {
+            return;
+        }
+        int value = 0;
+        var used = (Template.ListItems ?? []).Where(item => !GXAttributeEnumValues.IsBitString(Template) ||
+            (item.Shift == 0 && item.MaskSize == 1)).Select(item => item.Value).ToHashSet();
+        while (used.Contains(value) && value < int.MaxValue)
+        {
+            ++value;
+        }
+        OpenDialog(new GXAttributeListItem { Value = value, MaskSize = GXAttributeEnumValues.IsBitString(Template) ? 1 : 0 }, null, false);
+    }
+
+    /// <summary>Opens a dialog containing a copy of the selected row.</summary>
+    private void BeginEdit() => BeginSelected(false);
+
+    /// <summary>Opens a read-only confirmation dialog for the selected row.</summary>
+    private void BeginRemove() => BeginSelected(true);
+
+    /// <summary>Copies the selected row so cancellation cannot change its values.</summary>
+    /// <param name="deleting">Whether the copied row is displayed for removal confirmation.</param>
+    private void BeginSelected(bool deleting)
+    {
+        if (Disabled || _selected == null || Template.ListItems?.Contains(_selected) != true)
+        {
+            return;
+        }
+        OpenDialog(new GXAttributeListItem
+        {
+            Id = _selected.Id, Value = _selected.Value, UIValue = _selected.UIValue,
+            Shift = _selected.Shift, MaskSize = _selected.MaskSize
+        }, _selected, deleting);
+    }
+
+    /// <summary>Initializes independent dialog state for the requested operation.</summary>
+    /// <param name="draft">The detached values edited or inspected in the dialog.</param>
+    /// <param name="editing">The existing row, or null when adding a row.</param>
+    /// <param name="deleting">Whether confirmation removes the existing row.</param>
+    private void OpenDialog(GXAttributeListItem draft, GXAttributeListItem? editing, bool deleting)
+    {
+        _draft = draft;
+        _editing = editing;
+        _deleting = deleting;
+        _dialogError = null;
+        _dialogContext = new EditContext(draft);
+    }
+
+    /// <summary>Validates and applies only a confirmed dialog operation to the working template.</summary>
+    /// <returns>A task that completes after the confirmed list change is displayed.</returns>
+    private async Task ApplyDialogAsync()
+    {
+        if (Disabled || _draft == null || _dialogContext == null ||
+            (_editing != null && Template.ListItems?.Contains(_editing) != true))
+        {
+            return;
+        }
+        _dialogError = null;
+        GXAttributeListItem? changedRow = null;
+        if (_deleting)
+        {
+            Template.ListItems!.Remove(_editing!);
+            _selected = null;
+        }
+        else
+        {
+            if (!await GXEditContexts.ValidateAsync(_dialogContext))
+            {
+                return;
+            }
+            var proposed = (Template.ListItems ?? []).Select(item => ReferenceEquals(item, _editing) ? _draft : item).ToList();
+            if (_editing == null)
+            {
+                proposed.Add(_draft);
+            }
+            _dialogError = GXAttributeEnumValues.GetError(new GXAttributeTemplate
+            {
+                DataType = Template.DataType, UIDataType = Template.UIDataType, ListItems = proposed
+            });
+            if (_dialogError != null)
+            {
+                return;
+            }
+            if (_editing == null)
+            {
+                (Template.ListItems ??= []).Add(_draft);
+                changedRow = _draft;
+            }
+            else
+            {
+                _editing.Value = _draft.Value;
+                _editing.UIValue = _draft.UIValue;
+                _editing.Shift = _draft.Shift;
+                _editing.MaskSize = _draft.MaskSize;
+                changedRow = _editing;
+            }
+        }
+        _selected = changedRow;
+        CancelDialog();
+        Changed();
+        if (_table != null)
+        {
+            // The command callback renders the parent after the dialog state and table snapshot agree.
+            await _table.RefreshDataAsync(false);
+        }
+    }
+
+    /// <summary>Discards all pending dialog values without modifying the template.</summary>
+    private void CancelDialog()
+    {
+        _draft = null;
+        _editing = null;
+        _dialogContext = null;
+        _dialogError = null;
+        _deleting = false;
+    }
+
+    /// <summary>Marks confirmed list changes as modified and refreshes form validation.</summary>
+    private void Changed()
+    {
+        _context?.NotifyFieldChanged(new FieldIdentifier(Template, nameof(Template.ListItems)));
+        Validate(this, EventArgs.Empty);
+    }
+
+    /// <summary>Validates this list while preserving errors owned by other attribute editors.</summary>
+    /// <param name="sender">The form or editor requesting validation.</param>
+    /// <param name="args">The validation event arguments.</param>
+    private void Validate(object? sender, EventArgs args)
+    {
+        _validation?.Clear();
+        if (GXAttributeEnumValues.GetError(Template) is string error)
+        {
+            _validation?.Add(new FieldIdentifier(Template, nameof(Template.ListItems)), error);
+        }
+        _context?.NotifyValidationStateChanged();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_context != null)
+        {
+            _context.OnValidationRequested -= Validate;
+            _validation?.Clear();
+            _context.NotifyValidationStateChanged();
+        }
+        _context = null;
+        _validation = null;
+    }
+}

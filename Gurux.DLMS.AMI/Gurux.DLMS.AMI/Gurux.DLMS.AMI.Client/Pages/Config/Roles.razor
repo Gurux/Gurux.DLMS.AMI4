@@ -49,7 +49,6 @@
 @inject NavigationManager NavigationManager
 @inject IGXMenuService SharedMenuService
 @inject HttpClient Http
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAuthorizationService AuthorizationService
 @inject IGXAmiConfirmation Confirmation
 @implements IDisposable
@@ -93,6 +92,10 @@ else if (_initialized)
 </section>
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     /// <summary>Records whether the current user's permissions allow the view roles operation.</summary>
     private bool _canViewRoles;
     /// <summary>Records whether the current user's permissions allow the view policies operation.</summary>
@@ -116,6 +119,46 @@ else if (_initialized)
     [Parameter] public string? Tab { get; set; }
     private string ActiveTab => GXTabRoutes.Active(NavigationManager, "config/access-control", 0,
         new Uri(NavigationManager.Uri).AbsolutePath.TrimEnd('/').EndsWith("/policy", StringComparison.OrdinalIgnoreCase) ? "Policies" : "Roles") ?? "Roles";
+
+    /// <summary>Identifies the authentication snapshot used for role and policy access.</summary>
+    private Task<AuthenticationState>? _authenticationState;
+    /// <summary>Rejects role data superseded by a newer request.</summary>
+    private long _roleLoadGeneration;
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_authenticationState == AuthenticationState)
+        {
+            return;
+        }
+        var authenticationState = AuthenticationState;
+        _authenticationState = authenticationState;
+        _canViewRoles = false;
+        _canViewPolicies = false;
+        var user = (await authenticationState).User;
+        var canViewRoles = (await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded;
+        var canViewPolicies = (await AuthorizationService.AuthorizeAsync(user, GXPolicyPolicies.View)).Succeeded;
+        if (authenticationState != AuthenticationState)
+        {
+            return;
+        }
+        _canViewRoles = canViewRoles;
+        _canViewPolicies = canViewPolicies;
+        if (!_canViewRoles)
+        {
+            _roles.Clear();
+            _originalRoles.Clear();
+            _roleEditor?.EditingRoles.Clear();
+            _editorMenu?.Dispose();
+            _editorMenu = null;
+        }
+        else if (_initialized)
+        {
+            EditorMenu.Set(_roles, CrudAction.Update, OnSave, OnCancel);
+            await Updated();
+        }
+    }
 
     protected override void OnParametersSet()
     {
@@ -284,18 +327,25 @@ else if (_initialized)
     /// </summary>
     protected async Task<bool> Updated()
     {
+        var authenticationState = AuthenticationState;
+        var generation = ++_roleLoadGeneration;
         try
         {
-            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-            if (!(await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded)
+            var user = (await authenticationState).User;
+            if (!(await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded || authenticationState != AuthenticationState || generation != _roleLoadGeneration)
             {
                 return false;
             }
             using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingRoles);
             _notificationService?.RemoveByKey("Pages/Config/Roles.Updated");
-            _permissions = await Http.GetAsJsonAsync<GXPermission[]>("api/Permission") ?? Array.Empty<GXPermission>();
+            var permissions = await Http.GetAsJsonAsync<GXPermission[]>("api/Permission") ?? Array.Empty<GXPermission>();
             ListRoles req = new ListRoles();
             var response = await Http.PostAsJson<ListRolesResponse>("api/Role/List", req);
+            if (authenticationState != AuthenticationState || generation != _roleLoadGeneration)
+            {
+                return false;
+            }
+            _permissions = permissions;
             _roles.Clear();
             _roles.AddRange(response.Roles ?? []);
             _originalRoles.Clear();
@@ -323,6 +373,7 @@ else if (_initialized)
         }
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _notifier = Services.GetService<IGXNotifier>();
@@ -335,9 +386,19 @@ else if (_initialized)
 
         try
         {
-            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-            _canViewRoles = (await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded;
-            _canViewPolicies = (await AuthorizationService.AuthorizeAsync(user, GXPolicyPolicies.View)).Succeeded;
+            var authenticationState = AuthenticationState;
+            _authenticationState = authenticationState;
+            _canViewRoles = false;
+            _canViewPolicies = false;
+            var user = (await authenticationState).User;
+            var canViewRoles = (await AuthorizationService.AuthorizeAsync(user, GXRolePolicies.View)).Succeeded;
+            var canViewPolicies = (await AuthorizationService.AuthorizeAsync(user, GXPolicyPolicies.View)).Succeeded;
+            if (authenticationState != AuthenticationState)
+            {
+                return;
+            }
+            _canViewRoles = canViewRoles;
+            _canViewPolicies = canViewPolicies;
             _notificationService?.RemoveByKey("Pages/Config/Roles.OnInitializedAsync");
             _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
             {

@@ -31,7 +31,6 @@
 @page "/addin/{ModuleId}/{PageName}/{TargetId}"
 @using Gurux.DLMS.AMI.Module
 @using Microsoft.AspNetCore.Components.Authorization
-@inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
 @inject ModuleLoader Loader
 @inject IGXNotificationService Notifications
@@ -56,6 +55,10 @@ else if (_loaded)
 }
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     [Parameter] public string ModuleId { get; set; } = "";
     [Parameter] public string PageName { get; set; } = "";
     [Parameter] public string? TargetId { get; set; }
@@ -95,10 +98,22 @@ else if (_loaded)
         }
     }
     private void Changed() => _ = InvokeAsync(async () => { await ResolveAsync(); StateHasChanged(); });
+    /// <summary>Resolves the requested page while rejecting superseded identity and route results.</summary>
+    /// <returns>A task that completes after the current module page has been resolved.</returns>
     private async Task ResolveAsync()
     {
-        _anonymous = (await Authentication.GetAuthenticationStateAsync()).User.Identity?.IsAuthenticated != true;
-        _component = await Loader.GetPageTypeAsync(ModuleId, PageName, _lifetime.Token);
+        var authenticationState = AuthenticationState;
+        var moduleId = ModuleId;
+        var pageName = PageName;
+        var targetId = TargetId;
+        var anonymous = (await authenticationState).User.Identity?.IsAuthenticated != true;
+        var component = await Loader.GetPageTypeAsync(moduleId, pageName, _lifetime.Token);
+        if (_lifetime.IsCancellationRequested || authenticationState != AuthenticationState || moduleId != ModuleId || pageName != PageName || targetId != TargetId)
+        {
+            return;
+        }
+        _anonymous = anonymous;
+        _component = component;
         _parameters = new Dictionary<string, object>();
         if (_component?.GetProperty("TargetId") != null)
         {

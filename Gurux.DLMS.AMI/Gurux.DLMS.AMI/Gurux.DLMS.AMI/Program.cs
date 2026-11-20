@@ -403,7 +403,10 @@ namespace Gurux.DLMS.AMI
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
+#if !NET11_0_OR_GREATER
+                // .NET 11 launches WebAssembly debugging directly from the IDE.
                 app.UseWebAssemblyDebugging();
+#endif
                 app.UseMigrationsEndPoint();
             }
             else

@@ -42,7 +42,9 @@ namespace Gurux.DLMS.AMI.Client.Pages;
 public partial class ChangeHistory : IDisposable
 {
     [Inject] private HttpClient Http { get; set; } = default!;
-    [Inject] private AuthenticationStateProvider Authentication { get; set; } = default!;
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
 
     private readonly CancellationTokenSource _lifetime = new();
     private GXTable<GXChangeHistoryItem>? _changesTable;
@@ -54,9 +56,15 @@ public partial class ChangeHistory : IDisposable
     private string? _changesError;
 
     /// <inheritdoc />
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        _isAdmin = (await Authentication.GetAuthenticationStateAsync()).User.IsInRole(Shared.GXRoles.Admin);
+        var authenticationState = AuthenticationState;
+        var isAdmin = (await authenticationState).User.IsInRole(Shared.GXRoles.Admin);
+        if (authenticationState != AuthenticationState || _disposed)
+        {
+            return;
+        }
+        _isAdmin = isAdmin;
         if (!_disposed)
         {
             _identityLoaded = true;

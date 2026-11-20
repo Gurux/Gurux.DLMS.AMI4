@@ -48,6 +48,7 @@ using System.Xml.Serialization;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
+    /// <summary>Provides client-side template conversion, navigation and display helpers.</summary>
     public static class ClientHelpers
     {
         /// <summary>Adapts a 64-bit API total to Blazor's 32-bit virtualization limit, preserving the unknown-count sentinel.</summary>
@@ -307,9 +308,12 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         }
 
         /// <summary>
-        /// Convert GXDLMSDirector device file to Gurux.DLMS.AMI device templates.
+        /// Converts a Director device file to AMI templates, preserving explicit OBIS enum values and bit-field coordinates.
         /// </summary>
         /// <param name="xml">XML string.</param>
+        /// <param name="logger">Receives diagnostics for imported object names that must be shortened.</param>
+        /// <returns>The imported device templates with their objects, attributes and named values.</returns>
+        /// <exception cref="InvalidOperationException">The XML is invalid or contains no device array.</exception>
         public static List<GXDeviceTemplate> ConvertToTemplates(ILogger? logger, string xml)
         {
             List<GXDeviceTemplate> templates = [];
@@ -320,19 +324,20 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 types.Add(typeof(GXDLMSAttributeSettings));
                 types.Add(typeof(GXDLMSAttribute));
                 XmlSerializer serializer = new(typeof(GXDLMSDevice[]), null, [.. types], null, "Gurux1");
-                devices = serializer.Deserialize(tr) as GXDLMSDevice[] ?? throw new InvalidOperationException("The device file contains no devices.");
+                devices = serializer.Deserialize(tr) as GXDLMSDevice[] ?? throw new InvalidOperationException(
+                    Properties.Resources.ResourceManager.GetString("DeviceTemplateImportNoDevices"));
             }
 
             _ = new GXDeviceTemplate();
             foreach (GXDLMSDevice it in (devices ?? []))
             {
-                int AssociationViewVersion = 1;
+                int associationViewVersion = 1;
                 GXDeviceTemplate t = new();
                 Copy(t, it);
                 List<GXObjectTemplate> list = [];
                 if (it.Objects.Count == 0)
                 {
-                    throw new Exception("There are no objects. Read the association view first.");
+                    throw new Exception(Properties.Resources.ResourceManager.GetString("DeviceTemplateImportNoObjects"));
                 }
 
                 if (it.UseLogicalNameReferencing)
@@ -342,7 +347,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                     {
                         if (objs[0] is GXDLMSAssociationLogicalName ln)
                         {
-                            AssociationViewVersion = ln.Version;
+                            associationViewVersion = ln.Version;
                         }
                     }
                 }
@@ -373,7 +378,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                             Index = pos,
                             Weight = pos - 1
                         };
-                        if (AssociationViewVersion < 3)
+                        if (associationViewVersion < 3)
                         {
                             a.AccessLevel = (int)value.GetAccess(pos);
                         }
@@ -437,7 +442,25 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                                 a.ExpirationTime = DateTime.MaxValue;
                             }
                         }
-                        if (a.DataType == (int)Gurux.DLMS.Enums.DataType.Enum)
+                        GXObisValueItemCollection? namedValues = value.Attributes.Find(pos)?.Values;
+                        if (namedValues == null || namedValues.Count == 0)
+                        {
+                            namedValues = value.GetValues()[pos - 1] as GXObisValueItemCollection;
+                        }
+                        if (namedValues != null)
+                        {
+                            foreach (GXObisValueItem item in namedValues)
+                            {
+                                (a.ListItems ??= []).Add(new GXAttributeListItem
+                                {
+                                    Value = item.Value,
+                                    UIValue = item.UIValue,
+                                    Shift = item.Shift,
+                                    MaskSize = item.MaskSize
+                                });
+                            }
+                        }
+                        else if (a.DataType == (int)Gurux.DLMS.Enums.DataType.Enum)
                         {
                             //Add enum values as list items.
                             try
@@ -475,7 +498,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                         obj.Attributes.Add(a);
                     }
                     string sb = "";
-                    if (AssociationViewVersion < 3)
+                    if (associationViewVersion < 3)
                     {
                         for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
                         {
@@ -850,121 +873,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 parts[i] = char.ToUpper(word[0]) + word[1..];
             }
             return string.Join(" ", parts);
-        }
-    }
-
-
-    public class CachedHttpClient(
-        HttpClient http,
-        ClientCacheService cache,
-        ILogger<CachedHttpClient> logger)
-    {
-        private readonly HttpClient _http = http;
-        private readonly ClientCacheService _cache = cache;
-        private readonly ILogger<CachedHttpClient> _logger = logger;
-
-        public async Task<T?> GetAsync<T>(
-            string url,
-            TimeSpan cacheTime = default)
-        {
-            if (cacheTime == default)
-            {
-                cacheTime = TimeSpan.FromMinutes(60);
-            }
-            if (_logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation("Getting data from {Url} with cache time {CacheTime}", url, cacheTime);
-            }
-
-            var cached = await _cache.GetAsync<T>(url);
-            if (cached != null)
-            {
-                return cached;
-            }
-            var result = await _http.GetAsJsonAsync<T>(url);
-
-            if (result != null)
-            {
-                await _cache.SetAsync(
-                    url,
-                    result,
-                    cacheTime);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Remove cache for the given url.
-        /// </summary>
-        /// <param name="url">Removed url.</param>
-        public Task RemoveAsync(string url)
-        {
-            if (_logger.IsEnabled(Microsoft.Extensions.Logging.LogLevel.Information))
-            {
-                _logger.LogInformation("Removing cache for {Url}", url);
-            }
-            _cache.RemoveAsync(url);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Clear cache.
-        /// </summary>
-        public Task ClearAsync()
-        {
-            _logger.LogInformation("Clearing all cache");
-            _cache.ClearAsync();
-            return Task.CompletedTask;
-        }
-    }
-
-    public sealed class CacheItem<T>
-    {
-        public T? Value { get; set; }
-        public DateTimeOffset ExpiresAt { get; set; }
-    }
-
-    public sealed class ClientCacheService
-    {
-        private readonly Dictionary<string, CacheItem<object>> _storage = [];
-
-        public Task SetAsync<T>(
-            string key,
-            T value,
-            TimeSpan lifetime)
-        {
-            _storage.Add(key, new CacheItem<object>
-            {
-                Value = value,
-                ExpiresAt = DateTimeOffset.UtcNow.Add(lifetime)
-            });
-            return Task.CompletedTask;
-        }
-
-        public async Task<T?> GetAsync<T>(string key)
-        {
-            if (_storage.TryGetValue(key, out CacheItem<object>? cacheItem))
-            {
-                if (cacheItem.ExpiresAt <= DateTimeOffset.UtcNow)
-                {
-                    await RemoveAsync(key);
-                    return default;
-                }
-                return (T?)cacheItem.Value;
-            }
-            return default;
-        }
-
-        public Task RemoveAsync(string key)
-        {
-            _storage.Remove(key);
-            return Task.CompletedTask;
-        }
-
-        public Task ClearAsync()
-        {
-            _storage.Clear();
-            return Task.CompletedTask;
         }
     }
 }

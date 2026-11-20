@@ -462,7 +462,8 @@ else if (Active != null)
     /// <summary>
     /// Get image from the file.
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="loaded">The uploaded image bytes and original file name.</param>
+    /// <returns>A task that completes after the image change callback finishes.</returns>
     private async Task UpdateImage((byte[]? Value, string FileName) loaded)
     {
         var (value, fileName) = loaded;
@@ -479,7 +480,6 @@ else if (Active != null)
                 Active.Value = Convert.ToBase64String(value);
             }
             await ImageChanged.InvokeAsync();
-            StateHasChanged();
         }
     }
 

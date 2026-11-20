@@ -93,6 +93,7 @@
                     <label for="attribute-expiration">@Properties.Resources.ExpirationTime</label>
                     <AttributeExpirationEditor Id="attribute-expiration" Template="@Active" Disabled="@(IsDeleting != null)" />
                 </div>
+                <AttributeEnumEditor @key="Active" Template="@Active" Disabled="@(IsDeleting != null)" />
             </div>
         </div>
     </EditForm>
@@ -250,7 +251,7 @@
     }
 
     /// <summary>
-    /// Save Attribute template.
+    /// Validates enum definitions and saves or removes the selected attribute template.
     /// </summary>
     public async void OnSave()
     {
@@ -259,6 +260,10 @@
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_action != CrudAction.Delete && !await GXEditContexts.ValidateAsync(GXEditContexts.For(Active)))
+            {
+                return;
             }
             using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingAttributeTemplate);
             _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplate.OnSave");

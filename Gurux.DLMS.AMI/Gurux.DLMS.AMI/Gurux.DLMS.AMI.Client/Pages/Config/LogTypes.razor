@@ -40,7 +40,6 @@
 @inject IGXAmiConfirmation Confirmation
 @inject HttpClient Http
 @inject IGXNotificationService NotificationService
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAuthorizationService AuthorizationService
 
 <GXHelpContext Topic="LogTypes" />
@@ -117,6 +116,10 @@
 </AuthorizeView>
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     private GXLogType[] _items = Array.Empty<GXLogType>();
     private GXLogType? _active;
     private bool _saving;
@@ -179,22 +182,57 @@
         finally { _saving = false; }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    /// <summary>Records whether requests can run after the initial interactive render.</summary>
+    private bool _interactive;
+    /// <summary>Rejects catalog responses superseded by a newer load or identity change.</summary>
+    private long _loadGeneration;
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
     {
-        if (firstRender) { await Load(); StateHasChanged(); }
+        if (_interactive)
+        {
+            await Load();
+        }
     }
 
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactive = true;
+            await Load();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Retrieves log types permitted for the current identity and rejects superseded results.</summary>
+    /// <returns>A task that completes after the current catalog has been loaded.</returns>
     private async Task Load()
     {
+        var authenticationState = AuthenticationState;
+        var generation = ++_loadGeneration;
         try
         {
-            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-            if (!(await AuthorizationService.AuthorizeAsync(user, GXLogTypePolicies.View)).Succeeded)
+            var user = (await authenticationState).User;
+            var allowed = (await AuthorizationService.AuthorizeAsync(user, GXLogTypePolicies.View)).Succeeded;
+            if (authenticationState != AuthenticationState || generation != _loadGeneration)
             {
+                return;
+            }
+            if (!allowed)
+            {
+                _items = [];
+                await Update();
                 return;
             }
         
             var result = await Http.PostAsJson<ListLogTypesResponse>("api/LogType/List", new ListLogTypes { AllUsers = true });
+            if (authenticationState != AuthenticationState || generation != _loadGeneration)
+            {
+                return;
+            }
             _items = result.LogTypes?.Where(type => type.Removed == null).ToArray() ?? Array.Empty<GXLogType>();
             await Update();
         }
@@ -220,7 +258,7 @@
 
     private async Task Save()
     {
-        if (_active == null || _saving || _editContext?.Validate() != true)
+        if (_active == null || _saving || (_editContext == null || !await GXEditContexts.ValidateAsync(_editContext)))
         {
             return;
         }

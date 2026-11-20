@@ -34,7 +34,6 @@
 @using Gurux.DLMS.AMI.Module.Enums
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authorization
-@inject AuthenticationStateProvider Authentication
 @inject IAuthorizationService Authorization
 @inject IServiceProvider Services
 @inject HttpClient Http
@@ -54,6 +53,10 @@
 }
 
 @code {
+    /// <summary>Receives the current identity and subsequent authentication changes from the application cascade.</summary>
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; } = default!;
+
     /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
@@ -78,7 +81,7 @@
     /// <summary>Retains the selected record whose values are currently displayed or edited.</summary>
     private GXModule? _active;
     /// <summary>
-    /// User action.
+    /// Optional route action. An omitted action opens the extension in read mode.
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
@@ -86,23 +89,31 @@
     /// <summary>
     /// Show module settings.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A task that completes after the authorized extension view is initialized.</returns>
     internal async Task ShowModuleSettings()
     {
-        if (_active != null && _extensionUI == null)
+        var authenticationState = AuthenticationState;
+        var active = _active;
+        var moduleId = active?.Id;
+        if (active != null && _extensionUI == null)
         {
             if (!Loader.IsInitialized)
             {
                 await Loader.RefreshAsync(_lifetime.Token);
             }
 
-            var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == _active.Id)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Extension && v.Key == null);
-            if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await Authentication.GetAuthenticationStateAsync()).User, declaredView.Policy)).Succeeded)
+            var declaredView = Loader.AddIns.FirstOrDefault(m => m.Id == moduleId)?.Views.FirstOrDefault(v => v.Area == AmiViewArea.Extension && v.Key == null);
+            if (declaredView == null || string.IsNullOrWhiteSpace(declaredView.Policy) || !(await Authorization.AuthorizeAsync((await authenticationState).User, declaredView.Policy)).Succeeded)
             {
                 return;
             }
 
-            _extensionUI = await Loader.GetViewTypeAsync(_active.Id, AmiViewArea.Extension, cancellationToken: _lifetime.Token);
+            var extensionUI = await Loader.GetViewTypeAsync(moduleId!, AmiViewArea.Extension, cancellationToken: _lifetime.Token);
+            if (_disposed || authenticationState != AuthenticationState || active != _active || moduleId != _active?.Id)
+            {
+                return;
+            }
+            _extensionUI = extensionUI;
         }
         if (_module != null)
         {
@@ -110,9 +121,16 @@
         }
     }
 
+    /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
-        if (_module != null)
+        if (_authenticationState != AuthenticationState)
+        {
+            _authenticationState = AuthenticationState;
+            _extensionUI = null;
+            _module = null;
+        }
+        if (_active != null)
         {
             try
             {
@@ -126,6 +144,7 @@
         await base.OnParametersSetAsync();
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _notifier = Services.GetService<IGXNotifier2>();
@@ -171,7 +190,7 @@
                 return;
             }
             await ShowModuleSettings();
-            action = ClientHelpers.GetAction(NavigationManager, Action);
+            action = ClientHelpers.GetAction(NavigationManager, Action, Action == null ? CrudAction.Read : null);
             /*TODO:
             if (action == CrudAction.Delete)
             {
@@ -191,6 +210,8 @@
     }
     /// <summary>Cancels outstanding asynchronous work when the component is disposed.</summary>
     private readonly CancellationTokenSource _lifetime = new();
+    /// <summary>Identifies the authentication snapshot used to authorize the extension view.</summary>
+    private Task<AuthenticationState>? _authenticationState;
     /// <summary>Prevents late callbacks from updating a component after its subscriptions are released.</summary>
     private bool _disposed;
 
