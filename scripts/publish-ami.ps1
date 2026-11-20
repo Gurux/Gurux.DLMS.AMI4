@@ -141,7 +141,7 @@ function New-AmiReleasePackage {
     $publishDirectory = Join-Path $output ('publish-' + $Version + '-' + [Guid]::NewGuid().ToString('N'))
     # Each release owns its build state; shared obj/bin can retain development boot resources.
     $hostArtifacts = Join-Path $output ('host-artifacts-' + [Guid]::NewGuid().ToString('N'))
-    $arguments = @('publish', $project, '--configuration', 'Release', '--output', $publishDirectory,
+    $arguments = @('publish', $project, '--configuration', 'Release', '--framework', 'net10.0', '--output', $publishDirectory,
         '--artifacts-path', $hostArtifacts,
         '--self-contained', 'false', '-p:UseAppHost=false', '-p:GeneratePackageOnBuild=false',
         '-p:UseGuruxServiceSource=false', '-p:AmiReleaseBuild=true', "-p:Version=$Version",
@@ -158,7 +158,7 @@ function New-AmiReleasePackage {
     $clientProject = Join-Path $root 'Gurux.DLMS.AMI/Gurux.DLMS.AMI/Gurux.DLMS.AMI.Client/Gurux.DLMS.AMI.Client.csproj'
     $clientOutput = Join-Path $output ('wasm-' + $Version + '-' + [Guid]::NewGuid().ToString('N'))
     $clientArtifacts = Join-Path $output ('wasm-artifacts-' + [Guid]::NewGuid().ToString('N'))
-    $clientArguments = @('publish', $clientProject, '--configuration', 'Release', '--output', $clientOutput,
+    $clientArguments = @('publish', $clientProject, '--configuration', 'Release', '--framework', 'net10.0', '--output', $clientOutput,
         '--artifacts-path', $clientArtifacts,
         '-p:AmiReleaseBuild=true', '-p:GeneratePackageOnBuild=false', "-p:Version=$Version", '-p:IncludeSourceRevisionInInformationalVersion=false')
     if ($UiSourceProject) { $clientArguments += @('-p:UseGuruxUiComponentsSource=true', "-p:GuruxUiComponentsSourceProject=$([IO.Path]::GetFullPath($UiSourceProject))") }
