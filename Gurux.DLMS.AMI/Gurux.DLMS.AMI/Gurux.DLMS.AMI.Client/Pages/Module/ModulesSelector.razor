@@ -48,57 +48,60 @@
 @inject HttpClient Http
 <GXHelpContext Topic="ModulesSelector" />
 
-<SelectionContainer TItem="GXModule" @ref="@_selectionContainer">
-    <SelectionList TItem="GXModule" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems">
-        <DataContent>
-            @if (context != null)
-            {
-                <GXLinkButton TItem="GXModule" OnClick="@Show"
-                            Target="@context"
-                            Text="@context.Id" />
-            }
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-    </SelectionList>
-    <SelectionList TItem="GXModule" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
+<GXRelationshipSelector TItem="GXModule" @ref="_selectionContainer"
+                        SelectedItems="@(() => _selectedItems)"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems" Disabled="@Disabled">
+    <ItemContent>
+        @if (_selectedItems.Any(item => item.Id == context.Id))
+        {
+            <GXLinkButton TItem="GXModule" OnClick="Show" Target="@context" Text="@context.Id" />
+        }
+        else
+        {
             @context.Id
-        </DataContent>
-        <FilterContent>
+        }
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByUser"
                     ValueChanged="@SearchByUser" />
-        </FilterContent>
-    </SelectionList>
-</SelectionContainer>
+
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether the parent editor prevents changes to this relationship.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>References the live relationship saved by the parent editor.</summary>
+    private List<GXModule> _selectedItems = [];
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
 
+    /// <summary>Gets or sets the module group whose modules are selected.</summary>
     [Parameter, EditorRequired]
     public GXModuleGroup? ModuleGroup { get; set; }
 
+    /// <summary>Receives the containing schedule editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private Schedule? ScheduleParent { get; set; }
 
+    /// <summary>Gets or sets the selected edit-model module whose settings are currently displayed.</summary>
     internal GXModule? Active { get; set; }
 
-
+    /// <summary>Opens settings for the authoritative selected module matching the clicked row identity.</summary>
+    /// <param name="item">The displayed module whose selected edit-model instance is opened.</param>
     private void Show(GXModule item)
     {
         try
         {
-            Active = item;
+            Active = _selectedItems.FirstOrDefault(selected => selected.Id == item.Id);
             ScheduleParent?.Update();
             InvokeAsync(StateHasChanged);
         }
@@ -117,67 +120,26 @@
         InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>Closes the active module settings selection and refreshes the component display.</summary>
     public void Update()
     {
         Active = null;
         InvokeAsync(StateHasChanged);
-        if (_selected != null)
-        {
-            //_selected.Update();
-            //     await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            //_available.Update();
-            //   await _available.RefreshDataAsync();
-        }
     }
 
-
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXModule>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXModule>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXModule>? _selectionContainer;
-    /// <summary>
-    /// Module filter.
-    /// </summary>
+    /// <summary>Coordinates paged selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXModule>? _selectionContainer;
+    /// <summary>Stores endpoint criteria shared by selected and available module queries.</summary>
     private GXModule _filter = new GXModule("");
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected?.Items != null)
-            {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Id != null && !it.Id.ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchSelectedByName");
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex, "Pages/Module/ModulesSelector.SearchSelectedByName");
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (!string.IsNullOrEmpty(name))
                 {
@@ -188,7 +150,7 @@
                     _filter.Id = string.Empty;
                 }
                 _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -197,11 +159,14 @@
         }
     }
 
+    /// <summary>Applies the user filter to both selected and available relationship records.</summary>
+    /// <param name="userName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByUser(string? userName)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(userName))
                 {
@@ -227,7 +192,7 @@
                     user.UserName = userName;
                 }
                 _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.SearchByUser");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -236,51 +201,48 @@
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXModule>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        if (_selected?.Items == null)
-        {
-            return default;
-        }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXModule>(_selected.Items.ToArray(), _selected.Items.Count));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXRelationshipQuery<GXModule> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingModules);
         try
         {
+            string[]? allowed = null;
+            if (ScheduleParent != null)
+            {
+                if (!Loader.IsInitialized)
+                {
+                    await Loader.RefreshAsync(request.CancellationToken);
+                }
+                allowed = Loader.AddIns.Where(module => module.Views.Any(view => view.Area == AmiViewArea.ScheduleSettings))
+                    .Select(module => module.Id).ToArray();
+                if (allowed.Length == 0)
+                {
+                    return new ItemsProviderResult<GXModule>([], 0);
+                }
+            }
             ListModules req = new ListModules()
                 {
-                    Index = ScheduleParent != null ? 0 : request.StartIndex,
-                    Count = ScheduleParent != null ? 0 : request.Count,
+                    Index = request.StartIndex,
+                    Count = request.Count,
                     Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Included = allowed == null ? request.Included?.Select(item => item.Id).ToArray() :
+                        request.Included == null ? allowed : allowed.Intersect(request.Included.Select(item => item.Id), StringComparer.OrdinalIgnoreCase).ToArray(),
+                    OrderBy = nameof(GXModule.Id),
+                    Exclude = request.Excluded.Select(item => item.Id).ToArray()
                 };
-            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
-            if (ret?.Modules != null && _selected != null)
+            if (req.Included != null && !req.Included.Any())
             {
-                if (ScheduleParent != null)
-                {
-                    if (!Loader.IsInitialized)
-                    {
-                        await Loader.RefreshAsync(request.CancellationToken);
-                    }
-
-                    var available = Loader.AddIns.Where(m => m.Views.Any(v => v.Area == AmiViewArea.ScheduleSettings)).Select(m => m.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    var modules = ret.Modules.Where(m => available.Contains(m.Id)).ToArray();
-                    return new ItemsProviderResult<GXModule>(modules.Skip(request.StartIndex).Take(request.Count), modules.Length);
-                }
-
+                return new ItemsProviderResult<GXModule>([], 0);
+            }
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
+            if (ret?.Modules != null && _selectionContainer != null)
+            {
                 return new ItemsProviderResult<GXModule>(ret.Modules, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
         }
@@ -292,10 +254,13 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXModule>([], 0);
     }
 
+    /// <summary>Returns the relationship collection owned by the explicit parameter or the containing editor.</summary>
+    /// <returns>The parent editor's authoritative relationship collection.</returns>
     private List<GXModule> GetModules()
     {
         if (ModuleGroup?.Modules != null)
@@ -307,6 +272,7 @@
         return ScheduleParent?.Active is { } parent ? parent.Modules ??= [] : [];
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -316,26 +282,21 @@
         await Task.Delay(1);
         try
         {
-            //Show only the scheduled modules for schedule selector.
-            if (ScheduleParent != null)
-            {
-
-            }
             List<GXModule> modules = GetModules();
             using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingModules);
             _notificationService?.RemoveByKey("Pages/Module/ModulesSelector.OnInitializedAsync");
-            if (_selected != null && modules != null)
+            if (_selectionContainer != null && modules != null)
             {
-                _selected.Items = modules;
+                _selectedItems = modules;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             //Read available items.
-            if (_available != null)
+            if (_selectionContainer != null)
             {
-                await _available.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (Exception ex)

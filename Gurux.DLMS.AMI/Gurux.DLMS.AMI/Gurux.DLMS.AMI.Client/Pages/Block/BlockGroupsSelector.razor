@@ -46,93 +46,62 @@
 @inject HttpClient Http
 <GXHelpContext Topic="BlockGroupsSelector" />
 
-<SelectionContainer TItem="GXBlockGroup" @ref="@_selectionContainer">
-    <SelectionList TItem="GXBlockGroup" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems">
-        <DataContent>
+<GXRelationshipSelector TItem="GXBlockGroup" @ref="_selectionContainer"
+                        SelectedItems="@(() => _selectedItems)"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems"
+                        Disabled="@Disabled">
+    <ItemContent>
             @context.Name
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-    </SelectionList>
-    <SelectionList TItem="GXBlockGroup" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @context.Name
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByUser"
                     ValueChanged="@SearchByUser" />
-        </FilterContent>
-    </SelectionList>
-</SelectionContainer>
+
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether relationship changes are disabled by the parent editor.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>References the edit model collection that is saved by the parent editor.</summary>
+    private List<GXBlockGroup> _selectedItems = [];
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
 
+    /// <summary>Receives the containing user group editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
 
+    /// <summary>Receives the containing block editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private Block? BlockParent { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXBlockGroup>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXBlockGroup>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXBlockGroup>? _selectionContainer;
+    /// <summary>Coordinates paged checkbox selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXBlockGroup>? _selectionContainer;
 
-    /// <summary>
-    /// Block group filter.
-    /// </summary>
+    /// <summary>Stores endpoint criteria shared by selected and available block group queries.</summary>
     private GXBlockGroup _filter = new GXBlockGroup(null);
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected?.Items != null)
-            {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !(it.Name ?? string.Empty).ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchSelectedByName");
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex, "Pages/Block/BlockGroupsSelector.SearchSelectedByName");
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 _filter.Name = name;
                 _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -141,11 +110,14 @@
         }
     }
 
+    /// <summary>Applies the user filter to both selected and available relationship records.</summary>
+    /// <param name="userName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByUser(string? userName)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(userName))
                 {
@@ -169,7 +141,7 @@
                     user.UserName = userName;
                 }
                 _notificationService?.RemoveByKey("Pages/Block/BlockGroupsSelector.SearchByUser");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -178,22 +150,10 @@
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXBlockGroup>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        if (_selected?.Items == null)
-        {
-            return default;
-        }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXBlockGroup>(_selected.Items.ToArray(), _selected.Items.Count));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXBlockGroup>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXBlockGroup>> GetItems(GXRelationshipQuery<GXBlockGroup> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingBlockGroups);
@@ -206,10 +166,12 @@
                     Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Included = request.Included?.Select(item => item.Id).ToArray(),
+                    OrderBy = nameof(GXBlockGroup.Id),
+                    Exclude = request.Excluded.Select(item => item.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req, request.CancellationToken);
-            if (ret?.BlockGroups != null && _selected != null)
+            if (ret?.BlockGroups != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXBlockGroup>(ret.BlockGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -222,10 +184,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXBlockGroup>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -235,7 +199,7 @@
         await Task.Delay(1);
         try
         {
-            if (_selectionContainer == null || _selected == null)
+            if (_selectionContainer == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
@@ -245,20 +209,20 @@
             if (UserGroupParent?.Active?.BlockGroups != null)
             {
                 //Add selected block groups.
-                _selected.Items = UserGroupParent.Active.BlockGroups;
+                _selectedItems = UserGroupParent.Active.BlockGroups;
                 action = ClientHelpers.GetAction(NavigationManager, UserGroupParent.Action);
             }
             else if (BlockParent?.Active?.BlockGroups != null)
             {
                 //Add selected block groups.
-                _selected.Items = BlockParent.Active.BlockGroups;
+                _selectedItems = BlockParent.Active.BlockGroups;
                 action = ClientHelpers.GetAction(NavigationManager, BlockParent.Action);
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = action == CrudAction.Create && !_selected.Items.Any();
+            bool addDefaultBlocks = action == CrudAction.Create && !_selectedItems.Any();
             if (addDefaultBlocks)
             {
                 //Show default groups when new group is added.
@@ -268,19 +232,18 @@
                         {
                             Default = true
                         },
-                        Count = _selectionContainer.PageSize,
-                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                        Count = 5,
+                        Exclude = _selectedItems.Select(s => s.Id).ToArray()
                     };
                 var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req);
                 if (ret?.BlockGroups != null)
                 {
-                    _selected.Items.AddRange(ret.BlockGroups);
+                    _selectedItems.AddRange(ret.BlockGroups);
                 }
             }
-            //Read available items.
-            if (_available != null)
+            if (_selectionContainer != null)
             {
-                await _available.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (Exception ex)

@@ -1,0 +1,226 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@typeparam TItem
+@implements IDisposable
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DIs
+@inject IServiceProvider Services
+
+<div class="relationship-selector">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        @if (ButtonContent != null)
+        {
+            <GXMenuControl ReadOnly="@(Disabled || _changing)">
+                @ButtonContent
+            </GXMenuControl>
+        }
+        <span role="status">@string.Format(CultureInfo.CurrentCulture, Text("RelationshipSelectedCount"), _state?.Count ?? 0)</span>
+    </div>
+    <GXTable TItem="TItem" @ref="_table" Context="item" ItemsProvider="GetItemsAsync"
+             Save="false" Filter="true" Immediate="true" ShowAllUsers="false" ShowRemoved="false"
+             CanEdit="false" Menu="false" SelectionMode="SelectionMode.None" ItemKey="ItemKey"
+             @bind-PageSize="PageSize" @bind-CurrentPage="_currentPage">
+        <FilterContent>
+            <GXFh />
+            <GXFh>
+                <AuthorizeView Roles="@GXRoles.Admin">
+                    <label class="form-check">
+                        <input type="checkbox" class="form-check-input" checked="@_showAllUsers" @onchange="SetAllUsersAsync" />
+                        @Properties.Resources.ShowDataForAllUsers
+                    </label>
+                </AuthorizeView>
+                @FilterContent
+            </GXFh>
+        </FilterContent>
+        <HeaderContent>
+            <th scope="col">
+                <GXSelectionCheckbox Value="@PageSelection" Disabled="@(Disabled || _changing || _rows.Length == 0)"
+                                     Label="@Text("RelationshipSelectPage")" ValueChanged="SelectPageAsync" />
+            </th>
+            <th scope="col">@Properties.Resources.Name</th>
+        </HeaderContent>
+        <ItemContent>
+            <td @onclick:stopPropagation="true">
+                <GXSelectionCheckbox Value="@(_state?.IsSelected(item) == true)" Disabled="@(Disabled || _changing)"
+                                     Label="@Text("RelationshipSelectItem")"
+                                     ValueChanged="@(value => ChangeAsync([item], value))" />
+            </td>
+            <td>@ItemContent(item)</td>
+        </ItemContent>
+    </GXTable>
+</div>
+
+@code {
+    /// <summary>Returns the authoritative relationship saved by the containing editor.</summary>
+    [Parameter, EditorRequired]
+    public Func<IList<TItem>> SelectedItems { get; set; } = default!;
+    /// <summary>Extracts the stable persisted identity of a row.</summary>
+    [Parameter, EditorRequired]
+    public Func<TItem, object> ItemKey { get; set; } = default!;
+    /// <summary>Executes the typed, filtered and bounded endpoint query.</summary>
+    [Parameter, EditorRequired]
+    public Func<GXRelationshipQuery<TItem>, ValueTask<ItemsProviderResult<TItem>>> ItemsProvider { get; set; } = default!;
+    /// <summary>Renders the existing record details alongside the checkbox.</summary>
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> ItemContent { get; set; } = default!;
+    /// <summary>Renders endpoint-specific controls in the table filter row, applying to both result segments.</summary>
+    [Parameter]
+    public RenderFragment? FilterContent { get; set; }
+    /// <summary>Renders the wrapper's bulk-action menu entries inside the shared menu control.</summary>
+    [Parameter]
+    public RenderFragment? ButtonContent { get; set; }
+    /// <summary>Gets or sets whether the containing editor prevents relationship mutation.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+    /// <summary>Gets or sets whether callbacks, rather than this component, mutate the relationship.</summary>
+    [Parameter]
+    public bool OwnerMutates { get; set; }
+    /// <summary>Adds records when explicit owner mutation is enabled.</summary>
+    [Parameter]
+    public EventCallback<IEnumerable<TItem>> OnAdded { get; set; }
+    /// <summary>Removes records when explicit owner mutation is enabled.</summary>
+    [Parameter]
+    public EventCallback<IEnumerable<TItem>> OnRemoved { get; set; }
+    /// <summary>Gets or sets the table page size, defaulting to the supported 20-row option and retaining dropdown changes.</summary>
+    [Parameter]
+    public int PageSize { get; set; } = 20;
+    /// <summary>Gets the last accepted combined matching count.</summary>
+    public int TotalCount { get; private set; }
+
+    /// <summary>Owns stable selection identities and the opening ordering snapshot.</summary>
+    private GXRelationshipSelection<TItem>? _state;
+    /// <summary>References the shared table's paging and refresh API.</summary>
+    private GXTable<TItem>? _table;
+    /// <summary>Contains only the currently displayed rows for page-scoped selection.</summary>
+    private TItem[] _rows = [];
+    /// <summary>Records the administrator's explicitly selected all-users query scope.</summary>
+    private bool _showAllUsers;
+    /// <summary>Prevents overlapping user mutations and reentrant owner refreshes.</summary>
+    private bool _changing;
+    /// <summary>Tracks the current page so query changes restart from the beginning.</summary>
+    private int _currentPage;
+
+    /// <summary>Gets the checked, unchecked or mixed state of the visible-page checkbox.</summary>
+    private bool? PageSelection => _rows.Length == 0 || _state == null ? false :
+        _rows.All(_state.IsSelected) ? true : _rows.Any(_state.IsSelected) ? null : false;
+
+    /// <summary>Captures the initialized parent collection and loads the first page.</summary>
+    /// <returns>A task completing when the first page has been loaded.</returns>
+    public async Task InitializeAsync()
+    {
+        _state?.Dispose();
+        _state = new GXRelationshipSelection<TItem>(SelectedItems, ItemKey);
+        _state.Initialize();
+        await RefreshDataAsync();
+    }
+
+    /// <summary>Refreshes the query after wrapper filters or explicit bulk operations change.</summary>
+    /// <returns>A task completing when the matching first page has been loaded.</returns>
+    public async Task RefreshDataAsync()
+    {
+        if (_changing || _state == null || _table == null)
+        {
+            return;
+        }
+        _currentPage = 0;
+        await InvokeAsync(StateHasChanged);
+        await _table.RefreshDataAsync(true);
+    }
+
+    /// <summary>Loads both matching segments and publishes only a noncancelled page.</summary>
+    /// <param name="request">The table's bounded page and cancellation options.</param>
+    /// <returns>The requested records and matching count.</returns>
+    private async ValueTask<ItemsProviderResult<TItem>> GetItemsAsync(GXItemsProviderRequest request)
+    {
+        if (_state == null)
+        {
+            return new([], 0);
+        }
+        var page = await _state.ReadAsync(request.StartIndex, request.Count, false, ItemsProvider,
+            _showAllUsers, request.CancellationToken);
+        request.CancellationToken.ThrowIfCancellationRequested();
+        _rows = page.Items.ToArray();
+        TotalCount = page.TotalItemCount;
+        if (_currentPage > 0 && request.StartIndex >= TotalCount)
+        {
+            _ = InvokeAsync(RefreshDataAsync);
+        }
+        return page;
+    }
+
+    /// <summary>Changes the administrator's endpoint scope and restarts paging.</summary>
+    /// <param name="args">The native checkbox change.</param>
+    /// <returns>A task completing when the new scoped page is loaded.</returns>
+    private async Task SetAllUsersAsync(ChangeEventArgs args)
+    {
+        _showAllUsers = args.Value is true;
+        await RefreshDataAsync();
+    }
+
+    /// <summary>Applies the header checkbox to the currently displayed rows only.</summary>
+    /// <param name="selected">Whether to add or remove the visible rows.</param>
+    /// <returns>A task completing after the page selection changes.</returns>
+    private Task SelectPageAsync(bool selected) => ChangeAsync(_rows, selected);
+
+    /// <summary>Applies an atomic selection change and retains visible row positions.</summary>
+    /// <param name="rows">The rows explicitly changed by the user.</param>
+    /// <param name="selected">Whether the rows should be selected.</param>
+    /// <returns>A task completing when callbacks and rollback handling finish.</returns>
+    private async Task ChangeAsync(IEnumerable<TItem> rows, bool selected)
+    {
+        if (Disabled || _changing || _state == null)
+        {
+            return;
+        }
+        _changing = true;
+        try
+        {
+            await _state.ChangeAsync(rows, selected, OwnerMutates, selected
+                ? items => OnAdded.InvokeAsync(items)
+                : items => OnRemoved.InvokeAsync(items));
+        }
+        catch (Exception error)
+        {
+            Services.GetService<IGXNotificationService>()?.ReportError(error);
+        }
+        finally
+        {
+            _changing = false;
+        }
+    }
+
+    /// <summary>Resolves selector-specific labels through the existing localization infrastructure.</summary>
+    /// <param name="key">The key in the client's Properties resource file.</param>
+    /// <returns>The text in the current UI culture.</returns>
+    private static string Text(string key) => Properties.Resources.ResourceManager.GetString(key, CultureInfo.CurrentUICulture)!;
+
+    /// <inheritdoc />
+    public void Dispose() => _state?.Dispose();
+}

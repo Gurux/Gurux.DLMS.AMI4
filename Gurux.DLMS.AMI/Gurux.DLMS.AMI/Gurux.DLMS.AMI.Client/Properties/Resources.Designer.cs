@@ -6608,6 +6608,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Read the profile object first to enable stored history..
+        /// </summary>
+        internal static string ProfileHistoryRequiresRead {
+            get {
+                return ResourceManager.GetString("ProfileHistoryRequiresRead", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Select a valid interval with the end after the start..
         /// </summary>
         internal static string ProfileInvalidRange {
@@ -7040,6 +7049,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} selected..
+        /// </summary>
+        internal static string RelationshipSelectedCount {
+            get {
+                return ResourceManager.GetString("RelationshipSelectedCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select this item..
+        /// </summary>
+        internal static string RelationshipSelectItem {
+            get {
+                return ResourceManager.GetString("RelationshipSelectItem", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select all items on this page..
+        /// </summary>
+        internal static string RelationshipSelectPage {
+            get {
+                return ResourceManager.GetString("RelationshipSelectPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Release notes.
         /// </summary>
         internal static string ReleaseNotes {
@@ -7459,6 +7495,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string RestartAmiForModuleUpdates {
             get {
                 return ResourceManager.GetString("RestartAmiForModuleUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Checking the server connection….
+        /// </summary>
+        internal static string RestartingChecking {
+            get {
+                return ResourceManager.GetString("RestartingChecking", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The server is temporarily unavailable. This page will return automatically when the server is ready..
+        /// </summary>
+        internal static string RestartingMessage {
+            get {
+                return ResourceManager.GetString("RestartingMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Restarting….
+        /// </summary>
+        internal static string RestartingTitle {
+            get {
+                return ResourceManager.GetString("RestartingTitle", resourceCulture);
             }
         }
         

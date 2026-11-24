@@ -330,6 +330,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListDevices? request,
             ListDevicesResponse? response,
             CancellationToken cancellationToken = default)
+            => await ListCoreAsync(request, response, cancellationToken, null);
+
+        /// <summary>Finds only accessible devices whose names occur in an importer batch.</summary>
+        /// <param name="names">At most 1000 exact names to resolve.</param>
+        /// <param name="token">Cancels the lookup.</param>
+        /// <returns>Accessible matches, including ambiguous names for importer validation.</returns>
+        /// <exception cref="ArgumentException">The name array is missing or exceeds the import limit.</exception>
+        internal async Task<GXDevice[]> ListForImportAsync(string[] names, CancellationToken token)
+        {
+            if (names == null || names.Length is < 1 or > 1000)
+            {
+                throw new ArgumentException(nameof(names));
+            }
+            return (await ListCoreAsync(new ListDevices { Count = 0 }, null, token, names)).ToArray();
+        }
+
+        /// <summary>Lists authorized devices with optional importer name restrictions inside the current transaction.</summary>
+        /// <param name="request">Host filter and paging options.</param>
+        /// <param name="response">Optional result counts and device collection.</param>
+        /// <param name="cancellationToken">Cancels the lookup.</param>
+        /// <param name="names">Optional importer names applied before retrieval.</param>
+        /// <returns>The accessible devices matching every requested restriction.</returns>
+        private async Task<IEnumerable<GXDevice>> ListCoreAsync(ListDevices? request, ListDevicesResponse? response,
+            CancellationToken cancellationToken, string[]? names)
         {
             await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
             GXSelectArgs arg;
@@ -407,6 +431,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXDevice>(w => request.Included.Contains(w.Id));
                 }
+            }
+            if (names != null)
+            {
+                arg.Where.And<GXDevice>(device => names.Contains(device.Name));
             }
             arg.Distinct = true;
             GXDateTimeFilters.Apply<GXDevice>(arg, request?.DateFilters);
@@ -501,10 +529,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXDevice> ReadAsync(Guid id, Expression<Func<GXDevice, object>>? columns = null, CancellationToken cancellationToken = default)
         {
+            await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
             try
             {
-
-                await _authorizationService.EnsureAnyPolicyAsync(_user, GXDevicePolicies.View);
                 string userId = ServerHelpers.GetUserId(_user);
                 GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>();
                 GXQuery.GetDevicesByUser(arg, userId, id);

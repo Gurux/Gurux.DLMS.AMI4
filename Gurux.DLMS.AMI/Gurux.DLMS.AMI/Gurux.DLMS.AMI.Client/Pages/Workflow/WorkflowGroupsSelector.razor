@@ -46,92 +46,60 @@
 @inject HttpClient Http
 <GXHelpContext Topic="WorkflowGroupsSelector" />
 
-<SelectionContainer TItem="GXWorkflowGroup" @ref="@_selectionContainer">
-    <SelectionList TItem="GXWorkflowGroup" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems">
-        <DataContent>
+<GXRelationshipSelector TItem="GXWorkflowGroup" @ref="_selectionContainer"
+                        SelectedItems="@(() => _selectedItems)"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems" Disabled="@Disabled">
+    <ItemContent>
             @context.Name
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-    </SelectionList>
-    <SelectionList TItem="GXWorkflowGroup" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @context.Name
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByUser"
                     ValueChanged="@SearchByUser" />
-        </FilterContent>
-    </SelectionList>
-</SelectionContainer>
+
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether the parent editor prevents changes to this relationship.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>References the live relationship saved by the parent editor.</summary>
+    private List<GXWorkflowGroup> _selectedItems = [];
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
 
+    /// <summary>Receives the containing user group editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
+    /// <summary>Receives the containing workflow editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private Workflow? WorkflowParent { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXWorkflowGroup>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXWorkflowGroup>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXWorkflowGroup>? _selectionContainer;
+    /// <summary>Coordinates paged selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXWorkflowGroup>? _selectionContainer;
 
-    /// <summary>
-    /// WorkflowGroup filter.
-    /// </summary>
+    /// <summary>Stores endpoint criteria shared by selected and available workflowgroup queries.</summary>
     private GXWorkflowGroup _filter = new GXWorkflowGroup(null);
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected?.Items != null)
-            {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !(it.Name ?? string.Empty).ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                _notificationService?.RemoveByKey("Pages/Workflow/WorkflowGroupsSelector.SearchSelectedByName");
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex, "Pages/Workflow/WorkflowGroupsSelector.SearchSelectedByName");
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 _filter.Name = name;
                 _notificationService?.RemoveByKey("Pages/Workflow/WorkflowGroupsSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -140,11 +108,14 @@
         }
     }
 
+    /// <summary>Applies the user filter to both selected and available relationship records.</summary>
+    /// <param name="userName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByUser(string? userName)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(userName))
                 {
@@ -168,7 +139,7 @@
                     user.UserName = userName;
                 }
                 _notificationService?.RemoveByKey("Pages/Workflow/WorkflowGroupsSelector.SearchByUser");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -177,22 +148,10 @@
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXWorkflowGroup>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        if (_selected?.Items == null)
-        {
-            return default;
-        }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXWorkflowGroup>(_selected.Items.ToArray(), _selected.Items.Count));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXWorkflowGroup>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXWorkflowGroup>> GetItems(GXRelationshipQuery<GXWorkflowGroup> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingWorkflowGroups);
@@ -205,10 +164,12 @@
                 Filter = _filter,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
-                Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                Included = request.Included?.Select(item => item.Id).ToArray(),
+                OrderBy = nameof(GXWorkflowGroup.Id),
+                Exclude = request.Excluded.Select(item => item.Id).ToArray()
             };
             var ret = await Http.PostAsJson<ListWorkflowGroupsResponse>("api/WorkflowGroup/List", req, request.CancellationToken);
-            if (ret?.WorkflowGroups != null && _selected != null)
+            if (ret?.WorkflowGroups != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXWorkflowGroup>(ret.WorkflowGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -221,10 +182,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXWorkflowGroup>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -232,7 +195,7 @@
 
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
-        if (_selectionContainer == null || _selected == null)
+        if (_selectionContainer == null)
         {
             throw new ArgumentException(Properties.Resources.InvalidTarget);
         }
@@ -244,12 +207,12 @@
             //Add selected workflow groups.
             if (UserGroupParent?.Active?.WorkflowGroups != null)
             {
-                _selected.Items = UserGroupParent.Active.WorkflowGroups;
+                _selectedItems = UserGroupParent.Active.WorkflowGroups;
                 action = ClientHelpers.GetAction(NavigationManager, UserGroupParent.Action);
             }
             else if (WorkflowParent?.Active?.WorkflowGroups != null)
             {
-                _selected.Items = WorkflowParent.Active.WorkflowGroups;
+                _selectedItems = WorkflowParent.Active.WorkflowGroups;
                 action = ClientHelpers.GetAction(NavigationManager, WorkflowParent.Action);
             }
             else
@@ -257,7 +220,7 @@
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
 
-            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
+            bool addDefaultGroups = action == CrudAction.Create && !_selectedItems.Any();
             if (addDefaultGroups)
             {
                 //Show default groups when new group is added.
@@ -267,25 +230,21 @@
                     {
                         Default = true
                     },
-                    Count = _selectionContainer.PageSize,
-                    Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    Count = 5,
+                    Exclude = _selectedItems.Select(s => s.Id).ToArray()
                 };
                 var ret = await Http.PostAsJson<ListWorkflowGroupsResponse>("api/WorkflowGroup/List", req);
                 if (ret?.WorkflowGroups != null)
                 {
-                    _selected.Items.AddRange(ret.WorkflowGroups);
+                    _selectedItems.AddRange(ret.WorkflowGroups);
                 }
             }
 
-            //Read available items.
-            if (_available != null)
-            {
-                await _available.RefreshDataAsync();
-            }
+            await _selectionContainer.InitializeAsync();
         }
-        finally
+        catch (Exception error)
         {
+            _notificationService?.ReportError(error, "Pages/Workflow/WorkflowGroupsSelector.OnInitializedAsync");
         }
     }
 }
-

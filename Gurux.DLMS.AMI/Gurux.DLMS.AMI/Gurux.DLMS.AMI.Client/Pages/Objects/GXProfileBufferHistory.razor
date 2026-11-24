@@ -35,15 +35,21 @@
 @inject IServiceProvider Services
 
 <h3>@Properties.Resources.StoredHistory</h3>
+@if (AttributeId == Guid.Empty)
+{
+    <p role="status">@Properties.Resources.ResourceManager.GetString("ProfileHistoryRequiresRead", CultureInfo.CurrentUICulture)</p>
+}
 <div class="profile-range-controls">
     <label>@Properties.Resources.ProfileRangeStart
-        <input type="datetime-local" class="profile-range-start" @bind="_start" @bind:format="yyyy-MM-ddTHH:mm" />
+        <GXDateTimeSelector TItem="DateTime?" class="profile-range-start"
+                            @bind-Value="_start" Save="false" />
     </label>
     <label>@Properties.Resources.ProfileRangeEnd
-        <input type="datetime-local" class="profile-range-end" @bind="_end" @bind:format="yyyy-MM-ddTHH:mm" />
+        <GXDateTimeSelector TItem="DateTime?" class="profile-range-end"
+                            @bind-Value="_end" Save="false" />
     </label>
-    <button type="button" class="profile-range-apply" @onclick="ApplyAsync" disabled="@_busy">@Properties.Resources.StoredHistory</button>
-    <button type="button" class="profile-read-missing" @onclick="ReadAsync" disabled="@(_busy || !CanRead || AttributeId == Guid.Empty)">@Properties.Resources.ProfileReadMissing</button>
+    <button type="button" class="profile-range-apply" @onclick="ApplyAsync" disabled="@(_busy || AttributeId == Guid.Empty || _start == null || _end == null)">@Properties.Resources.StoredHistory</button>
+    <button type="button" class="profile-read-missing" @onclick="ReadAsync" disabled="@(_busy || !CanRead || AttributeId == Guid.Empty || _start == null || _end == null)">@Properties.Resources.ProfileReadMissing</button>
 </div>
 <p>@Properties.Resources.ProfileLocalTime</p>
 @if (_error != null) { <p role="alert">@_error</p> }
@@ -79,17 +85,20 @@
 </GXTable>
 
 @code {
-    /// <summary>The persisted profile buffer attribute whose stored rows are displayed.</summary>
+    /// <summary>Gets or sets the persisted buffer identity, or Guid.Empty to show an empty panel before the device object is materialized.</summary>
     [Parameter]
     public Guid AttributeId { get; set; }
 
+    /// <summary>Gets or sets whether the current editor permits collecting profile rows once a persisted buffer is available.</summary>
     [Parameter] public bool CanRead { get; set; } = true;
+    /// <summary>Identifies the attribute owning the current coverage, error and status state.</summary>
+    private Guid _previousAttributeId;
     /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
     private GXTable<GXProfileStoredRow>? _table;
-    /// <summary>Specifies the start of the profile-history interval requested from the server.</summary>
-    private DateTime _start = DateTime.Today;
-    /// <summary>Specifies the end of the profile-history interval requested from the server.</summary>
-    private DateTime _end = DateTime.Today.AddDays(1);
+    /// <summary>Stores the selected local interval start, or null when the shared selector is cleared.</summary>
+    private DateTime? _start = DateTime.Today;
+    /// <summary>Stores the selected local interval end, or null when the shared selector is cleared.</summary>
+    private DateTime? _end = DateTime.Today.AddDays(1);
     /// <summary>Caches the stored profile-history coverage returned for the selected attribute.</summary>
     private GXProfileHistoryResponse? _coverage;
     /// <summary>Contains the error and status messages displayed by the profile-history panel.</summary>
@@ -97,6 +106,20 @@
     /// <summary>Prevents overlapping operations while an asynchronous command is running.</summary>
     private bool _busy;
 
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        if (_previousAttributeId != AttributeId)
+        {
+            _previousAttributeId = AttributeId;
+            _coverage = null;
+            _error = null;
+            _message = null;
+        }
+    }
+
+    /// <summary>Refreshes the stored rows for the current persisted buffer.</summary>
+    /// <returns>A task completing after the table has reloaded its current page.</returns>
     public async Task RefreshAsync()
     {
         if (_table != null) {
@@ -104,16 +127,21 @@
         }
     }
 
+    /// <summary>Validates completed local boundaries and creates a UTC query without reusing cleared input values.</summary>
+    /// <param name="index">The zero-based offset of the requested stored rows.</param>
+    /// <param name="count">The maximum number of stored rows to request.</param>
+    /// <returns>The history query, or null for missing, reversed or daylight-saving-invalid boundaries.</returns>
     private GXProfileHistoryRequest? CreateRequest(int index = 0, int count = 100)
     {
         _error = null;
-        if (_end <= _start || TimeZoneInfo.Local.IsInvalidTime(_start) || TimeZoneInfo.Local.IsInvalidTime(_end))
+        if (_start is not DateTime start || _end is not DateTime end || end <= start ||
+            TimeZoneInfo.Local.IsInvalidTime(start) || TimeZoneInfo.Local.IsInvalidTime(end))
         {
             _error = Properties.Resources.ProfileInvalidRange;
             return null;
         }
         return new GXProfileHistoryRequest { AttributeId = AttributeId,
-            Start = new DateTimeOffset(_start).ToUniversalTime(), End = new DateTimeOffset(_end).ToUniversalTime(),
+            Start = new DateTimeOffset(start).ToUniversalTime(), End = new DateTimeOffset(end).ToUniversalTime(),
             Index = index, Count = count };
     }
 

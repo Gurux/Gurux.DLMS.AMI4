@@ -3296,4 +3296,8 @@
   <data name="RestartingTitle" xml:space="preserve"><value>Restarting…</value></data>
   <data name="RestartingMessage" xml:space="preserve"><value>The server is temporarily unavailable. This page will return automatically when the server is ready.</value></data>
   <data name="RestartingChecking" xml:space="preserve"><value>Checking the server connection…</value></data>
+  <data name="RelationshipSelectedCount" xml:space="preserve"><value>{0} selected.</value></data>
+  <data name="RelationshipSelectPage" xml:space="preserve"><value>Select all items on this page.</value></data>
+  <data name="RelationshipSelectItem" xml:space="preserve"><value>Select this item.</value></data>
+  <data name="ProfileHistoryRequiresRead" xml:space="preserve"><value>Read the profile object first to enable stored history.</value></data>
 </root>

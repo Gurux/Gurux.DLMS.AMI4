@@ -79,9 +79,9 @@ namespace Gurux.DLMS.AMI.Hubs
                     {
                         foreach (var userGroup in byUser)
                         {
-                            IReadOnlyList<GXTarget> notifications = [..userGroup.Select(x => x.Notification)];
+                            GXTarget[] notifications = GXDeviceImportNotifications.ForClient(userGroup.Select(x => x.Notification));
                             await _hubContext.Clients.User(userGroup.Key).SendAsync(nameof(IGXHubEvents.OnUpdate), notifications, stoppingToken);
-                            sent.AddRange(userGroup);
+                            sent.AddRange(notifications.Select(notification => new CachedNotification { UserId = userGroup.Key, Notification = notification }));
                         }
                     }
                     finally

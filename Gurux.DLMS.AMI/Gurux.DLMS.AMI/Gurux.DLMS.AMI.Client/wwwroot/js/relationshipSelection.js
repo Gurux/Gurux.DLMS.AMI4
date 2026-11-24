@@ -1,4 +1,3 @@
-@*
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -25,38 +24,8 @@
 //
 // SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
 // --------------------------------------------------------------------------
-*@
 
-@using Gurux.DLMS.AMI.Shared.DTOs
-@typeparam TItem
-<li class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(Target))">
-    <p class="description">
-        @if (DataContent != null && Target != null)
-        {
-            @(DataContent(Target))
-        }
-    </p>
-</li>
-
-@code {
-    [CascadingParameter]
-    SelectionContainer<TItem>? Container { get; set; }
-
-    [CascadingParameter]
-    SelectionList<TItem>? List { get; set; }
-
-    [Parameter]
-    public RenderFragment<TItem>? DataContent { get; set; }
-
-    [Parameter]
-    public TItem? Target { get; set; }
-
-    private void HandleDragStart(TItem? target)
-    {
-        if (Container != null && List != null)
-        {
-            Container.SourceList = List.Items;
-            Container.Item = target;
-        }
-    }
+/** Sets the native visual state that cannot be expressed as an HTML attribute. */
+export function setIndeterminate(element, mixed) {
+    element.indeterminate = mixed;
 }

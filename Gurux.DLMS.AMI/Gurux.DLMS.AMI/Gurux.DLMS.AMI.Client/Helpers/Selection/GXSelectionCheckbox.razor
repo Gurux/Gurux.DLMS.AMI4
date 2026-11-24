@@ -1,0 +1,89 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<input @ref="_element" type="checkbox" class="form-check-input" checked="@(Value == true)"
+       aria-checked="@(Value == null ? "mixed" : Value == true ? "true" : "false")"
+       aria-label="@Label" disabled="@Disabled" @onchange="ChangedAsync" @onclick:stopPropagation="true" />
+
+@code {
+    /// <summary>Gets or sets checked, unchecked or mixed state.</summary>
+    [Parameter]
+    public bool? Value { get; set; }
+    /// <summary>Gets or sets whether interaction is disabled.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+    /// <summary>Gets or sets the localized accessible name.</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+    /// <summary>Reports the checked state selected by the user.</summary>
+    [Parameter]
+    public EventCallback<bool> ValueChanged { get; set; }
+    /// <summary>References the native checkbox whose indeterminate property is maintained.</summary>
+    private ElementReference _element;
+    /// <summary>Owns the small browser adapter for the native mixed state.</summary>
+    private IJSObjectReference? _module;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/relationshipSelection.js");
+            await _module.InvokeVoidAsync("setIndeterminate", _element, Value == null);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Navigation can disconnect the browser before the native state is applied.
+        }
+    }
+
+    /// <summary>Reports a native checkbox change without imposing immediate persistence.</summary>
+    /// <param name="args">The native checked value.</param>
+    /// <returns>A task completing when the parent has applied the selection.</returns>
+    private Task ChangedAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value is true);
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (_module != null)
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The browser connection can close while a component is being removed.
+            }
+        }
+    }
+}

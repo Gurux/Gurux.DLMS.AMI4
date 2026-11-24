@@ -47,38 +47,17 @@
 @inject HttpClient Http
 <GXHelpContext Topic="AttributeTemplatesSelector" />
 
-<SelectionContainer TItem="GXAttributeTemplate" @ref="@_selectionContainer">
-    <SelectionList TItem="GXAttributeTemplate" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   OnAdded="OnAdded"
-                   OnRemoved="@Removed">
-        <DataContent>
+<GXRelationshipSelector TItem="GXAttributeTemplate" @ref="_selectionContainer"
+                        SelectedItems="@(() => GetAttributes())"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems"
+                        Disabled="@Disabled" OwnerMutates="true" OnAdded="OnAdded" OnRemoved="Removed">
+    <ItemContent>
             @(context.ObjectTemplate?.LogicalName + " " +
                 context.ObjectTemplate?.Name +
                 " #" + context.Index + " " + context.Name)
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-        <ButtonContent>
-            <div>
-                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
-                        type="button" onclick="@(() => RemoveAll())">
-                    &raquo;
-                </button>
-            </div>
-        </ButtonContent>
-    </SelectionList>
-    <SelectionList TItem="GXAttributeTemplate" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @(context.ObjectTemplate?.LogicalName + " " +
-                context.ObjectTemplate?.Name +
-                " #" + context.Index + " " + context.Name)
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByLogicalName"
@@ -91,25 +70,19 @@
                     ValueChanged="@SearchByDeviceType" />
             <GXSearch Placeholder="@Properties.Resources.FilterByAttributeIndex"
                     ValueChanged="@SearchByAttributeIndex" />
-        </FilterContent>
-        <ButtonContent>
-            <div>
-                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
-                        type="button" onclick="@(() => AddAll())">
-                    &laquo;
-                </button>
-            </div>
-        </ButtonContent>
-    </SelectionList>
-</SelectionContainer>
 
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether relationship changes are disabled by the parent editor.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
-
 
     /// <summary>
     /// Device templates where objects are asked.
@@ -138,15 +111,9 @@
     [Parameter]
     public List<GXAttributeTemplate>? Templates { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXAttributeTemplate>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXAttributeTemplate>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXAttributeTemplate>? _selectionContainer;
-    /// <summary>
-    /// Attribute filter.
-    /// </summary>
+    /// <summary>Coordinates paged checkbox selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXAttributeTemplate>? _selectionContainer;
+    /// <summary>Stores endpoint criteria shared by selected and available attribute queries.</summary>
     private readonly GXAttributeTemplate _filter = new GXAttributeTemplate(null)
         {
             ObjectTemplate = new GXObjectTemplate()
@@ -155,32 +122,14 @@
             }
         };
 
-    /// <summary>
-    /// Selected attribute filter.
-    /// </summary>
-    private string? _selectedNameFilter;
-
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected != null)
-            {
-                _selectedNameFilter = name;
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex);
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null && _filter != null)
+            if (_selectionContainer != null && _filter != null)
             {
                 if (string.IsNullOrEmpty(name))
                 {
@@ -191,7 +140,7 @@
                     _filter.Name = name;
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -200,11 +149,14 @@
         }
     }
 
+    /// <summary>Applies the attribute index filter to both selected and available relationship records.</summary>
+    /// <param name="index">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByAttributeIndex(string? index)
     {
         try
         {
-            if (_available != null && _filter != null)
+            if (_selectionContainer != null && _filter != null)
             {
                 if (string.IsNullOrEmpty(index))
                 {
@@ -215,7 +167,7 @@
                     _filter.Index = int.Parse(index);
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.SearchByAttributeIndex");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -224,11 +176,14 @@
         }
     }
 
+    /// <summary>Applies the object logical name filter to both selected and available relationship records.</summary>
+    /// <param name="logicalName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByObjectLogicalName(string? logicalName)
     {
         try
         {
-            if (_available != null && _filter.ObjectTemplate != null)
+            if (_selectionContainer != null && _filter.ObjectTemplate != null)
             {
                 if (string.IsNullOrEmpty(logicalName))
                 {
@@ -239,7 +194,7 @@
                     _filter.ObjectTemplate.LogicalName = logicalName;
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.SearchByObjectLogicalName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -248,11 +203,14 @@
         }
     }
 
+    /// <summary>Applies the object filter to both selected and available relationship records.</summary>
+    /// <param name="objectName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByObject(string? objectName)
     {
         try
         {
-            if (_available != null && _filter.ObjectTemplate != null)
+            if (_selectionContainer != null && _filter.ObjectTemplate != null)
             {
                 if (string.IsNullOrEmpty(objectName))
                 {
@@ -263,7 +221,7 @@
                     _filter.ObjectTemplate.Name = objectName;
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.SearchByObject");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -272,11 +230,14 @@
         }
     }
 
+    /// <summary>Applies the device filter to both selected and available relationship records.</summary>
+    /// <param name="deviceName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByDevice(string? deviceName)
     {
         try
         {
-            if (_available != null && _filter.ObjectTemplate?.DeviceTemplate != null)
+            if (_selectionContainer != null && _filter.ObjectTemplate?.DeviceTemplate != null)
             {
                 if (string.IsNullOrEmpty(deviceName))
                 {
@@ -287,7 +248,7 @@
                     _filter.ObjectTemplate.DeviceTemplate.Name = deviceName;
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.SearchByDevice");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -296,11 +257,14 @@
         }
     }
 
+    /// <summary>Applies the device type filter to both selected and available relationship records.</summary>
+    /// <param name="deviceType">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByDeviceType(string? deviceType)
     {
         try
         {
-            if (_available != null && _filter.ObjectTemplate?.DeviceTemplate != null)
+            if (_selectionContainer != null && _filter.ObjectTemplate?.DeviceTemplate != null)
             {
                 if (string.IsNullOrEmpty(deviceType))
                 {
@@ -311,7 +275,7 @@
                     _filter.ObjectTemplate.DeviceTemplate.Name = deviceType;
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.SearchByDeviceType");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -320,96 +284,43 @@
         }
     }
 
-    /// <summary>
-    /// Add all objects to selected items.
-    /// </summary>
-    /// <returns></returns>
-    private async Task AddAll()
-    {
-        int max = 0;
-        //max 1000 items are added at the one time.
-        if (_available != null && _available.TotalCount > 1000)
-        {
-            max = 1000;
-        }
-        var ret = await GetItems(new GXItemsProviderRequest(0, max));
-        await OnAdded(ret.Items);
-        if (_selected != null)
-        {
-            await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            await _available.RefreshDataAsync();
-        }
-    }
-
+    /// <summary>Returns the relationship collection owned by the explicit parameter or the containing editor.</summary>
+    /// <returns>The parent editor's authoritative relationship collection.</returns>
     private List<GXAttributeTemplate> GetAttributes()
     {
         return Templates ??= [];
     }
 
-    /// <summary>
-    /// Remove all objects from selected items.
-    /// </summary>
-    /// <returns></returns>
-    private async Task RemoveAll()
-    {
-        List<GXAttributeTemplate> attributes = GetAttributes();
-        attributes.Clear();
-        if (_selected != null)
-        {
-            await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            await _available.RefreshDataAsync();
-        }
-    }
-
-    /// <summary>
-    /// New attribute is added for selection list.
-    /// </summary>
+    /// <summary>Adds each new identity once to the authoritative relationship and refreshes its selection view.</summary>
+    /// <param name="items">The records explicitly added or removed by the selection control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     public async Task OnAdded(IEnumerable<GXAttributeTemplate> items)
     {
         List<GXAttributeTemplate> attributes = GetAttributes();
-        attributes.InsertRange(0, items);
-        if (_selected != null)
+        attributes.InsertRange(0, items.Where(item => !attributes.Any(existing => existing.Id == item.Id)).DistinctBy(item => item.Id));
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// Item has removed from the lists.
-    /// </summary>
+    /// <summary>Removes matching identities from the authoritative relationship, including reloaded DTO instances.</summary>
+    /// <param name="items">The records explicitly added or removed by the selection control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     private async Task Removed(IEnumerable<GXAttributeTemplate> items)
     {
         List<GXAttributeTemplate> attributes = GetAttributes();
-        attributes.RemoveAll(w => items.Contains(w));
-        if (_selected != null)
+        attributes.RemoveAll(value => items.Any(item => item.Id == value.Id));
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXAttributeTemplate>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        List<GXAttributeTemplate> attributes = GetAttributes();
-        int total = attributes.Count;
-        if (!string.IsNullOrEmpty(_selectedNameFilter))
-        {
-            attributes = attributes.Where(w => (w.Name ?? string.Empty).ToLower().Contains(_selectedNameFilter.ToLower())).ToList();
-        }
-        return new(new ItemsProviderResult<GXAttributeTemplate>(attributes.Skip(request.StartIndex).Take(request.Count), total));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXAttributeTemplate>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXAttributeTemplate>> GetItems(GXRelationshipQuery<GXAttributeTemplate> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
@@ -423,7 +334,9 @@
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Select = new string[] { TargetType.ObjectTemplate },
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Included = request.Included?.Select(item => item.Id).ToArray(),
+                    OrderBy = nameof(GXAttributeTemplate.Id),
+                    Exclude = request.Excluded.Select(item => item.Id).ToArray()
                 };
             if (DeviceTemplates != null && DeviceTemplates.Any())
             {
@@ -438,7 +351,7 @@
                 req.IgnoredObjectTypes = IgnoredObjectTypes?.Cast<int>().ToArray();
             }
             var ret = await Http.PostAsJson<ListAttributeTemplatesResponse>("api/AttributeTemplate/List", req, request.CancellationToken);
-            if (ret?.AttributeTemplates != null && _selected != null)
+            if (ret?.AttributeTemplates != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXAttributeTemplate>(ret.AttributeTemplates, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -451,10 +364,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXAttributeTemplate>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -466,7 +381,7 @@
         {
             using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingAttributeTemplates);
             _notificationService?.RemoveByKey("Pages/DeviceTemplate/AttributeTemplatesSelector.OnInitializedAsync");
-            if (_selected == null)
+            if (_selectionContainer == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
@@ -474,14 +389,9 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            //Read available items.
-            if (_available != null)
+            if (_selectionContainer != null)
             {
-                await _available.RefreshDataAsync();
-            }
-            if (_selected != null)
-            {
-                await _selected.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (Exception ex)

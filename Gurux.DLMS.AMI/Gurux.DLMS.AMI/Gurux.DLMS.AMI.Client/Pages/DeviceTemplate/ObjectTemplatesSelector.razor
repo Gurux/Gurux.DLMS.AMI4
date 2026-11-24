@@ -47,59 +47,34 @@
 @inject HttpClient Http
 <GXHelpContext Topic="ObjectTemplatesSelector" />
 
-<SelectionContainer TItem="GXObjectTemplate" @ref="@_selectionContainer">
-    <SelectionList TItem="GXObjectTemplate" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   OnAdded="OnAdded"
-                   OnRemoved="@Removed">
-        <DataContent>
+<GXRelationshipSelector TItem="GXObjectTemplate" @ref="_selectionContainer"
+                        SelectedItems="@(() => GetObjects())"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems"
+                        Disabled="@Disabled" OwnerMutates="true" OnAdded="OnAdded" OnRemoved="Removed">
+    <ItemContent>
             @(context.LogicalName + " " + context.Name)
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-        <ButtonContent>
-            <div>
-                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
-                        type="button" onclick="@(() => RemoveAll())">
-                    &raquo;
-                </button>
-            </div>
-        </ButtonContent>
-    </SelectionList>
-    <SelectionList TItem="GXObjectTemplate" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @(context.LogicalName + " " + context.Name)
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByDevice"
                     ValueChanged="@SearchByDevice" />
             <GXSearch Placeholder="@Properties.Resources.FilterByDeviceType"
                     ValueChanged="@SearchByDeviceType" />
-        </FilterContent>
-        <ButtonContent>
-            <div>
-                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
-                        type="button" onclick="@(() => AddAll())">
-                    &laquo;
-                </button>
-            </div>
-        </ButtonContent>
-    </SelectionList>
-</SelectionContainer>
 
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether relationship changes are disabled by the parent editor.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
-
 
     /// <summary>
     /// Device templates where objects are asked.
@@ -128,46 +103,23 @@
     [Parameter]
     public List<GXObjectTemplate>? Templates { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXObjectTemplate>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXObjectTemplate>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXObjectTemplate>? _selectionContainer;
-    /// <summary>
-    /// Object filter.
-    /// </summary>
+    /// <summary>Coordinates paged checkbox selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXObjectTemplate>? _selectionContainer;
+    /// <summary>Stores endpoint criteria shared by selected and available object queries.</summary>
     private GXObjectTemplate _filter = new GXObjectTemplate(null);
-    /// <summary>
-    /// Selected object filter.
-    /// </summary>
-    private string? _selectedNameFilter;
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected != null)
-            {
-                _selectedNameFilter = name;
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex);
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 _filter.Name = name;
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -176,11 +128,14 @@
         }
     }
 
+    /// <summary>Applies the device filter to both selected and available relationship records.</summary>
+    /// <param name="deviceName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByDevice(string? deviceName)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(deviceName))
                 {
@@ -194,7 +149,7 @@
                         };
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDevice");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -203,11 +158,14 @@
         }
     }
 
+    /// <summary>Applies the device type filter to both selected and available relationship records.</summary>
+    /// <param name="deviceType">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByDeviceType(string? deviceType)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(deviceType))
                 {
@@ -222,7 +180,7 @@
                     _filter.DeviceTemplate.Name = deviceType;
                 }
                 _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.SearchByDeviceType");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -231,96 +189,43 @@
         }
     }
 
-    /// <summary>
-    /// Add all objects to selected items.
-    /// </summary>
-    /// <returns></returns>
-    private async Task AddAll()
-    {
-        int max = 0;
-        //max 1000 items are added at the one time.
-        if (_available != null && _available.TotalCount > 1000)
-        {
-            max = 1000;
-        }
-        var ret = await GetItems(new GXItemsProviderRequest(0, max));
-        await OnAdded(ret.Items);
-        if (_selected != null)
-        {
-            await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            await _available.RefreshDataAsync();
-        }
-    }
-
+    /// <summary>Returns the relationship collection owned by the explicit parameter or the containing editor.</summary>
+    /// <returns>The parent editor's authoritative relationship collection.</returns>
     private List<GXObjectTemplate> GetObjects()
     {
         return Templates ??= [];
     }
 
-    /// <summary>
-    /// Remove all objects from selected items.
-    /// </summary>
-    /// <returns></returns>
-    private async Task RemoveAll()
-    {
-        List<GXObjectTemplate> objects = GetObjects();
-        objects.Clear();
-        if (_selected != null)
-        {
-            await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            await _available.RefreshDataAsync();
-        }
-    }
-
-    /// <summary>
-    /// New object is added for selection list.
-    /// </summary>
+    /// <summary>Adds each new identity once to the authoritative relationship and refreshes its selection view.</summary>
+    /// <param name="items">The records explicitly added or removed by the selection control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     public async Task OnAdded(IEnumerable<GXObjectTemplate> items)
     {
         List<GXObjectTemplate> objects = GetObjects();
-        objects.InsertRange(0, items);
-        if (_selected != null)
+        objects.InsertRange(0, items.Where(item => !objects.Any(existing => existing.Id == item.Id)).DistinctBy(item => item.Id));
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// Item has removed from the lists.
-    /// </summary>
+    /// <summary>Removes matching identities from the authoritative relationship, including reloaded DTO instances.</summary>
+    /// <param name="items">The records explicitly added or removed by the selection control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     private async Task Removed(IEnumerable<GXObjectTemplate> items)
     {
         List<GXObjectTemplate> objects = GetObjects();
-        objects.RemoveAll(w => items.Contains(w));
-        if (_selected != null)
+        objects.RemoveAll(value => items.Any(item => item.Id == value.Id));
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXObjectTemplate>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        List<GXObjectTemplate> objects = GetObjects();
-        int total = objects.Count;
-        if (!string.IsNullOrEmpty(_selectedNameFilter))
-        {
-            objects = objects.Where(w => (w.Name ?? string.Empty).ToLower().Contains(_selectedNameFilter.ToLower())).ToList();
-        }
-        return new(new ItemsProviderResult<GXObjectTemplate>(objects.Skip(request.StartIndex).Take(request.Count), total));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXRelationshipQuery<GXObjectTemplate> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
@@ -334,7 +239,9 @@
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Select = new string[] { "Device" },
-                    Exclude = GetObjects().Select(s => s.Id).ToArray()
+                    Included = request.Included?.Select(item => item.Id).ToArray(),
+                    OrderBy = nameof(GXObjectTemplate.Id),
+                    Exclude = request.Excluded.Select(item => item.Id).ToArray()
                 };
             if (ObjectTypes != null && ObjectTypes.Any())
             {
@@ -349,7 +256,7 @@
                 req.DeviceTemplates = DeviceTemplates.Select(s => s.Id).ToArray();
             }
             var ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
-            if (ret?.ObjectTemplates != null && _selected != null)
+            if (ret?.ObjectTemplates != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXObjectTemplate>(ret.ObjectTemplates, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -362,10 +269,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXObjectTemplate>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -377,7 +286,7 @@
         {
             using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingObjectTemplates);
             _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplatesSelector.OnInitializedAsync");
-            if (_selected == null)
+            if (_selectionContainer == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
@@ -385,14 +294,9 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            //Read available items.
-            if (_available != null)
+            if (_selectionContainer != null)
             {
-                await _available.RefreshDataAsync();
-            }
-            if (_selected != null)
-            {
-                await _selected.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (Exception ex)

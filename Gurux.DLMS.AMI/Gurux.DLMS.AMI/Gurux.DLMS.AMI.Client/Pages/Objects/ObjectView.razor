@@ -70,9 +70,9 @@
                 @if (SelectedAttribute?.Template is { } selectedTemplate)
                 {
                     <h2>@selectedTemplate.Index — @selectedTemplate.Name</h2>
-                    @if (_cosem.Target is GXDLMSProfileGeneric && selectedTemplate.Index == 2 && !Active.Latebind)
+                    @if (_cosem.Target is GXDLMSProfileGeneric && selectedTemplate.Index == 2 && Template == null)
                     {
-                        <GXProfileBufferHistory @ref="_history" AttributeId="SelectedAttribute.Id" CanRead="@CanReadSelected" />
+                        <GXProfileBufferHistory @ref="_history" AttributeId="@(CanLoadProfileHistory ? SelectedAttribute.Id : Guid.Empty)" CanRead="@CanReadSelected" />
                     }
                     else
                     {
@@ -90,9 +90,9 @@
                                   WritesEnabled="@(Template == null && !_sending && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))">
                     <Data>
                         <ModuleViews Area="AmiViewArea.Object" Display="AmiViewDisplay.Replace" Target="Active" Parameters="ViewParameters">
-                            @if (_cosem.Target is GXDLMSProfileGeneric && BufferAttribute is { } buffer)
+                            @if (_cosem.Target is GXDLMSProfileGeneric && Template == null)
                             {
-                                <GXProfileBufferHistory @ref="_history" AttributeId="buffer.Id" CanRead="@(Template == null && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))" />
+                                <GXProfileBufferHistory @ref="_history" AttributeId="@(CanLoadProfileHistory ? BufferAttribute!.Id : Guid.Empty)" CanRead="@(Template == null && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))" />
                             }
                             <div class="@(_cosem.Target is GXDLMSProfileGeneric ? "cosem-profile-settings" : null)">
                             <GXDLMSObjectView Target="@_cosem.Target" Client="@_cosem.Client"
@@ -165,7 +165,11 @@
     private bool _sending;
     /// <summary>Tracks submitted attribute values until a matching successful write is confirmed by the server.</summary>
     private readonly Dictionary<int, (string Xml, DateTimeOffset? LastWrite)> _submittedWrites = new();
+    /// <summary>Gets the Profile Generic buffer attribute from the current object model.</summary>
     private GXAttribute? BufferAttribute => Active?.Attributes?.FirstOrDefault(attribute => attribute.Template?.Index == 2);
+    /// <summary>Gets whether stored history can be queried using a materialized device buffer instead of a template identity.</summary>
+    private bool CanLoadProfileHistory => Template == null && Active is { Latebind: false } &&
+        BufferAttribute is { Id: var attributeId } && attributeId != Guid.Empty;
     private IDictionary<string, object> ViewParameters => new Dictionary<string, object>
     {
         ["OnRead"] = EventCallback.Factory.Create<IEnumerable<AMIReadArgument>>(this, CreateRead),

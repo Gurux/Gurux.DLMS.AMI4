@@ -47,93 +47,61 @@
 @inject HttpClient Http
 <GXHelpContext Topic="ViewGroupsSelector" />
 
-<SelectionContainer TItem="GXViewGroup" @ref="@_selectionContainer">
-    <SelectionList TItem="GXViewGroup" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems">
-        <DataContent>
+<GXRelationshipSelector TItem="GXViewGroup" @ref="_selectionContainer"
+                        SelectedItems="@(() => _selectedItems)"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems" Disabled="@Disabled">
+    <ItemContent>
             @context.Name
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-    </SelectionList>
-    <SelectionList TItem="GXViewGroup" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @context.Name
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByUser"
                     ValueChanged="@SearchByUser" />
-        </FilterContent>
-    </SelectionList>
-</SelectionContainer>
+
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether the parent editor prevents changes to this relationship.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>References the live relationship saved by the parent editor.</summary>
+    private List<GXViewGroup> _selectedItems = [];
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
 
+    /// <summary>Receives the containing user group editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
 
+    /// <summary>Receives the containing view editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private View? ViewParent { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXViewGroup>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXViewGroup>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXViewGroup>? _selectionContainer;
+    /// <summary>Coordinates paged selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXViewGroup>? _selectionContainer;
 
-    /// <summary>
-    /// View group filter.
-    /// </summary>
+    /// <summary>Stores endpoint criteria shared by selected and available view group queries.</summary>
     private GXViewGroup _filter = new GXViewGroup(null);
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected?.Items != null)
-            {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !(it.Name ?? string.Empty).ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                _notificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.SearchSelectedByName");
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex, "Pages/View/ViewGroupsSelector.SearchSelectedByName");
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 _filter.Name = name;
                 _notificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -142,11 +110,14 @@
         }
     }
 
+    /// <summary>Applies the user filter to both selected and available relationship records.</summary>
+    /// <param name="userName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByUser(string? userName)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(userName))
                 {
@@ -170,7 +141,7 @@
                     user.UserName = userName;
                 }
                 _notificationService?.RemoveByKey("Pages/View/ViewGroupsSelector.SearchByUser");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -179,22 +150,10 @@
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXViewGroup>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        if (_selected?.Items == null)
-        {
-            return default;
-        }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXViewGroup>(_selected.Items.ToArray(), _selected.Items.Count));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXViewGroup>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXViewGroup>> GetItems(GXRelationshipQuery<GXViewGroup> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(Properties.Resources.RetrievingBlockGroups);
@@ -207,10 +166,12 @@
                 Filter = _filter,
                 Descending = request.Descending,
                 AllUsers = request.ShowAllUserData,
-                Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                Included = request.Included?.Select(item => item.Id).ToArray(),
+                OrderBy = nameof(GXViewGroup.Id),
+                Exclude = request.Excluded.Select(item => item.Id).ToArray()
             };
             var ret = await Http.PostAsJson<ListViewGroupsResponse>("api/ViewGroup/List", req, request.CancellationToken);
-            if (ret?.ViewGroups != null && _selected != null)
+            if (ret?.ViewGroups != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXViewGroup>(ret.ViewGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -223,10 +184,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXViewGroup>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -236,7 +199,7 @@
         await Task.Delay(1);
         try
         {
-            if (_selectionContainer == null || _selected == null)
+            if (_selectionContainer == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
@@ -246,38 +209,38 @@
             if (UserGroupParent?.Active?.ViewGroups != null)
             {
                 //Add selected view groups.
-                _selected.Items = UserGroupParent.Active.ViewGroups;
+                _selectedItems = UserGroupParent.Active.ViewGroups;
                 action = ClientHelpers.GetAction(NavigationManager, UserGroupParent.Action);
             }
             else if (ViewParent?.Active?.ViewGroups != null)
             {
                 //Add selected view groups.
-                _selected.Items = ViewParent.Active.ViewGroups;
+                _selectedItems = ViewParent.Active.ViewGroups;
                 action = ClientHelpers.GetAction(NavigationManager, ViewParent.Action);
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultViews = action == CrudAction.Create && !_selected.Items.Any();
+            bool addDefaultViews = action == CrudAction.Create && !_selectedItems.Any();
             if (addDefaultViews)
             {
                 //Show default groups when new group is added.
                 ListViewGroups req = new ListViewGroups()
                 {
-                    Count = _selectionContainer.PageSize,
-                    Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    Count = 5,
+                    Exclude = _selectedItems.Select(s => s.Id).ToArray()
                 };
                 var ret = await Http.PostAsJson<ListViewGroupsResponse>("api/ViewGroup/List", req);
                 if (ret?.ViewGroups != null)
                 {
-                    _selected.Items.AddRange(ret.ViewGroups);
+                    _selectedItems.AddRange(ret.ViewGroups);
                 }
             }
             //Read available items.
-            if (_available != null)
+            if (_selectionContainer != null)
             {
-                await _available.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (Exception ex)

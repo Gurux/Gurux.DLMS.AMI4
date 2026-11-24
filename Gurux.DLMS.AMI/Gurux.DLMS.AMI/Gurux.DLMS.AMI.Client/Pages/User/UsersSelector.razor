@@ -45,87 +45,54 @@
 @inject HttpClient Http
 <GXHelpContext Topic="UsersSelector" />
 
-<SelectionContainer TItem="GXUser" @ref="@_selectionContainer">
-    <SelectionList TItem="GXUser" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems">
-        <DataContent>
+<GXRelationshipSelector TItem="GXUser" @ref="_selectionContainer"
+                        SelectedItems="@(() => _selectedItems)"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems" Disabled="@Disabled">
+    <ItemContent>
             @context.UserName
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-    </SelectionList>
-    <SelectionList TItem="GXUser" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @context.UserName
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
-        </FilterContent>
-    </SelectionList>
-</SelectionContainer>
+
+    </FilterContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether the parent editor prevents changes to this relationship.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>References the live relationship saved by the parent editor.</summary>
+    private List<GXUser> _selectedItems = [];
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
 
+    /// <summary>Gets or sets the parent group whose relationship is being edited.</summary>
     [Parameter, EditorRequired]
     public GXUserGroup? Active { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXUser>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXUser>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXUser>? _selectionContainer;
-    /// <summary>
-    /// User filter.
-    /// </summary>
+    /// <summary>Coordinates paged selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXUser>? _selectionContainer;
+    /// <summary>Stores endpoint criteria shared by selected and available user queries.</summary>
     private GXUser _filter = new GXUser(null);
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected?.Items != null)
-            {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.UserName != null && !it.UserName.ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                _notificationService?.RemoveByKey("Pages/User/UsersSelector.SearchSelectedByName");
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex, "Pages/User/UsersSelector.SearchSelectedByName");
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 _filter.UserName = name;
                 _notificationService?.RemoveByKey("Pages/User/UsersSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -134,22 +101,10 @@
         }
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXUser>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        if (_selected?.Items == null)
-        {
-            return default;
-        }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXUser>(_selected.Items.ToArray(), _selected.Items.Count));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXUser>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXUser>> GetItems(GXRelationshipQuery<GXUser> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingUsers);
@@ -162,10 +117,12 @@
                     Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).OfType<string>().ToArray()
+                    Included = request.Included?.Select(item => item.Id).OfType<string>().ToArray(),
+                    OrderBy = nameof(GXUser.Id),
+                    Exclude = request.Excluded.Select(item => item.Id).OfType<string>().ToArray()
                 };
             var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req, request.CancellationToken);
-            if (ret?.Users != null && _selected != null)
+            if (ret?.Users != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXUser>(ret.Users, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -178,10 +135,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXUser>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -193,23 +152,23 @@
         {
             using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingUsers);
             _notificationService?.RemoveByKey("Pages/User/UsersSelector.OnInitializedAsync");
-            if (_selected == null)
+            if (_selectionContainer == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             //Get selected user groups.
             if (Active?.Users != null)
             {
-                _selected.Items = Active.Users;
+                _selectedItems = Active.Users;
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
             //Read available items.
-            if (_available != null)
+            if (_selectionContainer != null)
             {
-                await _available.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (AccessTokenNotAvailableException exception)

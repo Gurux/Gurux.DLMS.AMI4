@@ -202,6 +202,7 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IUserRepository, UserRepository>();
             services.AddTransient<IUserGroupRepository, UserGroupRepository>();
             services.AddTransient<IDeviceRepository, DeviceRepository>();
+            GXDeviceImporterServices.Register(services);
             services.AddTransient<IObjectRepository, ObjectRepository>();
             services.AddTransient<IObjectTemplateRepository, ObjectTemplateRepository>();
             services.AddTransient<IAttributeRepository, AttributeRepository>();

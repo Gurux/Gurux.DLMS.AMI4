@@ -668,7 +668,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         try
                         {
-                            var updates = items.ToArray();
+                            var updates = Helpers.GXDeviceImportUpdates.Expand(items);
                             if (updates.Any(item => item.Type.StartsWith("notification.", StringComparison.Ordinal) || item.Type.StartsWith("user-setting.", StringComparison.Ordinal)))
                             {
                                 await RefreshNotificationsAsync(http);

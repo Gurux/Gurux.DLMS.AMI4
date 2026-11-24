@@ -48,87 +48,62 @@
 @inject HttpClient Http
 <GXHelpContext Topic="DeviceGroupsSelector" />
 
-<SelectionContainer TItem="GXDeviceGroup" @ref="@_selectionContainer">
-    <SelectionList TItem="GXDeviceGroup" Title="@Properties.Resources.Selected" @ref="_selected"
-                   ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   OnAdded="OnAdded"
-                   OnRemoved="@Removed">
-        <DataContent>
+<GXRelationshipSelector TItem="GXDeviceGroup" @ref="_selectionContainer"
+                        SelectedItems="@(() => GetDeviceGroups())"
+                        ItemKey="@(item => item.Id!)" ItemsProvider="GetItems"
+                        Disabled="@Disabled" OwnerMutates="true" OnAdded="OnAdded" OnRemoved="Removed">
+    <ItemContent>
             @context.Name
-        </DataContent>
-        <FilterContent>
-            <GXSearch Placeholder="@Properties.Resources.FilterByName"
-                    ValueChanged="@SearchSelectedByName" />
-        </FilterContent>
-        <ButtonContent>
-            <div>
-                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
-                        type="button" onclick="@(() => RemoveAll())">
-                    &raquo;
-                </button>
-            </div>
-        </ButtonContent>
-    </SelectionList>
-    <SelectionList TItem="GXDeviceGroup" Title="@Properties.Resources.UpdatesAvailable" @ref="_available"
-                   ItemsProvider="@GetItems">
-        <DataContent>
-            @context.Name
-        </DataContent>
-        <FilterContent>
+
+    </ItemContent>
+    <FilterContent>
             <GXSearch Placeholder="@Properties.Resources.FilterByName"
                     ValueChanged="@SearchByName" />
             <GXSearch Placeholder="@Properties.Resources.FilterByUser"
                     ValueChanged="@SearchByUser" />
-        </FilterContent>
-        <ButtonContent>
-            <div>
-                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
-                        type="button" onclick="@(() => AddAll())">
-                    &laquo;
-                </button>
-            </div>
-        </ButtonContent>
-    </SelectionList>
-</SelectionContainer>
+
+    </FilterContent>
+    <ButtonContent>
+        <GXMenuEntry Id="AddAll" Text="@Properties.Resources.AddAll" ReadOnly="@Disabled" OnClick="AddAll" />
+        <GXMenuEntry Id="RemoveAll" Text="@Properties.Resources.RemoveAll" ReadOnly="@Disabled" OnClick="RemoveAll" />
+    </ButtonContent>
+</GXRelationshipSelector>
 
 @code {
+    /// <summary>Gets or sets whether relationship changes are disabled by the parent editor.</summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
     private IGXProgress? _progress;
     /// <summary>Publishes operation results and failures to the page's notification UI.</summary>
     private IGXNotificationService? _notificationService;
 
-
+    /// <summary>Receives the containing user group editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private UserGroup? UserGroupParent { get; set; }
 
+    /// <summary>Receives the containing device editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private Device? DeviceParent { get; set; }
 
+    /// <summary>Receives the containing agent group editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private AgentGroup? AgentGroupParent { get; set; }
 
+    /// <summary>Receives the containing gateway editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private Gateway? GatewayParent { get; set; }
 
+    /// <summary>Receives the containing schedule editor whose relationship collection is modified.</summary>
     [CascadingParameter]
     private Schedule? ScheduleParent { get; set; }
 
-    /// <summary>References the list of records selected for the current relationship.</summary>
-    SelectionList<GXDeviceGroup>? _selected;
-    /// <summary>References the list of available records that can be added to the current relationship.</summary>
-    SelectionList<GXDeviceGroup>? _available;
-    /// <summary>Coordinates transfers between the available and selected relationship lists.</summary>
-    SelectionContainer<GXDeviceGroup>? _selectionContainer;
+    /// <summary>Coordinates paged checkbox selection for the edited relationship.</summary>
+    private GXRelationshipSelector<GXDeviceGroup>? _selectionContainer;
 
-    /// <summary>
-    /// Device group filter.
-    /// </summary>
+    /// <summary>Stores endpoint criteria shared by selected and available device group queries.</summary>
     private GXDeviceGroup _filter = new GXDeviceGroup(null);
-    /// <summary>
-    /// Selected device group filter.
-    /// </summary>
-    private GXDeviceGroup _selectedFilter = new GXDeviceGroup();
 
     /// <summary>
     /// Available device groups.
@@ -136,31 +111,18 @@
     [Parameter]
     public List<GXDeviceGroup>? DeviceGroups { get; set; }
 
-    protected async Task SearchSelectedByName(string? name)
-    {
-        try
-        {
-            if (_selected != null)
-            {
-                _selectedFilter.Name = name;
-                await _selected.RefreshDataAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _notificationService?.ReportError(ex);
-        }
-    }
-
+    /// <summary>Applies the name filter to both selected and available relationship records.</summary>
+    /// <param name="name">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByName(string? name)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 _filter.Name = name;
                 _notificationService?.RemoveByKey("Pages/Device/DeviceGroupsSelector.SearchByName");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -169,11 +131,14 @@
         }
     }
 
+    /// <summary>Applies the user filter to both selected and available relationship records.</summary>
+    /// <param name="userName">The filter value supplied by the corresponding search control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     protected async Task SearchByUser(string? userName)
     {
         try
         {
-            if (_available != null)
+            if (_selectionContainer != null)
             {
                 if (string.IsNullOrEmpty(userName))
                 {
@@ -197,7 +162,7 @@
                     user.UserName = userName;
                 }
                 _notificationService?.RemoveByKey("Pages/Device/DeviceGroupsSelector.SearchByUser");
-                await _available.RefreshDataAsync();
+                await _selectionContainer.RefreshDataAsync();
             }
         }
         catch (Exception ex)
@@ -206,74 +171,58 @@
         }
     }
 
-    /// <summary>
-    /// Add all objects to selected items.
-    /// </summary>
+    /// <summary>Adds up to 1000 matching available records through the existing relationship mutation handler.</summary>
     /// <returns></returns>
     private async Task AddAll()
     {
-        int max = 0;
-        //max 1000 items are added at the one time.
-        if (_available != null && _available.TotalCount > 1000)
-        {
-            max = 1000;
-        }
-        var ret = await GetItems(new GXItemsProviderRequest(0, max));
+        var ret = await GetItems(new GXRelationshipQuery<GXDeviceGroup>(new GXItemsProviderRequest(0, 1000), excluded: (GetDeviceGroups()).ToArray()));
         await OnAdded(ret.Items);
-        if (_selected != null)
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            await _available.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// Remove all objects from selected items.
-    /// </summary>
+    /// <summary>Clears the current relationship and refreshes the paged selection view.</summary>
     /// <returns></returns>
     private async Task RemoveAll()
     {
         List<GXDeviceGroup> groups = GetDeviceGroups();
         groups.Clear();
-        if (_selected != null)
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
-        }
-        if (_available != null)
-        {
-            await _available.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// New device is added for selection list.
-    /// </summary>
+    /// <summary>Adds each new identity once to the authoritative relationship and refreshes its selection view.</summary>
+    /// <param name="items">The records explicitly added or removed by the selection control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     public async Task OnAdded(IEnumerable<GXDeviceGroup> items)
     {
         List<GXDeviceGroup> groups = GetDeviceGroups();
-        groups.InsertRange(0, items);
-        if (_selected != null)
+        groups.InsertRange(0, items.Where(item => !groups.Any(existing => existing.Id == item.Id)).DistinctBy(item => item.Id));
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
-    /// <summary>
-    /// Device has removed from the lists.
-    /// </summary>
+    /// <summary>Removes matching identities from the authoritative relationship, including reloaded DTO instances.</summary>
+    /// <param name="items">The records explicitly added or removed by the selection control.</param>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     private async Task Removed(IEnumerable<GXDeviceGroup> items)
     {
         List<GXDeviceGroup> groups = GetDeviceGroups();
-        groups.RemoveAll(w => items.Contains(w));
-        if (_selected != null)
+        groups.RemoveAll(value => items.Any(item => item.Id == value.Id));
+        if (_selectionContainer != null)
         {
-            await _selected.RefreshDataAsync();
+            await _selectionContainer.RefreshDataAsync();
         }
     }
 
+    /// <summary>Returns the relationship collection owned by the explicit parameter or the containing editor.</summary>
+    /// <returns>The parent editor's authoritative relationship collection.</returns>
     private List<GXDeviceGroup> GetDeviceGroups()
     {
         if (DeviceGroups != null)
@@ -299,33 +248,21 @@
         return GatewayParent?.Active is { } parent ? parent.DeviceGroups ??= [] : [];
     }
 
+    /// <summary>Closes the active module settings selection and refreshes the component display.</summary>
+    /// <returns>A task completing after the relationship or displayed results have been updated.</returns>
     public Task Update()
     {
-        if (_selected == null)
+        if (_selectionContainer == null)
         {
             return Task.CompletedTask;
         }
-        return _selected.RefreshDataAsync();
+        return _selectionContainer.RefreshDataAsync();
     }
 
-    /// <summary>
-    /// Filter is done when SearchSelectedByName is called.
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXDeviceGroup>> GetSelectedItems(GXItemsProviderRequest request)
-    {
-        var groups = GetDeviceGroups();
-        int total = groups.Count;
-        if (!string.IsNullOrEmpty(_selectedFilter.Name))
-        {
-            groups = groups.Where(w => (w.Name ?? string.Empty).ToLower().Contains((_selectedFilter.Name ?? string.Empty).ToLower())).ToList();
-        }
-        return new(new ItemsProviderResult<GXDeviceGroup>(
-        groups.Skip(request.StartIndex).Take(request.Count), total));
-    }
-
-    private async ValueTask<ItemsProviderResult<GXDeviceGroup>> GetItems(GXItemsProviderRequest request)
+    /// <summary>Retrieves a bounded server-filtered relationship page using the supplied inclusion and exclusion identities.</summary>
+    /// <param name="request">The bounded page, cancellation token and stable identity restrictions.</param>
+    /// <returns>The bounded result page and full matching count.</returns>
+    private async ValueTask<ItemsProviderResult<GXDeviceGroup>> GetItems(GXRelationshipQuery<GXDeviceGroup> request)
     {
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDeviceGroups);
@@ -338,10 +275,12 @@
                     Filter = _filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = GetDeviceGroups().Select(s => s.Id).ToArray()
+                    Included = request.Included?.Select(item => item.Id).ToArray(),
+                    OrderBy = nameof(GXDeviceGroup.Id),
+                    Exclude = request.Excluded.Select(item => item.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", req, request.CancellationToken);
-            if (ret?.DeviceGroups != null && _selected != null)
+            if (ret?.DeviceGroups != null && _selectionContainer != null)
             {
                 return new ItemsProviderResult<GXDeviceGroup>(ret.DeviceGroups, ClientHelpers.ToVirtualizedCount(ret.Count));
             }
@@ -354,10 +293,12 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+            throw;
         }
-        return default;
+        return new ItemsProviderResult<GXDeviceGroup>([], 0);
     }
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _progress = Services.GetService<IGXProgress>();
@@ -367,20 +308,15 @@
         await Task.Delay(1);
         try
         {
-            if (_selectionContainer == null || _selected == null)
+            if (_selectionContainer == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingDeviceGroups);
             _notificationService?.RemoveByKey("Pages/Device/DeviceGroupsSelector.OnInitializedAsync");
-            if (_selected != null)
+            if (_selectionContainer != null)
             {
-                await _selected.RefreshDataAsync();
-            }
-            //Read available items.
-            if (_available != null)
-            {
-                await _available.RefreshDataAsync();
+                await _selectionContainer.InitializeAsync();
             }
         }
         catch (Exception ex)
