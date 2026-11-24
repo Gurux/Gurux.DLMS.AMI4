@@ -630,6 +630,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 tasks = tasks.ToArray();
                 foreach (var invocation in tasks)
                 {
+                    GXScheduleTaskScope.SetTriggerUser(invocation, creator.Id!);
                     var workflowSource = GXWorkflowService.CurrentOperationId;
                     if (workflowSource != null)
                     {
@@ -1021,34 +1022,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         it.Module != null)
                     {
                         throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
-                    }
-                    //If script is triggered by user.
-                    if (it.TriggerSchedule == null && it.TriggerScript == null)
-                    {
-                        it.TriggerUser = new GXUser() { Id = ServerHelpers.GetUserId(_user) };
-                    }
-                    else
-                    {
-                        throw new GXAmiForbiddenException();
-                    }
-                    if (it.TriggerUser == null)
-                    {
-                        if (it.TriggerSchedule != null)
-                        {
-                            it.TriggerUser = it.TriggerSchedule.Creator;
-                        }
-                        else if (it.TriggerScript != null)
-                        {
-                            it.TriggerUser = it.TriggerScript.Creator;
-                        }
-                        else if (it.TriggerModule != null)
-                        {
-                            it.TriggerUser = it.TriggerModule.Creator;
-                        }
-                        if (it.TriggerUser == null)
-                        {
-                            throw new GXAmiForbiddenException();
-                        }
                     }
                     it.Creator = creator;
                     it.CreationTime = now;

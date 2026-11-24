@@ -120,7 +120,8 @@ namespace Gurux.DLMS.AMI.Scheduler
                         task.WorkflowOperationId = operationId;
                         task.WorkflowActorId = operation.ActorId;
                     }
-                    dispatched = (await taskRepository.AddAsync(tasks, cancellationToken)).Any();
+                    dispatched = (await GXScheduleTaskScope.RunAsync(schedule.Id, operationId,
+                        () => taskRepository.AddAsync(tasks, cancellationToken))).Any();
                 }
                 if (!dispatched) {
                     await WorkflowOperationRepository.FinishTrustedAsync(factory, handler, operationId,

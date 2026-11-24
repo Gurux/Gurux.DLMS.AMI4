@@ -61,8 +61,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IAuthorizationService _authorizationService;
 
         /// <summary>
-        /// Constructor.
+        /// Initializes repository access for the current authenticated user.
         /// </summary>
+        /// <param name="dbFactory">Factory used to open repository database connections.</param>
+        /// <param name="httpContextAccessor">Provides the user whose permissions govern repository operations.</param>
+        /// <param name="userRepository">Resolves users and role memberships for notifications.</param>
+        /// <param name="notificationCache">Queues notifications after repository changes.</param>
+        /// <param name="authorizationService">Checks policies for repository operations.</param>
+        /// <exception cref="UnauthorizedAccessException">The HTTP context does not contain a user.</exception>
         public ObjectTemplateRepository(IDbConnectionFactory dbFactory,
             IHttpContextAccessor httpContextAccessor,
             IUserRepository userRepository,
@@ -205,9 +211,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             await _authorizationService.EnsureAnyPolicyAsync(_user, GXDeviceTemplatePolicies.View);
             string userId = ServerHelpers.GetUserId(_user);
-            GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, null);
-            arg.Distinct = true;
-            arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
+            // Keep the outer query on one table so filters and the paging count
+            // cannot produce ambiguous column names across template tables.
+            GXSelectArgs deviceTemplates = GXQuery.GetDeviceTemplatesByUser(q => GXSql.One, userId);
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(q => q.Removed == null);
+            arg.Where.And<GXObjectTemplate>(q => GXSql.Exists<GXObjectTemplate, GXDeviceTemplate>(
+                source => source.DeviceTemplate!, target => target.Id, deviceTemplates));
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
@@ -221,7 +230,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (request.DeviceTemplates != null && request.DeviceTemplates.Any())
                 {
-                    arg.Where.And<GXDeviceTemplate>(w => request.DeviceTemplates.Contains(w.Id));
+                    deviceTemplates.Where.And<GXDeviceTemplate>(w => request.DeviceTemplates.Contains(w.Id));
                 }
                 if (request.ObjectTypes != null && request.ObjectTypes.Any())
                 {

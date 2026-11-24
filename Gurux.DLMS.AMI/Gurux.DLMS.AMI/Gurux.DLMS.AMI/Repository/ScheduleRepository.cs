@@ -563,8 +563,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             await _authorizationService.EnsureAnyPolicyAsync(User1, GXSchedulePolicies.Edit);
             GXUpdateArgs args = GXUpdateArgs.Update(schedule, c => c.ExecutionTime!);
+            // Runtime progress must not invalidate an open editor's settings version.
+            args.Exclude<GXSchedule>(s => s.ConcurrencyStamp!);
             await using var connection = await _dbFactory.GetHistoryConnectionAsync();
             await connection.UpdateAsync(args, cancellationToken);
+            if (_notificationCache.IsEnabled(GXSchedulePolicies.Edit))
+            {
+                // Omit the settings version so lists reload runtime data even when that version is unchanged.
+                _notificationCache.Add(await GetNotifiedUsers(schedule.Id, NotificationAction.Edit, connection),
+                    new GXTarget(GXSchedulePolicies.Edit, schedule.Id, schedule.Name));
+            }
         }
 
         /// <inheritdoc/>
