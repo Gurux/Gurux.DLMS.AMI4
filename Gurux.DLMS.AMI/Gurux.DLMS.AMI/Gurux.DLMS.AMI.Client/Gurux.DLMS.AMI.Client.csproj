@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
     <PropertyGroup>
-        <UseLocalGuruxComponents Condition="'$(UseLocalGuruxComponents)' == '' And Exists('../../../../Gurux.DLMS.UI.Components/Development/Gurux.DLMS.UI.Components.csproj')">true</UseLocalGuruxComponents>
         <DefaultItemExcludes>$(DefaultItemExcludes);Testing/**</DefaultItemExcludes>
         <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
         <AmiAspNetCoreVersion Condition="'$(TargetFramework)' == 'net11.0'">11.0.0</AmiAspNetCoreVersion>
@@ -14,12 +13,10 @@
         <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Gurux.UI.Components" Version="4.0.2611.2501" />
         <PackageReference Include="Gurux.DLMS.AMI.Module" Version="5.0.2611.1101" />
         <PackageReference Include="Gurux.DLMS" Version="9.0.2609.2201" />
         <PackageReference Include="Gurux.DLMS.AMI.Http" Version="4.1.2611.501" />
         <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.1.2611.901" />
-        <PackageReference Include="Gurux.DLMS.UI.Components" Version="1.0.2611.2001" Condition="'$(UseLocalGuruxComponents)' != 'true'" />
         <PackageReference Include="Gurux.DLMS.UI.Components" Version="1.0.2611.2502" />
         <PackageReference Include="Gurux.Net" Version="9.0.2611.1802" />
         <PackageReference Include="Gurux.Scheduling" Version="1.0.2609.2201" />
@@ -30,7 +27,6 @@
         <PackageReference Include="Microsoft.AspNetCore.Http.Connections.Client" Version="$(AmiAspNetCoreVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="$(AmiAspNetCoreVersion)" />
     </ItemGroup>
-
     <ItemGroup>
         <Compile Update="Properties\Resources.Designer.cs">
             <DesignTime>True</DesignTime>
@@ -38,14 +34,12 @@
             <DependentUpon>Resources.resx</DependentUpon>
         </Compile>
     </ItemGroup>
-
     <ItemGroup>
         <EmbeddedResource Update="Properties\Resources.resx">
             <Generator>ResXFileCodeGenerator</Generator>
             <LastGenOutput>Resources.Designer.cs</LastGenOutput>
         </EmbeddedResource>
     </ItemGroup>
-
     <ItemGroup>
         <TrimmerRootDescriptor Include="ModuleComponents.xml" />
     </ItemGroup>
