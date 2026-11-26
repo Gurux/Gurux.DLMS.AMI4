@@ -263,7 +263,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
-                arg.Where.FilterBy(request.Filter);
+                GXTaskListFilter.Apply(arg, request.Filter);
                 if (request.Exclude?.Any() == true)
                 {
                     arg.Where.And<GXTask>(w => !request.Exclude.Contains(w.Id));
@@ -541,8 +541,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Columns.Add<GXAttributeTemplate>();
                     arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                     arg.Columns.Exclude<GXObject>(e => new { e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
-                    arg.Columns.Exclude<GXAttribute>(e => new { e.Object, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
-                    arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
+                    arg.Columns.Exclude<GXAttribute>(e => new { e.Object, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated });
+                    arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.Name });
                     task.Object = await connection.SingleOrDefaultAsync<GXObject>(arg);
                 }
                 if (task.Attribute != null)
@@ -560,6 +560,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Columns.Exclude<GXAttribute>(e => new { e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
                     arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                     task.Attribute = await connection.SingleOrDefaultAsync<GXAttribute>(arg);
+                    if (task.Attribute?.Template?.Index == 2 &&
+                        task.Attribute.Object?.Template?.ObjectType == (int)Gurux.DLMS.Enums.ObjectType.ProfileGeneric)
+                    {
+                        // Buffer dependencies must retain their static settings, rights and cached values.
+                        var profileObject = task.Attribute.Object;
+                        var metadata = GXSelectArgs.SelectAll<GXAttribute>(attribute => attribute.Object == profileObject);
+                        metadata.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(attribute => attribute.Template!, template => template.Id);
+                        metadata.Columns.Add<GXAttributeTemplate>();
+                        metadata.Columns.Exclude<GXAttribute>(attribute => attribute.Object!);
+                        metadata.Columns.Exclude<GXAttributeTemplate>(template => template.ObjectTemplate!);
+                        profileObject.Attributes = [.. await connection.SelectAsync<GXAttribute>(metadata, cancellationToken)];
+                    }
                 }
                 if (task.TriggerSchedule != null)
                 {
@@ -1396,9 +1408,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     await UpdateObjectExecutionTimes(connection, it, task, task.Object);
-                    var users = await GetNotifiedUsers(it.Id, NotificationAction.Edit, connection);
-                    _notificationCache.Add(users, new GXTarget(GXTaskPolicies.Edit, it.Id, it.Data));
                 }
+                var users = await GetNotifiedUsers(it.Id, NotificationAction.Edit, connection);
+                _notificationCache.Add(users, new GXTarget(GXTaskPolicies.Edit, it.Id, it.Data)
+                {
+                    Source = "task.runtime:Data,Error,Ready,Result"
+                });
             }
         }
 
@@ -1454,7 +1469,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await transaction.CommitAsync(cancellationToken);
                 foreach (var notification in notifications)
                     {
-                    _notificationCache.Add(notification.Users, new GXTarget(GXTaskPolicies.Edit, notification.Id, null));
+                    _notificationCache.Add(notification.Users, new GXTarget(GXTaskPolicies.Edit, notification.Id, null)
+                    {
+                        Source = "task.runtime:Data,Error,OperatingAgent,Ready,Result,Start"
+                    });
                 }
                 foreach (var operation in operations)
                     {
@@ -1473,10 +1491,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             try { return await GetNextCoreAsync(connectionInfo, agentId, DeviceId, gatewayId, listener, cancellationToken); }
             finally { WorkflowOperationRepository.Gate.Release(); }
         }
-        /// <summary>Authorizes an active agent, claims its next eligible tasks in a serializable transaction, and starts corresponding workflow operations.</summary>
+        /// <summary>Authorizes an active agent, retries deadlocked serializable task claims, and publishes workflows only after a successful commit.</summary>
         /// <param name="connectionInfo">Optional connection details retained with the agent status or task claim.</param>
         /// <param name="agentId">Identity of the agent whose status or task claims are changed.</param>
-        /// <param name="DeviceId">Optional device identity restricting the next eligible task claims.</param>
+        /// <param name="deviceId">Optional device identity restricting the next eligible task claims.</param>
         /// <param name="gatewayId">Optional gateway identity restricting the next eligible task claims.</param>
         /// <param name="listener">Whether task selection is performed for a listener connection.</param>
         /// <param name="cancellationToken">Cancels the asynchronous operation and any wait for its synchronization gate.</param>
@@ -1484,81 +1502,91 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private async Task<IEnumerable<GXTask>> GetNextCoreAsync(
             string? connectionInfo,
             Guid agentId,
-            Guid? DeviceId,
+            Guid? deviceId,
             Guid? gatewayId,
             bool listener, CancellationToken cancellationToken)
         {
             await _authorizationService.EnsureAnyPolicyAsync(_user, GXTaskPolicies.Edit);
-            //Check that agent is active and not removed.
-            GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(c => c.Id, q => q.Id == agentId && q.Enabled == true && q.Removed == null);
-            await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
-            await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-            GXAgent? agent;
-            GXTask[] tasks = [];
-            var operations = new List<GXWorkflowOperation>();
-            try
-            {
-                agent = await connection.SingleOrDefaultAsync<GXAgent>(transaction, arg, cancellationToken);
-                if (agent == null)
+            var claim = await GXSerializableTransaction.ExecuteAsync(
+                async token => await _dbFactory.GetHistoryConnectionAsync(token),
+                async (claimConnection, claimTransaction, attemptToken) =>
                 {
-                    throw new UnauthorizedAccessException();
-                }
-                string userId = ServerHelpers.GetUserId(_user);
-                var membership = GXRepositoryUsers.Query(typeof(GXAgent), agentId);
-                membership.Where.And<GXUser>(u => u.Id == userId);
-                if ((await connection.SelectAsync<GXUser>(transaction, membership, cancellationToken)).Count == 0)
+                    // Check authorization again within each independently owned claim transaction.
+                    GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(c => c.Id, q => q.Id == agentId && q.Enabled == true && q.Removed == null);
+                    GXAgent? claimedAgent;
+                    GXTask[] claimedTasks = [];
+                    var claimedOperations = new List<GXWorkflowOperation>();
+                    claimedAgent = await claimConnection.SingleOrDefaultAsync<GXAgent>(claimTransaction, arg, attemptToken);
+                    if (claimedAgent == null)
                     {
-                    throw new UnauthorizedAccessException();
-                }
-                arg = GXQuery.GetNextTasks(c => c.Id, userId, agentId, DeviceId, gatewayId, false, listener);
-                var pending = await connection.SelectAsync<GXTask>(transaction, arg, cancellationToken);
-                if (pending.Count == 0)
-                {
-                    // An explicit device still scopes the fallback to that meter.
-                    // A gateway poll must never claim a meter outside its gateway mappings.
-                    if (gatewayId == null || gatewayId == Guid.Empty)
-                    {
-                        arg = GXQuery.GetNextTasks(c => c.Id, userId, agentId, DeviceId, gatewayId, true, listener);
-                        pending = await connection.SelectAsync<GXTask>(transaction, arg, cancellationToken);
+                        throw new UnauthorizedAccessException();
                     }
+                    string userId = ServerHelpers.GetUserId(_user);
+                    var membership = GXRepositoryUsers.Query(typeof(GXAgent), agentId);
+                    membership.Where.And<GXUser>(u => u.Id == userId);
+                    if ((await claimConnection.SelectAsync<GXUser>(claimTransaction, membership, attemptToken)).Count == 0)
+                        {
+                        throw new UnauthorizedAccessException();
+                    }
+                    arg = GXQuery.GetNextTasks(c => c.Id, userId, agentId, deviceId, gatewayId, false, listener);
+                    var pending = await claimConnection.SelectAsync<GXTask>(claimTransaction, arg, attemptToken);
                     if (pending.Count == 0)
                     {
-                        await transaction.CommitAsync(cancellationToken);
-                        return tasks;
+                        // An explicit device still scopes the fallback to that meter.
+                        // A gateway poll must never claim a meter outside its gateway mappings.
+                        if (gatewayId == null || gatewayId == Guid.Empty)
+                        {
+                            arg = GXQuery.GetNextTasks(c => c.Id, userId, agentId, deviceId, gatewayId, true, listener);
+                            pending = await claimConnection.SelectAsync<GXTask>(claimTransaction, arg, attemptToken);
+                        }
+                        if (pending.Count == 0)
+                        {
+                            return (Agent: claimedAgent!, Tasks: claimedTasks, Operations: claimedOperations);
+                        }
                     }
-                }
-                // Read every task before claiming the batch. The serializable transaction
-                // prevents a competing agent from claiming the same meter concurrently.
-                var batch = new List<GXTask>(pending.Count);
-                foreach (var item in pending)
-                {
-                    batch.Add(await ReadAsync(item.Id, null, cancellationToken));
-                }
-                foreach (var task in batch)
-                {
-                    task.Start = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-                    task.OperatingAgent = agent;
-                    operations.Add(await StartTaskOperationAsync(connection, transaction, task,
-                        task.WorkflowOperationId != null ? task.WorkflowActorId : task.TriggerUser?.Id ?? task.Creator?.Id ?? userId, cancellationToken));
-                    GXUpdateArgs args = GXUpdateArgs.Update(task, q => new { q.Start, q.OperatingAgent });
-                    await connection.UpdateAsync(transaction, args, cancellationToken);
-                    // Trim details that the executing agent does not need.
-                    task.Target = null;
-                    task.CreationTime = null;
-                    task.TriggerUser = null;
-                    task.Object?.CreationTime = null;
-                }
-                tasks = [.. batch];
-                await transaction.CommitAsync(cancellationToken);
-            }
-            catch (Exception)
+                    // Read every task before claiming the batch. The serializable transaction
+                    // prevents a competing agent from claiming the same meter concurrently.
+                    var batch = new List<GXTask>(pending.Count);
+                    foreach (var item in pending)
+                    {
+                        batch.Add(await ReadAsync(item.Id, null, attemptToken));
+                    }
+                    foreach (var task in batch)
+                    {
+                        task.Start = DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                        task.OperatingAgent = claimedAgent;
+                        claimedOperations.Add(await StartTaskOperationAsync(claimConnection, claimTransaction, task,
+                            task.WorkflowOperationId != null ? task.WorkflowActorId : task.TriggerUser?.Id ?? task.Creator?.Id ?? userId, attemptToken));
+                        GXUpdateArgs args = GXUpdateArgs.Update(task, q => new { q.Start, q.OperatingAgent });
+                        await claimConnection.UpdateAsync(claimTransaction, args, attemptToken);
+                        // Trim details that the executing agent does not need.
+                        task.Target = null;
+                        task.CreationTime = null;
+                        task.TriggerUser = null;
+                        task.Object?.CreationTime = null;
+                    }
+                    claimedTasks = [.. batch];
+                    return (Agent: claimedAgent!, Tasks: claimedTasks, Operations: claimedOperations);
+                }, cancellationToken);
+            GXTask[] tasks = claim.Tasks;
+            if (tasks.Length == 0)
             {
-                transaction.Rollback();
-                throw;
+                return tasks;
             }
+            GXAgent agent = claim.Agent;
+            var operations = claim.Operations;
+            await using var connection = await _dbFactory.GetHistoryConnectionAsync(cancellationToken);
             foreach (var operation in operations)
                 {
                 await WorkflowOperationRepository.PublishPendingAsync(connection, _serviceProvider.GetRequiredService<IWorkflowHandler>(), operation);
+            }
+            foreach (var task in tasks)
+            {
+                var users = await GetNotifiedUsers(task.Id, NotificationAction.Edit, connection);
+                _notificationCache.Add(users, new GXTarget(GXTaskPolicies.Edit, task.Id)
+                {
+                    Source = "task.runtime:OperatingAgent,Start"
+                });
             }
             //Update agent detected time.
             using (IServiceScope scope = _serviceProvider.CreateScope())
@@ -1566,9 +1594,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
                 await repository.UpdateStatusAsync(agent.Id, connectionInfo, AgentStatus.Detected, null, cancellationToken);
             }
-            if (DeviceId != null && DeviceId != Guid.Empty)
+            if (deviceId != null && deviceId != Guid.Empty)
             {
-                Guid id = DeviceId.Value;
+                Guid id = deviceId.Value;
                 //Update device detected time.
                 using IServiceScope scope = _serviceProvider.CreateScope();
                 IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();

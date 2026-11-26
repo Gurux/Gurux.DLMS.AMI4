@@ -36,8 +36,12 @@ using System.Reflection;
 
 namespace Gurux.DLMS.AMI.Client
 {
+    /// <summary>Configures the browser application and its shared UI services.</summary>
     internal class Program
     {
+        /// <summary>Registers browser services and starts the AMI WebAssembly host.</summary>
+        /// <param name="args">Command-line arguments supplied to the host.</param>
+        /// <returns>The lifetime of the browser host.</returns>
         static async Task Main(string[] args)
         {
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
@@ -75,6 +79,7 @@ namespace Gurux.DLMS.AMI.Client
             });
             builder.Services.AddScoped<GXConfirmationService>();
             builder.Services.AddScoped<IGXAmiConfirmation>(sp => sp.GetRequiredService<GXConfirmationService>());
+            builder.Services.AddScoped<IGXConfirmation>(sp => sp.GetRequiredService<GXConfirmationService>());
             builder.Services.AddScoped<IGXProgress, GXProgressService>();
             builder.Services.AddScoped<IGXNotificationService, GXNotificationService>();
             builder.Services.AddScoped<GXBackgroundTaskNotifications>();
@@ -101,6 +106,10 @@ namespace Gurux.DLMS.AMI.Client
             await app.RunAsync();
         }
 
+        /// <summary>Resolves an assembly request against assemblies already loaded in the browser.</summary>
+        /// <param name="sender">The application domain requesting assembly resolution.</param>
+        /// <param name="args">The unresolved assembly name.</param>
+        /// <returns>The first matching loaded assembly, or null when none is available.</returns>
         static Assembly? CurrentDomain_AssemblyResolve(object? sender, ResolveEventArgs args)
         {
             try
@@ -120,6 +129,10 @@ namespace Gurux.DLMS.AMI.Client
             return null;
         }
 
+        /// <summary>Resolves a type request against the names of loaded assemblies.</summary>
+        /// <param name="sender">The application domain requesting type resolution.</param>
+        /// <param name="args">The unresolved type or assembly name.</param>
+        /// <returns>The first loaded assembly with a matching name prefix, or null.</returns>
         static Assembly? CurrentDomain_TypeResolve(object? sender, ResolveEventArgs args)
         {
             try

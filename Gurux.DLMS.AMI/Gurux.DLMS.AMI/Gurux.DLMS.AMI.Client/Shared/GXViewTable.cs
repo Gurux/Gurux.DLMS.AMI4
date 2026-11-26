@@ -64,6 +64,12 @@ public class GXViewTable<TItem> : GXTable<TItem>, IDisposable, IAsyncDisposable
     private long _generation;
     private SelectionMode _callerSelectionMode = SelectionMode.Single;
     private int _callerPageSize = 10;
+
+    /// <summary>Tracks the last page-size default so parent renders preserve user paging choices.</summary>
+    private int? _appliedPageSize;
+
+    /// <summary>Tracks the last show-all default so unrelated renders preserve the active paging mode.</summary>
+    private bool? _appliedShowAllData;
     private bool _callerShowAllData;
     private bool _callerAllowColumnCustomization = true;
     private string? _automaticPreferencesId;
@@ -73,6 +79,10 @@ public class GXViewTable<TItem> : GXTable<TItem>, IDisposable, IAsyncDisposable
     {
         Active = item;
     }
+
+    /// <summary>Renders changes made to loaded rows without querying the provider or rerendering the owning page.</summary>
+    /// <returns>A task completing when the table has scheduled its updated row rendering.</returns>
+    public Task RefreshRowsAsync() => InvokeAsync(StateHasChanged);
 
     /// <summary>Resets pagination before the caller refreshes the table data.</summary>
     public void ResetPage()
@@ -222,6 +232,7 @@ public class GXViewTable<TItem> : GXTable<TItem>, IDisposable, IAsyncDisposable
 
     private static GXView? ActiveView(GXView? view) => view?.Enabled == false ? null : view;
 
+    /// <summary>Applies shared presentation defaults, updating paging only when its defaults change.</summary>
     private void ApplyViewDefaults()
     {
         var columns = GXViewColumnDefaults.Merge(ViewColumns, _view?.Columns);
@@ -232,8 +243,18 @@ public class GXViewTable<TItem> : GXTable<TItem>, IDisposable, IAsyncDisposable
         AllowColumnCustomization = _callerAllowColumnCustomization && GXViewSettings.CanCustomizeColumns(_view, _isAdmin);
         SelectionMode = _view?.SelectionMode is byte mode && Enum.IsDefined((SelectionMode)mode)
             ? (SelectionMode)mode : _callerSelectionMode;
-        PageSize = _view?.PageSize ?? _callerPageSize;
-        ShowAllData = _view?.ShowAllData ?? _callerShowAllData;
+        int pageSize = _view?.PageSize ?? _callerPageSize;
+        if (_appliedPageSize != pageSize)
+        {
+            PageSize = pageSize;
+            _appliedPageSize = pageSize;
+        }
+        bool showAllData = _view?.ShowAllData ?? _callerShowAllData;
+        if (_appliedShowAllData != showAllData)
+        {
+            ShowAllData = showAllData;
+            _appliedShowAllData = showAllData;
+        }
         ColumnEditorContent = editor => builder =>
         {
             builder.OpenComponent<GXViewColumnEditor>(0);

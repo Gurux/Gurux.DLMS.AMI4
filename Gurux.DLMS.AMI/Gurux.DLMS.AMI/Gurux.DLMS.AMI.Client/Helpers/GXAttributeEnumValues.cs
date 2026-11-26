@@ -34,6 +34,27 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Validates the existing attribute enum contract for client editors and server persistence.</summary>
 public static class GXAttributeEnumValues
 {
+    /// <summary>Identifies numeric and bit-string value attributes that support named values.</summary>
+    /// <param name="template">The attribute supplying its index and wire type.</param>
+    /// <param name="objectType">The owning class, when not populated on the attribute template.</param>
+    /// <returns>True for supported Data and register value attributes; false for all other metadata.</returns>
+    public static bool CanEditValues(GXAttributeTemplate template, int? objectType = null)
+    {
+        var owner = (ObjectType)(objectType ?? template.ObjectTemplate?.ObjectType ?? 0);
+        bool valueAttribute = owner switch
+        {
+            ObjectType.Data or ObjectType.Register or ObjectType.ExtendedRegister => template.Index == 2,
+            ObjectType.DemandRegister => template.Index is 2 or 3,
+            _ => false
+        };
+        return valueAttribute && (DataType)template.DataType is
+            DataType.Int8 or DataType.UInt8 or DataType.Int16 or DataType.UInt16 or
+            DataType.Int32 or DataType.UInt32 or DataType.Int64 or DataType.UInt64 or
+            DataType.DeltaInt8 or DataType.DeltaUInt8 or DataType.DeltaInt16 or DataType.DeltaUInt16 or
+            DataType.DeltaInt32 or DataType.DeltaUInt32 or DataType.Float32 or DataType.Float64 or
+            DataType.Enum or DataType.Bcd or DataType.BitString;
+    }
+
     /// <summary>Determines whether enum rows describe fields in a bit string.</summary>
     /// <param name="template">The attribute whose wire and display types are inspected.</param>
     /// <returns>True when either type is BitString.</returns>

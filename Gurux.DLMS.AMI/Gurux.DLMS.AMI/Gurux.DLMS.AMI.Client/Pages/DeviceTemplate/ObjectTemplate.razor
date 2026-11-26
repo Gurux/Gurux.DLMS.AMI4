@@ -1,4 +1,4 @@
-﻿@*
+@*
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -28,7 +28,6 @@
 *@
 
 @using Gurux.DLMS.AMI.Client.Pages.Device;
-@using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -69,166 +68,77 @@
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                                @bind-Value="Active.Name" />
                 </div>
-                <GXTabControl PersistSelectionInUrl="true">
-                    <ChildContent>
-                        <TabHeader Name="@GXMenus.ObjectTemplateDetailsTab">
-                            <ContentForLink Context="link">
-                                @if (link.Url == "Defaultvalues")
+                <GXObjectTemplateTabs Template="Active">
+                <table class="table table-striped" width="100%">
+                    <thead>
+                        <tr>
+                            <th>@Properties.Resources.Index</th>
+                            <th>@Properties.Resources.Name</th>
+                            <th>@Properties.Resources.DataType</th>
+                            <th>@Properties.Resources.UIDataType</th>
+                            <th>@Properties.Resources.ExpirationTime</th>
+                            <th width="1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var it in GetAttributes())
+                        {
+                            <tr class=@(GetSelectedClass(it)) @onclick="@(() => RowSelected(it))">
+                                <td>@it.Index</td>
+                                <td><GXLinkButton TItem="GXAttributeTemplate" Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
+                                <td>@GetDataType(it.DataType)</td>
+                                <td>@GetDataType(it.UIDataType)</td>
+                                <td>@GetExpirationTime(it)</td>
+                                @if (_activeAttribute == it && IsDeleting == null)
                                 {
-                                    @*Object view is used to shown default template value.*@
-                                    <ObjectView Template="@_active"
-                                                Action="Edit"></ObjectView>
+                                    <td>
+                                        <GXContextMenuController>
+                                            <ChildContent>
+                                                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="() => OnEdit(it)"></GXContextMenuItem>
+                                            </ChildContent>
+                                        </GXContextMenuController>
+                                    </td>
                                 }
-                                else if (link.Url == "Generic")
+                                else
                                 {
-                                    <table class="table table-striped" width="100%">
-                                        <thead>
-                                            <tr>
-                                                <th>@Properties.Resources.Index</th>
-                                                <th>@Properties.Resources.Name</th>
-                                                <th>@Properties.Resources.DataType</th>
-                                                <th>@Properties.Resources.UIDataType</th>
-                                                <th>@Properties.Resources.Scaler</th>
-                                                <th>@Properties.Resources.Unit</th>
-                                                <th>@Properties.Resources.AccessRights</th>
-                                                <th>@Properties.Resources.ExpirationTime</th>
-                                                <th width="1%"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var it in GetAttributes())
-                                            {
-                                                @if (IsEditing(it))
-                                                {
-                                                    <tr>
-                                                        <td>@it.Index</td>
-                                                        <td>@it.Name</td>
-                                                        <td>
-                                                            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="it.DataType"
-                                                                             Items="@(GetDataTypes().Select(type => (int)type))" Formatter="@((int value) => ((Gurux.DLMS.Enums.DataType)value).ToString())" />
-                                                        </td>
-                                                        <td>
-                                                            <GXInputDropdown RememberValue="false" class="form-select" @bind-Value="it.UIDataType"
-                                                                             Items="@(GetDataTypes().Select(type => (int)type))" Formatter="@((int value) => ((Gurux.DLMS.Enums.DataType)value).ToString())" />
-                                                        </td>
-                                                        <td>
-                                                            @if (IsNumber(it.DataType))
-                                                            {
-                                                                <GXInputNumber RememberValue="false"
-                                                                             AdditionalAttributes="@(new Dictionary<string, object> { ["step"] = "0.0001", ["class"] = "form-control", ["id"] = "scaler" })"
-                                                                             @bind-Value="@it.Scaler" Min="@GXNumberBounds.Minimum(it.Scaler)" Max="@GXNumberBounds.Maximum(it.Scaler)" />
-                                                            }
-                                                            else
-                                                            {
-                                                                @*Scaler is shown only for number data types.*@
-                                                            }
-                                                        </td>
-                                                        <td>
-                                                            <InputText class="form-control" id="unit" @bind-Value="@it.Unit" />
-                                                        </td>
-                                                        <td>@GetAccessRights(it)</td>
-                                                        <td><AttributeExpirationEditor Template="@it" /></td>
-                                                        <td>
-                                                            <button type="button" class="btn btn-primary"
-                                                                    @onclick="() => UpdateInstance(it, true)">
-                                                                @Properties.Resources.Update
-                                                            </button>
-                                                            <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
-                                                                @Properties.Resources.Cancel
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                                else
-                                                {
-                                                    <tr class=@(GetSelectedClass(it)) @onclick="@(() => RowSelected(it))">
-                                                        <td>@it.Index</td>
-                                                        <td><GXLinkButton TItem="GXAttributeTemplate" Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
-                                                        <td>@GetDataType(it.DataType)</td>
-                                                        <td>@GetDataType(it.UIDataType)</td>
-                                                        <td>@it.Scaler</td>
-                                                        <td>@it.Unit</td>
-                                                        <td>@GetAccessRights(it)</td>
-                                                        <td>@GetExpirationTime(it)</td>
-                                                        @if (_activeAttribute == it)
-                                                        {
-                                                            <td>
-                                                                <GXContextMenuController>
-                                                                    <ChildContent>
-                                                                        <GXContextMenuItem Text="@Properties.Resources.Edit" Id="edit" OnClick="() => OnEdit(it)"></GXContextMenuItem>
-                                                                    </ChildContent>
-                                                                </GXContextMenuController>
-                                                            </td>
-                                                        }
-                                                        else
-                                                        {
-                                                            <td>@Properties.Resources.Text2</td>
-                                                        }
-                                                    </tr>
-                                                }
-                                            }
-                                        </tbody>
-                                    </table>
-
-                                    <table class="table table-striped" width="100%">
-                                        <thead>
-                                            <tr>
-                                                <th>@Properties.Resources.Index</th>
-                                                <th>@Properties.Resources.Name</th>
-                                                <th>@Properties.Resources.AccessRights</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var it in GetActions())
-                                            {
-                                                <tr>
-                                                    <td>@it.Index</td>
-                                                    <td>@it.Description</td>
-                                                    <td>@it.AccessLevel</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-
-                                    @if (Active.Updated != null)
-                                    {
-                                        <div class="form-group">
-                                            <label>@Properties.Resources.Updated</label>
-                                            <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                                                       @bind-Value="Active.Updated" />
-                                        </div>
-                                    }
-                                    @if (Active.Removed != null)
-                                    {
-                                        <div class="form-group">
-                                            <label>@Properties.Resources.Remove</label>
-                                            <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                                                       @bind-Value="Active.Removed" />
-                                        </div>
-                                    }
-
+                                    <td>@Properties.Resources.Text2</td>
                                 }
-                            </ContentForLink>
-                        </TabHeader>
-                    </ChildContent>
-                </GXTabControl>
-                <details class="mt-3">
-                    <summary>@GXAttributeEnumValues.Text("AttributeEnumValues")</summary>
-                    @foreach (var attribute in GetAttributes())
-                    {
-                        <details @key="attribute" class="mt-2">
-                            <summary>@(attribute.Index): @(attribute.Name)</summary>
-                            <AttributeEnumEditor Template="@(attribute)" Disabled="@(IsDeleting != null)" />
-                        </details>
-                    }
-                </details>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                </GXObjectTemplateTabs>
+
+                @if (Active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                                   @bind-Value="Active.Updated" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Remove</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
+                                   @bind-Value="Active.Removed" />
+                    </div>
+                }
             </div>
         </div>
     </EditForm>
 }
+@if (_editingAttribute != null && Active != null && IsDeleting == null)
+{
+    <GXAttributeTemplateDialog @key="_editingAttribute" Template="_editingAttribute" ObjectType="Active.ObjectType" ObjectTemplate="Active"
+                               VersionThree="@(Active.ActionAccessLevels?.StartsWith("0x", StringComparison.OrdinalIgnoreCase) == true)"
+                               OnSave="ApplyAttribute" OnCancel="CloseAttributeDialog" />
+}
 @code {
     /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
+    /// <summary>Gets the page command registration scope.</summary>
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
     /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
@@ -239,11 +149,14 @@
     private IGXNotificationService? _notificationService;
 
 
+    /// <summary>Gets or sets the owning object list providing the active template.</summary>
     [CascadingParameter]
     private ObjectTemplates? Parent { get; set; }
 
-    private GXObjectTemplate _active { get; set; } = new GXObjectTemplate();
+    /// <summary>Stores the object template loaded directly by this page.</summary>
+    private GXObjectTemplate _active = new GXObjectTemplate();
 
+    /// <summary>Gets the loaded template or the template supplied by the owning list.</summary>
     private GXObjectTemplate? Active
     {
         get
@@ -274,8 +187,8 @@
     /// <summary>
     /// Get data type.
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">The persisted DLMS type identifier.</param>
+    /// <returns>The protocol type name, or empty text when unspecified.</returns>
     private string GetDataType(int value)
     {
         if (value == 0)
@@ -285,173 +198,59 @@
         return ((Gurux.DLMS.Enums.DataType)value).ToString();
     }
 
-    private Gurux.DLMS.Enums.DataType[] GetDataTypes()
-    {
-        return Enum.GetValues<Gurux.DLMS.Enums.DataType>();
-    }
-
-    private static bool IsNumber(int value)
-    {
-        Gurux.DLMS.Enums.DataType dt = (Gurux.DLMS.Enums.DataType)value;
-        switch (dt)
-        {
-            case Enums.DataType.Float32:
-            case Enums.DataType.Float64:
-            case Enums.DataType.Int16:
-            case Enums.DataType.Int32:
-            case Enums.DataType.Int64:
-            case Enums.DataType.Int8:
-            case Enums.DataType.None:
-            case Enums.DataType.DeltaInt8:
-            case Enums.DataType.DeltaInt16:
-            case Enums.DataType.DeltaInt32:
-            case Enums.DataType.DeltaUInt8:
-            case Enums.DataType.DeltaUInt16:
-            case Enums.DataType.DeltaUInt32:
-            case Enums.DataType.UInt16:
-            case Enums.DataType.UInt32:
-            case Enums.DataType.UInt64:
-            case Enums.DataType.UInt8:
-                return true;
-        }
-        return false;
-    }
-
-
-    /// <summary>Retains the attribute template currently being edited.</summary>
+    /// <summary>Identifies the row selected for context menu commands.</summary>
     private GXAttributeTemplate? _activeAttribute;
 
-    /// <summary>
-    /// List of the modified items.
-    /// </summary>
-    private Dictionary<GXAttributeTemplate, GXAttributeTemplate> _modified = new Dictionary<GXAttributeTemplate, GXAttributeTemplate>();
+    /// <summary>Identifies the original attribute whose detached values are shown in the dialog.</summary>
+    private GXAttributeTemplate? _editingAttribute;
 
-    private bool IsEditing(GXAttributeTemplate attribute) => _modified.Values.Any(working => ReferenceEquals(working, attribute));
+    /// <summary>Gets attributes in their protocol order.</summary>
+    /// <returns>The attributes of the active object template, or an empty sequence.</returns>
+    private IEnumerable<GXAttributeTemplate> GetAttributes() => (Active?.Attributes ?? []).OrderBy(attribute => attribute.Index);
 
-    /// <summary>
-    /// Get attributes.
-    /// </summary>
-    /// <returns>Attributes.</returns>
-    private IEnumerable<GXAttributeTemplate> GetAttributes()
+    /// <summary>Applies confirmed editable values without replacing ownership or audit metadata.</summary>
+    /// <param name="edited">The validated detached values returned by the dialog.</param>
+    private void ApplyAttribute(GXAttributeTemplate edited)
     {
-        List<GXAttributeTemplate> list = new List<GXAttributeTemplate>();
-        GXAttributeTemplate? modified;
-        if (Active?.Attributes != null)
+        if (_editingAttribute == null || Active == null || IsDeleting != null)
         {
-            foreach (var it in Active.Attributes)
-            {
-                if (_modified.TryGetValue(it, out modified))
-                {
-                    list.Add(modified);
-                }
-                else
-                {
-                    list.Add(it);
-                }
-            }
+            return;
         }
-        return list.OrderBy(s => s.Index);
+        var original = _editingAttribute;
+        original.Name = edited.Name;
+        original.AccessLevel = edited.AccessLevel;
+        original.DataType = edited.DataType;
+        original.UIDataType = edited.UIDataType;
+        original.Scaler = edited.Scaler;
+        original.Unit = edited.Unit;
+        original.ExpirationTime = edited.ExpirationTime;
+        original.DefaultValue = edited.DefaultValue;
+        original.ListItems = edited.ListItems;
+        GXEditContexts.For(Active).NotifyFieldChanged(new FieldIdentifier(Active, nameof(Active.Attributes)));
+        CloseAttributeDialog();
     }
 
-    class GXAction
+    /// <summary>Closes the attribute dialog and discards any unconfirmed values.</summary>
+    private void CloseAttributeDialog()
     {
-        /// <summary>Tracks the selected position in the displayed sequence.</summary>
-        public int Index;
-        /// <summary>Contains the description entered for the selected item.</summary>
-        public string? Description;
-        /// <summary>Contains the access-level text displayed by the permission editor.</summary>
-        public string? AccessLevel;
+        _editingAttribute = null;
     }
 
-    /// <summary>
-    /// Get action description and access rights.
-    /// </summary>
-    /// <returns>Attributes.</returns>
-    private IEnumerable<GXAction> GetActions()
-    {
-        var list = new List<GXAction>();
-        if (Active?.ObjectType != null && !string.IsNullOrEmpty(Active?.ActionAccessLevels))
-        {
-            var obj = Gurux.DLMS.GXDLMSClient.CreateObject((Enums.ObjectType)Active.ObjectType) as IGXDLMSBase;
-            var names = obj?.GetMethodNames();
-            int index = 0;
-            if (Active.ActionAccessLevels.StartsWith("0x"))
-            {
-                //Version 3.
-                for (var pos = 2; pos < Active.ActionAccessLevels.Length; pos += 2)
-                {
-                    var str = Active.ActionAccessLevels.Substring(pos, 2);
-                    var value = (Gurux.DLMS.Enums.MethodAccessMode3)Convert.ToInt32(str);
-                    GXAction item = new GXAction()
-                    {
-                        Index = 1 + index,
-                        Description = names != null ? names[index] : "",
-                        AccessLevel = value.ToString()
-                    };
-                    list.Add(item);
-                    ++index;
-                }
-            }
-            else
-            {
-                //Version 1.
-                foreach (var it in Active.ActionAccessLevels)
-                {
-                    var value = (Gurux.DLMS.Enums.MethodAccessMode)Convert.ToInt32(it);
-                    GXAction item = new GXAction()
-                    {
-                        Index = 1 + index,
-                        Description = names != null ? names[index] : "",
-                        AccessLevel = value.ToString()
-                    };
-                    list.Add(item);
-                    ++index;
-                }
-            }
-        }
-        return list;
-    }
-
-    /// <summary>
-    /// Copy the content of the modified item to the original item.
-    /// </summary>
-    /// <param name="modified">Modified item.</param>
-    /// <param name="save">Is value saved.</param>
-    protected void UpdateInstance(GXAttributeTemplate modified, bool save)
-    {
-        //Find key with modified item.
-        GXAttributeTemplate? key = null;
-        foreach (var it in _modified)
-        {
-            if (it.Value == modified)
-            {
-                key = it.Key;
-                break;
-            }
-        }
-        if (key == null)
-        {
-            throw new Exception(Properties.Resources.InvalidTarget);
-        }
-        if (save)
-        {
-            ClientHelpers.Copy(modified, key);
-        }
-        if (_modified.ContainsKey(key))
-        {
-            _modified.Remove(key);
-        }
-    }
-
+    /// <summary>Gets the CSS class highlighting the selected row.</summary>
+    /// <param name="selected">The row whose selection is inspected.</param>
+    /// <returns>The selected or ordinary table row class.</returns>
     protected string GetSelectedClass(GXAttributeTemplate selected)
     {
-        return _activeAttribute != null && selected.Id == _activeAttribute.Id ? "table-info" : "table-striped";
+        return ReferenceEquals(selected, _activeAttribute) ? "table-info" : "table-striped";
     }
+    /// <summary>Selects the attribute targeted by its row menu.</summary>
+    /// <param name="selected">The attribute selected by the user.</param>
     protected void RowSelected(GXAttributeTemplate selected)
     {
         _activeAttribute = selected;
     }
 
+    /// <summary>Gets the disabled attribute value when the object is being deleted.</summary>
     public string? IsDeleting
     {
         get
@@ -464,11 +263,9 @@
         }
     }
 
-    private string GetAccessRights(GXAttributeTemplate template)
-    {
-        return ((Enums.AccessMode)template.AccessLevel).ToString();
-    }
-
+    /// <summary>Formats an attribute expiration interval or its read-once setting.</summary>
+    /// <param name="template">The attribute whose expiration is displayed.</param>
+    /// <returns>The localized read-once label, formatted time, or empty text.</returns>
     private string GetExpirationTime(GXAttributeTemplate template)
     {
         string str = "";
@@ -486,9 +283,8 @@
         return str;
     }
 
-    /// <summary>Caches the scripts available for the displayed connection or automation settings.</summary>
-    private List<GXScript> _scripts = new();
 
+    /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
         _notifier = Services.GetService<IGXNotifier2>();
@@ -549,15 +345,19 @@
         }
     }
 
+    /// <summary>Opens the selected attribute in an isolated edit dialog.</summary>
+    /// <param name="template">The original attribute whose values will be copied into the dialog.</param>
     public void OnEdit(GXAttributeTemplate template)
     {
-        GXAttributeTemplate tmp = ClientHelpers.Clone<GXAttributeTemplate>(template);
-        _modified.Add(template, tmp);
-        InvokeAsync(StateHasChanged);
+        if (IsDeleting == null)
+        {
+            _activeAttribute = template;
+            _editingAttribute = template;
+        }
     }
 
     /// <summary>
-    /// Validates enum definitions, applies pending attribute edits and saves or removes the selected object template.
+    /// Validates the page and saves confirmed attribute edits or removes the selected object template.
     /// </summary>
     public async void OnSave()
     {
@@ -570,14 +370,6 @@
             if (_action != CrudAction.Delete && !await GXEditContexts.ValidateAsync(GXEditContexts.For(Active)))
             {
                 return;
-            }
-            if (_action != CrudAction.Delete && _modified.Count != 0)
-            {
-                // Apply validated working attribute copies before submitting the object.
-                foreach (var attribute in _modified.Values.ToArray())
-                {
-                    UpdateInstance(attribute, true);
-                }
             }
             using var progressScope2 = _progress?.ProgressStart(GXProgress.SavingObjectTemplate);
             _notificationService?.RemoveByKey("Pages/DeviceTemplate/ObjectTemplate.OnSave");
@@ -622,6 +414,7 @@
         ClientHelpers.NavigateToLastPage(NavigationManager);
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         MenuService.Dispose();

@@ -736,6 +736,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} is {1}.
+        /// </summary>
+        internal static string AttributeAccessDescription {
+            get {
+                return ResourceManager.GetString("AttributeAccessDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Number of bits.
         /// </summary>
         internal static string AttributeEnumBitCount {
@@ -795,6 +804,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string AttributeEnumStartBit {
             get {
                 return ResourceManager.GetString("AttributeEnumStartBit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enum.
+        /// </summary>
+        internal static string AttributeEnumTab {
+            get {
+                return ResourceManager.GetString("AttributeEnumTab", resourceCulture);
             }
         }
         
@@ -2325,6 +2343,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default value.
+        /// </summary>
+        internal static string DefaultValue {
+            get {
+                return ResourceManager.GetString("DefaultValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default values.
         /// </summary>
         internal static string DefaultValues {
@@ -2451,6 +2478,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to GBT Window size.
+        /// </summary>
+        internal static string DeviceGbtWindowSize {
+            get {
+                return ResourceManager.GetString("DeviceGbtWindowSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Device group.
         /// </summary>
         internal static string DeviceGroup {
@@ -2465,6 +2501,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string DeviceGroups {
             get {
                 return ResourceManager.GetString("DeviceGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ignore Time Status.
+        /// </summary>
+        internal static string DeviceIgnoreTimeStatus {
+            get {
+                return ResourceManager.GetString("DeviceIgnoreTimeStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ignore Time Zone.
+        /// </summary>
+        internal static string DeviceIgnoreTimeZone {
+            get {
+                return ResourceManager.GetString("DeviceIgnoreTimeZone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Max PDU size.
+        /// </summary>
+        internal static string DeviceMaxPduSize {
+            get {
+                return ResourceManager.GetString("DeviceMaxPduSize", resourceCulture);
             }
         }
         
@@ -2492,6 +2555,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Devices {
             get {
                 return ResourceManager.GetString("Devices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service Class.
+        /// </summary>
+        internal static string DeviceServiceClass {
+            get {
+                return ResourceManager.GetString("DeviceServiceClass", resourceCulture);
             }
         }
         
@@ -2618,6 +2690,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string DeviceTraces {
             get {
                 return ResourceManager.GetString("DeviceTraces", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User ID.
+        /// </summary>
+        internal static string DeviceUserId {
+            get {
+                return ResourceManager.GetString("DeviceUserId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use UTC time zone, not DLMS standard.
+        /// </summary>
+        internal static string DeviceUseUtcTimeZone {
+            get {
+                return ResourceManager.GetString("DeviceUseUtcTimeZone", resourceCulture);
             }
         }
         
@@ -5463,6 +5553,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Method access rights.
+        /// </summary>
+        internal static string MethodAccessRights {
+            get {
+                return ResourceManager.GetString("MethodAccessRights", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Minimum.
         /// </summary>
         internal static string Minimum {
@@ -6689,7 +6788,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The profile read has been queued. Stored values will update when the read completes..
+        ///   Looks up a localized string similar to Some data for the selected interval is missing or needs refreshing. A meter read has been queued. Please try again later..
         /// </summary>
         internal static string ProfileReadQueued {
             get {
@@ -6712,6 +6811,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Profiles {
             get {
                 return ResourceManager.GetString("Profiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Scaler and unit data are not available for captured register {0}. Read its scaler/unit attribute to display scaled profile values..
+        /// </summary>
+        internal static string ProfileScalerUnavailable {
+            get {
+                return ResourceManager.GetString("ProfileScalerUnavailable", resourceCulture);
             }
         }
         
@@ -7054,24 +7162,6 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string RelationshipSelectedCount {
             get {
                 return ResourceManager.GetString("RelationshipSelectedCount", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Select this item..
-        /// </summary>
-        internal static string RelationshipSelectItem {
-            get {
-                return ResourceManager.GetString("RelationshipSelectItem", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Select all items on this page..
-        /// </summary>
-        internal static string RelationshipSelectPage {
-            get {
-                return ResourceManager.GetString("RelationshipSelectPage", resourceCulture);
             }
         }
         
@@ -8433,6 +8523,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string StackTrace {
             get {
                 return ResourceManager.GetString("StackTrace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Standard.
+        /// </summary>
+        internal static string Standard {
+            get {
+                return ResourceManager.GetString("Standard", resourceCulture);
             }
         }
         

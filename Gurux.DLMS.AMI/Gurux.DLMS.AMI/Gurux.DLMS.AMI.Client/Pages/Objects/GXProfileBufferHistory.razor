@@ -28,29 +28,38 @@
 *@
 
 @using Gurux.DLMS
+@using Gurux.DLMS.Objects
+@using Gurux.DLMS.UI.Components.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Rest
 @using System.Globalization
+@using System.Net.Http.Json
 @inject HttpClient Http
 @inject IServiceProvider Services
 
 <h3>@Properties.Resources.StoredHistory</h3>
+<AuthorizeView Policy="@Gurux.DLMS.AMI.Client.Shared.GXDevicePolicies.Edit">
+    <Authorized>
+        <button type="button" class="btn btn-outline-danger profile-history-clear" disabled="@(_busy || AttributeId == Guid.Empty)" @onclick="ClearAsync">@Properties.Resources.Clear</button>
+    </Authorized>
+</AuthorizeView>
 @if (AttributeId == Guid.Empty)
 {
     <p role="status">@Properties.Resources.ResourceManager.GetString("ProfileHistoryRequiresRead", CultureInfo.CurrentUICulture)</p>
 }
+@if (ShowRangeControls)
+{
 <div class="profile-range-controls">
     <label>@Properties.Resources.ProfileRangeStart
         <GXDateTimeSelector TItem="DateTime?" class="profile-range-start"
-                            @bind-Value="_start" Save="false" />
+                            @bind-Value="RangeStart" Save="false" />
     </label>
     <label>@Properties.Resources.ProfileRangeEnd
         <GXDateTimeSelector TItem="DateTime?" class="profile-range-end"
-                            @bind-Value="_end" Save="false" />
+                            @bind-Value="RangeEnd" Save="false" />
     </label>
-    <button type="button" class="profile-range-apply" @onclick="ApplyAsync" disabled="@(_busy || AttributeId == Guid.Empty || _start == null || _end == null)">@Properties.Resources.StoredHistory</button>
-    <button type="button" class="profile-read-missing" @onclick="ReadAsync" disabled="@(_busy || !CanRead || AttributeId == Guid.Empty || _start == null || _end == null)">@Properties.Resources.ProfileReadMissing</button>
 </div>
+}
 <p>@Properties.Resources.ProfileLocalTime</p>
 @if (_error != null) { <p role="alert">@_error</p> }
 @if (_message != null) { <p role="status">@_message</p> }
@@ -70,7 +79,7 @@
         }
     </details>
 }
-<GXTable TItem="GXProfileStoredRow" @ref="_table" @key="AttributeId"
+<GXTable TItem="GXProfileStoredRow" @ref="_table" @key="(AttributeId, RangeStart, RangeEnd, _clearVersion)"
          Context="value" ItemsProvider="GetItems"
          SelectionMode="SelectionMode.None" CanEdit="false"
          ShowAllUsers="false" ShowRemoved="false" Filter="false">
@@ -80,25 +89,54 @@
     </HeaderContent>
     <ItemContent>
         <td>@value.CapturedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)</td>
-        <td class="gx-profile-history-value">@Decode(value.Value)</td>
+        <td class="gx-profile-history-value">@Decode(value.Id, value.Value)</td>
     </ItemContent>
 </GXTable>
 
 @code {
+    /// <summary>Gets or sets the profile whose capture metadata determines how stored octets are displayed.</summary>
+    [Parameter]
+    public GXDLMSProfileGeneric? Profile { get; set; }
+
+    /// <summary>Gets or sets the device whose captured register scaler/unit descriptors are loaded.</summary>
+    [Parameter] public Guid DeviceId { get; set; }
+    /// <summary>Notifies the owning editor when a page has been decoded by the profile library.</summary>
+    [Parameter] public EventCallback<GXDLMSProfileGeneric> BufferDecoded { get; set; }
+    /// <summary>Stores the formatted cells for the current history page.</summary>
+    private readonly Dictionary<Guid, string> _formattedValues = new();
+
+    /// <summary>Caches expanded display rows for paging independently of stored snapshot boundaries.</summary>
+    private readonly List<GXProfileStoredRow> _expandedRows = new();
+
+    /// <summary>Tracks how many persisted snapshots have been loaded for the current interval.</summary>
+    private int _snapshotOffset;
+
+    /// <summary>Stores the source snapshot count; null means no page has been retrieved yet.</summary>
+    private long? _snapshotCount;
+
     /// <summary>Gets or sets the persisted buffer identity, or Guid.Empty to show an empty panel before the device object is materialized.</summary>
     [Parameter]
     public Guid AttributeId { get; set; }
 
     /// <summary>Gets or sets whether the current editor permits collecting profile rows once a persisted buffer is available.</summary>
     [Parameter] public bool CanRead { get; set; } = true;
+    /// <summary>Gets or sets whether this standalone panel renders its own interval inputs.</summary>
+    [Parameter] public bool ShowRangeControls { get; set; } = true;
+    /// <summary>Tracks the previously supplied local range start to refresh externally bound history.</summary>
+    private DateTime? _previousRangeStart;
+    /// <summary>Tracks the previously supplied local range end to refresh externally bound history.</summary>
+    private DateTime? _previousRangeEnd;
     /// <summary>Identifies the attribute owning the current coverage, error and status state.</summary>
     private Guid _previousAttributeId;
     /// <summary>References the rendered table so its loaded rows and selection can be refreshed.</summary>
     private GXTable<GXProfileStoredRow>? _table;
-    /// <summary>Stores the selected local interval start, or null when the shared selector is cleared.</summary>
-    private DateTime? _start = DateTime.Today;
-    /// <summary>Stores the selected local interval end, or null when the shared selector is cleared.</summary>
-    private DateTime? _end = DateTime.Today.AddDays(1);
+
+    /// <summary>Recreates the history table on its first page after a confirmed clear.</summary>
+    private int _clearVersion;
+    /// <summary>Gets or sets the selected local interval start, or null when the shared selector is cleared.</summary>
+    [Parameter] public DateTime? RangeStart { get; set; } = DateTime.Today;
+    /// <summary>Gets or sets the selected local interval end, or null when the shared selector is cleared.</summary>
+    [Parameter] public DateTime? RangeEnd { get; set; } = DateTime.Today.AddDays(1);
     /// <summary>Caches the stored profile-history coverage returned for the selected attribute.</summary>
     private GXProfileHistoryResponse? _coverage;
     /// <summary>Contains the error and status messages displayed by the profile-history panel.</summary>
@@ -109,12 +147,67 @@
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
-        if (_previousAttributeId != AttributeId)
+        bool attributeChanged = _previousAttributeId != AttributeId;
+        bool rangeChanged = _previousRangeStart != RangeStart || _previousRangeEnd != RangeEnd;
+        _previousRangeStart = RangeStart;
+        _previousRangeEnd = RangeEnd;
+        if (attributeChanged || rangeChanged)
         {
             _previousAttributeId = AttributeId;
             _coverage = null;
             _error = null;
             _message = null;
+            ResetRows();
+        }
+    }
+
+    /// <summary>Clears all saved buffer history and coverage after the user confirms the destructive action.</summary>
+    /// <returns>A task completing after the server clear and the refreshed empty history view.</returns>
+    private async Task ClearAsync()
+    {
+        if (_busy || AttributeId == Guid.Empty)
+        {
+            return;
+        }
+        Guid attributeId = AttributeId;
+        _busy = true;
+        try
+        {
+            var confirmation = Services.GetService<Gurux.DLMS.AMI.Module.IGXAmiConfirmation>();
+            if (confirmation == null)
+            {
+                return;
+            }
+            var result = await confirmation.ConfirmAsync(Properties.Resources.Clear,
+                Properties.Resources.AreYouSureYouWantToClearHistoryThisActionCannotBeUndone,
+                new Gurux.DLMS.AMI.Module.AmiConfirmationOptions { ConfirmText = Properties.Resources.Clear });
+            if (!result.Confirm || AttributeId != attributeId)
+            {
+                return;
+            }
+            await Http.PostAsJson("api/ProfileHistory/Clear", new GXProfileHistoryRequest { AttributeId = attributeId });
+            if (AttributeId != attributeId)
+            {
+                return;
+            }
+            _coverage = null;
+            _error = null;
+            _message = null;
+            if (Profile != null)
+            {
+                await BufferDecoded.InvokeAsync(GXProfileBufferDecoder.CreateProfile(Profile));
+            }
+            ResetRows();
+            ++_clearVersion;
+        }
+        catch (Exception error)
+        {
+            _error = error.Message;
+            Services.GetService<IGXNotificationService>()?.ReportError(error);
+        }
+        finally
+        {
+            _busy = false;
         }
     }
 
@@ -122,38 +215,33 @@
     /// <returns>A task completing after the table has reloaded its current page.</returns>
     public async Task RefreshAsync()
     {
+        ResetRows();
         if (_table != null) {
             await _table.RefreshDataAsync(true);
         }
     }
 
-    /// <summary>Validates completed local boundaries and creates a UTC query without reusing cleared input values.</summary>
+    /// <summary>Validates local boundaries and creates a UTC query; a cleared start selects all meter and stored rows.</summary>
     /// <param name="index">The zero-based offset of the requested stored rows.</param>
     /// <param name="count">The maximum number of stored rows to request.</param>
-    /// <returns>The history query, or null for missing, reversed or daylight-saving-invalid boundaries.</returns>
+    /// <returns>The history query, or null for a missing end, reversed explicit range or daylight-saving-invalid boundary.</returns>
     private GXProfileHistoryRequest? CreateRequest(int index = 0, int count = 100)
     {
         _error = null;
-        if (_start is not DateTime start || _end is not DateTime end || end <= start ||
-            TimeZoneInfo.Local.IsInvalidTime(start) || TimeZoneInfo.Local.IsInvalidTime(end))
+        if (RangeEnd is not DateTime end || TimeZoneInfo.Local.IsInvalidTime(end) ||
+            (RangeStart is DateTime start && (end <= start || TimeZoneInfo.Local.IsInvalidTime(start))))
         {
             _error = Properties.Resources.ProfileInvalidRange;
             return null;
         }
         return new GXProfileHistoryRequest { AttributeId = AttributeId,
-            Start = new DateTimeOffset(start).ToUniversalTime(), End = new DateTimeOffset(end).ToUniversalTime(),
+            Start = RangeStart is DateTime selectedStart ? new DateTimeOffset(selectedStart).ToUniversalTime() : DateTimeOffset.UtcNow.AddYears(-1), End = new DateTimeOffset(end).ToUniversalTime(),
             Index = index, Count = count };
     }
 
-    private async Task ApplyAsync()
-    {
-        _message = null;
-        if (CreateRequest() != null) {
-            await RefreshAsync();
-        }
-    }
-
-    private async Task ReadAsync()
+    /// <summary>Displays stored rows and queues a fresh meter read of the selected interval, or all entries when its start is cleared.</summary>
+    /// <returns>The completion of device task creation and the stored-row refresh.</returns>
+    public async Task ReadAsync()
     {
         var request = CreateRequest();
         if (request == null || !CanRead || AttributeId == Guid.Empty || _busy) {
@@ -163,8 +251,9 @@
         _message = null;
         try
         {
-            var response = await Http.PostAsJson<GXProfileHistoryResponse>("api/ProfileHistory/Read", request);
-            _message = response.TaskIds.Length == 0 ? Properties.Resources.ProfileNoReadNeeded : null;
+            request.Force = RangeStart.HasValue;
+            var response = await SendHistoryRequestAsync("api/ProfileHistory/Read", request);
+            _message = response.TaskIds.Length == 0 ? Properties.Resources.ProfileNoReadNeeded : Properties.Resources.ProfileReadQueued;
             Services.GetService<Gurux.DLMS.AMI.Client.Helpers.GXReadTaskNotifications>()?.Track(response.TaskIds);
             await RefreshAsync();
         }
@@ -172,6 +261,27 @@
         finally { _busy = false; }
     }
 
+    /// <summary>Sends a history command with the unrestricted collection marker when the start selector is cleared.</summary>
+    /// <param name="uri">The history endpoint relative to the client base address.</param>
+    /// <param name="query">The requested attribute, display interval and paging information.</param>
+    /// <param name="token">Cancels transmission and response parsing.</param>
+    /// <returns>The server history response.</returns>
+    /// <exception cref="System.Text.Json.JsonException">The server returns a null or invalid history response.</exception>
+    private async Task<GXProfileHistoryResponse> SendHistoryRequestAsync(string uri, GXProfileHistoryRequest query, CancellationToken token = default)
+    {
+        using var message = new HttpRequestMessage(HttpMethod.Post, uri) { Content = JsonContent.Create(query) };
+        if (RangeStart == null)
+        {
+            message.Headers.Add("X-Gurux-Profile-Read-All", "true");
+        }
+        using var response = await Http.SendAsync(message, token);
+        await response.EnsureSuccessAsync(token);
+        return await response.Content.ReadFromJsonAsync<GXProfileHistoryResponse>(cancellationToken: token)
+            ?? throw new System.Text.Json.JsonException();
+    }
+
+    /// <summary>Groups stored history coverage under localized status labels.</summary>
+    /// <returns>The coverage categories and their time intervals.</returns>
     private IEnumerable<(string Label, GXProfileRange[] Ranges)> CoverageGroups()
     {
         yield return (Properties.Resources.ProfileCovered, _coverage!.Covered);
@@ -181,19 +291,61 @@
         yield return (Properties.Resources.ProfileUnavailable, _coverage.Unavailable);
     }
 
+    /// <summary>Fetches the requested stored history page for the selected local interval.</summary>
+    /// <param name="request">The page offset, size and cancellation token.</param>
+    /// <returns>The stored rows and their total count, or an empty page for an invalid range.</returns>
     private async ValueTask<ItemsProviderResult<GXProfileStoredRow>> GetItems(GXItemsProviderRequest request)
     {
-        var query = CreateRequest(request.StartIndex, request.Count);
-        if (AttributeId == Guid.Empty || query == null) {
+        var query = CreateRequest();
+        if (AttributeId == Guid.Empty || query == null)
+        {
             return new([], 0);
         }
         try
         {
-            var response = await Http.PostAsJson<GXProfileHistoryResponse>("api/ProfileHistory/List", query, request.CancellationToken);
+            var rows = new List<GXProfileStoredRow>(_expandedRows);
+            int offset = _snapshotOffset;
+            long? count = _snapshotCount;
+            var coverage = _coverage;
+            _error = null;
+            // Source paging counts snapshots. Fetch only enough snapshots to fill the requested display page.
+            while ((!count.HasValue || offset < count.Value) &&
+                (request.Count == 0 || rows.Count < (long)request.StartIndex + request.Count + 1))
+            {
+                query.Index = offset;
+                query.Count = 100;
+                coverage = await SendHistoryRequestAsync("api/ProfileHistory/List", query, request.CancellationToken);
+                request.CancellationToken.ThrowIfCancellationRequested();
+                var values = coverage.Values ?? [];
+                rows.AddRange(GXProfileHistoryRows.Expand(values));
+                offset += values.Length;
+                count = values.Length == 0 ? offset : coverage.Count;
+            }
+            var formattedValues = new Dictionary<Guid, string>();
+            var parsed = await ParsePageAsync(rows.ToArray(), formattedValues, request.CancellationToken);
             request.CancellationToken.ThrowIfCancellationRequested();
-            _coverage = response;
+            if (parsed != null)
+            {
+                await BufferDecoded.InvokeAsync(parsed);
+            }
+            request.CancellationToken.ThrowIfCancellationRequested();
+            _expandedRows.Clear();
+            _expandedRows.AddRange(rows);
+            _snapshotOffset = offset;
+            _snapshotCount = count;
+            _formattedValues.Clear();
+            foreach (var item in formattedValues)
+            {
+                _formattedValues.Add(item.Key, item.Value);
+            }
+            _coverage = coverage;
             await InvokeAsync(StateHasChanged);
-            return new(response.Values ?? [], ClientHelpers.ToVirtualizedCount(response.Count));
+            IEnumerable<GXProfileStoredRow> page = rows.Skip(request.StartIndex);
+            if (request.Count != 0)
+            {
+                page = page.Take(request.Count);
+            }
+            return new(page.ToArray(), count.HasValue && offset >= count.Value ? rows.Count : -1);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
@@ -205,15 +357,116 @@
         }
     }
 
-    private static string Decode(string? xml)
+    /// <summary>Discards cached display rows when the selected interval changes or new readings arrive.</summary>
+    private void ResetRows()
     {
+        _expandedRows.Clear();
+        _formattedValues.Clear();
+        _snapshotOffset = 0;
+        _snapshotCount = null;
+    }
+
+    /// <summary>Loads captured scalers and parses individual history rows or full-buffer snapshots while retaining unreadable values.</summary>
+    /// <param name="rows">The raw stored rows, whose values remain unchanged.</param>
+    /// <param name="formatted">Receives successfully parsed row display values.</param>
+    /// <param name="token">Cancels metadata loading and prevents stale buffer updates.</param>
+    /// <returns>The parsed profile, an empty profile when metadata is unavailable, or null without a capture layout.</returns>
+    private async Task<GXDLMSProfileGeneric?> ParsePageAsync(GXProfileStoredRow[] rows,
+        Dictionary<Guid, string> formatted, CancellationToken token)
+    {
+        if (Profile == null)
+        {
+            return null;
+        }
+        var display = GXProfileBufferDecoder.CreateProfile(Profile);
+        bool meterTimeZone = GXProfileBufferFormatter.For(Profile).UseMeterTimeZone;
+        try
+        {
+            if (rows.Length != 0)
+            {
+                await GXProfileBufferDecoder.LoadScalersAsync(Http, display, DeviceId, token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            _error = error.Message;
+            return display;
+        }
+        try
+        {
+            var values = rows.Select(row => System.Xml.Linq.XElement.Parse(row.Value ?? string.Empty)).ToArray();
+            var counts = values.Select(value => value.Name.LocalName == "Array" ? value.Elements().Count() : 1).ToArray();
+            string xml = new System.Xml.Linq.XElement("Array", values.SelectMany(value =>
+                value.Name.LocalName == "Array" ? value.Elements() : new[] { value })).ToString();
+            var parsed = GXProfileBufferDecoder.Decode(display, xml);
+            GXProfileBufferFormatter.For(parsed).UseMeterTimeZone = meterTimeZone;
+            if (parsed.Buffer.Count != counts.Sum())
+            {
+                throw new FormatException(Properties.Resources.InvalidTarget);
+            }
+            int offset = 0;
+            for (int index = 0; index < rows.Length; ++index)
+            {
+                formatted[rows[index].Id] = string.Join(Environment.NewLine,
+                    parsed.Buffer.Skip(offset).Take(counts[index]).Select(row =>
+                        string.Join(" | ", GXProfileBufferFormatter.For(parsed).FormatRow(row))));
+                offset += counts[index];
+            }
+            return parsed;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not OperationCanceledException)
+        {
+            _error = error.Message;
+            formatted.Clear();
+        }
+        // A malformed persisted row must not hide other rows or alter the stored XML.
+        foreach (var row in rows)
+        {
+            token.ThrowIfCancellationRequested();
+            try
+            {
+                var parsed = GXProfileBufferDecoder.Decode(display, row.Value ?? string.Empty);
+                GXProfileBufferFormatter.For(parsed).UseMeterTimeZone = meterTimeZone;
+                formatted[row.Id] = string.Join(Environment.NewLine, parsed.Buffer.Select(bufferRow =>
+                    string.Join(" | ", GXProfileBufferFormatter.For(parsed).FormatRow(bufferRow))));
+                display.Buffer.AddRange(parsed.Buffer);
+            }
+            catch (Exception error) when (error is not OutOfMemoryException and not OperationCanceledException)
+            {
+                _error = error.Message;
+            }
+        }
+        return display;
+    }
+
+    /// <summary>Decodes stored DLMS XML for display while retaining unrecognized content.</summary>
+    /// <param name="id">The stored row identity used to locate the parsed display value.</param>
+    /// <param name="xml">The serialized DLMS value, or null.</param>
+    /// <returns>The formatted value, original XML, or an empty string.</returns>
+    private string Decode(Guid id, string? xml)
+    {
+        if (_formattedValues.TryGetValue(id, out var formatted))
+        {
+            return formatted;
+        }
         if (string.IsNullOrEmpty(xml)) {
             return string.Empty;
         }
-        try { return Format(GXDLMSTranslator.XmlToValue(xml)); }
+        try
+        {
+            var value = GXDLMSTranslator.XmlToValue(xml);
+            return Format(value);
+        }
         catch { return xml; }
     }
 
+    /// <summary>Formats DLMS arrays, structures and scalar values for the current culture.</summary>
+    /// <param name="value">The decoded value to display.</param>
+    /// <returns>The readable representation of the decoded value.</returns>
     private static string Format(object? value)
     {
         if (value is null) {

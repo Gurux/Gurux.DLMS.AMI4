@@ -207,7 +207,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<Guid> list = [.. recordedValues.Select(v => v.Id)];
             await transaction.CommitAsync(cancellationToken);
-            foreach (var context in events) {
+            foreach (var context in events)
+            {
                 _workflowHandler?.Publish(context, _user);
             }
             _notificationCache.Add(users, new GXTarget(GXValuePolicies.Add));
@@ -217,7 +218,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (devices != null)
             {
-                _notificationCache.Add(users, new GXTarget(GXDevicePolicies.Edit));
+                foreach (var device in devices)
+                {
+                    var recipients = await GXRepositoryUsers.GetNotifiedUsersAsync(_dbFactory, typeof(GXDevice), device.Id,
+                        NotificationAction.Edit, GXDevicePolicies.View);
+                    _notificationCache.Add(recipients, new GXTarget(GXDevicePolicies.Edit, device.Id, device.Name)
+                    {
+                        Source = "device.runtime:LastRead"
+                    });
+                }
             }
             return [.. list];
         }

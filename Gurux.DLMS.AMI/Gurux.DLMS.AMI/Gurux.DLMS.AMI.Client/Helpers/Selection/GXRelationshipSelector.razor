@@ -45,10 +45,10 @@
     </div>
     <GXTable TItem="TItem" @ref="_table" Context="item" ItemsProvider="GetItemsAsync"
              Save="false" Filter="true" Immediate="true" ShowAllUsers="false" ShowRemoved="false"
-             CanEdit="false" Menu="false" SelectionMode="SelectionMode.None" ItemKey="ItemKey"
+             CanEdit="false" Menu="false" SelectionMode="SelectionMode.Multiple" ItemKey="ItemKey"
+             CheckedItems="@SelectedItems()" OnChecked="OnCheckedAsync" OnCheckboxDisabled="CheckboxDisabled"
              @bind-PageSize="PageSize" @bind-CurrentPage="_currentPage">
         <FilterContent>
-            <GXFh />
             <GXFh>
                 <AuthorizeView Roles="@GXRoles.Admin">
                     <label class="form-check">
@@ -60,18 +60,9 @@
             </GXFh>
         </FilterContent>
         <HeaderContent>
-            <th scope="col">
-                <GXSelectionCheckbox Value="@PageSelection" Disabled="@(Disabled || _changing || _rows.Length == 0)"
-                                     Label="@Text("RelationshipSelectPage")" ValueChanged="SelectPageAsync" />
-            </th>
             <th scope="col">@Properties.Resources.Name</th>
         </HeaderContent>
         <ItemContent>
-            <td @onclick:stopPropagation="true">
-                <GXSelectionCheckbox Value="@(_state?.IsSelected(item) == true)" Disabled="@(Disabled || _changing)"
-                                     Label="@Text("RelationshipSelectItem")"
-                                     ValueChanged="@(value => ChangeAsync([item], value))" />
-            </td>
             <td>@ItemContent(item)</td>
         </ItemContent>
     </GXTable>
@@ -127,10 +118,6 @@
     /// <summary>Tracks the current page so query changes restart from the beginning.</summary>
     private int _currentPage;
 
-    /// <summary>Gets the checked, unchecked or mixed state of the visible-page checkbox.</summary>
-    private bool? PageSelection => _rows.Length == 0 || _state == null ? false :
-        _rows.All(_state.IsSelected) ? true : _rows.Any(_state.IsSelected) ? null : false;
-
     /// <summary>Captures the initialized parent collection and loads the first page.</summary>
     /// <returns>A task completing when the first page has been loaded.</returns>
     public async Task InitializeAsync()
@@ -184,27 +171,39 @@
         await RefreshDataAsync();
     }
 
-    /// <summary>Applies the header checkbox to the currently displayed rows only.</summary>
-    /// <param name="selected">Whether to add or remove the visible rows.</param>
-    /// <returns>A task completing after the page selection changes.</returns>
-    private Task SelectPageAsync(bool selected) => ChangeAsync(_rows, selected);
+    /// <summary>Disables native table selection during owner mutations or when the editor is read-only.</summary>
+    /// <param name="item">The visible item whose checkbox is being rendered.</param>
+    /// <param name="disabled">Whether the row can be changed.</param>
+    /// <param name="check">False because CheckedItems supplies the authoritative checked state.</param>
+    private void CheckboxDisabled(TItem item, out bool disabled, out bool check)
+    {
+        disabled = Disabled || _changing || _state == null;
+        check = false;
+    }
 
-    /// <summary>Applies an atomic selection change and retains visible row positions.</summary>
-    /// <param name="rows">The rows explicitly changed by the user.</param>
-    /// <param name="selected">Whether the rows should be selected.</param>
-    /// <returns>A task completing when callbacks and rollback handling finish.</returns>
-    private async Task ChangeAsync(IEnumerable<TItem> rows, bool selected)
+    /// <summary>Applies native checkbox changes only to the displayed rows and restores owner state after a failed callback.</summary>
+    /// <param name="items">The table's complete checked set, including items outside the visible page.</param>
+    /// <returns>The completion of relationship callbacks and checkbox synchronization.</returns>
+    private async Task OnCheckedAsync(IEnumerable<TItem> items)
     {
         if (Disabled || _changing || _state == null)
         {
             return;
         }
+        var keys = items.Select(ItemKey).ToHashSet();
+        var removed = _rows.Where(item => _state.IsSelected(item) && !keys.Contains(ItemKey(item))).ToArray();
+        var added = _rows.Where(item => !_state.IsSelected(item) && keys.Contains(ItemKey(item))).ToArray();
         _changing = true;
         try
         {
-            await _state.ChangeAsync(rows, selected, OwnerMutates, selected
-                ? items => OnAdded.InvokeAsync(items)
-                : items => OnRemoved.InvokeAsync(items));
+            if (removed.Length != 0)
+            {
+                await _state.ChangeAsync(removed, false, OwnerMutates, values => OnRemoved.InvokeAsync(values));
+            }
+            if (added.Length != 0)
+            {
+                await _state.ChangeAsync(added, true, OwnerMutates, values => OnAdded.InvokeAsync(values));
+            }
         }
         catch (Exception error)
         {
@@ -213,6 +212,7 @@
         finally
         {
             _changing = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

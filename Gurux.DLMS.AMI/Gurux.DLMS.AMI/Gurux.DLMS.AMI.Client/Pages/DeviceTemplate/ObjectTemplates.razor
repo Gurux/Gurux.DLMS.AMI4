@@ -303,38 +303,31 @@ else
         return ((Gurux.DLMS.Enums.ObjectType)value.GetValueOrDefault(0)).ToString();
     }
 
+    /// <summary>Formats attribute access names using the association version encoded in the template.</summary>
+    /// <param name="template">The object template and its persisted attribute access flags.</param>
+    /// <returns>A localized list of attribute names and readable access descriptions.</returns>
     private string GetAccessRights(GXObjectTemplate template)
     {
         if (template.Attributes == null || template.ObjectType == null)
         {
-            return "";
+            return string.Empty;
         }
         var obj = GXDLMSClient.CreateObject((Enums.ObjectType)template.ObjectType);
-        StringBuilder sb = new StringBuilder();
-        foreach (var it in template.Attributes)
+        obj.Version = (byte)(template.Version ?? 0);
+        var names = (obj as IGXDLMSBase)?.GetNames();
+        bool versionThree = template.ActionAccessLevels?.StartsWith("0x", StringComparison.OrdinalIgnoreCase) == true;
+        return string.Join(", ", template.Attributes.Select(attribute =>
         {
-            if (obj is IGXDLMSBase b)
-            {
-                try
-                {
-                    sb.Append(b.GetNames()[it.Index - 1] + " is " + ((Enums.AccessMode)it.AccessLevel));
-                }
-                catch (Exception)
-                {
-                    sb.Append(it.Index + " is " + ((Enums.AccessMode)it.AccessLevel));
-                }
-            }
-            else
-            {
-                sb.Append(it.Index + " is " + ((Enums.AccessMode)it.AccessLevel));
-            }
-            sb.Append(", ");
-        }
-        if (sb.Length != 0)
-        {
-            sb.Length -= 2;
-        }
-        return sb.ToString();
+            string name = names != null && attribute.Index > 0 && attribute.Index <= names.Length
+                ? names[attribute.Index - 1]
+                : attribute.Index.ToString(System.Globalization.CultureInfo.CurrentCulture);
+            string access = versionThree
+                ? ((Enums.AccessMode3)attribute.AccessLevel).ToString()
+                : ((Enums.AccessMode)attribute.AccessLevel).ToString();
+            return string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                Properties.Resources.ResourceManager.GetString("AttributeAccessDescription", System.Globalization.CultureInfo.CurrentUICulture)!,
+                name, access);
+        }));
     }
 
     private string GetExpirationTimes(GXObjectTemplate template)
@@ -465,21 +458,21 @@ else
         await Updated();
     }
 
+    /// <summary>Returns the requested filtered page from local template objects or the server.</summary>
+    /// <param name="request">The requested offset, page size, filters, and cancellation token.</param>
+    /// <returns>The bounded page and the total number of matching objects.</returns>
     private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
     {
         if (Device?.Objects != null || (!_init && AvailableObjectTemplates != null && AvailableObjectTemplates.Any()))
         {
             List<GXObjectTemplate> objects = new();
-            int count = 0;
             if (Device?.Objects != null)
             {
                 objects.AddRange(Device.Objects);
-                count = Device.Objects.Count;
             }
             if (AvailableObjectTemplates != null)
             {
                 objects.AddRange(AvailableObjectTemplates);
-                count = AvailableObjectTemplates.Count();
             }
             if (_filterByObjectType != Enums.ObjectType.None)
             {
@@ -495,7 +488,12 @@ else
             {
                 objects.RemoveAll(q => q.LogicalName != null && q.LogicalName.ToUpper().Contains(_filterByLogicalName.ToUpper()) == false);
             }
-            return new ItemsProviderResult<GXObjectTemplate>(objects, count);
+            IEnumerable<GXObjectTemplate> page = objects.Skip(request.StartIndex);
+            if (request.Count != 0)
+            {
+                page = page.Take(request.Count);
+            }
+            return new ItemsProviderResult<GXObjectTemplate>(page.ToArray(), objects.Count);
         }
         _init = false;
         //Don't clear status or error is lost.

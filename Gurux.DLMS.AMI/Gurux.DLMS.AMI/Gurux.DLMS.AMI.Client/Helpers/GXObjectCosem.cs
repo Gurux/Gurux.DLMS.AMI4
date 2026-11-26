@@ -39,10 +39,20 @@ namespace Gurux.DLMS.AMI.Client.Helpers;
 /// <summary>Adapts persisted AMI objects to the COSEM editors and metadata based tasks.</summary>
 public sealed class GXObjectCosem
 {
+    /// <summary>Retains the persisted object used to identify generated device tasks.</summary>
     private GXObject _model;
+    /// <summary>Gets the PDU client used to serialize object requests.</summary>
     public GXDLMSSecureClient Client { get; } = new() { InterfaceType = InterfaceType.PDU, UseLogicalNameReferencing = true };
+    /// <summary>Gets the editable COSEM object and its decoded access rights.</summary>
     public GXDLMSObject Target { get; }
 
+    /// <summary>Gets the association version identifying the persisted access-right encoding.</summary>
+    public GXDLMSAssociationLogicalName Association { get; } = new();
+
+    /// <summary>Creates the editable object from persisted metadata and confirmed values.</summary>
+    /// <param name="model">The persisted object and its required template.</param>
+    /// <exception cref="ArgumentNullException">The model is null.</exception>
+    /// <exception cref="ArgumentException">The object template is missing.</exception>
     public GXObjectCosem(GXObject model)
     {
         _model = model ?? throw new ArgumentNullException(nameof(model));
@@ -72,6 +82,16 @@ public sealed class GXObjectCosem
     public void Refresh(GXObject latest)
     {
         _model = latest ?? throw new ArgumentNullException(nameof(latest));
+        Association.Version = latest.Template?.ActionAccessLevels?.StartsWith("0x", StringComparison.OrdinalIgnoreCase) == true ? (byte)3 : (byte)2;
+        // Logical names are stored on the object template, so imports omit attribute one.
+        if (Association.Version >= 3)
+        {
+            Target.SetAccess3(1, AccessMode3.Read);
+        }
+        else
+        {
+            Target.SetAccess(1, AccessMode.Read);
+        }
         // The agent stores register readings after applying the scaler. Load it
         // first so initial and subsequent refreshes interpret the same UI value.
         var scalerIndex = Target is GXDLMSRegister ? 3 : Target is GXDLMSDemandRegister ? 4 : 0;
@@ -88,8 +108,14 @@ public sealed class GXObjectCosem
             if (template.UIDataType != 0) {
                 Target.SetUIDataType(index, (DataType)template.UIDataType);
             }
-            Target.SetAccess(index, Target is GXDLMSProfileGeneric && index == 2
-                ? AccessMode.Read : (AccessMode)template.AccessLevel);
+            if (Association.Version >= 3)
+            {
+                Target.SetAccess3(index, (AccessMode3)template.AccessLevel);
+            }
+            else
+            {
+                Target.SetAccess(index, (AccessMode)template.AccessLevel);
+            }
             var settings = Target.Attributes.Find(index);
             if (settings == null)
             {
@@ -140,12 +166,24 @@ public sealed class GXObjectCosem
             var hex = access.StartsWith("0x", StringComparison.OrdinalIgnoreCase);
             var values = hex ? GXDLMSTranslator.HexToBytes(access[2..]) : access.Select(value => byte.Parse(value.ToString())).ToArray();
             for (var pos = 0; pos < values.Length; ++pos) {
-                Target.SetMethodAccess(pos + 1, (MethodAccessMode)values[pos]);
+                if (hex)
+                {
+                    Target.SetMethodAccess3(pos + 1, (MethodAccessMode3)values[pos]);
+                }
+                else
+                {
+                    Target.SetMethodAccess(pos + 1, (MethodAccessMode)values[pos]);
+                }
             }
         }
     }
 
     /// <summary>Decodes the agent's scalar text or typed XML using the attribute metadata.</summary>
+    /// <param name="index">The one-based attribute index supplying type metadata.</param>
+    /// <param name="stored">The persisted scalar or DLMS XML value.</param>
+    /// <returns>The decoded attribute value.</returns>
+    /// <exception cref="ArgumentNullException">The stored value is null.</exception>
+    /// <exception cref="FormatException">A structured attribute lacks typed XML.</exception>
     public object? DecodeValue(int index, string stored)
     {
         ArgumentNullException.ThrowIfNull(stored);
@@ -175,6 +213,9 @@ public sealed class GXObjectCosem
         return type == DataType.None ? stored : GXDLMSConverter.ChangeType(stored, type, CultureInfo.InvariantCulture);
     }
 
+    /// <summary>Resolves the attribute conversion type, preserving scaled numeric precision.</summary>
+    /// <param name="index">The one-based attribute index.</param>
+    /// <returns>The UI type or the underlying DLMS data type.</returns>
     private DataType ValueType(int index)
     {
         var ui = Target.GetUIDataType(index);
@@ -186,6 +227,9 @@ public sealed class GXObjectCosem
             ? DataType.Float64 : type;
     }
 
+    /// <summary>Recognizes typed DLMS XML without treating arbitrary text as XML.</summary>
+    /// <param name="stored">The persisted attribute text.</param>
+    /// <returns>True when the opening tag names a DLMS data type.</returns>
     private static bool IsXmlValue(string stored)
     {
         var text = stored.AsSpan().TrimStart();
@@ -197,8 +241,14 @@ public sealed class GXObjectCosem
         return end >= 0 && Enum.TryParse<DataType>(text.Slice(1, end), true, out var type) && Enum.IsDefined(type);
     }
 
+    /// <summary>Builds read tasks for distinct accessible attributes.</summary>
+    /// <param name="indexes">The one-based attribute indexes.</param>
+    /// <returns>The ordered read tasks.</returns>
     public IReadOnlyList<GXTask> Read(IEnumerable<int> indexes) => Batch(indexes.Distinct().Select(index => Create(TaskType.Read, index)));
 
+    /// <summary>Builds write tasks for distinct dirty attributes.</summary>
+    /// <param name="indexes">The one-based attribute indexes to inspect.</param>
+    /// <returns>The ordered write tasks containing draft values.</returns>
     public IReadOnlyList<GXTask> Write(IEnumerable<int> indexes) => Batch(indexes.Distinct()
         .Where(index => { Create(TaskType.Write, index); return Target.GetDirty(index, out _); }).Select(index =>
         {
@@ -206,15 +256,24 @@ public sealed class GXObjectCosem
             return WriteTask(index, value);
         }));
 
+    /// <summary>Builds a write task for an explicitly supplied attribute value.</summary>
+    /// <param name="index">The one-based attribute index.</param>
+    /// <param name="value">The value to serialize as DLMS XML.</param>
+    /// <returns>The single write task.</returns>
     public IReadOnlyList<GXTask> Write(int index, object value) => Batch([WriteTask(index, value)]);
 
+    /// <summary>Validates write access and serializes an attribute value.</summary>
+    /// <param name="index">The one-based attribute index.</param>
+    /// <param name="value">The value to write.</param>
+    /// <returns>The task with its serialized value.</returns>
+    /// <exception cref="InvalidOperationException">The attribute is read-only.</exception>
     private GXTask WriteTask(int index, object value)
     {
         if (Target is GXDLMSProfileGeneric && index == 2) {
             throw new InvalidOperationException("Profile history is read only.");
         }
         var task = Create(TaskType.Write, index);
-        if (Target.GetAccess(index) is not (AccessMode.Write or AccessMode.ReadWrite or AccessMode.AuthenticatedWrite or AccessMode.AuthenticatedReadWrite))
+        if (!GXDLMSObjectAccess.CanWrite(Target, index, Association))
             {
             throw new InvalidOperationException("The attribute is not writable.");
         }
@@ -222,13 +281,22 @@ public sealed class GXObjectCosem
         return task;
     }
 
+    /// <summary>Converts an accessible object method request into metadata-based tasks.</summary>
+    /// <param name="request">The selected object method and PDU generator.</param>
+    /// <returns>The ordered action tasks.</returns>
+    /// <exception cref="ArgumentNullException">The request is null.</exception>
+    /// <exception cref="ArgumentException">The request targets another object.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The method index exceeds the object method count.</exception>
+    /// <exception cref="InvalidOperationException">The method is inaccessible or cannot be represented by independent tasks.</exception>
     public IReadOnlyList<GXTask> Action(GXDLMSActionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (!ReferenceEquals(request.Target, Target)) {
             throw new ArgumentException("The action belongs to another object.", nameof(request));
         }
-        if (request.MethodIndex < 1 || Target.GetMethodAccess(request.MethodIndex) == MethodAccessMode.NoAccess)
+        if (request.MethodIndex < 1 || (Association.Version >= 3
+            ? (Target.GetMethodAccess3(request.MethodIndex) & MethodAccessMode3.Access) == 0
+            : Target.GetMethodAccess(request.MethodIndex) == MethodAccessMode.NoAccess))
             {
             throw new InvalidOperationException("The method is not accessible.");
         }
@@ -266,6 +334,12 @@ public sealed class GXObjectCosem
         return Batch(tasks);
     }
 
+    /// <summary>Creates a task using persisted object or late-bound template identifiers.</summary>
+    /// <param name="type">The requested operation.</param>
+    /// <param name="index">The one-based attribute or method index.</param>
+    /// <returns>The task with its device and object references.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The index is invalid or its attribute is absent.</exception>
+    /// <exception cref="InvalidOperationException">The attribute cannot be read.</exception>
     private GXTask Create(TaskType type, int index)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(index, 1);
@@ -278,7 +352,7 @@ public sealed class GXObjectCosem
             var attribute = _model.Attributes?.SingleOrDefault(value => value.Template?.Index == index)
                 ?? throw new ArgumentOutOfRangeException(nameof(index), "The attribute is missing.");
             task.Attribute = new GXAttribute { Id = attribute.Id, Object = new GXObject { Id = objectId } };
-            if (type == TaskType.Read && Target.GetAccess(index) is not (AccessMode.Read or AccessMode.ReadWrite or AccessMode.AuthenticatedRead or AccessMode.AuthenticatedReadWrite))
+            if (type == TaskType.Read && !GXDLMSObjectAccess.CanRead(Target, index, Association))
                 {
                 throw new InvalidOperationException("The attribute is not readable.");
             }
@@ -286,6 +360,9 @@ public sealed class GXObjectCosem
         return task;
     }
 
+    /// <summary>Assigns ordering and a shared batch identifier to related tasks.</summary>
+    /// <param name="source">Tasks generated for one operation.</param>
+    /// <returns>The materialized tasks in their original order.</returns>
     private static IReadOnlyList<GXTask> Batch(IEnumerable<GXTask> source)
     {
         var tasks = source.ToArray();

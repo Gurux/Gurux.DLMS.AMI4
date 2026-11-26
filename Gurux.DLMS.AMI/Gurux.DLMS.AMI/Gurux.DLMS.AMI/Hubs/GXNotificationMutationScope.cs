@@ -29,34 +29,39 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Hubs;
 
-/// <summary>Marks device notifications produced by the current import mutation without changing global delivery settings.</summary>
-internal sealed class GXDeviceImportNotificationScope : IDisposable
+/// <summary>Applies an operation-owned notification transformation without changing global delivery settings.</summary>
+internal sealed class GXNotificationMutationScope : IDisposable
 {
 
-    /// <summary>Tracks import ownership only in the current asynchronous operation.</summary>
-    private static readonly AsyncLocal<GXDeviceImportNotificationScope?> _current = new();
+    /// <summary>Tracks notification ownership only in the current asynchronous operation.</summary>
+    private static readonly AsyncLocal<GXNotificationMutationScope?> _current = new();
 
-    /// <summary>Restores enclosing import ownership after this scope ends.</summary>
-    private readonly GXDeviceImportNotificationScope? _previous;
+    /// <summary>Restores enclosing notification ownership after this scope ends.</summary>
+    private readonly GXNotificationMutationScope? _previous;
 
-    /// <summary>Stops inherited background contexts from retaining import ownership after completion.</summary>
+    /// <summary>Stops inherited background contexts from retaining notification ownership after completion.</summary>
     private bool _disposed;
 
-    /// <summary>Starts marking notifications for an import mutation.</summary>
-    internal GXDeviceImportNotificationScope()
+    /// <summary>Transforms notifications emitted by this asynchronous mutation.</summary>
+    private readonly Action<GXTarget> _transform;
+
+    /// <summary>Starts transforming notifications for a repository mutation.</summary>
+    /// <param name="transform">Operation-owned transformation applied before delivery.</param>
+    internal GXNotificationMutationScope(Action<GXTarget> transform)
     {
+        _transform = transform;
         _previous = _current.Value;
         _current.Value = this;
     }
 
-    /// <summary>Marks only source-free device additions and edits from the current import.</summary>
+    /// <summary>Applies the active mutation transformation to an original notification.</summary>
     /// <param name="notification">The original event retained for each delivery channel.</param>
     internal static void Mark(GXTarget notification)
     {
         var scope = _current.Value;
-        if (scope != null && !Volatile.Read(ref scope._disposed) && notification.Source == null && notification.Type is "device.add" or "device.edit")
+        if (scope != null && !Volatile.Read(ref scope._disposed))
         {
-            notification.Source = "Gurux.AMI.Device.Importer";
+            scope._transform(notification);
         }
     }
 

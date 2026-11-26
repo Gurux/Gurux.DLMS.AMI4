@@ -30,7 +30,7 @@ using Gurux.DLMS.AMI.Module;
 namespace Gurux.DLMS.AMI.Client.Helpers;
 
 /// <summary>Queues confirmations for the current browser's shared dialog host.</summary>
-public sealed class GXConfirmationService : IGXAmiConfirmation
+public sealed class GXConfirmationService : IGXAmiConfirmation, Gurux.UI.Components.IGXConfirmation
 {
     /// <summary>Immutable dialog content and options presented by the shared confirmation host.</summary>
     /// <param name="Id">Identifier assigned to this confirmation request.</param>

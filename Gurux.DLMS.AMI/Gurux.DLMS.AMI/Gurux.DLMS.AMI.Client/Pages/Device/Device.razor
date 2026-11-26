@@ -98,6 +98,14 @@
     public bool DeleteTarget { get; set; }
     public Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? Settings { get; set; }
     public EditContext FormContext => GXEditContexts.For(Active);
+    /// <summary>Gets whether the selected security profile permits entering initial key material for a new device.</summary>
+    internal bool CanEditCiphering => !DisableSecurity();
+
+    /// <summary>Gets whether the active security profile permits changing the client title on a new or existing device.</summary>
+    internal bool CanEditClientSystemTitle => Settings != null &&
+        (Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighGMAC || Settings.Security != (byte)Gurux.DLMS.Enums.Security.None) &&
+        _action is CrudAction.Create or CrudAction.Update;
+
     private bool DisableSecurity() => Settings == null ||
         (Settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC && Settings.Security == (byte)Gurux.DLMS.Enums.Security.None) || _action != CrudAction.Create;
     private async Task InitializeDefaults()
@@ -151,6 +159,7 @@
         }
 
     }
+    /// <summary>Initializes editable settings and editor commands without requiring the General tab to render first.</summary>
     private void InitializeEditorMenu()
     {
         _profilePictureEdit = new GXProfilePictureEdit(Active.ProfilePicture?.Id, Active.Id == Guid.Empty ? null : Active.Creator?.Id);
@@ -162,6 +171,7 @@
             {
             Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Template.Settings);
         }
+        Settings ??= new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings();
         if (Active.Properties != null) {
             _properties.AddRange(Active.Properties);
         }
@@ -195,6 +205,8 @@
         _disposed = true;
         _editorMenu?.Dispose();
     }
+    /// <summary>Validates device details and supplied security material, requiring initial ciphering keys only when creating a device.</summary>
+    /// <returns>True when device settings are valid; otherwise false after recording validation errors.</returns>
     private bool ValidateDevice()
     {
         bool valid = true;
@@ -259,7 +271,7 @@
                             Invalid(Client.Properties.Resources.InvalidBlockCipherKey);
                         }
                     }
-                    else
+                    else if (_action == CrudAction.Create)
                     {
                         Invalid(Client.Properties.Resources.InvalidBlockCipherKey);
                     }
@@ -271,7 +283,7 @@
                             Invalid(Client.Properties.Resources.InvalidAuthenticationKey);
                         }
                     }
-                    else
+                    else if (_action == CrudAction.Create)
                     {
                         Invalid(Client.Properties.Resources.InvalidAuthenticationKey);
                     }
@@ -280,12 +292,8 @@
                         if ((Settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Settings.BroadcastKey.Length != 16) ||
                         (Settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Settings.BroadcastKey.Length != 32))
                         {
-                            Invalid(Client.Properties.Resources.InvalidBlockCipherKey);
+                            Invalid(Client.Properties.Resources.InvalidBroadcastKey);
                         }
-                    }
-                    else
-                    {
-                        Invalid(Client.Properties.Resources.InvalidBroadcastKey);
                     }
                 }
             }
@@ -303,6 +311,8 @@
         }
         return valid;
     }
+    /// <summary>Saves device changes while preserving device system titles when key editing is disabled.</summary>
+    /// <returns>The completion of the device save and editor navigation.</returns>
     private async Task OnSave()
     {
         try
@@ -327,12 +337,8 @@
             };
             if (Settings != null)
             {
-                if (!DisableSecurity())
+                if (DisableSecurity())
                 {
-                }
-                else
-                {
-                    Settings.ClientSystemTitle = Settings.DeviceSystemTitle =
                     Settings.BlockCipherKey = Settings.AuthenticationKey = Settings.BroadcastKey = null;
                 }
                 Active.Settings = JsonSerializer.Serialize(Settings, options);

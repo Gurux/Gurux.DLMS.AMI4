@@ -47,8 +47,11 @@ namespace Gurux.DLMS.AMI.Db
     public class SqlConnectionFactory
      : IDbConnectionFactory, Gurux.DLMS.AMI.Server.Repository.IGXHistoryConnectionDiagnostics
     {
+        /// <summary>Connection settings used when opening an independent database session.</summary>
         private readonly string _connectionString;
+        /// <summary>Database provider used to create and initialize connections.</summary>
         private readonly DatabaseType _databaseType;
+        /// <summary>Gets the provider used by history transaction coordination.</summary>
         internal DatabaseType ProviderType => _databaseType;
         /// <summary>
         /// Configuration template for an independent SQL query cache on each connection.
@@ -157,18 +160,39 @@ namespace Gurux.DLMS.AMI.Db
                 DatabaseType.PostgreSQL => new Npgsql.NpgsqlConnection(_connectionString),
                 _ => throw new NotSupportedException($"Database type {_databaseType} is not supported by {nameof(SqlConnectionFactory)}."),
             };
-            await con.OpenAsync(cancellationToken);
-            return con;
+            try
+            {
+                await con.OpenAsync(cancellationToken);
+                if (_databaseType == DatabaseType.MSSQL)
+                {
+                    // SQL Server retains the previous transaction isolation level when a
+                    // pooled session is reused. Reset only newly checked-out sessions;
+                    // explicit transactions and borrowed history leases retain their isolation.
+                    await using var command = con.CreateCommand();
+                    command.CommandText = "SET TRANSACTION ISOLATION LEVEL READ COMMITTED";
+                    await command.ExecuteNonQueryAsync(cancellationToken);
+                }
+                return con;
+            }
+            catch
+            {
+                await con.DisposeAsync();
+                throw;
+            }
         }
 
+        /// <inheritdoc/>
         void Gurux.DLMS.AMI.Server.Repository.IGXHistoryConnectionDiagnostics.ConfigureHistoryLease(
             GXDbConnection db, bool notifySqlExcution) => ConfigureConnectionDiagnostics(db, notifySqlExcution);
 
+        /// <summary>Attaches SQL diagnostics when execution notifications are requested.</summary>
+        /// <param name="db">Connection whose executed commands are observed.</param>
+        /// <param name="notifySqlExcution">Whether SQL execution notifications are enabled.</param>
         private void ConfigureConnectionDiagnostics(GXDbConnection db, bool notifySqlExcution)
         {
             var interceptor = Interceptor;
             if (notifySqlExcution && interceptor != null)
-                {
+            {
                 db.OnSqlExecuted += (_, e) => interceptor.PublishOrmCommand(e.Sql, e.Elapsed.TotalMilliseconds);
             }
         }
@@ -178,7 +202,8 @@ namespace Gurux.DLMS.AMI.Db
         {
             cancellationToken.ThrowIfCancellationRequested();
             var historyLease = Gurux.DLMS.AMI.Server.Repository.GXHistoryScope.TryLease(this, notifySqlExcution);
-            if (historyLease != null) {
+            if (historyLease != null)
+            {
                 return historyLease;
             }
             // GXQueryCache must not be shared by concurrent ORM connections: reads can

@@ -92,7 +92,7 @@ namespace Gurux.DLMS.AMI.Hubs
             {
                 return;
             }
-            GXDeviceImportNotificationScope.Mark(notification);
+            GXNotificationMutationScope.Mark(notification);
             Server.Internal.GXNotificationText.Fill(notification);
             _items.Enqueue(new CachedNotification
             {

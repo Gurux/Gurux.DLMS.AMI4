@@ -332,12 +332,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken = default)
             => await ListCoreAsync(request, response, cancellationToken, null);
 
-        /// <summary>Finds only accessible devices whose names occur in an importer batch.</summary>
+        /// <summary>Finds only accessible devices whose names occur in a name batch.</summary>
         /// <param name="names">At most 1000 exact names to resolve.</param>
         /// <param name="token">Cancels the lookup.</param>
-        /// <returns>Accessible matches, including ambiguous names for importer validation.</returns>
-        /// <exception cref="ArgumentException">The name array is missing or exceeds the import limit.</exception>
-        internal async Task<GXDevice[]> ListForImportAsync(string[] names, CancellationToken token)
+        /// <returns>Accessible matches, including ambiguous names for caller validation.</returns>
+        /// <exception cref="ArgumentException">The name array is missing or exceeds the batch limit.</exception>
+        internal async Task<GXDevice[]> ListByNamesAsync(string[] names, CancellationToken token)
         {
             if (names == null || names.Length is < 1 or > 1000)
             {
@@ -346,11 +346,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return (await ListCoreAsync(new ListDevices { Count = 0 }, null, token, names)).ToArray();
         }
 
-        /// <summary>Lists authorized devices with optional importer name restrictions inside the current transaction.</summary>
+        /// <summary>Lists authorized devices with optional exact name restrictions inside the current transaction.</summary>
         /// <param name="request">Host filter and paging options.</param>
         /// <param name="response">Optional result counts and device collection.</param>
         /// <param name="cancellationToken">Cancels the lookup.</param>
-        /// <param name="names">Optional importer names applied before retrieval.</param>
+        /// <param name="names">Optional exact names applied before retrieval.</param>
         /// <returns>The accessible devices matching every requested restriction.</returns>
         private async Task<IEnumerable<GXDevice>> ListCoreAsync(ListDevices? request, ListDevicesResponse? response,
             CancellationToken cancellationToken, string[]? names)
@@ -993,7 +993,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 _notificationCache.Add(await GetNotifiedUsers(it.Id, NotificationAction.Edit, connection),
                        new GXTarget(GXDevicePolicies.Edit, it.Id, it.Name)
                        {
-                           ConcurrencyStamp = it.ConcurrencyStamp != notificationVersions[it.Id] ? it.ConcurrencyStamp : null
+                           ConcurrencyStamp = it.ConcurrencyStamp != notificationVersions[it.Id] ? it.ConcurrencyStamp : null,
+                           Source = GetRuntimeUpdateSource(columns)
                        });
             }
             return [.. devices.Select(s => s.Id)];
@@ -1138,6 +1139,33 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>Recognizes selected-column writes that only change device execution state.</summary>
+        /// <param name="columns">Columns explicitly selected by the update, or null for a complete device edit.</param>
+        /// <returns>A notification source identifying the changed runtime columns, or null for other updates.</returns>
+        private static string? GetRuntimeUpdateSource(Expression<Func<GXDevice, object>>? columns)
+        {
+            var body = columns?.Body;
+            if (body is UnaryExpression conversion && conversion.NodeType == ExpressionType.Convert)
+            {
+                body = conversion.Operand;
+            }
+            var members = body switch
+            {
+                NewExpression selected => selected.Arguments.OfType<MemberExpression>().ToArray(),
+                MemberExpression selected => [selected],
+                _ => []
+            };
+            if (members.Length == 0 || (body is NewExpression selection && members.Length != selection.Arguments.Count))
+            {
+                return null;
+            }
+            bool runtimeOnly = members.All(member => member.Expression == columns!.Parameters[0] && member.Member.Name is
+                nameof(GXDevice.Status) or nameof(GXDevice.Detected) or nameof(GXDevice.ConnectionInfo) or
+                nameof(GXDevice.LastRead) or nameof(GXDevice.LastWrite) or nameof(GXDevice.LastAction) or
+                nameof(GXDevice.LastError) or nameof(GXDevice.LastErrorMessage) or nameof(GXDevice.Updated));
+            return runtimeOnly ? "device.runtime:" + string.Join(",", members.Select(member => member.Member.Name).Distinct().Order(StringComparer.Ordinal)) : null;
+        }
+
         /// <inheritdoc />
         public async Task UpdateStatusAsync(
             Guid deviceId,
@@ -1161,7 +1189,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             _notificationCache.Add(await GetNotifiedUsers(device.Id, NotificationAction.StatusChange, connection),
                        new GXTarget(GXDevicePolicies.Edit, device.Id, device.Name,
-                       Properties.Resources.Detected + device.Detected + " " + Properties.Resources.Status + " " + device.Status));
+                       Properties.Resources.Detected + device.Detected + " " + Properties.Resources.Status + " " + device.Status)
+                       {
+                           Source = "device.runtime:Detected,Status"
+                       });
 
             //Update device state for the device log.
             GXLog? log = new(TraceLevel.Info)

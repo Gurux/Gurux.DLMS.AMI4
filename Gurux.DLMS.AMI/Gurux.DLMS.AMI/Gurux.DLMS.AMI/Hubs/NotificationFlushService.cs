@@ -49,10 +49,19 @@ namespace Gurux.DLMS.AMI.Hubs
         IHubContext<GuruxAMiHub> hubContext, GXWebPushNotifier webPush, GXEmailNotifier email,
         IServiceScopeFactory scopes, ILogger<NotificationFlushService> logger) : BackgroundService
     {
+        /// <summary>Stores pending notifications until the next delivery interval.</summary>
         private readonly NotificationCache _cache = cache;
+
+        /// <summary>Delivers authorized batches to connected SignalR clients.</summary>
         private readonly IHubContext<GuruxAMiHub> _hubContext = hubContext;
+
+        /// <summary>Delivers original events through web push.</summary>
         private readonly GXWebPushNotifier _webPush = webPush;
+
+        /// <summary>Resolves scoped delivery and module services.</summary>
         private readonly IServiceScopeFactory _scopes = scopes;
+
+        /// <summary>Reports notification delivery failures.</summary>
         private readonly ILogger<NotificationFlushService> _logger = logger;
 
         /// <inheritdoc />
@@ -79,7 +88,14 @@ namespace Gurux.DLMS.AMI.Hubs
                     {
                         foreach (var userGroup in byUser)
                         {
-                            GXTarget[] notifications = GXDeviceImportNotifications.ForClient(userGroup.Select(x => x.Notification));
+                            // Each module sees only this recipient's authorized batch; other channels retain originals.
+                            var clientNotifications = userGroup.Select(x => x.Notification).ToList();
+                            var runtime = sqlSuppression.ServiceProvider.GetService<GXModuleRuntime>();
+                            if (runtime != null)
+                            {
+                                await runtime.Events.PublishAsync(("client.notifications", clientNotifications), stoppingToken);
+                            }
+                            GXTarget[] notifications = [.. clientNotifications];
                             await _hubContext.Clients.User(userGroup.Key).SendAsync(nameof(IGXHubEvents.OnUpdate), notifications, stoppingToken);
                             sent.AddRange(notifications.Select(notification => new CachedNotification { UserId = userGroup.Key, Notification = notification }));
                         }

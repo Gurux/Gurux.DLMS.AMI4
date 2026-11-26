@@ -30,89 +30,97 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @implements IDisposable
 
-<fieldset class="attribute-enum-editor" disabled="@Disabled">
-    <legend class="h6">@GXAttributeEnumValues.Text("AttributeEnumValues")</legend>
-    @if (GXAttributeEnumValues.IsBitString(Template))
-    {
-        <p class="form-text">@GXAttributeEnumValues.Text("AttributeEnumBitOrderHelp")</p>
-    }
-    <GXMenuControl ReadOnly="@Disabled">
-        <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="BeginAdd" />
-    </GXMenuControl>
-    <GXTable TItem="GXAttributeListItem" @ref="_table" Context="item" ItemsProvider="GetItems"
-             Save="false" Filter="false" Total="false" ShowAllData="true" ShowAllUsers="false" ShowRemoved="false"
-             Menu="@(!Disabled)" CanEdit="false" SelectionMode="SelectionMode.Single" @bind-Active="_selected" ItemKey="@(item => item)">
-        <MenuContent>
-            @if (!Disabled)
-            {
-                <GXContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="BeginEdit" />
-                <GXContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="BeginRemove" />
-            }
-        </MenuContent>
-        <HeaderContent>
-            <th scope="col">@Properties.Resources.Value</th>
-            <th scope="col">@Properties.Resources.Description</th>
-            @if (GXAttributeEnumValues.IsBitString(Template))
-            {
-                <th scope="col">@GXAttributeEnumValues.Text("AttributeEnumStartBit")</th>
-                <th scope="col">@GXAttributeEnumValues.Text("AttributeEnumBitCount")</th>
-            }
-        </HeaderContent>
-        <ItemContent>
-            <td>@item.Value</td>
-            <td>@item.UIValue</td>
-            @if (GXAttributeEnumValues.IsBitString(Template))
-            {
-                <td data-enum-shift>@item.Shift</td>
-                <td>@item.MaskSize</td>
-            }
-        </ItemContent>
-    </GXTable>
-    <ValidationMessage For="@(() => Template.ListItems)" />
-</fieldset>
-@if (_draft != null && _dialogContext != null)
+@if (ShowValues)
 {
-    <GXDialog @key="_draft" Title="@DialogTitle" Save="false" ManageFocus="true"
-              OkButtonTitle="@(_deleting ? Properties.Resources.Remove : Properties.Resources.Save)"
-              CancelButtonTitle="@Properties.Resources.Cancel" OnOk="ApplyDialogAsync" OnCancel="CancelDialog">
-        <CascadingValue Value="_dialogContext" IsFixed="true">
-            <ValidationSummary />
-            <fieldset disabled="@(Disabled || _deleting)">
-                <div class="form-group">
-                    <label for="@(_dialogId + "-value")">@Properties.Resources.Value</label>
-                    <InputNumber id="@(_dialogId + "-value")" class="form-control" @bind-Value="_draft.Value"
-                                 ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
-                </div>
-                <div class="form-group">
-                    <label for="@(_dialogId + "-description")">@Properties.Resources.Description</label>
-                    <InputText id="@(_dialogId + "-description")" class="form-control" @bind-Value="_draft.UIValue" />
-                </div>
+    <fieldset class="attribute-enum-editor" disabled="@Disabled">
+        <legend class="h6">@GXAttributeEnumValues.Text("AttributeEnumValues")</legend>
+        @if (GXAttributeEnumValues.IsBitString(Template))
+        {
+            <p class="form-text">@GXAttributeEnumValues.Text("AttributeEnumBitOrderHelp")</p>
+        }
+        <GXMenuControl ReadOnly="@Disabled">
+            <GXMenuEntry Text="@Properties.Resources.Add" Id="Add" OnClick="BeginAdd" />
+        </GXMenuControl>
+        <GXTable TItem="GXAttributeListItem" @ref="_table" Context="item" ItemsProvider="GetItems"
+                 Save="false" Filter="false" Total="false" ShowAllData="true" ShowAllUsers="false" ShowRemoved="false"
+                 Menu="@(!Disabled)" CanEdit="false" SelectionMode="SelectionMode.Single" @bind-Active="_selected" ItemKey="@(item => item)">
+            <MenuContent>
+                @if (!Disabled)
+                {
+                    <GXContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="BeginEdit" />
+                    <GXContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="BeginRemove" />
+                }
+            </MenuContent>
+            <HeaderContent>
+                <th scope="col">@Properties.Resources.Value</th>
+                <th scope="col">@Properties.Resources.Description</th>
                 @if (GXAttributeEnumValues.IsBitString(Template))
                 {
-                    <div class="form-group">
-                        <label for="@(_dialogId + "-shift")">@GXAttributeEnumValues.Text("AttributeEnumStartBit")</label>
-                        <InputNumber id="@(_dialogId + "-shift")" class="form-control" min="0" @bind-Value="_draft.Shift"
-                                     ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
-                    </div>
-                    <div class="form-group">
-                        <label for="@(_dialogId + "-width")">@GXAttributeEnumValues.Text("AttributeEnumBitCount")</label>
-                        <InputNumber id="@(_dialogId + "-width")" class="form-control" min="1" @bind-Value="_draft.MaskSize"
-                                     ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
-                    </div>
+                    <th scope="col">@GXAttributeEnumValues.Text("AttributeEnumStartBit")</th>
+                    <th scope="col">@GXAttributeEnumValues.Text("AttributeEnumBitCount")</th>
                 }
-            </fieldset>
-            @if (_dialogError != null)
-            {
-                <p role="alert" class="text-danger">@_dialogError</p>
-            }
-        </CascadingValue>
-    </GXDialog>
+            </HeaderContent>
+            <ItemContent>
+                <td>@item.Value</td>
+                <td>@item.UIValue</td>
+                @if (GXAttributeEnumValues.IsBitString(Template))
+                {
+                    <td data-enum-shift>@item.Shift</td>
+                    <td>@item.MaskSize</td>
+                }
+            </ItemContent>
+        </GXTable>
+        <ValidationMessage For="@(() => Template.ListItems)" />
+    </fieldset>
+    @if (_draft != null && _dialogContext != null)
+    {
+        <GXDialog @key="_draft" Title="@DialogTitle" Save="false" ManageFocus="true"
+                  OkButtonTitle="@(_deleting ? Properties.Resources.Remove : Properties.Resources.Save)"
+                  CancelButtonTitle="@Properties.Resources.Cancel" OnOk="ApplyDialogAsync" OnCancel="CancelDialog">
+            <CascadingValue Value="_dialogContext" IsFixed="true">
+                <ValidationSummary />
+                <fieldset disabled="@(Disabled || _deleting)">
+                    <div class="form-group">
+                        <label for="@(_dialogId + "-value")">@Properties.Resources.Value</label>
+                        <InputNumber id="@(_dialogId + "-value")" class="form-control" @bind-Value="_draft.Value"
+                                     ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
+                    </div>
+                    <div class="form-group">
+                        <label for="@(_dialogId + "-description")">@Properties.Resources.Description</label>
+                        <InputText id="@(_dialogId + "-description")" class="form-control" @bind-Value="_draft.UIValue" />
+                    </div>
+                    @if (GXAttributeEnumValues.IsBitString(Template))
+                    {
+                        <div class="form-group">
+                            <label for="@(_dialogId + "-shift")">@GXAttributeEnumValues.Text("AttributeEnumStartBit")</label>
+                            <InputNumber id="@(_dialogId + "-shift")" class="form-control" min="0" @bind-Value="_draft.Shift"
+                                         ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
+                        </div>
+                        <div class="form-group">
+                            <label for="@(_dialogId + "-width")">@GXAttributeEnumValues.Text("AttributeEnumBitCount")</label>
+                            <InputNumber id="@(_dialogId + "-width")" class="form-control" min="1" @bind-Value="_draft.MaskSize"
+                                         ParsingErrorMessage="@GXAttributeEnumValues.Text("AttributeEnumIntegerRequired")" />
+                        </div>
+                    }
+                </fieldset>
+                @if (_dialogError != null)
+                {
+                    <p role="alert" class="text-danger">@_dialogError</p>
+                }
+            </CascadingValue>
+        </GXDialog>
+    }
+
 }
 
 @code {
     /// <summary>Gets or sets the attribute whose named values and bit fields are managed.</summary>
     [Parameter, EditorRequired]
     public GXAttributeTemplate Template { get; set; } = default!;
+
+    /// <summary>Gets or sets the owning COSEM class when it is supplied by the object editor.</summary>
+    [Parameter]
+    public int? ObjectType { get; set; }
 
     /// <summary>Gets or sets whether commands may change the attribute.</summary>
     [Parameter]
@@ -145,6 +153,10 @@
     /// <summary>Contains a localized error for an invalid proposed list change.</summary>
     private string? _dialogError;
 
+    /// <summary>Gets whether named values are supported, retaining the legacy editor when ownership metadata is unavailable.</summary>
+    private bool ShowValues => (ObjectType == null && Template.ObjectTemplate?.ObjectType == null) ||
+        GXAttributeEnumValues.CanEditValues(Template, ObjectType);
+
     /// <summary>Gets the localized operation shown in the dialog title.</summary>
     private string DialogTitle => _deleting ? Properties.Resources.Remove : _editing == null ? Properties.Resources.Add : Properties.Resources.Edit;
 
@@ -171,6 +183,11 @@
         {
             _selected = null;
             CancelDialog();
+        }
+        if (!ShowValues)
+        {
+            CancelDialog();
+            _table = null;
         }
         if (_table != null)
         {

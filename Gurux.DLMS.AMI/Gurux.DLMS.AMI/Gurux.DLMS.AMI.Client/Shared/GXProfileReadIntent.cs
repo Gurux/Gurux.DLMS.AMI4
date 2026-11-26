@@ -27,15 +27,26 @@
 
 namespace Gurux.DLMS.AMI.Client.Shared;
 
+/// <summary>Persists collection options across profile task retries.</summary>
 public sealed class GXProfileReadIntent
 {
+    /// <summary>Identifies the serialized intent format.</summary>
     public const string Format = "profile-history-v1";
+    /// <summary>Gets or sets the serialized format discriminator.</summary>
     public string Kind { get; set; } = Format;
+    /// <summary>Gets or sets the inclusive collection boundary.</summary>
     public DateTimeOffset Start { get; set; }
+    /// <summary>Gets or sets the exclusive collection boundary.</summary>
     public DateTimeOffset End { get; set; }
+    /// <summary>Gets or sets whether stored coverage is reread.</summary>
     public bool Force { get; set; }
 
+    /// <summary>Gets or sets whether all available meter-buffer rows are collected.</summary>
+    public bool ReadAll { get; set; }
+
     /// <summary>Identifies input that must survive a task retry, unlike a previous result.</summary>
+    /// <param name="data">Task input or a previous task result.</param>
+    /// <returns>Whether the input contains valid retryable collection options.</returns>
     public static bool IsSerializedIntent(string? data)
     {
         if (string.IsNullOrWhiteSpace(data)) {
@@ -51,9 +62,12 @@ public sealed class GXProfileReadIntent
                 return false;
             }
             var intent = System.Text.Json.JsonSerializer.Deserialize<GXProfileReadIntent>(data);
-            return intent != null && intent.Start < intent.End && intent.End - intent.Start <= TimeSpan.FromDays(366);
+            return intent != null && intent.Start < intent.End && (intent.ReadAll || intent.End - intent.Start <= TimeSpan.FromDays(366));
         }
-        catch (System.Text.Json.JsonException) { return false; }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 }
 

@@ -1320,8 +1320,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 ("DeviceGroups", "DeviceGroups", null, null), ("Objects", "Objects", null, null), ("Attributes", "Attributes", null, null));
             await AddContentTabMenu(connection, group, GXMenus.DeviceTemplateSettingsTab,
                 ("Profiles", "Profiles", "profiles", null), ("Ciphering", "Ciphering", "ciphering", null), ("Advanced", "Advanced", "advanced", null));
-            await AddContentTabMenu(connection, group, GXMenus.ObjectTemplateDetailsTab,
-                ("Defaultvalues", "DefaultValues", "object-view", null), ("Generic", "Generic", "generic", null));
             await AddContentTabMenu(connection, group, GXMenus.ObjectDetailsTab, ("General", "GeneralInformation", null, null));
             await AddContentTabMenu(connection, group, GXMenus.ChargeDetailsTab,
                 ("General", "General", null, null), ("Unitchargeactive", "UnitChargeActive", null, null), ("Unitchargepassive", "UnitChargePassive", null, null));
@@ -1406,6 +1404,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             var menu = await AddManagementTabMenu(connection, group, GXMenus.DeviceDetailsTab);
             var labels = new System.Resources.ResourceManager("Gurux.DLMS.AMI.Client.Properties.Resources", typeof(Gurux.DLMS.AMI.Client.Pages.Device.DeviceGeneral).Assembly);
             await AddLink(connection, menu, Visibility.All, "General", labels.GetString("GeneralInformation", System.Globalization.CultureInfo.InvariantCulture)!, icon: "device", policy: GXDevicePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Device.DeviceGeneral));
+            await AddLink(connection, menu, Visibility.All, "Ciphering", labels.GetString("Ciphering", System.Globalization.CultureInfo.InvariantCulture)!, icon: "ciphering", policy: GXDevicePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.DeviceTemplate.Ciphering));
+            await AddLink(connection, menu, Visibility.All, "Advanced", labels.GetString("Advanced", System.Globalization.CultureInfo.InvariantCulture)!, icon: "device", policy: GXDevicePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Device.DeviceAdvanced));
             await AddLink(connection, menu, Visibility.All, "ProfilePicture", labels.GetString("ProfilePicture", System.Globalization.CultureInfo.InvariantCulture)!, icon: "device", policy: GXDevicePolicies.View, type: typeof(Client.Helpers.ProfilePictureEditor));
             await AddLink(connection, menu, Visibility.All, "DeviceGroups", labels.GetString("DeviceGroups", System.Globalization.CultureInfo.InvariantCulture)!, icon: "device-groups", policy: GXUserGroupPolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Device.DeviceGroupsSelector));
             await AddLink(connection, menu, Visibility.All, "Objects", labels.GetString("Objects", System.Globalization.CultureInfo.InvariantCulture)!, icon: "objects", policy: GXDevicePolicies.View, type: typeof(Gurux.DLMS.AMI.Client.Pages.Objects.Objects));

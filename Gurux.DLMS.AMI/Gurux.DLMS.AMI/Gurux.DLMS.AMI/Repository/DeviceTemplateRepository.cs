@@ -150,7 +150,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task DeleteAsync(IEnumerable<Guid> deviceTemplates,
             bool delete = true, bool notify = true, CancellationToken cancellationToken = default)
         {
-            deviceTemplates = deviceTemplates.ToArray();
+            deviceTemplates = [.. deviceTemplates];
             await GXHistoryMutation.RunDeleteAsync<GXDeviceTemplate, Guid>(_dbFactory, _user, _serviceProvider, deviceTemplates,
         async () =>
         {
@@ -532,16 +532,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        /// <remarks>New templates persist imported attribute value lists in the same transaction as their owning attributes.</remarks>
+        /// <remarks>New templates persist their objects, attributes and named values in bounded insert batches within one transaction.</remarks>
         public async Task<IEnumerable<Guid>> UpsertAsync(
             IEnumerable<GXDeviceTemplate> DeviceTemplates,
             Expression<Func<GXDeviceTemplate, object>>? columns, CancellationToken cancellationToken = default)
         {
-            DeviceTemplates = DeviceTemplates.ToArray();
+            DeviceTemplates = [.. DeviceTemplates];
             return await GXHistoryMutation.RunAsync<GXDeviceTemplate, IEnumerable<Guid>>(_dbFactory, _user, _serviceProvider, DeviceTemplates,
         async () =>
         {
-            DeviceTemplates = DeviceTemplates.ToArray();
+            DeviceTemplates = [.. DeviceTemplates];
             List<(List<string> Users, GXTarget Target)> notifications = [];
             DateTime now = DateTime.Now;
             string userId = ServerHelpers.GetUserId(_user);
@@ -612,15 +612,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
 
-                    GXInsertArgs args = GXInsertArgs.InsertRange(newTemplates);
-                    args.Exclude<GXDeviceTemplate>(e => new
+                    GXInsertBatches.Insert(connection, transaction, newTemplates, args =>
                     {
-                        e.Updated,
-                        e.Removed,
-                        e.Objects,
-                        e.DeviceTemplateGroups
-                    });
-                    connection.Insert(transaction, args);
+                        args.Exclude<GXDeviceTemplate>(e => new
+                        {
+                            e.Updated,
+                            e.Removed,
+                            e.Objects,
+                            e.DeviceTemplateGroups
+                        });
+                    }, cancellationToken);
                     //Map device templates to device template groups.
                     foreach (var dt in newTemplates)
                     {
@@ -629,29 +630,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                     //Add object templates.
                     var objects = newTemplates.SelectMany(s => s.Objects!).ToArray();
-                    args = GXInsertArgs.InsertRange(objects);
-                    args.Exclude<GXObjectTemplate>(e => new
+                    GXInsertBatches.Insert(connection, transaction, objects, args =>
                     {
-                        e.Updated,
-                        e.Removed,
-                        e.Attributes
-                    });
-                    connection.Insert(transaction, args);
+                        args.Exclude<GXObjectTemplate>(e => new
+                        {
+                            e.Updated,
+                            e.Removed,
+                            e.Attributes
+                        });
+                    }, cancellationToken);
                     //Add attribute templates.
                     var attributes = objects.SelectMany(s => s.Attributes!).ToArray();
-                    args = GXInsertArgs.InsertRange(attributes);
-                    args.Exclude<GXAttributeTemplate>(e => new
+                    GXInsertBatches.Insert(connection, transaction, attributes, args =>
                     {
-                        e.Updated,
-                        e.Removed,
-                        e.ListItems
-                    });
-                    connection.Insert(transaction, args);
+                        args.Exclude<GXAttributeTemplate>(e => new
+                        {
+                            e.Updated,
+                            e.Removed,
+                            e.ListItems
+                        });
+                    }, cancellationToken);
                     // Persist imported named values after their owning attributes have received identifiers.
                     var listItems = attributes.SelectMany(attribute => attribute.ListItems ?? []).ToArray();
                     if (listItems.Length != 0)
                     {
-                        connection.Insert(transaction, GXInsertArgs.InsertRange(listItems));
+                        GXInsertBatches.Insert(connection, transaction, listItems, cancellationToken: cancellationToken);
                     }
                     foreach (var it in newTemplates)
                     {
@@ -699,9 +702,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
                 await transaction.CommitAsync(cancellationToken);
-                foreach (var notification in notifications)
-                    {
-                    _notificationCache.Add(notification.Users, notification.Target);
+                foreach (var (users, target) in notifications)
+                {
+                    _notificationCache.Add(users, target);
                 }
             }
             catch (GXDatabaseException ex)
@@ -737,7 +740,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// Map device template to device template groups.
+        /// Adds device-template group mappings in bounded batches within the supplied transaction.
         /// </summary>
         /// <param name="connection">DB connection.</param>
         /// <param name="transaction">Transaction.</param>
@@ -745,7 +748,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the device template groups where the device template is added.</param>
         private static void AddDeviceTemplateToDeviceTemplateGroups(GXDbConnection connection, IDbTransaction transaction, Guid deviceTemplateId, IEnumerable<GXDeviceTemplateGroup> groups)
         {
-            List<(List<string> Users, GXTarget Target)> notifications = [];
             DateTime now = DateTime.Now;
             List<GXDeviceTemplateGroupDeviceTemplate> list = [];
             foreach (GXDeviceTemplateGroup it in groups)
@@ -757,7 +759,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+            GXInsertBatches.Insert(connection, transaction, list);
         }
 
         /// <summary>

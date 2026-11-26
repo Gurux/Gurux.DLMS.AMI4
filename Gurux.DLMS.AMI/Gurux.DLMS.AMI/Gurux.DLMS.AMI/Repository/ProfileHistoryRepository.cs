@@ -55,8 +55,9 @@ namespace Gurux.DLMS.AMI.Server.Repository;
 /// <param name="tasks">Queues agent tasks when requested history needs collection.</param>
 /// <param name="notifications">Receives value and attribute invalidations after a completed interval is committed.</param>
 /// <param name="workflow">Optional publisher of workflow events when the latest attribute value changes.</param>
+/// <param name="configuration">Optional daily interval budget for automatic collection.</param>
 /// <remarks>Time ranges include their start and exclude their end. Successful empty reads still record interval coverage.</remarks>
-public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttpContextAccessor accessor, ITaskRepository tasks, NotificationCache notifications, IWorkflowHandler? workflow = null)
+public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttpContextAccessor accessor, ITaskRepository tasks, NotificationCache notifications, IWorkflowHandler? workflow = null, IConfiguration? configuration = null)
 {
     internal static readonly SemaphoreSlim Gate = new(1, 1);
     private ClaimsPrincipal User => accessor.HttpContext?.User ?? throw new UnauthorizedAccessException();
@@ -163,7 +164,7 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
     {
         var complete = spans.Where(s => s.Completed).ToArray();
         DateTimeOffset fresh = refresh ? now.AddHours(-1) : DateTimeOffset.MaxValue;
-        return GXProfileIntervals.Merge(complete.Where(s => s.Start < fresh && (!refresh || s.RowCount != 0 || s.CommittedAt >= now.AddDays(-1)))
+        return GXProfileIntervals.Merge(complete.Where(s => s.Start < fresh)
             .Select(s => new GXProfileRange(s.Start, s.End < fresh ? s.End : fresh)));
     }
 
@@ -173,15 +174,24 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
 
     /// <summary>Returns paged stored rows and coverage, optionally scheduling collection of missing or forced intervals.</summary>
     /// <param name="request">Buffer attribute, time range, paging and forced reread options. Future end times are clipped to the current time.</param>
+    /// <param name="readAll">Whether all stored history and every meter-buffer row are requested.</param>
     /// <param name="read">Whether to queue a read task when the requested interval needs collection.</param>
     /// <param name="token">Token used to cancel database access and task creation.</param>
     /// <returns>Stored rows, total row count, interval coverage and any newly queued task identifiers.</returns>
     /// <exception cref="ArgumentException">The effective time range is empty, reversed or longer than 366 days.</exception>
     /// <exception cref="UnauthorizedAccessException">The caller cannot access the requested buffer attribute.</exception>
-    public async Task<GXProfileHistoryResponse> ListAsync(GXProfileHistoryRequest request, bool read, CancellationToken token)
+    public async Task<GXProfileHistoryResponse> ListAsync(GXProfileHistoryRequest request, bool read, CancellationToken token, bool readAll = false)
     {
         request.End = request.End > DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : request.End;
-        ValidateRange(request.Start, request.End);
+        if (readAll)
+        {
+            request.Start = DateTimeOffset.MinValue;
+            request.End = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            ValidateRange(request.Start, request.End);
+        }
         await using var db = await factory.GetHistoryConnectionAsync(token);
         var attribute = await AttributeAsync(db, request.AttributeId, token, true);
         var spans = await SpansAsync(db, attribute.Id, token);
@@ -190,10 +200,14 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
         var covered = Coverage(spans, DateTimeOffset.UtcNow);
         var available = current.Where(s => s.AvailableFrom != null).OrderByDescending(s => s.CommittedAt).FirstOrDefault()?.AvailableFrom;
         var unavailable = available > request.Start ? Clip([new(request.Start, available.Value)], request.Start, request.End) : [];
-        var missing = GXProfileIntervals.Missing(new(request.Start, request.End), request.Force ? [] : covered.Concat(unavailable), TimeSpan.FromDays(1));
-        var q = GXSelectArgs.SelectAll<GXValue>(v => v.Attribute == attribute && v.Read >= request.Start && v.Read < request.End);
+        var missing = readAll ? [] : GXProfileIntervals.Missing(new(request.Start, request.End), request.Force ? [] : covered.Concat(unavailable), TimeSpan.FromDays(1));
+        var q = readAll
+            ? GXSelectArgs.SelectAll<GXValue>(v => v.Attribute == attribute)
+            : GXSelectArgs.SelectAll<GXValue>(v => v.Attribute == attribute && v.Read >= request.Start && v.Read < request.End);
         q.OrderBy.Add<GXValue>(v => v.Read!);
-        var total = GXSelectArgs.Select<GXValue>(v => GXSql.Count(1), v => v.Attribute == attribute && v.Read >= request.Start && v.Read < request.End);
+        var total = readAll
+            ? GXSelectArgs.Select<GXValue>(v => GXSql.Count(1), v => v.Attribute == attribute)
+            : GXSelectArgs.Select<GXValue>(v => GXSql.Count(1), v => v.Attribute == attribute && v.Read >= request.Start && v.Read < request.End);
         long count = await db.SingleOrDefaultAsync<long>(total, token);
         q.Index = Math.Max(0, request.Index);
         q.Count = Math.Clamp(request.Count, 1, 10000);
@@ -203,32 +217,64 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
             Count = count,
             Values = rows.Select(v => new GXProfileStoredRow { Id = v.Id, CapturedAt = v.Read!.Value, Value = v.Value }).ToArray(),
             Covered = complete,
-            Missing = GXProfileIntervals.Missing(new(request.Start, request.End), complete.Concat(unavailable), TimeSpan.FromDays(1)),
+            Missing = readAll ? [] : GXProfileIntervals.Missing(new(request.Start, request.End), complete.Concat(unavailable), TimeSpan.FromDays(1)),
             Unavailable = unavailable,
             EmptyRanges = Clip(current.Where(s => s.RowCount == 0).Select(s => new GXProfileRange(s.Start, s.End)), request.Start, request.End),
-            RefreshRanges = GXProfileIntervals.Merge(Clip(complete, DateTimeOffset.UtcNow.AddHours(-1) > request.Start ? DateTimeOffset.UtcNow.AddHours(-1) : request.Start, request.End)
-                .Concat(Clip(current.Where(s => s.RowCount == 0 && s.CommittedAt < DateTimeOffset.UtcNow.AddDays(-1)).Select(s => new GXProfileRange(s.Start, s.End)), request.Start, request.End)))
+            RefreshRanges = Clip(complete, DateTimeOffset.UtcNow.AddHours(-1) > request.Start ? DateTimeOffset.UtcNow.AddHours(-1) : request.Start, request.End)
         };
-        if (read && missing.Length != 0)
+        if (read && (readAll || missing.Length != 0))
         {
             // One bounded intent; the agent obtains individual daily jobs from Begin.
             result.TaskIds = (await tasks.AddAsync([new GXTask
             {
                 Attribute = attribute, Index = 2, TaskType = TaskType.Read,
-                Data = JsonSerializer.Serialize(new GXProfileReadIntent { Start = request.Start, End = request.End, Force = request.Force })
+                Data = JsonSerializer.Serialize(new GXProfileReadIntent { Start = readAll ? DateTimeOffset.UtcNow.AddYears(-1) : request.Start, End = readAll ? DateTimeOffset.UtcNow : request.End, Force = request.Force, ReadAll = readAll })
             }], token)).ToArray();
         }
         return result;
     }
 
+    /// <summary>Atomically removes every stored value and read interval of an accessible profile buffer.</summary>
+    /// <param name="attributeId">The persisted buffer attribute whose history is cleared.</param>
+    /// <param name="token">Cancels database work before the transaction commits.</param>
+    /// <returns>A task completing after history, the latest value and coverage are cleared.</returns>
+    /// <exception cref="UnauthorizedAccessException">The current user cannot access the owning device.</exception>
+    /// <exception cref="ArgumentException">The attribute is not a Profile Generic buffer.</exception>
+    public async Task ClearAsync(Guid attributeId, CancellationToken token)
+    {
+        await Gate.WaitAsync(token);
+        try
+        {
+            await using var db = await factory.GetHistoryConnectionAsync(token);
+            await using var transaction = await db.BeginTransactionAsync(IsolationLevel.Serializable, token);
+            var attribute = await AttributeAsync(db, attributeId, token, true, transaction);
+            await GXProfileHistoryParameters.ClearAsync(db, transaction, attributeId, token);
+            await db.DeleteAsync(transaction, GXDeleteArgs.Delete<GXValue>(value => value.Attribute == attribute), token);
+            attribute.Value = null;
+            attribute.Read = null;
+            await db.UpdateAsync(transaction, GXUpdateArgs.Update(attribute, value => new { value.Value, value.Read }), token);
+            await transaction.CommitAsync(token);
+            var users = await GXRepositoryUsers.GetNotifiedUsersAsync(factory, typeof(GXAttribute), attributeId, NotificationAction.Edit, GXDevicePolicies.View);
+            notifications.Add(users, new GXTarget(GXAttributePolicies.Edit));
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
     /// <summary>Creates or reuses daily collection intervals for the caller's current profile task claim.</summary>
     /// <param name="request">Identifiers of the claimed task and its buffer attribute.</param>
     /// <param name="token">Token used to cancel claim validation and interval persistence.</param>
-    /// <returns>At most 366 intervals, each no longer than one day, excluding coverage that does not need reading.</returns>
-    /// <remarks>Explicit task intents control the range and forced reread. Without an intent, collection starts from existing history or the preceding day.</remarks>
+    /// <param name="bufferAvailableFrom">The oldest captured timestamp verified against stable meter-buffer entries.</param>
+    /// <param name="entriesInUse">The meter buffer row count verified during the same metadata read.</param>
+    /// <param name="bufferNewest">The newest captured timestamp verified in the complete collected buffer.</param>
+    /// <returns>Bounded daily intervals excluding coverage that does not need reading.</returns>
+    /// <remarks>Explicit intents retain their requested range. Automatic tasks resume from the latest successful boundary and initially collect the preceding year.</remarks>
     /// <exception cref="ArgumentException">The stored read intent or its effective time range is invalid.</exception>
     /// <exception cref="UnauthorizedAccessException">The task, attribute or current task claim does not belong to the caller.</exception>
-    public async Task<GXProfileBeginResponse> BeginAsync(GXProfileBeginRequest request, CancellationToken token)
+    public async Task<GXProfileBeginResponse> BeginAsync(GXProfileBeginRequest request, CancellationToken token,
+        DateTimeOffset? bufferAvailableFrom = null, uint? entriesInUse = null, DateTimeOffset? bufferNewest = null)
     {
         await Gate.WaitAsync(token);
         try
@@ -247,24 +293,39 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
                     throw new ArgumentException("Invalid profile read intent.");
                 }
             }
-            var start = intent?.Start ?? (spans.Count == 0 ? now.AddDays(-1) : spans.Min(s => s.Start));
-            var end = intent?.End ?? now;
-            if (end > now) {
-                end = now;
-            }
-            if (intent != null) {
-                ValidateRange(start, end);
-            }
-            else if (start >= end) {
-                return new();
-            }
             var current = spans.Where(s => s.Completed).ToArray();
-            var available = current.Where(s => s.AvailableFrom != null).OrderByDescending(s => s.CommittedAt).FirstOrDefault()?.AvailableFrom;
-            var covered = Coverage(spans, now).AsEnumerable();
-            if (available > start) {
-                covered = covered.Append(new(start, available.Value < end ? available.Value : end));
+            var available = entriesInUse.HasValue
+                ? entriesInUse > 0 && bufferAvailableFrom <= now ? bufferAvailableFrom : null
+                : intent == null ? null : current.Where(s => s.AvailableFrom != null).OrderByDescending(s => s.CommittedAt).FirstOrDefault()?.AvailableFrom;
+            IEnumerable<GXProfileRange> missing;
+            if (entriesInUse == 0)
+            {
+                missing = [];
             }
-            var missing = GXProfileIntervals.Missing(new(start, end), intent?.Force == true ? [] : covered, TimeSpan.FromDays(1)).Take(366);
+            else if (intent?.ReadAll == true)
+            {
+                var end = bufferNewest >= now
+                    ? bufferNewest.Value.AddTicks(1) : now;
+                missing = GXProfileHistoryBackfill.PlanAll(bufferAvailableFrom ?? intent.Start, end);
+            }
+            else if (intent != null)
+            {
+                var start = intent.Start;
+                var end = intent.End > now ? now : intent.End;
+                ValidateRange(start, end);
+                var covered = Coverage(spans, now).AsEnumerable();
+                if (available > start)
+                {
+                    covered = covered.Append(new(start, available.Value < end ? available.Value : end));
+                }
+                missing = GXProfileIntervals.Missing(new(start, end), intent.Force ? [] : covered, TimeSpan.FromDays(1)).Take(366);
+            }
+            else
+            {
+                missing = GXProfileHistoryBackfill.PlanAutomatic(now, attribute.Read,
+                    current.Select(span => new GXProfileRange(span.Start, span.End)), entriesInUse)
+                    .Take(Math.Clamp(configuration?.GetValue<int?>("ProfileHistory:MaxIntervalsPerRead") ?? 366, 1, 366));
+            }
             var jobs = new List<GXProfileReadInterval>();
             await using var transaction = await db.BeginTransactionAsync(token);
             foreach (var range in missing)
@@ -272,7 +333,7 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
                 var span = spans.FirstOrDefault(s => !s.Completed && s.TaskId == task.Id && s.ClaimStart == task.Start && s.Start == range.Start && s.End == range.End);
                 if (span == null)
                 {
-                    span = new GXProfileHistoryParameters.ReadInterval { Id = Guid.NewGuid(), AttributeId = request.AttributeId, ObjectId = attribute.Object!.Id, TaskId = task.Id, ClaimStart = task.Start, Start = range.Start, End = range.End };
+                    span = new GXProfileHistoryParameters.ReadInterval { Id = Guid.NewGuid(), AttributeId = request.AttributeId, ObjectId = attribute.Object!.Id, TaskId = task.Id, ClaimStart = task.Start, Start = range.Start, End = range.End, AvailableFrom = available };
                     await GXProfileHistoryParameters.SaveAsync(db, transaction, span, true, token);
                 }
                 jobs.Add(new() { IntervalId = span.Id, AttributeId = request.AttributeId, TaskId = task.Id, Start = span.Start, End = span.End });
@@ -351,7 +412,7 @@ public sealed class ProfileHistoryRepository(IDbConnectionFactory factory, IHttp
             span.RowCount = request.Rows.Length;
             span.Completed = true;
             span.CommittedAt = DateTimeOffset.UtcNow;
-            span.AvailableFrom = request.AvailableFrom;
+            span.AvailableFrom = request.AvailableFrom ?? span.AvailableFrom;
             await GXProfileHistoryParameters.SaveAsync(db, transaction, span, false, token);
             await transaction.CommitAsync(token);
             foreach (var context in events) {

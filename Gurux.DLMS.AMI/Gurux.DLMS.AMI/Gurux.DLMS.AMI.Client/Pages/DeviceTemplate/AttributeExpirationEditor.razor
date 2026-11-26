@@ -1,4 +1,4 @@
-﻿@*
+@*
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -32,21 +32,27 @@
 @using Gurux.UI.Components.Enums
 
 <div class="attribute-expiration-editor">
-    <GXInputTimeSpan @key="IsStatic" TValue="TimeSpan?" id="@InputId" class="form-control"
-                     RememberValue="false" TimeSpanUnit="TimeSpanUnit.Second"
-                     disabled="@(Disabled || IsStatic)" @bind-Value="Duration" />
-    <ValidationMessage For="@(() => Duration)" />
-    <ValidationMessage For="@(() => Template.ExpirationTime)" />
-    <div class="form-check mt-2">
+    <div class="form-check">
         <input id="@StaticId" class="form-check-input" type="checkbox"
                disabled="@Disabled" checked="@IsStatic" @onchange="ChangeStatic" />
         <label class="form-check-label" for="@StaticId">@Properties.Resources.AttributeReadOnce</label>
     </div>
+    <div class="mt-2">
+        <label for="@InputId">@Properties.Resources.ExpirationTime</label>
+        <GXInputTimeSpan @key="IsStatic" TValue="TimeSpan?" id="@InputId" class="form-control"
+                         RememberValue="false" TimeSpanUnit="TimeSpanUnit.Second"
+                         disabled="@(Disabled || IsStatic)" @bind-Value="Duration" />
+        <ValidationMessage For="@(() => Duration)" />
+        <ValidationMessage For="@(() => Template.ExpirationTime)" />
+    </div>
 </div>
 
 @code {
+    /// <summary>Identifies the duration control when the caller supplies no identifier.</summary>
     private readonly string _generatedId = $"attribute-expiration-{Guid.NewGuid():N}";
+    /// <summary>Gets the duration control identifier used by its label.</summary>
     private string InputId => Id ?? _generatedId;
+    /// <summary>Gets the read-once checkbox identifier used by its label.</summary>
     private string StaticId => InputId + "-static";
 
     /// <summary>Attribute whose cache lifetime is being edited.</summary>
@@ -61,15 +67,22 @@
     [Parameter]
     public bool Disabled { get; set; }
 
+    /// <summary>Gets or sets the enclosing form notified of expiration changes.</summary>
     [CascadingParameter]
     private EditContext? FormContext { get; set; }
 
+    /// <summary>Indicates that the duration input contains a value not yet accepted into the model.</summary>
     private bool _hasPendingDuration;
+    /// <summary>Retains the entered duration while validation prevents applying it.</summary>
     private TimeSpan? _pendingDuration;
+    /// <summary>Owns duration validation messages without clearing errors from other fields.</summary>
     private ValidationMessageStore? _durationValidation;
+    /// <summary>Retains the form receiving duration validation messages.</summary>
     private EditContext? _validationContext;
+    /// <summary>Identifies the attribute whose pending duration is tracked.</summary>
     private GXAttributeTemplate? _validationTemplate;
 
+    /// <inheritdoc />
     protected override void OnParametersSet()
     {
         if (!ReferenceEquals(_validationContext, FormContext) || !ReferenceEquals(_validationTemplate, Template))
@@ -82,20 +95,24 @@
         }
     }
 
+    /// <summary>Clears this editor's validation messages and refreshes the form validation display.</summary>
     private void ClearDurationValidation()
     {
         _durationValidation?.Clear();
         _validationContext?.NotifyValidationStateChanged();
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         ClearDurationValidation();
     }
 
+    /// <summary>Gets whether the expiration sentinel specifies that the attribute is read only once.</summary>
     private bool IsStatic => Template.ExpirationTime?.Year == DateTimeOffset.MaxValue.Year;
 
     // Only the UI uses TimeSpan. The existing DTO retains its compatible storage representation.
+    /// <summary>Gets or sets the cache duration, validating it before updating the persisted expiration.</summary>
     private TimeSpan? Duration
     {
         get => IsStatic ? null : _hasPendingDuration ? _pendingDuration : Template.ExpirationTime?.TimeOfDay;
@@ -128,6 +145,8 @@
         }
     }
 
+    /// <summary>Applies or clears the read-once expiration sentinel.</summary>
+    /// <param name="args">The checkbox's checked state.</param>
     private void ChangeStatic(ChangeEventArgs args)
     {
         if (!Disabled)
@@ -138,6 +157,8 @@
         }
     }
 
+    /// <summary>Updates the expiration and marks its enclosing form field modified.</summary>
+    /// <param name="value">The new duration representation, read-once sentinel, or null for no cache lifetime.</param>
     private void SetExpiration(DateTimeOffset? value)
     {
         if (Template.ExpirationTime != value)

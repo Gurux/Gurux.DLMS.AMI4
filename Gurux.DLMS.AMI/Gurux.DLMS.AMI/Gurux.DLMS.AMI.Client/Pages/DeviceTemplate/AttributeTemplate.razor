@@ -1,4 +1,4 @@
-﻿@*
+@*
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -90,7 +90,6 @@
                                @bind-Value="Active.Unit" />
                 </div>
                 <div class="form-group">
-                    <label for="attribute-expiration">@Properties.Resources.ExpirationTime</label>
                     <AttributeExpirationEditor Id="attribute-expiration" Template="@Active" Disabled="@(IsDeleting != null)" />
                 </div>
                 <AttributeEnumEditor @key="Active" Template="@Active" Disabled="@(IsDeleting != null)" />

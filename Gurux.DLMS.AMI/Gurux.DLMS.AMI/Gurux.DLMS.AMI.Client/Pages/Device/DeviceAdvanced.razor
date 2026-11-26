@@ -1,0 +1,61 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.Enums
+@using DeviceEditor = Gurux.DLMS.AMI.Client.Pages.Device.Device
+
+@* <summary>Displays the active device's saved advanced DLMS communication settings.</summary> *@
+@if (Editor?.Settings is { } settings)
+{
+    <table class="table table-striped device-advanced">
+        <tbody>
+            <tr><th>@Properties.Resources.Priority</th><td>@((Priority)settings.Priority)</td></tr>
+            <tr><th>@Text("DeviceServiceClass")</th><td>@((ServiceClass)settings.ServiceClass)</td></tr>
+            <tr><th>@Text("DeviceUseUtcTimeZone")</th><td><input type="checkbox" checked="@settings.UtcTimeZone" disabled aria-label="@Text("DeviceUseUtcTimeZone")" /></td></tr>
+            <tr><th>@Text("DeviceIgnoreTimeZone")</th><td><input type="checkbox" checked="@(((DateTimeSkips)settings.DateTimeSkips & DateTimeSkips.Deviation) != 0)" disabled aria-label="@Text("DeviceIgnoreTimeZone")" /></td></tr>
+            <tr><th>@Text("DeviceIgnoreTimeStatus")</th><td><input type="checkbox" checked="@(((DateTimeSkips)settings.DateTimeSkips & DateTimeSkips.Status) != 0)" disabled aria-label="@Text("DeviceIgnoreTimeStatus")" /></td></tr>
+            <tr><th>@Text("DeviceMaxPduSize")</th><td>@settings.PduSize</td></tr>
+            <tr><th>@Text("DeviceGbtWindowSize")</th><td>@(new Gurux.DLMS.GXDLMSClient().GbtWindowSize)</td></tr>
+            <tr><th>@Text("DeviceUserId")</th><td>@settings.UserId</td></tr>
+        </tbody>
+    </table>
+}
+
+@code {
+    /// <summary>Gets or sets the device editor that owns the displayed settings.</summary>
+    [CascadingParameter]
+    public DeviceEditor? Editor { get; set; }
+
+    /// <summary>Returns a localized label for an advanced communication setting.</summary>
+    /// <param name="key">The existing Properties resource key.</param>
+    /// <returns>The label in the current user interface culture.</returns>
+    private static string Text(string key)
+    {
+        return Properties.Resources.ResourceManager.GetString(key, System.Globalization.CultureInfo.CurrentUICulture)!;
+    }
+}

@@ -47,13 +47,18 @@ internal static class GXCatalogCompatibility
         return options;
     }
 
-    /// <summary>Reads assembly versions available from the runtime and application directory.</summary>
-    /// <returns>Available assembly versions indexed by DLL basename.</returns>
+    /// <summary>Reads effective host assembly versions, preferring runtime-selected paths over application-directory fallbacks.</summary>
+    /// <returns>One effective assembly version per DLL basename.</returns>
+    /// <remarks>Shadowed application copies are excluded before the updater validates assembly versions.</remarks>
     internal static IReadOnlyDictionary<string, Version> HostAssemblies()
     {
         var paths = ((AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator) ?? [])
             .Concat(Directory.EnumerateFiles(AppContext.BaseDirectory, "*.dll"));
-        return GXModuleCompatibility.ReadAssemblyVersions(paths.Distinct(StringComparer.OrdinalIgnoreCase));
+        // Runtime-selected paths precede application-directory fallbacks. A stale
+        // shadowed DLL must not compete with the assembly selected by the host.
+        return GXModuleCompatibility.ReadAssemblyVersions(paths
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase));
     }
 
     /// <summary>Checks release metadata, accepting compatible host contracts and available Microsoft dependencies.</summary>

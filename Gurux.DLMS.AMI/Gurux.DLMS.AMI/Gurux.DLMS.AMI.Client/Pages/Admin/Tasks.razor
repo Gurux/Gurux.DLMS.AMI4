@@ -153,6 +153,19 @@
         new("Result") { Position = 6, Description = "Result", Visibility = (byte)Visibility.Large },
     ];
 
+    /// <summary>Combines overlapping task notifications into serialized refresh passes.</summary>
+    private GXUpdateRefreshCoordinator? _taskRefresh;
+    /// <summary>Cancels targeted task reads when the page is disposed.</summary>
+    private readonly CancellationTokenSource _notificationCancellation = new();
+    /// <summary>Identifies the current provider load so an older targeted read cannot overwrite a newer page.</summary>
+    private long _loadGeneration;
+    /// <summary>Identifies provider requests whose snapshots must be restarted when a task changes.</summary>
+    private bool _providerLoading;
+    /// <summary>Retains the user visibility scope selected by the current provider request.</summary>
+    private bool _showAllUserData;
+    /// <summary>Prevents queued notification callbacks from updating a disposed page.</summary>
+    private bool _disposed;
+
     /// <summary>Subscribes to connection and application-state notifications used by this view.</summary>
     private IGXNotifier2? _notifier;
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
@@ -172,6 +185,7 @@
     [Parameter]
     public Guid? Id { get; set; }
 
+    /// <summary>Gets or sets the selected task without replacing its identity during runtime updates.</summary>
     private GXTask? Active { get; set; }
 
     /// <inheritdoc />
@@ -253,6 +267,9 @@
     }
 
 
+    /// <summary>Formats a task operation using the current localized operation labels.</summary>
+    /// <param name="type">The task operation, if known.</param>
+    /// <returns>The localized operation label or an empty string for an unspecified operation.</returns>
     private static string TaskTypeToString(TaskType? type)
     {
         string? str;
@@ -288,7 +305,7 @@
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXTask>? table;
+    protected GXViewTable<GXTask>? table;
 
     /// <summary>
     /// Update table.
@@ -309,6 +326,7 @@
         }
     }
 
+    /// <inheritdoc/>
     protected override void OnInitialized()
     {
         _notifier = Services.GetService<IGXNotifier2>();
@@ -323,23 +341,16 @@
         {
             using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingTasks);
             _notificationService?.RemoveByKey("Pages/Admin/Tasks.OnInitialized");
-            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
+            IReadOnlyList<GXTarget> pendingUpdates = [];
+            _taskRefresh = new GXUpdateRefreshCoordinator(items =>
             {
-                foreach (var it in items)
-                {
-                    if (it.Type == GXTaskPolicies.Add ||
-                        it.Type == GXTaskPolicies.Delete ||
-                        it.Type == GXTaskPolicies.Clear)
-                    {
-                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
-                        break;
-                    }
-                    if (it.Type == GXTaskPolicies.Edit)
-                    {
-                        _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
-                        break;
-                    }
-                }
+                pendingUpdates = items;
+                return true;
+            }, () => InvokeAsync(() => RefreshTasksAsync(pendingUpdates)));
+            _notifier.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            {
+                _ = _taskRefresh.RequestAsync(items.Where(item => item.Type == GXTaskPolicies.Add ||
+                    item.Type == GXTaskPolicies.Edit || item.Type == GXTaskPolicies.Delete || item.Type == GXTaskPolicies.Clear));
             });
             if (Id != null)
             {
@@ -357,8 +368,100 @@
         }
     }
 
+    /// <summary>Updates visible runtime fields in place, reloading the page when membership or order may change.</summary>
+    /// <param name="updates">Task notifications combined by the page's refresh coordinator.</param>
+    /// <returns>The completion of the affected-row read or full provider refresh.</returns>
+    private async Task RefreshTasksAsync(IReadOnlyList<GXTarget> updates)
+    {
+        if (_disposed || table == null)
+        {
+            return;
+        }
+        try
+        {
+            if (updates.Any(update => update.Type != GXTaskPolicies.Edit || update.Source?.StartsWith("task.runtime:", StringComparison.Ordinal) != true ||
+                !Guid.TryParse(update.Id, out _)) || _providerLoading || RuntimeChangesAffectQuery(updates))
+            {
+                await Updated();
+                return;
+            }
+            var ids = updates.Select(update => Guid.Parse(update.Id!)).ToHashSet();
+            var rows = table.Items?.Where(row => ids.Contains(row.Id)).ToArray() ?? [];
+            if (rows.Length == 0)
+            {
+                return;
+            }
+            long generation = _loadGeneration;
+            var response = await Http.PostAsJson<ListTasksResponse>("api/Task/List", new ListTasks
+            {
+                Included = rows.Select(row => row.Id).ToArray(),
+                Count = rows.Length,
+                Filter = _filter,
+                AllUsers = _showAllUserData
+            }, _notificationCancellation.Token);
+            if (_disposed || generation != _loadGeneration)
+            {
+                return;
+            }
+            var tasks = response.Tasks?.ToDictionary(task => task.Id);
+            if (tasks == null || rows.Any(row => !tasks.ContainsKey(row.Id)))
+            {
+                await Updated();
+                return;
+            }
+            foreach (var row in rows)
+            {
+                var task = tasks[row.Id];
+                row.Start = task.Start;
+                row.Ready = task.Ready;
+                row.Error = task.Error;
+                row.Result = task.Result;
+                row.Data = task.Data;
+                row.OperatingAgent = task.OperatingAgent;
+                row.Updated = task.Updated;
+            }
+            _notificationService?.RemoveByKey("Pages/Admin/Tasks.RuntimeUpdate");
+            await table.RefreshRowsAsync();
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+            // The page no longer owns any visible rows.
+        }
+        catch (Exception ex)
+        {
+            _notificationService?.ReportError(ex, "Pages/Admin/Tasks.RuntimeUpdate");
+        }
+    }
+
+    /// <summary>Checks whether the reported runtime columns can change result membership or ordering.</summary>
+    /// <param name="updates">Notifications whose sources identify the changed runtime columns.</param>
+    /// <returns>True when a changed column is filtered or determines the displayed ordering.</returns>
+    private bool RuntimeChangesAffectQuery(IEnumerable<GXTarget> updates)
+    {
+        foreach (var column in updates.SelectMany(update => update.Source!["task.runtime:".Length..].Split(',')).Distinct())
+        {
+            if (column is not (nameof(GXTask.Start) or nameof(GXTask.Ready) or nameof(GXTask.Error) or
+                nameof(GXTask.Result) or nameof(GXTask.Data) or nameof(GXTask.OperatingAgent) or nameof(GXTask.Updated)))
+            {
+                return true;
+            }
+            var filterValue = typeof(GXTask).GetProperty(column)!.GetValue(_filter);
+            if ((filterValue != null && filterValue is not "") || (table?.SortMode != SortMode.None && table?.OrderBy == column))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Loads a task page using the current filters, ordering, and user visibility.</summary>
+    /// <param name="request">The provider's paging, ordering, and cancellation settings.</param>
+    /// <returns>The matching tasks and the total count reported by the server.</returns>
     private async ValueTask<ItemsProviderResult<GXTask>> GetItems(GXItemsProviderRequest request)
     {
+        long generation = ++_loadGeneration;
+        _providerLoading = true;
+        _showAllUserData = request.ShowAllUserData;
         //Don't clear status or error is lost.
         using var progressScope2 = _progress?.ProgressStart(GXProgress.RetrievingTasks);
         try
@@ -380,7 +483,7 @@
             if (ret.Tasks != null)
             {
                 //Mark tasks as seen.
-                if (_notifier != null)
+                if (_notifier != null && ret.Tasks.Any())
                 {
                     await _notifier.Mark(Http, TargetType.Task, ret.Tasks.Max(s => s.CreationTime));
                 }
@@ -396,6 +499,13 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+        }
+        finally
+        {
+            if (generation == _loadGeneration)
+            {
+                _providerLoading = false;
+            }
         }
         return default;
     }
@@ -497,8 +607,17 @@
         }
     }
 
+    /// <summary>Stops notification refreshes and cancels outstanding row reads before releasing the view.</summary>
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        _taskRefresh?.Dispose();
+        _notificationCancellation.Cancel();
+        _notificationCancellation.Dispose();
         if (table != null)
         {
             GXNotificationRefresh.Remove(table);

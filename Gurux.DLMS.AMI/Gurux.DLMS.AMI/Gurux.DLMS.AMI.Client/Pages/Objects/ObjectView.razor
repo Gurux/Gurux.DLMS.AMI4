@@ -52,6 +52,10 @@
 @if (_cosem != null && Active != null)
 {
     var objectHelp = GXDLMSObjectHelpCatalog.GetRequest(_cosem.Target);
+    RenderFragment profileTabs = @<GXTabControl @key="_cosemModel" NavigateOnSelection="false" InitialTab="@(_showStoredHistory ? 1 : 0)" SelectionChanged="OnProfileTabChanged">
+        <GXTabPage Text="@Properties.Resources.Data" />
+        <GXTabPage Text="@Properties.Resources.StoredHistory" />
+    </GXTabControl>;
     <CascadingValue TValue="string" Name="@GXHelpContext.ScopeName" Value="@((string)null!)" IsFixed="true">
         <GXHelpContext Topic="@objectHelp.Topic" Version="@objectHelp.Version" Culture="@System.Globalization.CultureInfo.CurrentUICulture.Name" />
     </CascadingValue>
@@ -72,7 +76,15 @@
                     <h2>@selectedTemplate.Index — @selectedTemplate.Name</h2>
                     @if (_cosem.Target is GXDLMSProfileGeneric && selectedTemplate.Index == 2 && Template == null)
                     {
-                        <GXProfileBufferHistory @ref="_history" AttributeId="@(CanLoadProfileHistory ? SelectedAttribute.Id : Guid.Empty)" CanRead="@CanReadSelected" />
+                        <GXProfileReadingRange @bind-Start="_profileRangeStart" @bind-End="_profileRangeEnd" Disabled="@_sending" />
+                        @profileTabs
+                        <div hidden="@_showStoredHistory">
+                            <GXAttributeField Edit="@GXDLMSObjectEditState.For(_cosem.Target)" Index="2" Label="@selectedTemplate.Name" Enabled="false" />
+                        </div>
+                        <div hidden="@(!_showStoredHistory)">
+                            <GXProfileBufferHistory @ref="_history" DeviceId="@(Device?.Id ?? Active.Device?.Id ?? Guid.Empty)" BufferDecoded="OnProfileBufferDecoded" Profile="@(_cosem.Target as GXDLMSProfileGeneric)" AttributeId="@(CanLoadProfileHistory ? SelectedAttribute.Id : Guid.Empty)" CanRead="@CanReadProfileBuffer"
+                                                  ShowRangeControls="false" RangeStart="_profileRangeStart" RangeEnd="_profileRangeEnd" />
+                        </div>
                     }
                     else
                     {
@@ -84,7 +96,7 @@
             }
             else
             {
-                <GXClockObjectTabs Target="@_cosem.Target"
+                <GXClockObjectTabs Target="@_cosem.Target" Association="@_cosem.Association"
                                   ReadsEnabled="@(Template == null && !_sending && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))"
                                   OnReadRequested="OnAttributeReadRequested"
                                   WritesEnabled="@(Template == null && !_sending && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))">
@@ -92,14 +104,22 @@
                         <ModuleViews Area="AmiViewArea.Object" Display="AmiViewDisplay.Replace" Target="Active" Parameters="ViewParameters">
                             @if (_cosem.Target is GXDLMSProfileGeneric && Template == null)
                             {
-                                <GXProfileBufferHistory @ref="_history" AttributeId="@(CanLoadProfileHistory ? BufferAttribute!.Id : Guid.Empty)" CanRead="@(Template == null && !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))" />
+                                @profileTabs
                             }
-                            <div class="@(_cosem.Target is GXDLMSProfileGeneric ? "cosem-profile-settings" : null)">
-                            <GXDLMSObjectView Target="@_cosem.Target" Client="@_cosem.Client"
+                            <div hidden="@(_cosem.Target is GXDLMSProfileGeneric && Template == null && _showStoredHistory)" class="@(_cosem.Target is GXDLMSProfileGeneric ? "cosem-profile-settings" : null)">
+                            <GXDLMSObjectView Target="@_cosem.Target" Client="@_cosem.Client" Association="@_cosem.Association"
+                                              ProfileRangeOnly="@(Template == null)" @bind-ProfileRangeStart="_profileRangeStart" @bind-ProfileRangeEnd="_profileRangeEnd"
                                               ReadOnly="@(Template != null || string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))"
                                               ActionsEnabled="@(Template == null && !_sending)" ImmediateWriteEnabled="@(Template == null && !_sending)"
                                               OnChanged="OnCosemChanged" OnActionRequested="OnActionRequested" OnWriteRequested="OnWriteRequested" />
                             </div>
+                            @if (_cosem.Target is GXDLMSProfileGeneric && Template == null)
+                            {
+                                <div hidden="@(!_showStoredHistory)">
+                                    <GXProfileBufferHistory @ref="_history" DeviceId="@(Device?.Id ?? Active.Device?.Id ?? Guid.Empty)" BufferDecoded="OnProfileBufferDecoded" Profile="@(_cosem.Target as GXDLMSProfileGeneric)" AttributeId="@(CanLoadProfileHistory ? BufferAttribute!.Id : Guid.Empty)" CanRead="@CanReadProfileBuffer"
+                                                          ShowRangeControls="false" RangeStart="_profileRangeStart" RangeEnd="_profileRangeEnd" />
+                                </div>
+                            }
                         </ModuleViews>
                     </Data>
                 </GXClockObjectTabs>
@@ -133,11 +153,17 @@
         .Where(attribute => !string.IsNullOrWhiteSpace(attribute.Exception) &&
             (SelectedAttributeId == null || ReferenceEquals(attribute, SelectedAttribute)));
     private GXAttribute? SelectedAttribute => Active?.Attributes?.FirstOrDefault(a => a.Id == SelectedAttributeId || a.Template?.Id == SelectedAttributeId);
+    /// <summary>Gets whether the selected attribute can be read under the persisted association rights.</summary>
     private bool CanReadSelected => !_sending && Template == null && SelectedAttribute?.Template is { } template &&
-        (_cosem?.Target.GetAccess(template.Index) is AccessMode.Read or AccessMode.ReadWrite or AccessMode.AuthenticatedRead or AccessMode.AuthenticatedReadWrite);
+        (_cosem != null && GXDLMSObjectAccess.CanRead(_cosem.Target, template.Index, _cosem.Association));
+    /// <summary>Gets whether the current object state and buffer access rights permit collecting profile rows.</summary>
+    private bool CanReadProfileBuffer => !_sending && Template == null &&
+        !string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase) &&
+        (_cosem != null && GXDLMSObjectAccess.CanRead(_cosem.Target, 2, _cosem.Association));
+    /// <summary>Gets whether the selected attribute can be written under the persisted association rights.</summary>
     private bool CanWriteSelected => !_sending && Template == null && SelectedAttribute?.Template is { } template &&
         !(_cosem?.Target is GXDLMSProfileGeneric && template.Index == 2) &&
-        (_cosem?.Target.GetAccess(template.Index) is AccessMode.Write or AccessMode.ReadWrite or AccessMode.AuthenticatedWrite or AccessMode.AuthenticatedReadWrite);
+        (_cosem != null && GXDLMSObjectAccess.CanWrite(_cosem.Target, template.Index, _cosem.Association));
     /// <summary>Tracks pending COSEM attribute values and validation errors shared by the object editors.</summary>
     private GXDLMSObjectEditState? _attributeEdit;
     public GXDLMSObject? CosemObject => _cosem?.Target;
@@ -151,6 +177,30 @@
     private GXObject? _cosemModel;
     /// <summary>Provides access to the profile-history component so completed reads can refresh it.</summary>
     private GXProfileBufferHistory? _history;
+    /// <summary>Updates the live buffer view with library-decoded rows while preserving the stored wire XML.</summary>
+    /// <param name="profile">The isolated profile containing parsed rows and captured register metadata.</param>
+    private void OnProfileBufferDecoded(GXDLMSProfileGeneric profile)
+    {
+        if (_cosem?.Target is GXDLMSProfileGeneric target)
+        {
+            target.Buffer.Clear();
+            target.Buffer.AddRange(profile.Buffer);
+        }
+    }
+
+    /// <summary>Tracks whether the profile history tab is visible while retaining both tab contents and their read state.</summary>
+    private bool _showStoredHistory;
+    /// <summary>Selects the visible profile panel without disposing its shared interval or history reader.</summary>
+    /// <param name="page">The profile data or stored-history tab selected by the user.</param>
+    private void OnProfileTabChanged(GXTabPage page)
+    {
+        _showStoredHistory = page.Text == Properties.Resources.StoredHistory;
+    }
+
+    /// <summary>Stores the shared local interval start used by profile reading and stored history.</summary>
+    private DateTime? _profileRangeStart = DateTime.Today;
+    /// <summary>Stores the shared local interval end used by profile reading and stored history.</summary>
+    private DateTime? _profileRangeEnd = DateTime.Today.AddDays(1);
     /// <summary>Owns the page's command registration and releases it when the page is disposed.</summary>
     private GXPageMenu? _pageMenu;
     /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
@@ -227,6 +277,9 @@
         if (Active?.Template?.ObjectType != null && !ReferenceEquals(_cosemModel, Active))
         {
             _cosemModel = Active;
+            _showStoredHistory = false;
+            _profileRangeStart = DateTime.Today;
+            _profileRangeEnd = DateTime.Today.AddDays(1);
             if (_attributeEdit != null)
             {
                 _attributeEdit.Changed -= SelectedAttributeChanged;
@@ -268,6 +321,9 @@
         }
     }
 
+    /// <summary>Reads permitted non-static attributes using the visible profile interval for the selected object; explicit attribute reads may include static values and capture objects.</summary>
+    /// <param name="showInfo">Whether normal read-task creation displays a confirmation.</param>
+    /// <returns>The completion of profile collection and normal read-task creation.</returns>
     public async Task OnRead(bool showInfo = true)
     {
         if (_cosem == null) {
@@ -277,9 +333,10 @@
         {
         var indexes = (Active?.Attributes ?? []).Where(attribute => attribute.Template != null &&
             (SelectedAttributeId == null || attribute.Template.Index == SelectedAttribute?.Template?.Index) &&
-            (AccessMode)attribute.Template.AccessLevel is AccessMode.Read or AccessMode.ReadWrite or AccessMode.AuthenticatedRead or AccessMode.AuthenticatedReadWrite)
+            (SelectedAttributeId != null || _cosem.Target is not GXDLMSProfileGeneric || attribute.Template.Index != 3) &&
+            GXDLMSObjectAccess.CanRead(_cosem.Target, attribute.Template.Index, _cosem.Association))
             .Select(attribute => (int)attribute.Template!.Index);
-        await GenerateTasksAsync(_cosem.Read(indexes), showInfo ? Properties.Resources.ReadTasksAdded : null);
+        await ReadAttributesAsync(indexes, showInfo);
         }
         catch (Exception error) { _notificationService?.ReportError(error, "Pages/Objects/ObjectView"); }
     }
@@ -313,13 +370,40 @@
         await GenerateTasksAsync(_cosem.Action(request), Properties.Resources.ActionTasksAdded);
     }
 
+    /// <summary>Handles permitted attribute reads requested by the shared object tabs.</summary>
+    /// <param name="indexes">The requested one-based attribute indexes.</param>
+    /// <returns>The completion of interval-aware profile and normal attribute reads.</returns>
     private Task OnAttributeReadRequested(int[] indexes)
     {
         if (_cosem == null || Template != null || _sending || string.Equals(Action, "Delete", StringComparison.OrdinalIgnoreCase))
         {
             return Task.CompletedTask;
         }
-        return GenerateTasksAsync(_cosem.Read(indexes), Properties.Resources.ReadTasksAdded);
+        return ReadAttributesAsync(indexes, true);
+    }
+
+    /// <summary>Omits static attributes from object reads and queues automatic collection or explicitly requested profile intervals.</summary>
+    /// <param name="indexes">The requested one-based attribute indexes.</param>
+    /// <param name="showInfo">Whether normal attribute task creation displays a confirmation.</param>
+    /// <returns>The completion of profile collection and other attribute task creation.</returns>
+    private async Task ReadAttributesAsync(IEnumerable<int> indexes, bool showInfo)
+    {
+        if (_cosem == null)
+        {
+            return;
+        }
+        var requested = indexes.Distinct().Where(index => SelectedAttributeId != null ||
+            Active?.Attributes?.FirstOrDefault(attribute => attribute.Template?.Index == index)?.Template?.ExpirationTime?.Year != DateTimeOffset.MaxValue.Year).ToArray();
+        if (_cosem.Target is GXDLMSProfileGeneric && Template == null &&
+            _history != null && _history.AttributeId != Guid.Empty && requested.Contains(2))
+        {
+            await _history.ReadAsync();
+            requested = requested.Where(index => index != 2).ToArray();
+        }
+        if (requested.Length != 0)
+        {
+            await GenerateTasksAsync(_cosem.Read(requested), showInfo ? Properties.Resources.ReadTasksAdded : null);
+        }
     }
 
     private Task OnWriteRequested(GXDLMSWriteRequest request)

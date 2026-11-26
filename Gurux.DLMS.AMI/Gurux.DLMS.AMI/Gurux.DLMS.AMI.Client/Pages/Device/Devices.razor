@@ -172,6 +172,19 @@
     private GXPageMenu? _pageMenu;
     private GXPageMenu MenuService => _pageMenu ??= new GXPageMenu(SharedMenuService);
 
+    /// <summary>Combines overlapping device notifications into serialized refresh passes.</summary>
+    private GXUpdateRefreshCoordinator? _deviceRefresh;
+    /// <summary>Cancels targeted device reads when the page is disposed.</summary>
+    private readonly CancellationTokenSource _notificationCancellation = new();
+    /// <summary>Identifies the current provider load so an older targeted read cannot overwrite a newer page.</summary>
+    private long _loadGeneration;
+    /// <summary>Identifies provider requests whose snapshots must be restarted when a device changes.</summary>
+    private bool _providerLoading;
+    /// <summary>Retains the user visibility scope selected by the current provider request.</summary>
+    private bool _showAllUserData;
+    /// <summary>Prevents queued notification callbacks from updating a disposed page.</summary>
+    private bool _disposed;
+
     /// <summary>Subscribes to server notifications that refresh the displayed data.</summary>
     private IGXNotifier? _notifier;
     /// <summary>Creates progress scopes that keep the page's commands synchronized with asynchronous operations.</summary>
@@ -291,6 +304,7 @@
         }
     }
 
+    /// <inheritdoc/>
     protected override async Task OnInitializedAsync()
     {
         _notifier = Services.GetService<IGXNotifier>();
@@ -303,43 +317,25 @@
 
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
         await Task.Delay(1);
+        if (_disposed)
+        {
+            return;
+        }
         try
         {
             _notificationService?.RemoveByKey("Pages/Device/Devices.OnInitializedAsync");
-            _notifier?.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), (items) =>
- {
-     foreach (var it in items)
-     {
-         if (it.Type == GXDevicePolicies.Add ||
-             it.Type == GXDevicePolicies.Edit ||
-             it.Type == GXDevicePolicies.Delete)
-         {
-             _ = GXNotificationRefresh.RefreshAsync(table, items, Updated);
-             break;
-         }
-     }
- });
+            IReadOnlyList<GXTarget> pendingUpdates = [];
+            _deviceRefresh = new GXUpdateRefreshCoordinator(items =>
+            {
+                pendingUpdates = items;
+                return true;
+            }, () => InvokeAsync(() => RefreshDevicesAsync(pendingUpdates)));
+            _notifier.On<IEnumerable<GXTarget>>(this, nameof(IGXHubEvents.OnUpdate), items =>
+            {
+                _ = _deviceRefresh.RequestAsync(items.Where(item =>
+                    item.Type == GXDevicePolicies.Add || item.Type == GXDevicePolicies.Edit || item.Type == GXDevicePolicies.Delete));
+            });
 
-            /*Miko
-                       Notifier?.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceStatusChange), (devices) =>
-                       {
-                           bool updated = false;
-                           foreach (var it in devices)
-                           {
-                               var dev = table?.Items?.Where(w => w.Id == it.Id).SingleOrDefault();
-                               if (dev != null)
-                               {
-                                   dev.Detected = it.Detected;
-                                   dev.Status = it.Status;
-                                   updated = true;
-                               }
-                           }
-                           if (updated)
-                           {
-                               InvokeAsync(StateHasChanged);
-                           }
-                       });
-                       */
             if (Header)
             {
                 MenuService.Clear();
@@ -366,8 +362,104 @@
         }
     }
 
+    /// <summary>Updates visible runtime fields in place, reloading the page when membership or order may change.</summary>
+    /// <param name="updates">Device notifications combined by the page's refresh coordinator.</param>
+    /// <returns>The completion of the affected-row read or full provider refresh.</returns>
+    private async Task RefreshDevicesAsync(IReadOnlyList<GXTarget> updates)
+    {
+        if (_disposed || table == null)
+        {
+            return;
+        }
+        try
+        {
+            if (updates.Any(update => update.Type != GXDevicePolicies.Edit || update.Source?.StartsWith("device.runtime:", StringComparison.Ordinal) != true ||
+                !Guid.TryParse(update.Id, out _)) || _providerLoading || RuntimeChangesAffectQuery(updates))
+            {
+                await Updated();
+                return;
+            }
+            var ids = updates.Select(update => Guid.Parse(update.Id!)).ToHashSet();
+            var rows = table.Items?.Where(row => ids.Contains(row.Id)).ToArray() ?? [];
+            if (rows.Length == 0)
+            {
+                return;
+            }
+            long generation = _loadGeneration;
+            var response = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", new ListDevices
+            {
+                Included = rows.Select(row => row.Id).ToArray(),
+                Count = rows.Length,
+                Filter = _filter,
+                AllUsers = _showAllUserData
+            }, _notificationCancellation.Token);
+            if (_disposed || generation != _loadGeneration)
+            {
+                return;
+            }
+            var devices = response.Devices?.ToDictionary(device => device.Id);
+            if (devices == null || rows.Any(row => !devices.ContainsKey(row.Id)))
+            {
+                await Updated();
+                return;
+            }
+            foreach (var row in rows)
+            {
+                var device = devices[row.Id];
+                row.Status = device.Status;
+                row.Detected = device.Detected;
+                row.ConnectionInfo = device.ConnectionInfo;
+                row.LastRead = device.LastRead;
+                row.LastWrite = device.LastWrite;
+                row.LastAction = device.LastAction;
+                row.LastError = device.LastError;
+                row.LastErrorMessage = device.LastErrorMessage;
+                row.Updated = device.Updated;
+                row.ConcurrencyStamp = device.ConcurrencyStamp;
+            }
+            _notificationService?.RemoveByKey("Pages/Device/Devices.RuntimeUpdate");
+            StateHasChanged();
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+            // The page no longer owns any visible rows.
+        }
+        catch (Exception ex)
+        {
+            _notificationService?.ReportError(ex, "Pages/Device/Devices.RuntimeUpdate");
+        }
+    }
+
+    /// <summary>Checks whether the reported runtime columns can change result membership or ordering.</summary>
+    /// <param name="updates">Notifications whose sources identify the changed runtime columns.</param>
+    /// <returns>True when a changed column is filtered or determines the displayed ordering.</returns>
+    private bool RuntimeChangesAffectQuery(IEnumerable<GXTarget> updates)
+    {
+        foreach (var column in updates.SelectMany(update => update.Source!["device.runtime:".Length..].Split(',')).Distinct())
+        {
+            if (column is not (nameof(GXDevice.Detected) or nameof(GXDevice.Status) or nameof(GXDevice.ConnectionInfo) or
+                nameof(GXDevice.LastRead) or nameof(GXDevice.LastWrite) or nameof(GXDevice.LastAction) or
+                nameof(GXDevice.LastError) or nameof(GXDevice.LastErrorMessage) or nameof(GXDevice.Updated)))
+            {
+                return true;
+            }
+            var filterValue = typeof(GXDevice).GetProperty(column)!.GetValue(_filter);
+            if ((filterValue != null && filterValue is not "") || (table?.SortMode != SortMode.None && table?.OrderBy == column))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Loads a device page using the current filters, sorting, and visibility settings.</summary>
+    /// <param name="request">The provider's paging, ordering, and cancellation settings.</param>
+    /// <returns>The requested device summaries and total matching count.</returns>
     private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
     {
+        long generation = ++_loadGeneration;
+        _providerLoading = true;
+        _showAllUserData = request.ShowAllUserData;
         //Don't clear status or error is lost.
         using var progressScope1 = _progress?.ProgressStart(GXProgress.RetrievingDevices);
         try
@@ -408,6 +500,13 @@
         catch (Exception ex)
         {
             _notificationService?.ReportError(ex);
+        }
+        finally
+        {
+            if (generation == _loadGeneration)
+            {
+                _providerLoading = false;
+            }
         }
         return default;
     }
@@ -603,8 +702,13 @@
         }
     }
 
+    /// <summary>Stops notifications and cancels outstanding reads before releasing page services.</summary>
     public void Dispose()
     {
+        _disposed = true;
+        _deviceRefresh?.Dispose();
+        _notificationCancellation.Cancel();
+        _notificationCancellation.Dispose();
         MenuService.Dispose();
         if (table != null)
         {

@@ -1,4 +1,4 @@
-﻿@*
+@*
 // --------------------------------------------------------------------------
 // Gurux Ltd
 //
@@ -83,6 +83,17 @@
             </tr>
             <tr>
                 <th>
+                    <label for="standard">@Properties.Resources.ResourceManager.GetString("Standard", System.Globalization.CultureInfo.CurrentUICulture)</label>
+                </th>
+                <th>
+                    <GXInputDropdown RememberValue="false" id="standard" disabled="@IsDeleting"
+                                     @bind-Value="SelectedStandard"
+                                     Items="@(Enum.GetValues<Gurux.DLMS.Enums.Standard>().Select(value => (byte)value))"
+                                     Formatter="@((byte value) => ((Gurux.DLMS.Enums.Standard)value).ToString())" />
+                </th>
+            </tr>
+            <tr>
+                <th>
                     @Gurux.DLMS.AMI.Client.Properties.Resources.WaitTime
                 </th>
                 <th>
@@ -144,6 +155,21 @@
     </EditForm>
 }
 @code {
+    /// <summary>Gets or sets the saved DLMS standard and marks the template settings modified after a permitted change.</summary>
+    private byte SelectedStandard
+    {
+        get => Settings.Standard;
+        set
+        {
+            if (!IsDeleting && Settings.Standard != value)
+            {
+                Settings.Standard = value;
+                SettingsChanged();
+            }
+        }
+    }
+
+    /// <summary>Marks the owning template's serialized protocol settings modified.</summary>
     internal void SettingsChanged()
     {
         if (Active != null)

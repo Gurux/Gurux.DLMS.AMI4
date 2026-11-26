@@ -32,8 +32,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository;
 
-/// <summary>Exposes optional importer operations through keyed BCL delegates without adding contract assembly dependencies.</summary>
-internal static class GXDeviceImporterServices
+/// <summary>Exposes authorized repository batch operations without adding contract assembly dependencies.</summary>
+internal static class GXRepositoryBatchServices
 {
 
     /// <summary>Registers authorized batched name lookup and a serializable validation/write callback.</summary>
@@ -41,12 +41,12 @@ internal static class GXDeviceImporterServices
     internal static void Register(IServiceCollection services)
     {
         services.AddKeyedScoped<Func<string[], CancellationToken, Task<GXDevice[]>>>(
-            "Gurux.AMI.Device.Importer.Lookup", (provider, _) =>
-                (names, token) => ((DeviceRepository)provider.GetRequiredService<IDeviceRepository>()).ListForImportAsync(names, token));
-        services.AddKeyedScoped<Func<Func<CancellationToken, Task<IEnumerable<Guid>>>, CancellationToken, Task<IEnumerable<Guid>>>>(
-            "Gurux.AMI.Device.Importer.Write", (provider, _) => async (operation, token) =>
+            "Gurux.AMI.Device.LookupNames", (provider, _) =>
+                (names, token) => ((DeviceRepository)provider.GetRequiredService<IDeviceRepository>()).ListByNamesAsync(names, token));
+        services.AddKeyedScoped<Func<Func<CancellationToken, Task<IEnumerable<Guid>>>, Action<Gurux.DLMS.AMI.Shared.DTOs.GXTarget>, CancellationToken, Task<IEnumerable<Guid>>>>(
+            "Gurux.AMI.Repository.Write", (provider, _) => async (operation, transform, token) =>
             {
-                using var notifications = new GXDeviceImportNotificationScope();
+                using var notifications = new GXNotificationMutationScope(transform);
                 return await GXHistoryScope.RunAsync(provider.GetRequiredService<IDbConnectionFactory>(),
                     _ => operation(token), token);
             });

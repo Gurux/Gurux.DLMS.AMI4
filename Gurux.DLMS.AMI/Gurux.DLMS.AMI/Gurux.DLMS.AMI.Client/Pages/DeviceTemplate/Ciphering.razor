@@ -27,201 +27,61 @@
 // --------------------------------------------------------------------------
 *@
 
-@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Components.Forms
+@using DeviceEditor = Gurux.DLMS.AMI.Client.Pages.Device.Device
+@using DeviceSettings = Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings
 
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.AMI.Shared.Rest
-@using Gurux.DLMS
-@using Gurux.DLMS.ManufacturerSettings
-@using Gurux.DLMS.Objects
-@using System.Xml.Linq
-@using System.IO
-@using System.Xml
-@using System.Xml.Serialization
-@using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Client.Helpers
-@using Gurux.DLMS.AMI.Module
-@using System.Text.Json
-@using System.Web;
-@using System.Text.Json.Serialization;
-
-@inject IServiceProvider Services
-@inject NavigationManager NavigationManager
-@inject HttpClient Http
-@inject ILogger<DeviceTemplateGeneral> Logger
-<GXHelpContext Topic="Ciphering" />
-
-@if (Parent?.Settings != null)
+@* <summary>Adapts saved Ciphering tab links and template settings tabs to the common ciphering editor.</summary> *@
+@if (Settings is { } settings && FormContext is { } formContext)
 {
-    <div class="row">
-        <div style="width:100%">
-            <div class="form-group">
-                <label>@Properties.Resources.Security</label>
-                <GXInputDropdown RememberValue="false" id="type" class="form-select"
-                             @bind-Value="SelectedSettings" readonly="true"
-                                 Items="@(GetSecurityLevels().Select(it => it.Id))" Formatter="@((Guid value) => GetSecurity(GetSecurityLevels().First(it => it.Id == value)).ToString())" />
-                <ValidationMessage For="@(() => SelectedSettings)" />
-            </div>
-        </div>
-
-        <div class="form-group">
-            <GXInputHexAscii Disabled="@IsDeleting"
-                           @bind-Value="Parent.Settings.ClientSystemTitle"
-                           Title="@Properties.Resources.ClientSystemTitle">
-            </GXInputHexAscii>
-            <ValidationMessage For="@(() => Parent.Settings.ClientSystemTitle)" />
-        </div>
-
-        <div class="form-group">
-            <GXInputHexAscii Disabled="@IsDeleting"
-                           @bind-Value="Parent.Settings.DeviceSystemTitle"
-                           Title="@Properties.Resources.DeviceSystemTitle">
-            </GXInputHexAscii>
-            <ValidationMessage For="@(() => Parent.Settings.DeviceSystemTitle)" />
-        </div>
-        <div class="form-group">
-            <GXInputHexAscii Disabled="@IsDeleting"
-                           @bind-Value="Parent.Settings.BlockCipherKey"
-                           Title="@Properties.Resources.BlockCipherKey">
-            </GXInputHexAscii>
-            <ValidationMessage For="@(() => Parent.Settings.BlockCipherKey)" />
-        </div>
-        <div class="form-group">
-            <GXInputHexAscii Disabled="@IsDeleting"
-                           @bind-Value="Parent.Settings.AuthenticationKey"
-                           Title="@Properties.Resources.AuthenticationKey">
-            </GXInputHexAscii>
-            <ValidationMessage For="@(() => Parent.Settings.AuthenticationKey)" />
-        </div>
-    </div>
+    <GXCipheringView Settings="@settings" FormContext="@formContext" Disabled="@Disabled" ClientSystemTitleDisabled="@ClientSystemTitleDisabled" OnChanged="SettingsChanged" />
 }
+
 @code {
-    protected override void OnInitialized()
-    {
-    }
-
-    internal void Update()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
-    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
-    {
-        if (Parent?.Settings != null && s.Security != (byte)Enums.Security.None)
-        {
-            if (Parent.Settings.ClientSystemTitle?.Any() == true)
-            {
-                if (Parent.Settings.ClientSystemTitle.Length != 8)
-                {
-                    sender.AddError(() => Parent.Settings.ClientSystemTitle, Properties.Resources.InvalidSystemTitle);
-                }
-            }
-            if (Parent.Settings.DeviceSystemTitle?.Any() == true)
-            {
-                if (Parent.Settings.DeviceSystemTitle.Length != 8)
-                {
-                    sender.AddError(() => Parent.Settings.DeviceSystemTitle, Properties.Resources.InvalidSystemTitle);
-                }
-            }
-            if (Parent.Settings.BlockCipherKey?.Any() == true)
-            {
-                if ((Parent.Settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.BlockCipherKey.Length != 16) ||
-                (Parent.Settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.BlockCipherKey.Length != 32))
-                {
-                    sender.AddError(() => Parent.Settings.BlockCipherKey, Properties.Resources.InvalidBlockCipherKey);
-                }
-            }
-            if (Parent.Settings.AuthenticationKey?.Any() == true)
-            {
-                if ((Parent.Settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.AuthenticationKey.Length != 16) ||
-                (Parent.Settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && Parent.Settings.AuthenticationKey.Length != 32))
-                {
-                    sender.AddError(() => Parent.Settings.AuthenticationKey, Properties.Resources.InvalidAuthenticationKey);
-                }
-            }
-        }
-    }
-
-    private Guid SelectedSettings { get; set; }
-
+    /// <summary>Gets or sets the legacy template-general host supplied by existing template settings tabs.</summary>
     [Parameter]
     public DeviceTemplateGeneral? Parent { get; set; }
 
-    internal GXDeviceTemplate? Active
+    /// <summary>Gets or sets the device editor supplied by the existing device tab cascade.</summary>
+    [CascadingParameter]
+    public DeviceEditor? Editor { get; set; }
+
+    /// <summary>Gets the mutable settings belonging to the active host.</summary>
+    private DeviceSettings? Settings => Parent != null ? Parent.Settings : Editor?.Settings;
+
+    /// <summary>Gets the edit context whose settings field owns these changes.</summary>
+    private EditContext? FormContext => Parent?.Active is { } template
+        ? GXEditContexts.For(template) : Editor?.FormContext;
+
+    /// <summary>Gets the template deletion state retained for existing consumers of this tab adapter.</summary>
+    public bool IsDeleting => Parent?.IsDeleting ?? false;
+
+    /// <summary>Gets whether the active host prevents key material changes.</summary>
+    private bool Disabled => Parent != null ? Parent.IsDeleting : Editor?.CanEditCiphering != true;
+
+    /// <summary>Gets whether the active host prevents changing the client title independently of managed keys.</summary>
+    private bool ClientSystemTitleDisabled => Parent != null ? Parent.IsDeleting : Editor?.CanEditClientSystemTitle != true;
+
+    /// <summary>Refreshes the common editor when the template host replaces its settings.</summary>
+    internal void Update()
     {
-        get
-        {
-            return Parent?.Active;
-        }
+        _ = InvokeAsync(StateHasChanged);
     }
 
-    public bool IsDeleting
+    /// <summary>Marks the owning device or template settings field modified after a permitted change.</summary>
+    private void SettingsChanged()
     {
-        get
+        if (Disabled && ClientSystemTitleDisabled)
         {
-            if (Parent == null)
-            {
-                return false;
-            }
-            return Parent.IsDeleting;
+            return;
         }
-    }
-
-    private bool IsCiphered()
-    {
-        if (Active?.Settings != null)
+        if (Parent != null)
         {
-            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
-            if (s == null)
-            {
-                return false;
-            }
-            if (s == null ||
-                s.Security != (byte)Gurux.DLMS.Enums.Security.None)
-            {
-                return false;
-            }
-            return true;
+            Parent.SettingsChanged();
         }
-        return false;
-    }
-
-    /// <summary>
-    /// Get available security levels.
-    /// </summary>
-    /// <returns>Available security levels.</returns>
-    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetSecurityLevels()
-    {
-        Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
-        if (Active?.Settings != null)
+        else if (Editor != null)
         {
-            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
-            if (s != null)
-            {
-                //Get default value when new device is create from device template.
-                current = (Gurux.DLMS.Enums.Security)s.Security;
-            }
+            Editor.FormContext.NotifyFieldChanged(new FieldIdentifier(Editor.Active, nameof(GXDevice.Settings)));
         }
-        List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> settings = new();
-        settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
-        {
-            Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings()
-            {
-                Security = (byte)current
-            })
-        });
-        return settings;
-    }
-
-    Gurux.DLMS.Enums.Security GetSecurity(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
-    {
-        Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
-        if (!string.IsNullOrEmpty(value?.Settings))
-        {
-            current = (Gurux.DLMS.Enums.Security)(JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings ?? "{}") ?? new()).Security;
-        }
-        return current;
     }
 }

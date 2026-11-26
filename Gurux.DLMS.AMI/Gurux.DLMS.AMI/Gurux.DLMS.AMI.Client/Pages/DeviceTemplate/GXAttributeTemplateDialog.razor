@@ -1,0 +1,239 @@
+@*
+// --------------------------------------------------------------------------
+// Gurux Ltd
+//
+// Copyright (c) Gurux Ltd.
+//
+// This file is part of Gurux Device Framework.
+//
+// Commit: $Format:%H$
+// Date:   $Format:%cI$
+//
+// This software is available under either of the following licenses:
+//
+// 1. GNU General Public License, version 2 only (GPL-2.0-only).
+//    See the LICENSE file included with this distribution.
+//
+// 2. A commercial license granted by Gurux Ltd under a separate written
+//    agreement. Use under this option requires a valid commercial license
+//    and is governed by the terms of that agreement.
+//
+// If you have not obtained a commercial license from Gurux Ltd,
+// use of this software is governed by GPL-2.0-only.
+//
+// Commercial licensing: https://www.gurux.fi/
+//
+// SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-Gurux-Commercial
+// --------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.Objects
+@using DataType = Gurux.DLMS.Enums.DataType
+@using AccessMode = Gurux.DLMS.Enums.AccessMode
+@using AccessMode3 = Gurux.DLMS.Enums.AccessMode3
+
+@if (_draft != null && _context != null)
+{
+    <GXDialog Title="@Properties.Resources.Edit" Save="false" ManageFocus="true"
+              OkButtonTitle="@Properties.Resources.Save" CancelButtonTitle="@Properties.Resources.Cancel"
+              OnOk="SaveAsync" OnCancel="OnCancel">
+        <CascadingValue Value="_context" IsFixed="true">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXTabControl @key="_draft" NavigateOnSelection="false">
+                <GXTabPage Text="@Properties.Resources.General">
+                    <div class="form-group">
+                        <label for="attribute-dialog-index">@Properties.Resources.Index</label>
+                        <input id="attribute-dialog-index" class="form-control" value="@_draft.Index" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label for="attribute-dialog-name">@Properties.Resources.Name</label>
+                        <InputText id="attribute-dialog-name" class="form-control" @bind-Value="_draft.Name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="attribute-dialog-type">@Properties.Resources.DataType</label>
+                        <GXInputDropdown Id="attribute-dialog-type" RememberValue="false" class="form-select"
+                                         @bind-Value="_draft.DataType" Items="@DataTypes" Formatter="@FormatType" />
+                    </div>
+                    <div class="form-group">
+                        <label for="attribute-dialog-ui-type">@Properties.Resources.UIDataType</label>
+                        <GXInputDropdown Id="attribute-dialog-ui-type" RememberValue="false" class="form-select"
+                                         @bind-Value="_draft.UIDataType" Items="@DataTypes" Formatter="@FormatType" />
+                    </div>
+
+                    <div class="form-group">
+                        <AttributeExpirationEditor Id="attribute-dialog-expiration" Template="_draft" />
+                    </div>
+
+                </GXTabPage>
+                <GXTabPage Text="@GXAttributeEnumValues.Text("DefaultValue")">
+                    <div class="form-group">
+                        <label for="attribute-dialog-default">@GXAttributeEnumValues.Text("DefaultValue")</label>
+                        <InputTextArea id="attribute-dialog-default" class="form-control" @bind-Value="_draft.DefaultValue" />
+                    </div>
+                </GXTabPage>
+                <GXTabPage Text="@Properties.Resources.AccessRights">
+                    <fieldset class="form-group">
+                        <legend class="h6">@Properties.Resources.AccessRights</legend>
+                        @if (VersionThree)
+                        {
+                            @foreach (var flag in Enum.GetValues<AccessMode3>().Where(flag => (int)flag != 0))
+                            {
+                                <label class="form-check">
+                                    <input type="checkbox" class="form-check-input" data-access-flag="@((int)flag)" checked="@((_draft.AccessLevel & (int)flag) == (int)flag)"
+                                           @onchange="args => SetAccessFlag(flag, args.Value is true)" />
+                                    @flag
+                                </label>
+                            }
+                        }
+                        else
+                        {
+                            <GXInputDropdown Id="attribute-dialog-access" RememberValue="false" class="form-select"
+                                             @bind-Value="_draft.AccessLevel" Items="@(Enum.GetValues<AccessMode>().Select(mode => (int)mode))"
+                                             Formatter="@((int value) => ((AccessMode)value).ToString())" />
+                        }
+                    </fieldset>
+                </GXTabPage>
+                @if (_methods != null && _methodNames.Length != 0)
+                {
+                    <GXTabPage Text="@GXAttributeEnumValues.Text("MethodAccessRights")">
+                        <table class="table table-striped method-access-rights">
+                            <thead>
+                                <tr>
+                                    <th>@Properties.Resources.Index</th>
+                                    <th>@Properties.Resources.Name</th>
+                                    <th>@Properties.Resources.AccessRights</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int index = 1; index <= _methodNames.Length; ++index)
+                                {
+                                    <tr>
+                                        <td>@index</td>
+                                        <td>@_methodNames[index - 1]</td>
+                                        <td>@GetMethodAccess(index)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </GXTabPage>
+                }
+                @if (GXAttributeEnumValues.CanEditValues(_draft, ObjectType ?? ObjectTemplate?.ObjectType ?? Template.ObjectTemplate?.ObjectType))
+                {
+                    <GXTabPage Text="@GXAttributeEnumValues.Text("AttributeEnumTab")">
+                        <AttributeEnumEditor Template="_draft" ObjectType="@(ObjectType ?? ObjectTemplate?.ObjectType ?? Template.ObjectTemplate?.ObjectType)" />
+                    </GXTabPage>
+                }
+            </GXTabControl>
+            @if (_enumError != null)
+            {
+                <p class="text-danger" role="alert">@_enumError</p>
+            }
+        </CascadingValue>
+    </GXDialog>
+}
+
+@code {
+    /// <summary>Gets or sets the original attribute; edits are isolated until confirmation.</summary>
+    [Parameter, EditorRequired]
+    public GXAttributeTemplate Template { get; set; } = default!;
+
+    /// <summary>Gets or sets the owning COSEM class used to limit named value editing.</summary>
+    [Parameter]
+    public int? ObjectType { get; set; }
+
+    /// <summary>Gets or sets the owning object whose method rights are displayed in the dialog.</summary>
+    [Parameter]
+    public GXObjectTemplate? ObjectTemplate { get; set; }
+
+    /// <summary>Gets or sets whether attribute rights use association version 3 flags.</summary>
+    [Parameter]
+    public bool VersionThree { get; set; }
+
+    /// <summary>Receives the validated detached attribute after confirmation.</summary>
+    [Parameter]
+    public EventCallback<GXAttributeTemplate> OnSave { get; set; }
+
+    /// <summary>Closes the dialog without applying any pending changes.</summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>Tracks the original model to avoid discarding edits during child rerenders.</summary>
+    private GXAttributeTemplate? _original;
+    /// <summary>Contains the settings and named values isolated from the page's model.</summary>
+    private GXAttributeTemplate? _draft;
+    /// <summary>Owns validation for the detached dialog model.</summary>
+    private EditContext? _context;
+
+    /// <summary>Contains a named-value validation error even when its tab has not been opened.</summary>
+    private string? _enumError;
+
+    /// <summary>Decodes the owning object's persisted method rights without changing the object.</summary>
+    private GXObjectCosem? _methods;
+
+    /// <summary>Contains the method names available for the owning class and version.</summary>
+    private string[] _methodNames = [];
+
+    /// <summary>Gets all supported wire types as persisted integer identifiers.</summary>
+    private static IEnumerable<int> DataTypes => Enum.GetValues<DataType>().Select(type => (int)type);
+
+    /// <summary>Formats a protocol type without translating its identifier.</summary>
+    /// <param name="value">The persisted DLMS type identifier.</param>
+    /// <returns>The DLMS type name.</returns>
+    private static string FormatType(int value) => ((DataType)value).ToString();
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        var owner = ObjectTemplate ?? Template.ObjectTemplate;
+        _methods = owner?.ObjectType is > 0 ? new GXObjectCosem(new GXObject { Template = owner, Attributes = [] }) : null;
+        _methodNames = _methods?.Target is IGXDLMSBase details
+            ? details.GetMethodNames().Take(details.GetMethodCount()).ToArray() : [];
+        if (!ReferenceEquals(_original, Template))
+        {
+            _original = Template;
+            // Do not clone the ownership graph, which can contain a reference back to this attribute.
+            _draft = new GXAttributeTemplate
+            {
+                Id = Template.Id, Index = Template.Index, Name = Template.Name,
+                AccessLevel = Template.AccessLevel, DataType = Template.DataType, UIDataType = Template.UIDataType,
+                Scaler = Template.Scaler, Unit = Template.Unit, ExpirationTime = Template.ExpirationTime,
+                DefaultValue = Template.DefaultValue,
+                ListItems = Template.ListItems?.Select(item => new GXAttributeListItem
+                {
+                    Id = item.Id, Value = item.Value, UIValue = item.UIValue, Shift = item.Shift, MaskSize = item.MaskSize
+                }).ToList()
+            };
+            _context = new EditContext(_draft);
+            _enumError = null;
+        }
+    }
+
+    /// <summary>Formats a method's rights using the owning object's stored association encoding.</summary>
+    /// <param name="index">The one-based method index.</param>
+    /// <returns>The protocol method access mode or security flags.</returns>
+    private string GetMethodAccess(int index) => _methods!.Association.Version >= 3
+        ? _methods.Target.GetMethodAccess3(index).ToString()
+        : _methods.Target.GetMethodAccess(index).ToString();
+    /// <summary>Changes one version 3 access flag while preserving other security requirements.</summary>
+    /// <param name="flag">The access or security requirement changed by the checkbox.</param>
+    /// <param name="enabled">Whether the requirement is selected.</param>
+    private void SetAccessFlag(AccessMode3 flag, bool enabled)
+    {
+        if (_draft != null)
+        {
+            _draft.AccessLevel = enabled ? _draft.AccessLevel | (int)flag : _draft.AccessLevel & ~(int)flag;
+        }
+    }
+
+    /// <summary>Validates settings and all retained named values before returning the detached edit.</summary>
+    /// <returns>The completion of validation and the parent's confirmation callback.</returns>
+    private async Task SaveAsync()
+    {
+        _enumError = _draft == null ? null : GXAttributeEnumValues.GetError(_draft);
+        if (_enumError == null && _draft != null && _context != null && await GXEditContexts.ValidateAsync(_context))
+        {
+            await OnSave.InvokeAsync(_draft);
+        }
+    }
+}
