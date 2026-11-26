@@ -208,6 +208,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public async Task<object> Read(GXDLMSObject it, int attributeIndex)
         {
+            if (it is GXDLMSProfileGeneric && attributeIndex == 2 && _logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                _logger.LogInformation("Reading Profile Generic: {LogicalName}, Buffer (Read attribute 2)", it.LogicalName);
+            }
             string type = "Read";
             GXLog? a = null;
             if (_device != null)
@@ -248,7 +252,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     if (dataType == DataType.Array || dataType == DataType.Structure ||
                         reply.Value is GXStructure || reply.Value is GXArray)
                     {
-                        if (it is GXDLMSProfileGeneric && attributeIndex == 2)
+                        if (it is GXDLMSProfileGeneric && attributeIndex == 2 && _logger?.IsEnabled(LogLevel.Information) == true)
                         {
                             return reply.Value;
                         }
@@ -341,7 +345,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// Read Profile Generic Columns by entry.
         /// </summary>
         /// <param name="it">Protocol object or profile whose data is requested.</param>
-        /// <param name="index">Protocol attribute index receiving the decoded value.</param>
+        /// <param name="index">The one-based first buffer entry.</param>
         /// <param name="count">Maximum number of profile entries to retrieve.</param>
         /// <returns>Decoded profile rows within the requested entry range.</returns>
         /// <remarks>Uses the shared raw exchange to preserve GXArray rows and unconverted octets required by AMI history.</remarks>
@@ -349,7 +353,30 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public object ReadRowsByEntry(GXDLMSProfileGeneric it, UInt32 index, UInt32 count)
         {
+            if (_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                _logger.LogInformation("Reading Profile Generic: {LogicalName}, Entry (index {Index}, count {Count})",
+                    it.LogicalName, index, count);
+            }
             return _session.Exchange(client => client.ReadRowsByEntry(it, index, count), CancellationToken).Value;
+        }
+
+        /// <summary>Reads only the selected Clock time column for a bounded range of profile entries.</summary>
+        /// <param name="profile">The profile whose captured timestamps are inspected.</param>
+        /// <param name="index">The one-based first buffer entry.</param>
+        /// <param name="count">The maximum number of entries to retrieve.</param>
+        /// <param name="clockColumn">The zero-based captured Clock time column.</param>
+        /// <returns>Wire rows containing the selected timestamp column.</returns>
+        /// <exception cref="GXDLMSException">The meter rejects entry or column selection.</exception>
+        /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
+        internal object ReadClockRowsByEntry(GXDLMSProfileGeneric profile, uint index, uint count, int clockColumn)
+        {
+            if (_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                _logger.LogInformation("Reading Profile Generic: {LogicalName}, Entry (index {Index}, count {Count}, clock column {Column})",
+                    profile.LogicalName, index, count, clockColumn + 1);
+            }
+            return _session.Exchange(client => client.ReadRowsByEntry(profile, index, count, clockColumn + 1, clockColumn + 1), CancellationToken).Value;
         }
 
         /// <summary>
@@ -358,13 +385,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <param name="it">Protocol object or profile whose data is requested.</param>
         /// <param name="start">Beginning of the requested profile history interval.</param>
         /// <param name="end">End of the requested profile history interval.</param>
-        /// <returns>Decoded profile rows within the requested time range.</returns>
-        /// <remarks>Preserves typed wire rows instead of converting them into the shared reader's profile buffer.</remarks>
+        /// <returns>Decoded profile rows within the requested time range using the resolved captured clock.</returns>
+        /// <remarks>Logs the Range selection and requested interval in the local time zone with second precision and preserves typed wire rows instead of converting them into the shared reader's profile buffer.</remarks>
         /// <exception cref="GXDLMSException">The meter rejects the requested operation.</exception>
         /// <exception cref="OperationCanceledException">The device task is cancelled.</exception>
         public object ReadRowsByRange(GXDLMSProfileGeneric it, DateTime start, DateTime end)
         {
-            return _session.Exchange(client => client.ReadRowsByRange(it, start, end), CancellationToken).Value;
+            if (_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                _logger.LogInformation("Reading Profile Generic: {LogicalName}, Range [{Start:yyyy-MM-dd HH:mm:ss zzz} - {End:yyyy-MM-dd HH:mm:ss zzz}]",
+                    it.LogicalName, start.ToLocalTime(), end.ToLocalTime());
+            }
+            return _session.Exchange(client => GXProfileRangeRequest.Create(client, it, start, end), CancellationToken).Value;
         }
 
         /// <summary>Opens a fresh association to prove the new LLS password before server activation.</summary>

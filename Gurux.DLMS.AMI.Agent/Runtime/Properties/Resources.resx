@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -129,4 +129,9 @@
   <data name="UnknownDevice" xml:space="preserve">
     <value>Unknown device.</value>
   </data>
+  <data name="ProfileRangeClockRequired" xml:space="preserve">
+    <value>The profile range requires a captured Clock time attribute.</value>
+  </data>
+  <data name="ProfileMetadataUnavailable" xml:space="preserve"><value>Cached metadata for profile attribute {0} is unavailable.</value></data>
+  <data name="ProfileBufferReadIncomplete" xml:space="preserve"><value>The complete profile buffer could not be read from the meter.</value></data>
 </root>

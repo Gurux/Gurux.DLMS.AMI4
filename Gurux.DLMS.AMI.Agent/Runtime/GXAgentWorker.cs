@@ -532,6 +532,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <param name="task">Task or asynchronous operation whose execution is being coordinated.</param>
         /// <param name="token">Cancels the operation when its owning lifetime ends.</param>
         /// <returns>A task representing this operation: Dispatches a device task to its protocol read, write, action or script implementation.</returns>
+        /// <remarks>Whole-device and whole-object reads omit static or unreadable attributes and standalone Profile Generic capture-object reads. Explicit attribute tasks and required buffer metadata remain supported.</remarks>
         private async System.Threading.Tasks.Task ExecuteTasksCore(GXDevice dev, GXDLMSReader reader, GXDLMSSecureClient cl, GXTask task, CancellationToken token)
         {
             if (IsPasswordChange(task, out _))
@@ -619,7 +620,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         }
                         task.Object = task.Attribute.Object ?? throw new ArgumentException("Task object is missing.");
                         task.Object.Attributes ??= [];
-                        task.Object.Attributes.Add(task.Attribute);
+                        if (!task.Object.Attributes.Any(attribute => attribute.Id == task.Attribute.Id))
+                        {
+                            task.Object.Attributes.Add(task.Attribute);
+                        }
                         await Reader.Read(Client, _logger, reader, task, obj, token);
                         if (task.Attribute.Template.DataType == 0)
                         {
@@ -656,7 +660,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             {
                                 throw new ArgumentException("Attribute template is missing.");
                             }
-                            if ((attribute.Template.AccessLevel & (int)Enums.AccessMode.Read) == 0)
+                            // Capture layout is fetched by buffer reads when needed; only explicit attribute tasks read it separately.
+                            if (obj is GXDLMSProfileGeneric && attribute.Template.Index == 3)
+                            {
+                                continue;
+                            }
+                            if (!GXObjectReadPolicy.CanRead(attribute.Template, task.Object.Template))
                             {
                                 if (_logger?.IsEnabled(LogLevel.Information) == true)
                                 {
